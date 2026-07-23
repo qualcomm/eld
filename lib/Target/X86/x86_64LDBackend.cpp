@@ -335,11 +335,7 @@ void x86_64LDBackend::applyTargetDynamicEntries() {
 x86_64GOT *x86_64LDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                                       ResolveInfo *R) {
 
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_got_entry)
-        << GOT::getGOTTypeAsStr(T) << R->name();
+  traceGOTCreation(T, R);
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->hasFragments()) {
     // GOTPLT0 will populate its first 8 bytes with .dynamic address.
@@ -407,10 +403,7 @@ x86_64GOT *x86_64LDBackend::findEntryInGOT(ResolveInfo *I) const {
 x86_64PLT *x86_64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
                                       bool isIRelative) {
   bool hasNow = config().options().hasNow();
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_plt_entry) << R->name();
+  tracePLTCreation(R);
 
   reportErrorIfPLTIsDiscarded(R);
 

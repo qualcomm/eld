@@ -673,11 +673,7 @@ AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
                                                ResolveInfo *R,
                                                bool SkipPLTRef) {
 
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_got_entry)
-        << GOT::getGOTTypeAsStr(T) << R->name();
+  traceGOTCreation(T, R);
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->hasFragments()) {
     // TODO: This should be GOT0, not GOTPLT0.
@@ -751,10 +747,7 @@ AArch64GOT *AArch64LDBackend::findEntryInGOT(ResolveInfo *I) const {
 AArch64PLT *AArch64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
                                         bool isIRelative) {
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_plt_entry) << R->name();
+  tracePLTCreation(R);
 
   reportErrorIfPLTIsDiscarded(R);
 

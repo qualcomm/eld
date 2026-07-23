@@ -17,6 +17,7 @@
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "eld/Input/ELFDynObjectFile.h"
 #endif
+#include "eld/Fragment/GOT.h"
 #include "eld/Object/ObjectBuilder.h"
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFExecObjParser.h"
@@ -713,6 +714,10 @@ public:
   void reportErrorIfGOTIsDiscarded(ResolveInfo *R) const;
   void reportErrorIfPLTIsDiscarded(ResolveInfo *R) const;
   void reportErrorIfGOTPLTIsDiscarded(ResolveInfo *R) const;
+
+  void traceGOTCreation(GOT::GOTType T, const ResolveInfo *R) const;
+
+  void tracePLTCreation(const ResolveInfo *R) const;
 
   virtual LDSymbol *getGOTSymbol() const { return m_pGOTSymbol; }
 

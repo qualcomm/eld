@@ -947,11 +947,7 @@ void HexagonLDBackend::initializeAttributes() {
 HexagonGOT *HexagonLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                                         ResolveInfo *R) {
 
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_got_entry)
-        << GOT::getGOTTypeAsStr(T) << R->name();
+  traceGOTCreation(T, R);
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->hasFragments()) {
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
@@ -1024,10 +1020,7 @@ HexagonGOT *HexagonLDBackend::findEntryInGOT(ResolveInfo *I) const {
 // Create PLT entry.
 HexagonPLT *HexagonLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
   bool hasNow = config().options().hasNow();
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_plt_entry) << R->name();
+  tracePLTCreation(R);
 
   reportErrorIfPLTIsDiscarded(R);
 

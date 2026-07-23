@@ -27,6 +27,7 @@
 #include "eld/Fragment/EhFrameFragment.h"
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/GNUHashFragment.h"
+#include "eld/Fragment/GOT.h"
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "eld/Fragment/GNUVerDefFragment.h"
 #include "eld/Fragment/GNUVerNeedFragment.h"
@@ -1685,6 +1686,26 @@ void GNULDBackend::reportErrorIfGOTPLTIsDiscarded(ResolveInfo *R) const {
     config().raise(Diag::error_discarded_dynamic_section_required)
         << SymName << FileName << ".got.plt";
   }
+}
+
+void GNULDBackend::traceGOTCreation(GOT::GOTType T,
+                                    const ResolveInfo *R) const {
+  if (R == nullptr)
+    return;
+  if ((config().options().isSymbolTracingRequested() &&
+       config().options().traceSymbol(*R)) ||
+      m_Module.getPrinter()->traceDynamicLinking())
+    config().raise(Diag::create_got_entry)
+        << GOT::getGOTTypeAsStr(T) << R->name();
+}
+
+void GNULDBackend::tracePLTCreation(const ResolveInfo *R) const {
+  if (R == nullptr)
+    return;
+  if ((config().options().isSymbolTracingRequested() &&
+       config().options().traceSymbol(*R)) ||
+      m_Module.getPrinter()->traceDynamicLinking())
+    config().raise(Diag::create_plt_entry) << R->name();
 }
 
 // Patching sections.
