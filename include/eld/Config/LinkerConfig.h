@@ -72,7 +72,8 @@ public:
     ApplyRelocations = 0x20,
     LinkerRelaxation = 0x40,
     AssignVersionScriptNodes = 0x80,
-    AllThreads = 0x1 | 0x4 | 0x8 | 0x10 | 0x20 | 0x40 | 0x80,
+    EmitOutput = 0x100,
+    AllThreads = 0x1 | 0x4 | 0x8 | 0x10 | 0x20 | 0x40 | 0x80 | 0x100,
   };
 
   enum SymDefStyle { Default, Provide, UnknownSymDefStyle };
@@ -174,6 +175,10 @@ public:
     return EnableThreads & LinkerConfig::AssignVersionScriptNodes;
   }
 
+  bool isEmitOutputMultiThreaded() const {
+    return EnableThreads & LinkerConfig::EmitOutput;
+  }
+
   void setThreadOptions(uint32_t EnableThreadsOpt) {
     EnableThreads = NoThreads;
     if (EnableThreadsOpt & AssignOutputSections)
@@ -190,6 +195,8 @@ public:
       EnableThreads |= LinkerRelaxation;
     if (EnableThreadsOpt & AssignVersionScriptNodes)
       EnableThreads |= AssignVersionScriptNodes;
+    if (EnableThreadsOpt & EmitOutput)
+      EnableThreads |= EmitOutput;
   }
 
   void disableThreadOptions(uint32_t ThreadOptions) {
