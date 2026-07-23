@@ -144,9 +144,7 @@ void x86_64Relocator::scanRelocation(Relocation &pReloc,
       }
     }
   }
-  ELFSection *section = pSection.getLink()
-                            ? pSection.getLink()
-                            : pReloc.targetRef()->frag()->getOwningSection();
+  ELFSection *section = pSection.getLink();
 
   if (!section->isAlloc())
     return;
