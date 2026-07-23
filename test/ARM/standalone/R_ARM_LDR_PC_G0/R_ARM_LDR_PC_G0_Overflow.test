@@ -1,0 +1,11 @@
+#---R_ARM_LDR_PC_G0_Overflow.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify R_ARM_LDR_PC_G0 reports overflow when offset exceeds 4095 bytes.
+# Uses linker script to place sections more than 4095 bytes apart.
+#END_COMMENT
+#START_TEST
+RUN: %clangas -c %p/Inputs/overflow.s -o %t.o
+RUN: %not %link %linkopts -march arm -static \
+RUN:   -T %p/Inputs/overflow.t %t.o -o %t.out 2>&1 | %filecheck %s
+CHECK: R_ARM_LDR_PC_G0 out of range
+#END_TEST

@@ -986,6 +986,45 @@ Relocator::Result abs32(Relocation &pReloc, ARMRelocator &pParent) {
   return Relocator::OK;
 }
 
+// R_ARM_LDR_PC_G0: S + A - P
+// See ARM IHI0044 Table 4-15.
+// R_ARM_LDR_PC_Gn is S + A - P, we have ((S + A) | T) - P, if S is a
+// function then addr is 0 (modulo 2) and Pa is 0 (modulo 4) so we can
+// clear bottom bit to recover S + A - P.
+// LDR (literal): U bit = bit23, imm12 = bits[11:0]
+Relocator::Result ldr_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
+  Relocator::Address S = pParent.getSymValue(&pReloc);
+  Relocator::Address P = pReloc.place(pParent.module());
+
+  // Extract addend from LDR instruction (imm12 field with sign from U bit)
+  bool isAdd = pReloc.target() & 0x00800000;
+  int32_t instrAddend = isAdd ? (int32_t)(pReloc.target() & 0xfff)
+                              : -(int32_t)(pReloc.target() & 0xfff);
+  Relocator::DWord A = instrAddend + pReloc.addend();
+
+  // Clear thumb bit if symbol is a function
+  if (pReloc.symInfo()->type() == ResolveInfo::Function)
+    S &= ~0x1;
+
+  int64_t imm = (int64_t)(S + A) - (int64_t)P;
+
+  // LDR (literal): U bit = bit23 (1=add, 0=subtract)
+  uint32_t u = 0x00800000; // U=1
+  if (imm < 0) {
+    imm = -imm;
+    u = 0x0; // U=0
+  }
+
+  if (imm > 0xfff) {
+    pReloc.issueUnsignedOverflow(pParent, imm, 0, 0xfff);
+    return ARMRelocator::Overflow;
+  }
+
+  // Keep existing bits, set U bit and imm12
+  pReloc.target() = (pReloc.target() & 0xff7ff000) | u | imm;
+  return Relocator::OK;
+}
+
 // R_ARM_REL32: ((S + A) | T) - P
 // R_ARM_SBREL32: ((S + A) | T) - B(S)
 Relocator::Result rel32(Relocation &pReloc, ARMRelocator &pParent) {

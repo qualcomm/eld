@@ -1,0 +1,16 @@
+REQUIRES: run_test
+#---R_ARM_LDR_PC_G0.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Test the ARM R_ARM_LDR_PC_G0 relocation at runtime.
+# R_ARM_LDR_PC_G0 is a PC-relative relocation encoded in an LDR instruction.
+# Formula: S + A - P
+# Covers: static
+#END_COMMENT
+#START_TEST
+RUN: %run_cc -nostdlib -c -o %t.startup.o %p/Inputs/startup.s
+RUN: %run_cc -nostdlib -c -o %t.main.o %p/Inputs/main.s
+RUN: %readelf -r %t.main.o | %filecheck %s --check-prefix RELOCS
+RUN: %run_cc -static -nostartfiles -o %t.static.out %t.startup.o %t.main.o
+RUN: %run %t.static.out
+RELOCS: R_ARM_LDR_PC_G0 {{.*}} target
+#END_TEST
