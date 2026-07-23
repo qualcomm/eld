@@ -1425,7 +1425,7 @@ bool RISCVLDBackend::doRelaxationGOT(Relocation &Reloc) {
   // been removed from the calculation. eld should ignore any non-zero addends
   // for the relocations involved here, but assert to be sure as it is unclear
   // how non-zero addends should be handled in this relaxation.
-  assert(!Reloc->addend() && !BaseReloc->addend() &&
+  assert(!Reloc.addend() && !BaseReloc->addend() &&
          "Unexpected non-zero addend!");
 
   ResolveInfo *SymInfo = BaseReloc->symInfo();
