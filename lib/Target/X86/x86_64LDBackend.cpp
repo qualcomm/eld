@@ -26,6 +26,7 @@
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/TargetParser/Host.h"
+#include <cstring>
 #include <limits>
 
 using namespace eld;
@@ -151,7 +152,28 @@ bool x86_64LDBackend::isGOTPCRELXRelaxable(const Relocation *reloc) const {
 }
 
 bool x86_64LDBackend::shouldIgnoreRelocSync(Relocation *reloc) const {
-  return isGOTPCRELXRelaxCandidate(reloc);
+  // GOTPCRELX candidates: apply rewrites displacement in postProcessing.
+  // TLSLD candidates and their companion call relocs: bytes overwritten by
+  // the LD→LE rewrite; apply must return OK without a GOT/PLT lookup.
+  return isGOTPCRELXRelaxCandidate(reloc) || isTLSLDRelaxCandidate(reloc);
+}
+
+bool x86_64LDBackend::recordTLSLDLERelaxCandidate(Relocation *reloc) {
+  if (!config().isBuildingExecutable())
+    return false;
+  auto *RF = llvm::dyn_cast<RegionFragment>(reloc->targetRef()->frag());
+  if (!RF)
+    return false;
+  uint32_t offset = reloc->targetRef()->offset();
+  // relaxTLSLDReloc reads the leaq opcode at loc[-3] (needs offset >= 3) and
+  // the following call bytes at loc[4]/loc[5] to pick the direct vs indirect
+  // variant (needs offset + 6 <= region size). Reject a truncated or
+  // hand-crafted sequence that would make either read out of bounds; it falls
+  // through to the normal non-relaxed path.
+  if (offset < 3 || offset + 6 > RF->getRegion().size())
+    return false;
+  recordTLSLDRelaxCandidate(reloc);
+  return true;
 }
 
 eld::Expected<void>
@@ -160,7 +182,7 @@ x86_64LDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
 
   // Relaxation rewrites bytes in the laid-out output image; it is not
   // applicable to partial links, which have no final layout.
-  if (config().options().getRelax() && !config().isLinkPartial())
+  if (!config().isLinkPartial())
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(doRelax(pOutput));
 
   return {};
@@ -168,21 +190,24 @@ x86_64LDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
 
 eld::Expected<void> x86_64LDBackend::doRelax(llvm::FileOutputBuffer &pOutput) {
   uint8_t *buf = pOutput.getBufferStart();
-  // The scan phase already identified every relaxation candidate (skipping
-  // debug relocations and internal files, which never carry a relaxable
-  // relocation). Iterate that cached set instead of re-walking all
-  // relocations, and dispatch on the relocation type. Future relaxable types
-  // (e.g. R_X86_64_REX_GOTPCRELX, TLS relaxations) add a case here.
-  for (Relocation *reloc : m_GOTPCRELXRelaxCandidates) {
-    switch (reloc->type()) {
-    case llvm::ELF::R_X86_64_GOTPCRELX:
-      ELDEXP_RETURN_DIAGENTRY_IF_ERROR(relaxGOTPCRELXReloc(reloc, buf));
-      break;
-    default:
-      // Only relaxable types are recorded as candidates; skip anything else.
-      break;
+  // The scan phase already identified every relaxation candidate.
+  // GOTPCRELX relaxation is optional (--relax); LD→LE is
+  // mandatory (otherwise we get an undefined reference for __tls_get_addr in
+  // static links).
+  if (config().options().getRelax()) {
+    for (Relocation *reloc : m_GOTPCRELXRelaxCandidates) {
+      switch (reloc->type()) {
+      case llvm::ELF::R_X86_64_GOTPCRELX:
+        ELDEXP_RETURN_DIAGENTRY_IF_ERROR(relaxGOTPCRELXReloc(reloc, buf));
+        break;
+      default:
+        // Only relaxable types are recorded as candidates; skip anything else.
+        break;
+      }
     }
   }
+  for (Relocation *reloc : m_TLSLDRelaxCandidates)
+    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(relaxTLSLDReloc(reloc, buf));
   return {};
 }
 
@@ -280,6 +305,68 @@ eld::Expected<void> x86_64LDBackend::relaxGOTPCRELXReloc(Relocation *reloc,
     location = traceSect->getLocation(offset, config().options());
     config().raise(Diag::trace_relax_gotpcrelx)
         << location << kind << rsym->name();
+  }
+
+  return {};
+}
+
+eld::Expected<void> x86_64LDBackend::relaxTLSLDReloc(Relocation *reloc,
+                                                     uint8_t *buf) {
+  // recordTLSLDLERelaxCandidate already verified the fragment is a
+  // RegionFragment and that offset >= 3 with room for the loc[4]/loc[5] reads.
+  // Use cast<> (asserts on null) rather than dyn_cast<> (which would
+  // redundantly check a guaranteed-true condition).
+  auto *RF = llvm::cast<RegionFragment>(reloc->targetRef()->frag());
+  uint32_t offset = reloc->targetRef()->offset();
+  assert(offset >= 3 && "TLSLD relax candidate offset must be >= 3");
+
+  FragmentRef::Offset off = reloc->targetRef()->getOutputOffset(m_Module);
+  if (off == (FragmentRef::Offset)-1)
+    return {};
+  size_t out_off = reloc->targetRef()->getOutputELFSection()->offset() + off;
+
+  // Read the call byte from the input fragment to detect the variant.
+  // loc points to the 4-byte displacement of the leaq instruction.
+  // loc[4] is the first byte of the following call instruction:
+  //   0xe8       → direct  callq __tls_get_addr@PLT  (5 bytes)
+  //   0xff 0x15  → indirect call *__tls_get_addr@GOTPCREL(%rip) (6 bytes)
+  const uint8_t *loc =
+      reinterpret_cast<const uint8_t *>(RF->getRegion().data()) + offset;
+
+  // 12-byte LD→LE replacement: 3×data16 + movq %fs:0,%rax
+  // Overwrites the leaq+callq pair starting at out_off-3 (leaq opcode byte).
+  static const uint8_t kLDToLE[12] = {
+      0x66, 0x66, 0x66,                                    // data16 ×3
+      0x64, 0x48, 0x8b, 0x04, 0x25, 0x00, 0x00, 0x00, 0x00 // movq %fs:0, %rax
+  };
+
+  if (loc[4] == 0xe8) {
+    // Direct call: leaq(7) + callq(5) = 12 bytes.
+    // Write kLDToLE[12] starting at out_off-3 (the leaq opcode).
+    std::memcpy(buf + out_off - 3, kLDToLE, sizeof(kLDToLE));
+  } else if (loc[4] == 0xff && loc[5] == 0x15) {
+    // Indirect call: leaq(7) + call*(6) = 13 bytes.
+    // One extra 0x66 prefix at out_off-3, then kLDToLE[12] at out_off-2.
+    buf[out_off - 3] = 0x66;
+    std::memcpy(buf + out_off - 2, kLDToLE, sizeof(kLDToLE));
+  } else {
+    // Unknown call byte — leave the bytes unchanged. This is safe: the TLSLD
+    // reloc's GOT entry was not created, so the apply step returns OK via the
+    // candidate guard, and a non-relaxed leaq+call sequence still executes
+    // correctly (it just keeps the __tls_get_addr call).
+    return {};
+  }
+
+  if (m_Module.getPrinter()->traceRelax()) {
+    ELFSection *traceSect = RF->getOwningSection();
+    assert(traceSect &&
+           "RegionFragment in relax candidate must have an owning section");
+    std::string fileName;
+    if (InputFile *F = traceSect->getInputFile())
+      if (auto *I = F->getInput())
+        fileName = I->decoratedPath();
+    config().raise(Diag::trace_relax_tlsld_le)
+        << traceSect->name() << llvm::utohexstr(offset) << fileName;
   }
 
   return {};

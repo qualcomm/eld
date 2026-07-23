@@ -1,0 +1,13 @@
+#--TLSLDRelax_Static.test----------Executable--------#
+# Static link with TLSLD: leaq+callq rewrites to 12-byte LE form; no DTPMOD64.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ld.s -o %t.o
+RUN: %link %linkopts -static -e get_tls -o %t.eld %t.o
+RUN: %objdump -d %t.eld | %filecheck %s
+RUN: %readelf -r %t.eld | %filecheck %s --check-prefix=NORELOC
+#END_TEST
+
+CHECK: <get_tls>:
+CHECK-NEXT: {{[0-9a-f]+}}: 66 66 66 64 48 8b 04 25 00 00 00 00
+
+NORELOC-NOT: R_X86_64_DTPMOD64
