@@ -1,0 +1,14 @@
+#--TLSIERelax_AddendNonM4.test----------Static Executable--------#
+# R_X86_64_GOTTPOFF with addend != -4 must not be relaxed.
+# GNU as always emits GOTTPOFF with addend -4; a non-standard addend means
+# the instruction is not a plain movq/addq gottpoff(%rip) load and cannot
+# be rewritten. The GOT slot must be preserved.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ie_addend_nonm4.s -o %t.o
+RUN: %link %linkopts -static -e get_tls_bad -o %t.eld %t.o
+RUN: %objdump -d %t.eld | %filecheck %s
+#END_TEST
+
+# Instruction must remain a movq from GOT (8b opcode), not a movq $imm (c7).
+CHECK: <get_tls_bad>:
+CHECK-NEXT: {{[0-9a-f]+}}: 48 8b {{.*}}

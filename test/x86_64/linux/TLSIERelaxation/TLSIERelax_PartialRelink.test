@@ -1,0 +1,29 @@
+#--TLSIERelax_PartialRelink.test----------Static Executable--------#
+# Two-stage link: a partial link (-r) must NOT relax GOTTPOFF (it has no final
+# layout), and must preserve the relocation so the final link can relax it.
+# Relinking the partial output into a static executable must then relax.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ie_mov.s -o %t.o
+
+# Stage 1: partial link (-r). Relaxation must be skipped; the
+# GOTTPOFF relocation and the GOT-indirect movq (opcode 48 8b) must survive.
+RUN: %link %linkopts -r -o %t.partial.o %t.o
+RUN: %readelf -r %t.partial.o | %filecheck %s --check-prefix=PARTIAL
+RUN: %objdump -dr %t.partial.o | %filecheck %s --check-prefix=PARTIALDIS
+
+# Stage 2: relink the partial output into a final static executable.
+# The GOTTPOFF must now relax to movq $imm (opcode 48 c7 c0).
+RUN: %link %linkopts -static -e get_tls -o %t.eld %t.partial.o
+RUN: %objdump -d %t.eld | %filecheck %s --check-prefix=FINAL
+#END_TEST
+
+# Partial output must keep the GOTTPOFF relocation.
+PARTIAL: R_X86_64_GOTTPOFF {{.*}} tls_var
+
+# Partial output is not relaxed: still a GOT-indirect movq (48 8b 05).
+PARTIALDIS: <get_tls>:
+PARTIALDIS-NEXT: {{[0-9a-f]+}}: 48 8b 05 {{.*}}
+
+# Final output: relaxed to movq $imm (48 c7 c0).
+FINAL: <get_tls>:
+FINAL-NEXT: {{[0-9a-f]+}}: 48 c7 c0 {{.*}}
