@@ -31,7 +31,7 @@ jobs:
             enabled: 1
           - arch: arm
             toolchain_asset: arm-unknown-linux-musleabi.tar.xz
-            enabled: 0
+            enabled: 1
           - arch: aarch64
             toolchain_asset: aarch64-unknown-linux-musl.tar.xz
             enabled: 0
@@ -75,7 +75,7 @@ jobs:
             target_triple: arm-unknown-linux-musleabi
             toolchain_dir: arm-unknown-linux-musleabi
             qemu_bin: qemu-arm
-            enabled: 0
+            enabled: 1
           - arch: aarch64
             busybox_arch: aarch64
             target_triple: aarch64-unknown-linux-musl
