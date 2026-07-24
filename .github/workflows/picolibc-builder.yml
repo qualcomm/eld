@@ -1,7 +1,9 @@
 name: nightly picolibc builder
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request:
+    paths:
+      - '.github/workflows/picolibc-builder.yml'
   schedule:
     # 10:00 PM Central
     - cron: '0 4 * * *'
@@ -58,6 +60,13 @@ jobs:
             picolibc-tls-ie: "-Dtls-model=initial-exec"
             extra-c-flags: "-march=armv7-a"
             extra-cxx-flags: "-march=armv7-a"
+          - name: x86_64
+            picolibc-name: x86_64
+            triple: x86_64-none-elf
+            llvm-target: X86
+            picolibc-default-config: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/x86_64-none-elf"
+            picolibc-no-tls: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/x86_64-none-elf -Dthread-local-storage=false"
+            picolibc-tls-ie: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/x86_64-none-elf -Dtls-model=initial-exec"
 
     steps:
       - name: Set up Clang 20
@@ -69,7 +78,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y libc++-dev libc++abi-dev ccache libclang-rt-20-dev cmake ninja-build make bison flex python3 m4 git libglib2.0-dev
+          sudo apt install -y libc++-dev libc++abi-dev ccache libclang-rt-20-dev cmake ninja-build make bison flex python3 m4 git libglib2.0-dev lld
       - name: Checkout LLVM Project
         run: |
           git clone --branch main --single-branch --depth 1 https://github.com/llvm/llvm-project ${{ github.workspace }}/llvm-project
@@ -182,6 +191,34 @@ jobs:
           ln -s $(realpath meson.pyz) bin/meson
           echo "PATH=$PWD/bin:$PATH" >> $GITHUB_ENV
 
+      - name: Set up ELD i386 linker wrapper (x86_64 only)
+        if: matrix.arch.name == 'x86_64'
+        run: |
+          # ELD has no i386 backend. picolibc builds a 32-bit semihosting BIOS for QEMU
+          # using elf_i386 emulation. Route that to lld; all others go to eld.
+          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
+          ELD_BIN=$(which ld.eld)
+          ELD_DIR=$(dirname "$ELD_BIN")
+          LLD_BIN=$(which ld.lld 2>/dev/null || which ld.lld-20 2>/dev/null || which ld.lld-19 2>/dev/null)
+          if [ -z "$LLD_BIN" ]; then
+            echo "ERROR: ld.lld not found"; exit 1
+          fi
+          mv "$ELD_BIN" "$ELD_DIR/ld.eld.real"
+          ELD_REAL="$ELD_DIR/ld.eld.real"
+          printf '%s\n' \
+            '#!/bin/sh' \
+            'for arg in "$@"; do' \
+            '    case "$arg" in' \
+            "        -melf_i386|elf_i386|-m32) exec \"$LLD_BIN\" \"\$@\" ;;" \
+            '    esac' \
+            'done' \
+            "exec \"$ELD_REAL\" \"\$@\"" \
+            > "$ELD_BIN"
+          chmod +x "$ELD_BIN"
+          # Verify
+          ld.eld --version 2>&1 | head -1
+          ld.eld -melf_i386 --version 2>&1 | head -1
+
       - name: Checkout Picolibc
         run: |
           git clone https://github.com/picolibc/picolibc.git ${{ github.workspace }}/picolibc
@@ -197,35 +234,47 @@ jobs:
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, default-config
         run: |
+          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           cd ${{ github.workspace }}/picolibc
           mkdir -p build-clang-${{ matrix.arch.name }}-picolibc-default-config
           cd build-clang-${{ matrix.arch.name }}-picolibc-default-config
-          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
-          export CC_LD=eld
-          export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-default-config }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="${{ matrix.arch.extra-cxx-flags }}"
+          if [ "${{ matrix.arch.name }}" = "x86_64" ]; then
+            ../scripts/do-eld-x86_64-configure ${{ matrix.arch.picolibc-default-config }}
+          else
+            export CC_LD=eld
+            export CXX_LD=eld
+            ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-default-config }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="${{ matrix.arch.extra-cxx-flags }}"
+          fi
           ninja
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, no-tls
         run: |
+          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           cd ${{ github.workspace }}/picolibc
           mkdir -p build-clang-${{ matrix.arch.name }}-picolibc-no-tls
           cd build-clang-${{ matrix.arch.name }}-picolibc-no-tls
-          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
-          export CC_LD=eld
-          export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-no-tls }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="${{ matrix.arch.extra-cxx-flags }}"
+          if [ "${{ matrix.arch.name }}" = "x86_64" ]; then
+            ../scripts/do-eld-x86_64-configure ${{ matrix.arch.picolibc-no-tls }}
+          else
+            export CC_LD=eld
+            export CXX_LD=eld
+            ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-no-tls }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="${{ matrix.arch.extra-cxx-flags }}"
+          fi
           ninja
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, tls-ie
         run: |
+          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           cd ${{ github.workspace }}/picolibc
           mkdir -p build-clang-${{ matrix.arch.name }}-picolibc-tls-ie
           cd build-clang-${{ matrix.arch.name }}-picolibc-tls-ie
-          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
-          export CC_LD=eld
-          export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-tls-ie }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="${{ matrix.arch.extra-cxx-flags }}"
+          if [ "${{ matrix.arch.name }}" = "x86_64" ]; then
+            ../scripts/do-eld-x86_64-configure ${{ matrix.arch.picolibc-tls-ie }}
+          else
+            export CC_LD=eld
+            export CXX_LD=eld
+            ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-tls-ie }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="${{ matrix.arch.extra-cxx-flags }}"
+          fi
           ninja
 
       - name: Get QEMU
@@ -240,21 +289,24 @@ jobs:
             ninja install
             echo "PATH=$QEMU_INSTALL/bin/:$PATH" >> $GITHUB_ENV
           else
-            sudo apt install qemu-system-arm qemu-system-aarch64 qemu-system-riscv32 qemu-system-riscv64
+            sudo apt install qemu-system-arm qemu-system-aarch64 qemu-system-riscv32 qemu-system-riscv64 qemu-system-x86
           fi
 
       - name: Run Picolibc tests for ${{ matrix.arch.name }}, default-config
         run: |
+          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           cd ${{ github.workspace }}/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-default-config
           ninja test
 
       - name: Run Picolibc tests for ${{ matrix.arch.name }}, no-tls
         run: |
+          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           cd ${{ github.workspace }}/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-no-tls
           ninja test
 
       - name: Run Picolibc tests for ${{ matrix.arch.name }}, tls-ie
         run: |
+          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           cd ${{ github.workspace }}/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-tls-ie
           ninja test
 
@@ -266,6 +318,7 @@ jobs:
           path: |
             picolibc/build-clang-${{ matrix.arch.name }}-picolibc-default-config/meson-logs/testlog.txt
             picolibc/build-clang-${{ matrix.arch.name }}-picolibc-no-tls/meson-logs/testlog.txt
+            picolibc/build-clang-${{ matrix.arch.name }}-picolibc-tls-ie/meson-logs/testlog.txt
           if-no-files-found: ignore
           retention-days: 2
 
