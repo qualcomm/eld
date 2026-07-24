@@ -1,0 +1,12 @@
+#---EntryCmdInSectionsNumericAddress.test------ Executable,LS------------------#
+#BEGIN_COMMENT
+# This test checks that ENTRY specified with a numeric address literal, nested
+# inside the SECTIONS command, is correctly parsed as an address rather than a
+# symbol name.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -h %t2.out | %filecheck %s
+#CHECK: Entry point address: 0x2000
+#END_TEST
