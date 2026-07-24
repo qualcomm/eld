@@ -1177,7 +1177,6 @@ TEST(CreateProgramHeaders, PhdrsSpecifiedUsesScriptSegments) {
   H.Mod->getScript().setPhdrsSpecified();
 
   PhdrSpec LoadSpec;
-  LoadSpec.init();
   LoadSpec.Name = make<StrToken>("LOAD");
   LoadSpec.ThisType = llvm::ELF::PT_LOAD;
   LoadSpec.ScriptHasFileHdr = true;
@@ -1213,7 +1212,6 @@ TEST(CreateProgramHeaders, PhdrsCommandCreatesSegmentsFromScript) {
 
   auto makeSpec = [&](llvm::StringRef Name, uint32_t Type) {
     PhdrSpec Spec;
-    Spec.init();
     Spec.Name = make<StrToken>(Name.str());
     Spec.ThisType = Type;
     Script.insertPhdrSpec(Spec);

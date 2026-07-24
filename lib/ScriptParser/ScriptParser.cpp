@@ -628,7 +628,6 @@ void ScriptParser::readOverlayMemberOutputSectionDescription(
   llvm::StringRef OutSectName = unquote(Tok);
 
   OutputSectDesc::Prolog Prologue;
-  Prologue.init();
 
   // Overlay members are just `OutputSectionName { InputSectDesc... }`.
   // They do not support the regular output-section prologue/epilogue syntax.
@@ -872,7 +871,6 @@ InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {
 
 OutputSectDesc::Prolog ScriptParser::readOutputSectDescPrologue() {
   OutputSectDesc::Prolog Prologue;
-  Prologue.init();
   if (peek(LexState::Expr) != ":") {
     if (consume("(")) {
       if (!readOutputSectTypeAndPermissions(Prologue, peek())){
@@ -973,7 +971,6 @@ void ScriptParser::readPhdrs() {
   ThisScriptFile.enterPhdrsCmd();
   while (peek() != "}" && !atEOF()) {
     PhdrSpec PhdrSpec;
-    PhdrSpec.init();
     llvm::StringRef NameTok = next();
     PhdrSpec.Name =
         ThisScriptFile.createParserStr(NameTok.data(), NameTok.size());
