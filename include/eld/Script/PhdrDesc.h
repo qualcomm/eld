@@ -34,21 +34,12 @@ struct PhdrSpec {
 
   Expression *flags() const { return SectionFlags; }
 
-  void init() {
-    Name = nullptr;
-    ThisType = 0;
-    ScriptHasFileHdr = false;
-    ScriptHasPhdr = false;
-    FixedAddress = nullptr;
-    SectionFlags = nullptr;
-  }
-
-  const StrToken *Name;
-  uint32_t ThisType;
-  bool ScriptHasFileHdr;
-  bool ScriptHasPhdr;
-  Expression *FixedAddress;
-  Expression *SectionFlags;
+  const StrToken *Name = nullptr;
+  uint32_t ThisType = 0;
+  bool ScriptHasFileHdr = false;
+  bool ScriptHasPhdr = false;
+  Expression *FixedAddress = nullptr;
+  Expression *SectionFlags = nullptr;
 };
 
 /** \class PhdrDesc
