@@ -34,7 +34,7 @@ jobs:
             enabled: 1
           - arch: aarch64
             toolchain_asset: aarch64-unknown-linux-musl.tar.xz
-            enabled: 0
+            enabled: 1
     uses: ./.github/workflows/clang-cross-download.yml
     with:
       runner: ubuntu-latest
@@ -81,7 +81,7 @@ jobs:
             target_triple: aarch64-unknown-linux-musl
             toolchain_dir: aarch64-unknown-linux-musl
             qemu_bin: qemu-aarch64
-            enabled: 0
+            enabled: 1
     steps:
       - name: Checkout eld
         if: matrix.enabled == 1 && github.event_name != 'pull_request'
