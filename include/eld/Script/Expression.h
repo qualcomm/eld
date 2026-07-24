@@ -366,17 +366,46 @@ private:
 };
 
 //===----------------------------------------------------------------------===//
-/** \class Add
- *  \brief This class extends an Expression to an Add operator.
+/** \class BinaryOp
+ *  \brief Unified binary operator expression (arithmetic, bitwise, relational,
+ *         logical, and min/max). The operator semantics are determined by the
+ *         expression Type.
  */
-class Add : public Expression {
+class BinaryOp : public Expression {
 public:
-  Add(Module &Module, Expression &Left, Expression &Right)
-      : Expression("+", Expression::ADD, Module), LeftExpression(Left),
+  BinaryOp(llvm::StringRef OpName, Expression::Type T, Module &Module,
+           Expression &Left, Expression &Right)
+      : Expression(OpName.str(), T, Module), LeftExpression(Left),
         RightExpression(Right) {}
 
   // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isAdd(); }
+  static bool classof(const Expression *Exp) {
+    switch (Exp->type()) {
+    case ADD:
+    case SUBTRACT:
+    case MODULO:
+    case MULTIPLY:
+    case DIVIDE:
+    case BITWISE_RS:
+    case BITWISE_LS:
+    case GT:
+    case LT:
+    case GTE:
+    case LTE:
+    case EQ:
+    case NEQ:
+    case LOGICAL_OR:
+    case LOGICAL_AND:
+    case BITWISE_AND:
+    case BITWISE_XOR:
+    case BITWISE_OR:
+    case MAX:
+    case MIN:
+      return true;
+    default:
+      return false;
+    }
+  }
 
 private:
   bool hasDot() const override;
@@ -388,117 +417,16 @@ private:
   Expression *getLeftExpression() const override { return &LeftExpression; }
   Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &LeftExpression;  /// represents the left hand operand.
-  Expression &RightExpression; /// represents the right hand operand.
+  Expression &LeftExpression;
+  Expression &RightExpression;
 };
 
-//===----------------------------------------------------------------------===//
-/** \class Subtract
- *  \brief This class extends an Expression to a Subtraction operator.
- */
-class Subtract : public Expression {
-public:
-  Subtract(Module &Module, Expression &Left, Expression &Right)
-      : Expression("-", Expression::SUBTRACT, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isSubtract(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand operand.
-  Expression &RightExpression; /// represents the right hand operand.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class Modulo
- *  \brief This class extends an Expression to a Modulus operator.
- */
-class Modulo : public Expression {
-public:
-  Modulo(Module &Module, Expression &Left, Expression &Right)
-      : Expression("%", Expression::MODULO, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isModulo(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand operand.
-  Expression &RightExpression; /// represents the right hand operand.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class Multiply
- *  \brief This class extends an Expression to a Multiply operator.
- */
-class Multiply : public Expression {
-public:
-  Multiply(Module &Module, Expression &Left, Expression &Right)
-      : Expression("*", Expression::MULTIPLY, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isMultiply(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand operand.
-  Expression &RightExpression; /// represents the right hand operand.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class Divide
- *  \brief This class extends an Expression to a Divide operator.
- */
-class Divide : public Expression {
-public:
-  Divide(Module &Module, Expression &Left, Expression &Right)
-      : Expression("/", Expression::DIVIDE, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isDivide(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand operand.
-  Expression &RightExpression; /// represents the right hand operand.
-};
+// Type aliases kept for call-site compatibility.
+using Add = BinaryOp;
+using Subtract = BinaryOp;
+using Modulo = BinaryOp;
+using Multiply = BinaryOp;
+using Divide = BinaryOp;
 
 //===----------------------------------------------------------------------===//
 /** \class SizeOf
@@ -738,183 +666,37 @@ private:
   Expression &RightExpression;     /// represents the right hand expression.
 };
 
-//===----------------------------------------------------------------------===//
-/** \class ConditionGT
- *  \brief This class extends an Expression to a GreaterThan operator.
- */
-class ConditionGT : public Expression {
-public:
-  ConditionGT(Module &Module, Expression &Left, Expression &Right)
-      : Expression(">", Expression::GT, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isGreater(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand expression.
-  Expression &RightExpression; /// represents the right hand expression.
-};
+// Condition operator aliases — all implemented by BinaryOp.
+using ConditionGT = BinaryOp;
+using ConditionLT = BinaryOp;
+using ConditionEQ = BinaryOp;
+using ConditionGTE = BinaryOp;
+using ConditionLTE = BinaryOp;
+using ConditionNEQ = BinaryOp;
 
 //===----------------------------------------------------------------------===//
-/** \class ConditionLT
- *  \brief This class extends an Expression to a LessThan operator.
+/** \class UnaryOp
+ *  \brief Unified unary operator expression (complement, unary plus/minus/not).
+ *         The operator semantics are determined by the expression Type.
  */
-class ConditionLT : public Expression {
+class UnaryOp : public Expression {
 public:
-  ConditionLT(Module &Module, Expression &Left, Expression &Right)
-      : Expression("<", Expression::LT, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isLessThan(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand expression.
-  Expression &RightExpression; /// represents the right hand expression.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class ConditionEQ
- *  \brief This class extends an Expression to an EqualTo operator.
- */
-class ConditionEQ : public Expression {
-public:
-  ConditionEQ(Module &Module, Expression &Left, Expression &Right)
-      : Expression("==", Expression::EQ, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isEqual(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand expression.
-  Expression &RightExpression; /// represents the right hand expression.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class ConditionGTE
- *  \brief This class extends an Expression to a GreaterThanEqual operator.
- */
-class ConditionGTE : public Expression {
-public:
-  ConditionGTE(Module &Module, Expression &Left, Expression &Right)
-      : Expression(">=", Expression::GTE, Module), LeftExpression(Left),
-        RightExpression(Right) {}
+  UnaryOp(llvm::StringRef OpName, Expression::Type T, Module &Module,
+          Expression &Expr)
+      : Expression(OpName.str(), T, Module), ExpressionToEvaluate(Expr) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
-    return Exp->isGreaterThanOrEqual();
+    switch (Exp->type()) {
+    case COM:
+    case UNARYPLUS:
+    case UNARYMINUS:
+    case UNARYNOT:
+      return true;
+    default:
+      return false;
+    }
   }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand expression.
-  Expression &RightExpression; /// represents the right hand expression.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class ConditionLTE
- *  \brief This class extends an Expression to a LessThanEqual operator.
- */
-class ConditionLTE : public Expression {
-public:
-  ConditionLTE(Module &Module, Expression &Left, Expression &Right)
-      : Expression("<=", Expression::LTE, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) {
-    return Exp->isLesserThanOrEqual();
-  }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand expression.
-  Expression &RightExpression; /// represents the right hand expression.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class ConditionNEQ
- *  \brief This class extends an Expression to an NotEqualTo operator.
- */
-class ConditionNEQ : public Expression {
-public:
-  ConditionNEQ(Module &Module, Expression &Left, Expression &Right)
-      : Expression("!=", Expression::NEQ, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isNotEqual(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand expression.
-  Expression &RightExpression; /// represents the right hand expression.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class Complement
- *  \brief This class extends an Expression to a Complement operator.
- */
-class Complement : public Expression {
-public:
-  Complement(Module &Module, Expression &Expr)
-      : Expression("~", Expression::COM, Module), ExpressionToEvaluate(Expr) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isComplement(); }
 
 private:
   bool hasDot() const override;
@@ -928,92 +710,14 @@ private:
     return &ExpressionToEvaluate;
   }
 
-  Expression &ExpressionToEvaluate; /// represents the expression to complement
+  Expression &ExpressionToEvaluate;
 };
 
-//===----------------------------------------------------------------------===//
-/** \class UnaryPlus
- *  \brief This class extends an Expression to a UnaryPlus operator.
- */
-class UnaryPlus : public Expression {
-public:
-  UnaryPlus(Module &Module, Expression &Expr)
-      : Expression("+", Expression::UNARYMINUS, Module),
-        ExpressionToEvaluate(Expr) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isUnaryPlus(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return nullptr; }
-  Expression *getRightExpression() const override {
-    return &ExpressionToEvaluate;
-  }
-
-  Expression &ExpressionToEvaluate; /// represents the expression to complement
-};
-
-//===----------------------------------------------------------------------===//
-/** \class UnaryMinus
- *  \brief This class extends an Expression to a UnaryMinus operator.
- */
-class UnaryMinus : public Expression {
-public:
-  UnaryMinus(Module &Module, Expression &Expr)
-      : Expression("-", Expression::UNARYMINUS, Module),
-        ExpressionToEvaluate(Expr) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isUnaryMinus(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return nullptr; }
-  Expression *getRightExpression() const override {
-    return &ExpressionToEvaluate;
-  }
-
-  Expression &ExpressionToEvaluate; /// represents the expression to complement
-};
-
-//===----------------------------------------------------------------------===//
-/** \class UnaryNot
- *  \brief This class extends an Expression to a UnaryNot operator.
- */
-class UnaryNot : public Expression {
-public:
-  UnaryNot(Module &Module, Expression &Expr)
-      : Expression("!", Expression::UNARYNOT, Module),
-        ExpressionToEvaluate(Expr) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isUnaryNot(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return nullptr; }
-  Expression *getRightExpression() const override {
-    return &ExpressionToEvaluate;
-  }
-
-  Expression &ExpressionToEvaluate; /// represents the expression to complement
-};
+// Unary operator aliases — all implemented by UnaryOp.
+using Complement = UnaryOp;
+using UnaryPlus = UnaryOp;
+using UnaryMinus = UnaryOp;
+using UnaryNot = UnaryOp;
 //===----------------------------------------------------------------------===//
 /** \class Constant
  *  \brief This class extends an Expression to a Constant operator.
@@ -1134,143 +838,13 @@ private:
   std::vector<uint64_t> ArgValues;
 };
 
-/** \class RightShift
- *  \brief This class extends an Expression to a Right Shift operator.
- */
-class RightShift : public Expression {
-public:
-  RightShift(Module &Module, Expression &Left, Expression &Right)
-      : Expression(">>", Expression::BITWISE_RS, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) {
-    return Exp->isBitWiseRightShift();
-  }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand operand.
-  Expression &RightExpression; /// represents the right hand operand.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class LeftShift
- *  \brief This class extends an Expression to a Left Shift operator.
- */
-class LeftShift : public Expression {
-public:
-  LeftShift(Module &Module, Expression &Left, Expression &Right)
-      : Expression("<<", Expression::BITWISE_LS, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) {
-    return Exp->isBitWiseLeftShift();
-  }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand operand.
-  Expression &RightExpression; /// represents the right hand operand.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class BitwiseOr
- *  \brief This class extends an Expression to a Bitwise Or operator.
- */
-class BitwiseOr : public Expression {
-public:
-  BitwiseOr(Module &Module, Expression &Left, Expression &Right)
-      : Expression("|", Expression::BITWISE_OR, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isBitWiseOR(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand operand.
-  Expression &RightExpression; /// represents the right hand operand.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class BitwiseAnd
- *  \brief This class extends an Expression to a Bitwise And operator.
- */
-class BitwiseAnd : public Expression {
-public:
-  BitwiseAnd(Module &Module, Expression &Left, Expression &Right)
-      : Expression("&", Expression::BITWISE_AND, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isBitWiseAND(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand operand.
-  Expression &RightExpression; /// represents the right hand operand.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class BitwiseXor
- *  \brief This class extends an Expression to a Bitwise Xor operator.
- */
-class BitwiseXor : public Expression {
-public:
-  BitwiseXor(Module &Module, Expression &Left, Expression &Right)
-      : Expression("^", Expression::BITWISE_XOR, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isBitWiseXOR(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand operand.
-  Expression &RightExpression; /// represents the right hand operand.
-};
+// Bitwise and logical operator aliases — all implemented by BinaryOp.
+using RightShift = BinaryOp;
+using LeftShift = BinaryOp;
+using BitwiseOr = BinaryOp;
+using BitwiseAnd = BinaryOp;
+using BitwiseXor = BinaryOp;
+using LogicalOp = BinaryOp;
 
 //===----------------------------------------------------------------------===//
 /** \class Defined
@@ -1390,61 +964,9 @@ private:
 };
 
 //===----------------------------------------------------------------------===//
-/** \class Max
- *  \brief This class extends an Expression to a Max operator.
- */
-class Max : public Expression {
-public:
-  Max(Module &Module, Expression &Left, Expression &Right)
-      : Expression("MAX", Expression::MAX, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isMax(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand operand.
-  Expression &RightExpression; /// represents the right hand operand.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class Min
- *  \brief This class extends an Expression to a Min operator.
- */
-class Min : public Expression {
-public:
-  Min(Module &Module, Expression &Left, Expression &Right)
-      : Expression("MIN", Expression::MIN, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) { return Exp->isMin(); }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand operand.
-  Expression &RightExpression; /// represents the right hand operand.
-};
-
-/** \class Fill
- *  \brief This class extends an Expression to a Fill operator.
+/** \class QueryMemory Command support  (ORIGIN/LENGTH)
+ *  \brief This class extends an Expression to support memory command query
+ *  capabiliites
  */
 class Fill : public Expression {
 public:
@@ -1498,41 +1020,9 @@ private:
   Expression &ExpressionToEvaluate; /// represents the expression to complement
 };
 
-//===----------------------------------------------------------------------===//
-/** \class LogicalOp (&& | ||)
- *  \brief This class extends an Expression to a logical operator.
- */
-class LogicalOp : public Expression {
-public:
-  LogicalOp(Expression::Type Type, Module &Module, Expression &Left,
-            Expression &Right)
-      : Expression("LogicalOperator", Type, Module), LeftExpression(Left),
-        RightExpression(Right) {}
-
-  // Casting support
-  static bool classof(const Expression *Exp) {
-    return Exp->isLogicalAnd() || Exp->isLogicalOR();
-  }
-
-private:
-  bool hasDot() const override;
-  void commit() override;
-  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
-  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
-  Expression *getLeftExpression() const override { return &LeftExpression; }
-  Expression *getRightExpression() const override { return &RightExpression; }
-
-  Expression &LeftExpression;  /// represents the left hand operand.
-  Expression &RightExpression; /// represents the right hand operand.
-};
-
-//===----------------------------------------------------------------------===//
-/** \class QueryMemory Command support  (ORIGIN/LENGTH)
- *  \brief This class extends an Expression to support memory command query
- *  capabiliites
- */
+// Max and Min aliases — all implemented by BinaryOp.
+using Max = BinaryOp;
+using Min = BinaryOp;
 class QueryMemory : public Expression {
 public:
   QueryMemory(Expression::Type Type, Module &Module, const std::string &Name);

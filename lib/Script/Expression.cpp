@@ -205,242 +205,125 @@ void Integer::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
 void Integer::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {}
 
 //===----------------------------------------------------------------------===//
-/// Add Operator
-void Add::commit() {
+/// BinaryOp — unified binary operator implementation
+void BinaryOp::commit() {
   LeftExpression.commit();
   RightExpression.commit();
   Expression::commit();
 }
-void Add::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  // format output for operator
+
+void BinaryOp::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << "(";
-  if (!hasAssign()) {
+  switch (type()) {
+  case MAX:
+    Outs << Name << "(";
     LeftExpression.dump(Outs, WithValues);
-    Outs << " " << Name << " ";
-  }
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
+    Outs << ",";
+    RightExpression.dump(Outs, WithValues);
     Outs << ")";
-}
-eld::Expected<uint64_t> Add::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  if (!ThisModule.getScript().phdrsSpecified() &&
-      RightExpression.isSizeOfHeaders()) {
-    if (ThisModule.getDotSymbol() &&
-        ThisModule.getDotSymbol()->value() ==
-            getTargetBackend().getImageStartVMA()) {
-      // Load file headers and program header
-      getTargetBackend().setNeedEhdr();
-      getTargetBackend().setNeedPhdr();
+    break;
+  default:
+    if (!hasAssign()) {
+      LeftExpression.dump(Outs, WithValues);
+      Outs << " " << Name << " ";
     }
+    RightExpression.dump(Outs, WithValues);
+    break;
   }
-  return Left.value() + Right.value();
-}
-
-bool Add::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-void Add::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void Add::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-//===----------------------------------------------------------------------===//
-/// Subtract Operator
-void Subtract::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void Subtract::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  if (!hasAssign()) {
-    // format output for operator
-    LeftExpression.dump(Outs, WithValues);
-    Outs << " " << Name << " ";
-  }
-  RightExpression.dump(Outs, WithValues);
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> Subtract::evalImpl() {
-  // evaluate sub expressions
+
+eld::Expected<uint64_t> BinaryOp::evalImpl() {
   auto Left = LeftExpression.eval();
   if (!Left)
     return Left;
   auto Right = RightExpression.eval();
   if (!Right)
     return Right;
-  return Left.value() - Right.value();
+  uint64_t L = Left.value(), R = Right.value();
+  switch (type()) {
+  case ADD:
+    if (!ThisModule.getScript().phdrsSpecified() &&
+        RightExpression.isSizeOfHeaders()) {
+      if (ThisModule.getDotSymbol() &&
+          ThisModule.getDotSymbol()->value() ==
+              getTargetBackend().getImageStartVMA()) {
+        getTargetBackend().setNeedEhdr();
+        getTargetBackend().setNeedPhdr();
+      }
+    }
+    return L + R;
+  case SUBTRACT:
+    return L - R;
+  case MULTIPLY:
+    return L * R;
+  case DIVIDE:
+    if (R == 0) {
+      std::string ErrorString;
+      llvm::raw_string_ostream SS(ErrorString);
+      dump(SS);
+      return std::make_unique<plugin::DiagnosticEntry>(
+          Diag::fatal_divide_by_zero, std::vector<std::string>{SS.str()});
+    }
+    return L / R;
+  case MODULO:
+    if (R == 0) {
+      std::string ErrorString;
+      llvm::raw_string_ostream SS(ErrorString);
+      dump(SS);
+      return std::make_unique<plugin::DiagnosticEntry>(
+          Diag::fatal_modulo_by_zero, std::vector<std::string>{SS.str()});
+    }
+    return L % R;
+  case BITWISE_LS:
+    return L << R;
+  case BITWISE_RS:
+    return L >> R;
+  case LT:
+    return L < R;
+  case GT:
+    return L > R;
+  case GTE:
+    return L >= R;
+  case LTE:
+    return L <= R;
+  case EQ:
+    return L == R;
+  case NEQ:
+    return L != R;
+  case LOGICAL_AND:
+    return L && R;
+  case LOGICAL_OR:
+    return L || R;
+  case BITWISE_AND:
+    return L & R;
+  case BITWISE_XOR:
+    return L ^ R;
+  case BITWISE_OR:
+    return L | R;
+  case MAX:
+    return L > R ? L : R;
+  case MIN:
+    return L < R ? L : R;
+  default:
+    llvm_unreachable("BinaryOp: unknown operator type");
+  }
 }
-void Subtract::getSymbols(std::vector<ResolveInfo *> &Symbols) {
+
+bool BinaryOp::hasDot() const {
+  return LeftExpression.hasDot() || RightExpression.hasDot();
+}
+
+void BinaryOp::getSymbols(std::vector<ResolveInfo *> &Symbols) {
   LeftExpression.getSymbols(Symbols);
   RightExpression.getSymbols(Symbols);
 }
 
-void Subtract::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
+void BinaryOp::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
   LeftExpression.getSymbolNames(SymbolTokens);
   RightExpression.getSymbolNames(SymbolTokens);
-}
-bool Subtract::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// Modulo Operator
-void Modulo::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void Modulo::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  // format output for operator
-  LeftExpression.dump(Outs, WithValues);
-  Outs << " " << Name << " ";
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> Modulo::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  if (Right.value() == 0) {
-    std::string ErrorString;
-    llvm::raw_string_ostream ErrorStringStream(ErrorString);
-    dump(ErrorStringStream);
-    return std::make_unique<plugin::DiagnosticEntry>(
-        Diag::fatal_modulo_by_zero,
-        std::vector<std::string>{ErrorStringStream.str()});
-  }
-  return Left.value() % Right.value();
-}
-void Modulo::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void Modulo::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool Modulo::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// Multiply Operator
-void Multiply::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void Multiply::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  if (!hasAssign()) {
-    // format output for operator
-    LeftExpression.dump(Outs, WithValues);
-    Outs << " " << Name << " ";
-  }
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> Multiply::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  return Left.value() * Right.value();
-}
-void Multiply::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void Multiply::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool Multiply::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// Divide Operator
-void Divide::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void Divide::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  if (!hasAssign()) {
-    // format output for operator
-    LeftExpression.dump(Outs, WithValues);
-    Outs << " " << Name << " ";
-  }
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> Divide::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  if (Right.value() == 0) {
-    std::string ErrorString;
-    llvm::raw_string_ostream ErrorStringStream(ErrorString);
-    dump(ErrorStringStream);
-    return std::make_unique<plugin::DiagnosticEntry>(
-        Diag::fatal_divide_by_zero,
-        std::vector<std::string>{ErrorStringStream.str()});
-  }
-  return Left.value() / Right.value();
-}
-void Divide::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void Divide::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool Divide::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
 }
 
 //===----------------------------------------------------------------------===//
@@ -804,361 +687,44 @@ void Absolute::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
 bool Absolute::hasDot() const { return ExpressionToEvaluate.hasDot(); }
 
 //===----------------------------------------------------------------------===//
-/// ConditionGT Operator
-void ConditionGT::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void ConditionGT::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  // format output for operator
-  LeftExpression.dump(Outs, WithValues);
-  Outs << " " << Name << " ";
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> ConditionGT::evalImpl() {
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  return Left.value() > Right.value();
-}
-void ConditionGT::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void ConditionGT::getSymbolNames(
-    std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool ConditionGT::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// ConditionLT Operator
-void ConditionLT::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void ConditionLT::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  // format output for operator
-  LeftExpression.dump(Outs, WithValues);
-  Outs << " " << Name << " ";
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> ConditionLT::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  return Left.value() < Right.value();
-}
-void ConditionLT::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void ConditionLT::getSymbolNames(
-    std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool ConditionLT::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// ConditionEQ Operator
-void ConditionEQ::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void ConditionEQ::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  // format output for operator
-  LeftExpression.dump(Outs, WithValues);
-  Outs << " " << Name << " ";
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> ConditionEQ::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  return Left.value() == Right.value();
-}
-void ConditionEQ::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void ConditionEQ::getSymbolNames(
-    std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool ConditionEQ::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// ConditionGTE Operator
-void ConditionGTE::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void ConditionGTE::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  // format output for operator
-  LeftExpression.dump(Outs, WithValues);
-  Outs << " " << Name << " ";
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> ConditionGTE::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  return Left.value() >= Right.value();
-}
-void ConditionGTE::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void ConditionGTE::getSymbolNames(
-    std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool ConditionGTE::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// ConditionLTE Operator
-void ConditionLTE::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void ConditionLTE::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  // format output for operator
-  LeftExpression.dump(Outs, WithValues);
-  Outs << " " << Name << " ";
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> ConditionLTE::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  return Left.value() <= Right.value();
-}
-void ConditionLTE::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void ConditionLTE::getSymbolNames(
-    std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool ConditionLTE::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// ConditionNEQ Operator
-void ConditionNEQ::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void ConditionNEQ::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  // format output for operator
-  LeftExpression.dump(Outs, WithValues);
-  Outs << " " << Name << " ";
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> ConditionNEQ::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  return Left.value() != Right.value();
-}
-void ConditionNEQ::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void ConditionNEQ::getSymbolNames(
-    std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool ConditionNEQ::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// Complement Operator
-void Complement::commit() {
+/// UnaryOp — unified unary operator implementation
+void UnaryOp::commit() {
   ExpressionToEvaluate.commit();
   Expression::commit();
 }
-void Complement::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  // format output for operator
+
+void UnaryOp::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << Name;
   ExpressionToEvaluate.dump(Outs, WithValues);
 }
-eld::Expected<uint64_t> Complement::evalImpl() {
-  // evaluate sub expressions
+
+eld::Expected<uint64_t> UnaryOp::evalImpl() {
   auto Expr = ExpressionToEvaluate.eval();
   if (!Expr)
     return Expr;
-  return ~Expr.value();
+  switch (type()) {
+  case COM:
+    return ~Expr.value();
+  case UNARYPLUS:
+    return Expr.value();
+  case UNARYMINUS:
+    return -Expr.value();
+  case UNARYNOT:
+    return !Expr.value();
+  default:
+    llvm_unreachable("UnaryOp: unknown operator type");
+  }
 }
-void Complement::getSymbols(std::vector<ResolveInfo *> &Symbols) {
+
+bool UnaryOp::hasDot() const { return ExpressionToEvaluate.hasDot(); }
+
+void UnaryOp::getSymbols(std::vector<ResolveInfo *> &Symbols) {
   ExpressionToEvaluate.getSymbols(Symbols);
 }
 
-void Complement::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
+void UnaryOp::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
   ExpressionToEvaluate.getSymbolNames(SymbolTokens);
 }
-
-bool Complement::hasDot() const { return ExpressionToEvaluate.hasDot(); }
-
-//===----------------------------------------------------------------------===//
-/// Unary plus operator
-void UnaryPlus::commit() {
-  ExpressionToEvaluate.commit();
-  Expression::commit();
-}
-void UnaryPlus::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  // format output for operator
-  Outs << Name;
-  ExpressionToEvaluate.dump(Outs, WithValues);
-}
-eld::Expected<uint64_t> UnaryPlus::evalImpl() {
-  return ExpressionToEvaluate.eval();
-}
-void UnaryPlus::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  ExpressionToEvaluate.getSymbols(Symbols);
-}
-
-void UnaryPlus::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  ExpressionToEvaluate.getSymbolNames(SymbolTokens);
-}
-
-bool UnaryPlus::hasDot() const { return ExpressionToEvaluate.hasDot(); }
-//===----------------------------------------------------------------------===//
-/// Unary minus operator
-void UnaryMinus::commit() {
-  ExpressionToEvaluate.commit();
-  Expression::commit();
-}
-void UnaryMinus::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  // format output for operator
-  Outs << "-";
-  ExpressionToEvaluate.dump(Outs, WithValues);
-}
-eld::Expected<uint64_t> UnaryMinus::evalImpl() {
-  // evaluate sub expressions
-  auto Expr = ExpressionToEvaluate.eval();
-  if (!Expr)
-    return Expr;
-  return -Expr.value();
-}
-void UnaryMinus::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  ExpressionToEvaluate.getSymbols(Symbols);
-}
-
-void UnaryMinus::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  ExpressionToEvaluate.getSymbolNames(SymbolTokens);
-}
-
-bool UnaryMinus::hasDot() const { return ExpressionToEvaluate.hasDot(); }
-//===----------------------------------------------------------------------===//
-/// Unary not operator
-void UnaryNot::commit() {
-  ExpressionToEvaluate.commit();
-  Expression::commit();
-}
-void UnaryNot::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  // format output for operator
-  Outs << Name;
-  ExpressionToEvaluate.dump(Outs, WithValues);
-}
-eld::Expected<uint64_t> UnaryNot::evalImpl() {
-  // evaluate sub expressions
-  auto Expr = ExpressionToEvaluate.eval();
-  if (!Expr)
-    return Expr;
-  return !Expr.value();
-}
-void UnaryNot::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  ExpressionToEvaluate.getSymbols(Symbols);
-}
-
-void UnaryNot::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  ExpressionToEvaluate.getSymbolNames(SymbolTokens);
-}
-
-bool UnaryNot::hasDot() const { return ExpressionToEvaluate.hasDot(); }
 //===----------------------------------------------------------------------===//
 /// Constant Operator
 void Constant::dump(llvm::raw_ostream &Outs, bool WithValues) const {
@@ -1494,221 +1060,6 @@ bool PrintCmd::hasDot() const {
 }
 
 //===----------------------------------------------------------------------===//
-/// RightShift Operator
-void RightShift::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void RightShift::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  if (!hasAssign()) {
-    // format output for operator
-    LeftExpression.dump(Outs, WithValues);
-    Outs << " " << Name << " ";
-  }
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> RightShift::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  return Left.value() >> Right.value();
-}
-
-void RightShift::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void RightShift::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool RightShift::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// LeftShift Operator
-void LeftShift::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void LeftShift::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  if (!hasAssign()) {
-    // format output for operator
-    LeftExpression.dump(Outs, WithValues);
-    Outs << " " << Name << " ";
-  }
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> LeftShift::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  return Left.value() << Right.value();
-}
-void LeftShift::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void LeftShift::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool LeftShift::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// BitwiseOr Operator
-void BitwiseOr::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void BitwiseOr::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  if (!hasAssign()) {
-    // format output for operator
-    LeftExpression.dump(Outs, WithValues);
-    Outs << " " << Name << " ";
-  }
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> BitwiseOr::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  return Left.value() | Right.value();
-}
-void BitwiseOr::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void BitwiseOr::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool BitwiseOr::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// BitwiseXor Operator
-void BitwiseXor::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void BitwiseXor::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  if (!hasAssign()) {
-    // format output for operator
-    LeftExpression.dump(Outs, WithValues);
-    Outs << " " << Name << " ";
-  }
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> BitwiseXor::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  return Left.value() ^ Right.value();
-}
-void BitwiseXor::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void BitwiseXor::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool BitwiseXor::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// BitwiseAnd Operator
-void BitwiseAnd::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void BitwiseAnd::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  if (!hasAssign()) {
-    // format output for operator
-    LeftExpression.dump(Outs, WithValues);
-    Outs << " " << Name << " ";
-  }
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> BitwiseAnd::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  return Left.value() & Right.value();
-}
-void BitwiseAnd::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void BitwiseAnd::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool BitwiseAnd::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
 //===----------------------------------------------------------------------===//
 /// Defined Operator
 void Defined::dump(llvm::raw_ostream &Outs, bool WithValues) const {
@@ -1861,90 +1212,6 @@ void DataSegmentEnd::getSymbolNames(
 bool DataSegmentEnd::hasDot() const { return ExpressionToEvaluate.hasDot(); }
 
 //===----------------------------------------------------------------------===//
-/// Max Operator
-void Max::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void Max::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  Outs << Name << "(";
-  // format output for operator
-  LeftExpression.dump(Outs, WithValues);
-  Outs << ",";
-  RightExpression.dump(Outs, WithValues);
-  Outs << ")";
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> Max::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-
-  return Left.value() > Right.value() ? Left.value() : Right.value();
-}
-void Max::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void Max::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool Max::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
-/// Min Operator
-void Min::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-void Min::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  // format output for operator
-  LeftExpression.dump(Outs, WithValues);
-  Outs << " " << Name << " ";
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> Min::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  return Left.value() < Right.value() ? Left.value() : Right.value();
-}
-void Min::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void Min::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-bool Min::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
-
-//===----------------------------------------------------------------------===//
 /// Fill
 void Fill::commit() {
   ExpressionToEvaluate.commit();
@@ -1999,60 +1266,6 @@ void Log2Ceil::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
 
 bool Log2Ceil::hasDot() const { return ExpressionToEvaluate.hasDot(); }
 
-//===----------------------------------------------------------------------===//
-/// LogicalOp Operator
-void LogicalOp::commit() {
-  LeftExpression.commit();
-  RightExpression.commit();
-  Expression::commit();
-}
-
-void LogicalOp::dump(llvm::raw_ostream &Outs, bool WithValues) const {
-  if (ExpressionHasParenthesis)
-    Outs << "(";
-  if (!hasAssign()) {
-    // format output for operator
-    LeftExpression.dump(Outs, WithValues);
-    if (isLogicalAnd())
-      Outs << " "
-           << "&&"
-           << " ";
-    if (isLogicalOR())
-      Outs << " "
-           << "||"
-           << " ";
-  }
-  RightExpression.dump(Outs, WithValues);
-  if (ExpressionHasParenthesis)
-    Outs << ")";
-}
-eld::Expected<uint64_t> LogicalOp::evalImpl() {
-  // evaluate sub expressions
-  auto Left = LeftExpression.eval();
-  if (!Left)
-    return Left;
-  auto Right = RightExpression.eval();
-  if (!Right)
-    return Right;
-  if (isLogicalAnd())
-    return Left.value() && Right.value();
-  ASSERT(isLogicalOR(), "logical operator can be || or && only");
-  return Left.value() || Right.value();
-}
-
-void LogicalOp::getSymbols(std::vector<ResolveInfo *> &Symbols) {
-  LeftExpression.getSymbols(Symbols);
-  RightExpression.getSymbols(Symbols);
-}
-
-void LogicalOp::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
-  LeftExpression.getSymbolNames(SymbolTokens);
-  RightExpression.getSymbolNames(SymbolTokens);
-}
-
-bool LogicalOp::hasDot() const {
-  return LeftExpression.hasDot() || RightExpression.hasDot();
-}
 //===----------------------------------------------------------------------===//
 /// QueryMemory support
 QueryMemory::QueryMemory(Expression::Type Type, Module &Module,
