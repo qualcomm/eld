@@ -57,6 +57,8 @@ class OverlayDesc;
 
 class ScriptFile {
 public:
+  enum class ScriptActivationKind { Early, Full };
+
   enum Kind {
     LDScript,              // -T
     ScriptExpression,      // --defsym
@@ -109,6 +111,8 @@ public:
 
   void dump(llvm::raw_ostream &Outs) const;
   eld::Expected<void> activate(Module &CurModule);
+  eld::Expected<void> activate(Module &CurModule,
+                               ScriptActivationKind ActivationKind);
 
   /// ENTRY(symbol)
   ScriptCommand *addEntryPoint(const std::string &Symbol);

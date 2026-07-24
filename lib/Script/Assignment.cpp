@@ -20,6 +20,7 @@
 #include "eld/Script/Expression.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/ErrorHandling.h"
 #include <cassert>
 
 using namespace eld;
@@ -73,16 +74,18 @@ void Assignment::dump(llvm::raw_ostream &Outs) const {
 
 void Assignment::trace(llvm::raw_ostream &Outs) const {
   switch (AssignmentLevel) {
-  case BEFORE_SECTIONS:
+  case Unknown:
+    llvm_unreachable("assignment level must be resolved before tracing");
+  case BeforeSections:
     Outs << "BEFORE_SECTIONS   >>  ";
     break;
-  case AFTER_SECTIONS:
+  case AfterSections:
     Outs << "AFTER_SECTIONS    >>  ";
     break;
-  case INPUT_SECTION:
+  case AfterInputSectDesc:
     Outs << "    INSIDE_OUTPUT_SECTION    >>  ";
     break;
-  case SECTIONS_END:
+  case AfterOutputSection:
     Outs << "  OUTPUT_SECTION(EPILOGUE)   >>  ";
     break;
   }
@@ -97,14 +100,16 @@ void Assignment::dumpMap(llvm::raw_ostream &Ostream, bool Color,
                          bool UseNewLine, bool WithValues,
                          bool AddIndent) const {
   switch (AssignmentLevel) {
-  case BEFORE_SECTIONS:
-  case AFTER_SECTIONS: {
+  case Unknown:
+    llvm_unreachable("assignment level must be resolved before map dump");
+  case BeforeSections:
+  case AfterSections: {
     if (Color)
       Ostream.changeColor(llvm::raw_ostream::GREEN);
     break;
   }
 
-  case INPUT_SECTION: {
+  case AfterInputSectDesc: {
     if (Color)
       Ostream.changeColor(llvm::raw_ostream::YELLOW);
     if (AddIndent)
@@ -112,7 +117,7 @@ void Assignment::dumpMap(llvm::raw_ostream &Ostream, bool Color,
     break;
   }
 
-  case SECTIONS_END: {
+  case AfterOutputSection: {
     if (Color)
       Ostream.changeColor(llvm::raw_ostream::MAGENTA);
     break;
@@ -174,22 +179,24 @@ eld::Expected<void> Assignment::activate(Module &CurModule) {
   ExpressionToEvaluate->setContext(getContext());
 
   switch (AssignmentLevel) {
-  case BEFORE_SECTIONS:
-  case AFTER_SECTIONS:
+  case Unknown:
+    llvm_unreachable("assignment level must be resolved before activation");
+  case BeforeSections:
     break;
 
-  case INPUT_SECTION: {
+  case AfterSections:
+  case AfterOutputSection: {
+    SectionMap::reference Out = Script.sectionMap().back();
+    Out->getPostOutputSectionAssignments().push_back(this);
+    break;
+  }
+
+  case AfterInputSectDesc: {
     OutputSectionEntry::reference In = Script.sectionMap().back()->back();
     In->symAssignments().push_back(this);
     break;
   }
-
-  case SECTIONS_END: {
-    SectionMap::reference Out = Script.sectionMap().back();
-    Out->sectionEndAssignments().push_back(this);
-    break;
   }
-  } // end of switch
   return eld::Expected<void>();
 }
 

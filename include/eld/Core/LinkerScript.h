@@ -145,6 +145,14 @@ public:
 
   bool linkerScriptHasSectionsCommand() const { return HasSectionsCmd; }
 
+  bool hasSeenSectionsForAssignmentLevels() const {
+    return SeenSectionsForAssignmentLevels;
+  }
+
+  void setSeenSectionsForAssignmentLevels() {
+    SeenSectionsForAssignmentLevels = true;
+  }
+
   bool hasExternCommand() const { return HasExternCmd; }
 
   bool linkerScriptHasRules() const { return RuleCount > 0; };
@@ -392,6 +400,7 @@ private:
   bool HasProgramHeader;
   bool HasError;
   bool HasSectionsCmd;
+  bool SeenSectionsForAssignmentLevels = false;
   bool HasExternCmd;
   PluginVectorT MPlugins;
   std::atomic<uint64_t> NumWildCardPatterns;

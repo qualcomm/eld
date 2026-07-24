@@ -38,6 +38,7 @@
 #include "eld/Script/OutputSectDesc.h"
 #include "eld/Script/OverlayDesc.h"
 #include "eld/Script/PhdrsCmd.h"
+#include "eld/Script/PluginCmd.h"
 #include "eld/Script/ScriptCommand.h"
 #include "eld/Script/ScriptSymbol.h"
 #include "eld/Script/SearchDirCmd.h"
@@ -62,6 +63,40 @@ using namespace eld;
 static eld::StringList *OldEpilogPhdrs = nullptr;
 static bool HasEpilogPhdrs = false;
 bool ScriptFile::IsFirstLinkerScriptWithSectionCommand = false;
+
+namespace {
+
+bool shouldEarlyActivate(const ScriptCommand *command) {
+  switch (command->getKind()) {
+  case ScriptCommand::ENTRY:
+  case ScriptCommand::EXTERN:
+  case ScriptCommand::OUTPUT:
+  case ScriptCommand::PHDRS:
+  case ScriptCommand::SEARCH_DIR:
+    return true;
+  case ScriptCommand::PLUGIN:
+    return llvm::cast<PluginCmd>(command)->getPluginType() ==
+           plugin::Plugin::Type::LinkerPlugin;
+  default:
+    return false;
+  }
+}
+
+eld::Expected<void> earlyActivate(Module &module, ScriptCommand *command) {
+  if (shouldEarlyActivate(command))
+    return command->activateOnce(module);
+  if (auto *sectionsCmd = llvm::dyn_cast<SectionsCmd>(command)) {
+    for (ScriptCommand *child : sectionsCmd->getSectionCommands()) {
+      if (child->isEntry()) {
+        eld::Expected<void> E = child->activateOnce(module);
+        ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
+      }
+    }
+  }
+  return eld::Expected<void>();
+}
+
+} // namespace
 
 //===----------------------------------------------------------------------===//
 // ScriptFile
@@ -92,14 +127,35 @@ void ScriptFile::dump(llvm::raw_ostream &Outs) const {
 }
 
 eld::Expected<void> ScriptFile::activate(Module &CurModule) {
+  return activate(CurModule, ScriptActivationKind::Full);
+}
+
+eld::Expected<void> ScriptFile::activate(Module &CurModule,
+                                         ScriptActivationKind ActivationKind) {
   for (auto &SC : *this) {
-    eld::Expected<void> E = SC->activate(CurModule);
-    if (!E)
-      return E;
+    if (ActivationKind == ScriptActivationKind::Early) {
+      eld::Expected<void> E = earlyActivate(CurModule, SC);
+      ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
+      continue;
+    }
+    if (Assignment *A = llvm::dyn_cast<Assignment>(SC)) {
+      if (A->level() == Assignment::Level::Unknown) {
+        A->setLevel(CurModule.getScript().hasSeenSectionsForAssignmentLevels()
+                        ? Assignment::Level::AfterSections
+                        : Assignment::Level::BeforeSections);
+      }
+    }
     // There can be multiple scripts included and the linker needs to be parse
     // each one of them.
     CurModule.getScript().addScriptCommand(SC);
+    eld::Expected<void> E = SC->activateOnce(CurModule);
+    if (!E)
+      return E;
+    if (SC->isSections())
+      CurModule.getScript().setSeenSectionsForAssignmentLevels();
   }
+  if (ActivationKind == ScriptActivationKind::Early)
+    return eld::Expected<void>();
   for (auto *O : OverlayDescs)
     CurModule.getScript().addOverlayDesc(O);
 
@@ -306,27 +362,19 @@ void ScriptFile::addAssignment(const std::string &SymbolName,
     if (ScriptStateInsideOutputSection) {
       assert(!Sections->empty());
       NewAssignment =
-          make<Assignment>(Assignment::INPUT_SECTION, AssignmentType,
+          make<Assignment>(Assignment::AfterInputSectDesc, AssignmentType,
                            SymbolName, ScriptExpression);
       setCommandContext(NewAssignment);
       OutputSectionDescription->pushBack(NewAssignment);
     } else {
       NewAssignment =
-          make<Assignment>(Assignment::Level::SECTIONS_END, AssignmentType,
+          make<Assignment>(Assignment::AfterOutputSection, AssignmentType,
                            SymbolName, ScriptExpression);
       setCommandContext(NewAssignment);
       Sections->pushBack(NewAssignment);
     }
   } else {
-    // Assignments encountered when not inside SECTIONS are either BEFORE or
-    // AFTER SECTIONS. Mark as AFTER if we've already seen a SECTIONS block
-    // in this script file or any previously processed script.
-    // Global state is sufficient: it is set during parsing when any
-    // SECTIONS block is entered.
-    Assignment::Level Lvl =
-        ThisModule.getScript().linkerScriptHasSectionsCommand()
-            ? Assignment::AFTER_SECTIONS
-            : Assignment::BEFORE_SECTIONS;
+    Assignment::Level Lvl = Assignment::Level::Unknown;
     NewAssignment =
         make<Assignment>(Lvl, AssignmentType, SymbolName, ScriptExpression);
     setCommandContext(NewAssignment);
@@ -342,7 +390,7 @@ bool ScriptFile::linkerScriptHasSectionsCommand() const {
 void ScriptFile::enterSectionsCmd() {
   LinkerScriptHasSectionsCommand = true;
   // Also mark global script state so other scripts parsed later
-  // can correctly mark AFTER_SECTIONS assignments.
+  // can correctly set the level of assignments.
   ThisModule.getScript().setHasSectionsCmd();
   ScriptStateInSectionsCommmand = true;
   auto *Cmd = make<SectionsCmd>();

@@ -27,29 +27,29 @@ eld::Expected<void> PluginCmd::activate(Module &CurModule) {
 
 void PluginCmd::dump(llvm::raw_ostream &Outs) const {
   if (!Options.empty()) {
-    Outs << getPluginType() << "(\"" << Name << "\", "
+    Outs << getPluginDirectiveName() << "(\"" << Name << "\", "
          << "\"" << R << "\", "
          << "\"" << Options << "\");";
     Outs << "\n";
     return;
   }
-  Outs << getPluginType() << "(\"" << Name << "\", "
+  Outs << getPluginDirectiveName() << "(\"" << Name << "\", "
        << "\"" << R << "\");";
   Outs << "\n";
 }
 
 void PluginCmd::dumpPluginInfo(llvm::raw_ostream &Outs) const {
   if (!Options.empty()) {
-    Outs << getPluginType() << "(\"" << Name << "\", "
+    Outs << getPluginDirectiveName() << "(\"" << Name << "\", "
          << "\"" << R << "\", "
          << "\"" << Options << "\")";
     return;
   }
-  Outs << getPluginType() << "(\"" << Name << "\", "
+  Outs << getPluginDirectiveName() << "(\"" << Name << "\", "
        << "\"" << R << "\")";
 }
 
-std::string PluginCmd::getPluginType() const {
+std::string PluginCmd::getPluginDirectiveName() const {
   switch (T) {
   case plugin::PluginBase::Type::ControlFileSize:
     return "PLUGIN_CONTROL_FILESZ";
