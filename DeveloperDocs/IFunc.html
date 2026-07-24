@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>6. GNU IFunc support &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="7. RISC-V Relocation Reference" href="RISCV-Relocations.html" />
+    <link rel="prev" title="5. Hexagon Relocation Reference" href="Hexagon-Relocations.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_diagnostics.html">5. Linker Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/eld_debugging_guide.html">6. ELD  (debugging guide)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html">7. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">8. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/image_structure_and_generation.html">9. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/elf_tools.html">13. ELF TOOLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/lto_support.html">14. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/getting_image_details.html">15. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/options/options.html">16. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/target_specific_features.html">17. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/sframe_support.html">18. SFrame Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/editor_support.html">19. Editor Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_faq.html">20. Linker support and frequently asked questions!!!</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Docs</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="AArch64-Relocations.html">1. AArch64 Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ARM-Relocations.html">2. ARM Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AddingABackend.html">3. Adding a New Backend to ELD</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EldCodeCoverage.html">4. ELD Code Coverage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Hexagon-Relocations.html">5. Hexagon Relocation Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">6. GNU IFunc support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RISCV-Relocations.html">7. RISC-V Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="X86_64-Relocations.html">8. x86-64 Relocation Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">6. </span>GNU IFunc support</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/DeveloperDocs/IFunc.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="gnu-ifunc-support">
+<h1><span class="section-number">6. </span>GNU IFunc support<a class="headerlink" href="#gnu-ifunc-support" title="Permalink to this heading"></a></h1>
+<p>GNU IFunc functionality enables a developer to provide multiple implementations
+for a function and a resolver function that selects at runtime which implementation to use.
+It is typically used for selecting the most optimized implementation for a given CPU / runtime.
+The resolver function is called once at the start of the application runtime and then the
+selected implementation is fixed. Resolver function is always called eagerly (at program start)
+instead of lazily (when first needed).</p>
+<p>Example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">__attribute__</span><span class="p">((</span><span class="n">ifunc</span><span class="p">(</span><span class="s">&quot;foo_resolver&quot;</span><span class="p">)))</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">foo</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">foo_impl</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">u</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">u</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">foo_resolver</span><span class="p">())(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">foo_impl</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">bar</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">u</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">foo</span><span class="p">(</span><span class="n">u</span><span class="p">);</span><span class="w"> </span><span class="c1">// Calls the function that is returned by foo_resolver</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="section" id="static-linking">
+<h2><span class="section-number">6.1. </span>Static linking<a class="headerlink" href="#static-linking" title="Permalink to this heading"></a></h2>
+<p>eld generates a PLT slot for each ifunc symbol. Each PLT slot has a corresponding
+GOTPLT slot. This model is very similar to how preemptible dynamic symbols are handled.
+However, instead of doing symbol resolution at runtime to fill the GOTPLT slot, the runtime
+calls the corresponding resolver function to fill the GOTPLT slot.</p>
+<p>For the case of static executables, libc plays the role of runtime and takes on a task
+that is typically unusual for a libc – resolve symbols and patch the binary at runtime
+with the resolution information.</p>
+<p>eld emits <code class="docutils literal notranslate"><span class="pre">R_&lt;TARGET&gt;_IRELATIVE</span></code> relocations in <code class="docutils literal notranslate"><span class="pre">.rel[a].plt</span></code> section, and <code class="docutils literal notranslate"><span class="pre">__rel[a]_iplt_start</span></code> and
+<code class="docutils literal notranslate"><span class="pre">__rela_iplt_end</span></code> symbols that store the start and end addresses of <code class="docutils literal notranslate"><span class="pre">.rel[a].plt</span></code> section.</p>
+<p>The tiny-loader in the libc process the <code class="docutils literal notranslate"><span class="pre">R_&lt;TARGET&gt;_IRELATIVE</span></code> relocations by
+iterating over the [<code class="docutils literal notranslate"><span class="pre">__rel[a]_iplt_start</span></code>, <code class="docutils literal notranslate"><span class="pre">__rel[a]_iplt_end</span></code>) range.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Relocation</span> <span class="n">section</span> <span class="s1">&#39;.rela.plt&#39;</span> <span class="n">at</span> <span class="n">offset</span> <span class="mh">0x190</span> <span class="n">contains</span> <span class="mi">6</span> <span class="n">entries</span><span class="p">:</span>
+    <span class="n">Offset</span>             <span class="n">Info</span>             <span class="n">Type</span>               <span class="n">Symbol</span><span class="s1">&#39;s Value</span>
+<span class="mi">0000000000490000</span>  <span class="mi">0000000000000408</span> <span class="n">R_</span><span class="o">&lt;</span><span class="n">TARGET</span><span class="o">&gt;</span><span class="n">_IRELATIVE</span>               <span class="mi">4358</span><span class="n">c0</span>
+<span class="mi">0000000000490008</span>  <span class="mi">0000000000000408</span> <span class="n">R_</span><span class="o">&lt;</span><span class="n">TARGET</span><span class="o">&gt;</span><span class="n">_IRELATIVE</span>               <span class="mi">40</span><span class="n">db20</span>
+</pre></div>
+</div>
+<p>The symbol value of <code class="docutils literal notranslate"><span class="pre">IRELATIVE</span></code> relocations contains the IFunc resolver address, and
+the relocation offset points to the GOTPLT slot for the IFunc symbol. For each relocation,
+the tiny-loader in the libc calls the IFunc resolver and stores the result in the GOTPLT slot.</p>
+<p><strong>Note that there is no lazy binding here.</strong></p>
+<div class="section" id="direct-reference-to-an-ifunc-symbol">
+<h3><span class="section-number">6.1.1. </span>Direct reference to an IFunc symbol<a class="headerlink" href="#direct-reference-to-an-ifunc-symbol" title="Permalink to this heading"></a></h3>
+<p>Direct references to an IFunc symbol are resolved to the PLT slot of the IFunc symbol.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>// global variable!
+// Absolute relocation, for example, `R_AARCH64_ABS64`, `R_RISCV_64`.
+int (*foo_gp)(int) = foo;
+</pre></div>
+</div>
+<p>eld will resolve the absolute relocation to the address of PLT[foo].</p>
+</div>
+</div>
+<div class="section" id="got-references-to-an-ifunc-symbol">
+<h2><span class="section-number">6.2. </span>GOT references to an IFunc symbol<a class="headerlink" href="#got-references-to-an-ifunc-symbol" title="Permalink to this heading"></a></h2>
+<p>GOT references to an IFunc symbol are resolved to the GOTPLT slot of the IFunc symbol
+when there are no direct references to the IFunc symbol. When there is a direct reference
+to the IFunc symbol, then the GOT references to the IFunc symbols gets resolved to the
+GOT slot of the IFunc symbol. It is to ensure pointer equality. Let’s understand this
+in detail:</p>
+<p>Case 1: PIC code and no direct reference</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// foo is an ifunc symbol!</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// adrp x0, :got:foo ;  R_AARCH64_GOT_PAGE</span>
+<span class="w">  </span><span class="c1">// ldr x0, [x0, :got_lo12:foo] ; R_AARCH64_LD64_GOT_LO12_NC</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">foo_lp</span><span class="p">)(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">foo</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Here eld will resolve <code class="docutils literal notranslate"><span class="pre">adrp</span> <span class="pre">+</span> <span class="pre">ldr</span></code> relocation pair to the address of GOTPLT[foo].
+Hence, <code class="docutils literal notranslate"><span class="pre">ldr</span></code> will load the address that is stored in the GOTPLT[foo]. Hence,
+<code class="docutils literal notranslate"><span class="pre">foo_lp</span></code> will store the address of the resolved function. With this design, there
+is no indirection penalty for calls to <code class="docutils literal notranslate"><span class="pre">foo_lp</span></code>.</p>
+<p>Case 2: PIC code and direct reference</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="c1">// foo is an ifunc symbol!</span>
+
+<span class="c1">// R_AARCH64_ABS64</span>
+<span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">foo_gp</span><span class="p">)(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">foo</span><span class="p">;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// adrp x0, :got:foo ;  R_AARCH64_GOT_PAGE</span>
+<span class="w">  </span><span class="c1">// ldr x0, [x0, :got_lo12:foo] ; R_AARCH64_LD64_GOT_LO12_NC</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">foo_lp</span><span class="p">)(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">foo</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Here eld will resolve <code class="docutils literal notranslate"><span class="pre">ABS64</span></code> to the address of PLT[foo]. With this, calls to <code class="docutils literal notranslate"><span class="pre">foo_gp</span></code> will
+work as expected. Note that we cannot resolve <code class="docutils literal notranslate"><span class="pre">ABS64</span></code> to the address of
+the resolved function because at link time we cannot know the resolved function.</p>
+<p>Now, if we resolve <code class="docutils literal notranslate"><span class="pre">adrp</span> <span class="pre">+</span> <span class="pre">ldr</span></code> relocation pair as before, then <code class="docutils literal notranslate"><span class="pre">foo_lp</span></code> will store the address of
+the resolved function. This is a problem because <code class="docutils literal notranslate"><span class="pre">foo_gp</span></code> and <code class="docutils literal notranslate"><span class="pre">foo_lp</span></code>, both pointers to the same
+function <code class="docutils literal notranslate"><span class="pre">foo</span></code>, have different values.</p>
+<p>To resolve this, whenever their is a direct reference to an ifunc symbol <code class="docutils literal notranslate"><span class="pre">foo</span></code>,
+eld creates an additional GOT slot for <code class="docutils literal notranslate"><span class="pre">foo</span></code>, and fill that with the address of
+the PLT[foo], and resolve all GOT references of <code class="docutils literal notranslate"><span class="pre">foo</span></code> to the GOT[foo] instead of the GOTPLT[foo].
+With this design, <code class="docutils literal notranslate"><span class="pre">foo_lp</span></code> will store the address of PLT[foo], the same as <code class="docutils literal notranslate"><span class="pre">foo_gp</span></code>. Hence,
+no pointer inequality issue.</p>
+</div>
+<div class="section" id="ifunc-behaviour-across-all-relocations">
+<h2><span class="section-number">6.3. </span>IFunc behaviour across all relocations<a class="headerlink" href="#ifunc-behaviour-across-all-relocations" title="Permalink to this heading"></a></h2>
+<p>To describe IFunc behavior for all relocations, we categorize the relocations
+into the following categories:</p>
+<ul class="simple">
+<li><p>Absolute / PC-relative data relocations</p></li>
+<li><p>GOT-related data relocations</p></li>
+<li><p>Control flow relocations</p></li>
+<li><p>Regular GOT-related instruction relocations</p></li>
+<li><p>Regular absolute / PC-relative address-forming relocations</p></li>
+<li><p>Address forming relocations used to compute both GOT and non-GOT addresses.</p></li>
+<li><p>Absolute / PC-relative load/store relocations</p></li>
+</ul>
+<p><em>Regular</em> in the relocation category name here means that the relocations are
+non-TLS non-call relocations.</p>
+<p>Any relocation against an IFunc symbol that does not fall into one of the above
+categories is invalid and produces a warning.</p>
+<p>The relocations which are not supported by GNU for IFunc symbols are annotated with
+NotSupportedInGNULDForIFunc. The GNU toolchain that is used for verifying this is:
+aarch64-none-linux-gnu-gcc (Arm GNU Toolchain 15.2.Rel1 (Build arm-15.86)) 15.2.1 20251203,
+and riscv64-unknown-linux-ld (GNU ld (GNU Binutils) 2.43.1).</p>
+<div class="section" id="absolute-pc-relative-data-relocations">
+<h3><span class="section-number">6.3.1. </span>Absolute / PC-relative data relocations<a class="headerlink" href="#absolute-pc-relative-data-relocations" title="Permalink to this heading"></a></h3>
+<p>Resolves to PLT[IFuncSymbol]. Sets HasDirectReference[IFuncSymbol] to true.</p>
+<ul class="simple">
+<li><p>R_AARCH64_ABS{16, 32, 64}</p></li>
+<li><p>R_RISCV_{32, 64}</p></li>
+<li><p>R_ARM_ABS32</p></li>
+<li><p>R_ARM_ABS32_NOI</p></li>
+<li><p>R_ARM_TARGET1 (treated as R_ARM_ABS32)</p></li>
+</ul>
+<p>The below relocations are currently unsupported by eld.
+For IFunc symbols, these should be resolved to the PLT[IFuncSymbol] as well.</p>
+<ul class="simple">
+<li><p>R_AARCH64_PREL{16, 32, 64} (NotSupportedInGNULDForIFunc)</p></li>
+<li><p>R_AARCH64_PLT32</p></li>
+<li><p>R_RISCV_PLT32</p></li>
+<li><p>R_ARM_ABS8</p></li>
+<li><p>R_ARM_ABS16</p></li>
+<li><p>R_ARM_PREL{16, 32, 64}</p></li>
+</ul>
+</div>
+<div class="section" id="got-related-data-relocations">
+<h3><span class="section-number">6.3.2. </span>GOT-related data relocations<a class="headerlink" href="#got-related-data-relocations" title="Permalink to this heading"></a></h3>
+<p>The below relocations are currently unsupported by eld.</p>
+<ul class="simple">
+<li><p>R_AARCH64_GOTREL{32, 64}</p></li>
+<li><p>R_AARCH64_GOTPCREL32</p></li>
+<li><p>R_RISCV_GOT32_PCREL</p></li>
+</ul>
+</div>
+<div class="section" id="control-flow-relocations">
+<h3><span class="section-number">6.3.3. </span>Control flow relocations<a class="headerlink" href="#control-flow-relocations" title="Permalink to this heading"></a></h3>
+<p>Resolves to PLT[IFuncSymbol].</p>
+<ul class="simple">
+<li><p>R_AARCH64_TSTBR14</p></li>
+<li><p>R_AARCH64_CONDBR19</p></li>
+<li><p>R_AARCH64_JUMP26</p></li>
+<li><p>R_AARCH64_CALL26</p></li>
+<li><p>R_RISCV_CALL</p></li>
+<li><p>R_RISCV_CALL_PLT</p></li>
+<li><p>R_RISCV_JAL</p></li>
+<li><p>R_RISCV_BRANCH</p></li>
+<li><p>R_RISCV_RVC_BRANCH</p></li>
+<li><p>R_RISCV_RVC_JUMP</p></li>
+<li><p>R_ARM_CALL</p></li>
+<li><p>R_ARM_JUMP24</p></li>
+<li><p>R_ARM_PC24</p></li>
+<li><p>R_ARM_PLT32</p></li>
+<li><p>R_ARM_THM_CALL</p></li>
+<li><p>R_ARM_THM_JUMP24</p></li>
+</ul>
+<p>The below relocations should not be used with IFunc functions because
+these relocations are used with thumb instructions that does not support
+interworking (correctly transferring control between thumb-state and ARM-state)
+and PLT slot is typically always in the ARM state.</p>
+<ul class="simple">
+<li><p>R_ARM_THM_JUMP6 (UNSUPPORTED) (NotSupportedInGNULDForIFunc)</p></li>
+<li><p>R_ARM_THM_JUMP19</p></li>
+<li><p>R_ARM_THM_JUMP11</p></li>
+<li><p>R_ARM_THM_JUMP8</p></li>
+</ul>
+</div>
+<div class="section" id="regular-got-related-instruction-relocations">
+<h3><span class="section-number">6.3.4. </span>Regular GOT-related instruction relocations<a class="headerlink" href="#regular-got-related-instruction-relocations" title="Permalink to this heading"></a></h3>
+<p>Resolves-to / uses GOTPLT[IFuncSymbol] if there is no direct reference to
+IFuncSymbol; otherwise uses GOT[IFuncSymbol].</p>
+<ul class="simple">
+<li><p>R_AARCH64_ADR_GOT_PAGE</p></li>
+<li><p>R_AARCH64_LD{32,64}_GOT_LO12_NC (LD32 variant UNSUPPORTED)</p></li>
+<li><p>R_AARCH64_LD{32,64}_GOTPAGE_LO15 (LD32 variant UNSUPPORTED)</p></li>
+<li><p>R_RISCV_GOT_HI20</p></li>
+<li><p>R_ARM_GOT_BREL</p></li>
+<li><p>R_ARM_GOT_PREL</p></li>
+</ul>
+<p>The below relocations are unsupported by eld:</p>
+<ul class="simple">
+<li><p>R_AARCH64_GOT_LD_PREL19</p></li>
+<li><p>AUTH-ABI GOT relocations</p></li>
+<li><p>R_AARCH64_MOVW_GOTOFF_G{0,1}{_NC}</p></li>
+<li><p>R_ARM_GOT_ABS</p></li>
+</ul>
+</div>
+<div class="section" id="regular-absolute-pc-relative-address-forming-relocations">
+<h3><span class="section-number">6.3.5. </span>Regular absolute / PC-relative address-forming relocations<a class="headerlink" href="#regular-absolute-pc-relative-address-forming-relocations" title="Permalink to this heading"></a></h3>
+<p>Resolves to PLT[IFuncSymbol]. Sets HasDirectReference[IFuncSymbol] to true.</p>
+<ul class="simple">
+<li><p>R_AARCH64_ADR_PREL_LO21 (NotSupportedInGNULDForIFunc)</p></li>
+<li><p>R_AARCH64_ADR_PREL_PG_HI21{_NC}</p></li>
+<li><p>R_AARCH64_ADD_ABS_LO12_NC</p></li>
+<li><p>R_RISCV_HI20</p></li>
+<li><p>R_RISCV_PCREL_HI20</p></li>
+<li><p>R_RISCV_LO12_I</p></li>
+<li><p>R_RISCV_LO12_S</p></li>
+<li><p>R_ARM_REL32</p></li>
+<li><p>R_ARM_PREL31</p></li>
+<li><p>R_ARM_MOVW_ABS_NC</p></li>
+<li><p>R_ARM_MOVT_ABS</p></li>
+<li><p>R_ARM_MOVW_PREL_NC</p></li>
+<li><p>R_ARM_MOVT_PREL</p></li>
+<li><p>R_ARM_THM_MOVW_ABS_NC</p></li>
+<li><p>R_ARM_THM_MOVT_ABS</p></li>
+<li><p>R_ARM_THM_MOVW_PREL_NC</p></li>
+<li><p>R_ARM_THM_MOVT_PREL</p></li>
+</ul>
+<p>The below relocations are resolved to the IFunc symbol:</p>
+<ul class="simple">
+<li><p>R_AARCH64_MOVW_UABS_G{0,1,2,3}{_NC} (NotSupportedInGNULDForIFunc)</p></li>
+<li><p>R_AARCH64_SABS_G{0,1,2,3} (NotSupportedInGNULDForIFunc)</p></li>
+</ul>
+<blockquote>
+<div><p>[!IMPORTANT]
+FIXME: We should perhaps resolve these relocations to the PLT[IFuncSymbol]
+instead of the IFuncSymbol for ensuring pointer equality.</p>
+</div></blockquote>
+<p>The below relocations are currently unsupported in eld:</p>
+<ul class="simple">
+<li><p>R_AARCH64_MOVW_PREL_G{0, 1, 2, 3}{_NC}</p></li>
+</ul>
+</div>
+<div class="section" id="address-forming-relocations-used-to-compute-both-got-and-non-got-addresses">
+<h3><span class="section-number">6.3.6. </span>Address forming relocations used to compute both GOT and non-GOT addresses<a class="headerlink" href="#address-forming-relocations-used-to-compute-both-got-and-non-got-addresses" title="Permalink to this heading"></a></h3>
+<p>These are the relocations that can be used to form both
+GOT and non-GOT addresses.</p>
+<p>The behavior of these relocations depend upon the corresponding Hi-relocation pair.</p>
+<ul class="simple">
+<li><p>R_RISCV_PCREL_LO12_I</p></li>
+<li><p>R_RISCV_PCREL_LO12_S</p></li>
+<li><p>There is no relevant AArch64 relocation here.</p></li>
+</ul>
+</div>
+<div class="section" id="absolute-pc-relative-load-store-relocations">
+<h3><span class="section-number">6.3.7. </span>Absolute / PC-relative load/store relocations<a class="headerlink" href="#absolute-pc-relative-load-store-relocations" title="Permalink to this heading"></a></h3>
+<p>These relocations do not make sense with IFunc symbols. Loading a value at a
+function address is invalid behavior, and so is storing a value at a function
+address.</p>
+<ul class="simple">
+<li><p>LD_PREL_LO19 (NotSupportedInGNULDForIFunc)</p></li>
+<li><p>LDST{8, 16, 32, 64, 128}_ABS_LO12_NC (NotSupportedInGNULDForIFunc)</p></li>
+</ul>
+<blockquote>
+<div><p>[!IMPORTANT]
+FIXME: It should be an error to use these relocations with IFunc symbols.</p>
+</div></blockquote>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Hexagon-Relocations.html" class="btn btn-neutral float-left" title="5. Hexagon Relocation Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="RISCV-Relocations.html" class="btn btn-neutral float-right" title="7. RISC-V Relocation Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2. ARM Relocation Reference &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="3. Adding a New Backend to ELD" href="AddingABackend.html" />
+    <link rel="prev" title="1. AArch64 Relocation Reference" href="AArch64-Relocations.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_diagnostics.html">5. Linker Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/eld_debugging_guide.html">6. ELD  (debugging guide)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html">7. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">8. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/image_structure_and_generation.html">9. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/elf_tools.html">13. ELF TOOLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/lto_support.html">14. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/getting_image_details.html">15. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/options/options.html">16. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/target_specific_features.html">17. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/sframe_support.html">18. SFrame Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/editor_support.html">19. Editor Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_faq.html">20. Linker support and frequently asked questions!!!</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Docs</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="AArch64-Relocations.html">1. AArch64 Relocation Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">2. ARM Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AddingABackend.html">3. Adding a New Backend to ELD</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EldCodeCoverage.html">4. ELD Code Coverage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Hexagon-Relocations.html">5. Hexagon Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="IFunc.html">6. GNU IFunc support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RISCV-Relocations.html">7. RISC-V Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="X86_64-Relocations.html">8. x86-64 Relocation Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2. </span>ARM Relocation Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/DeveloperDocs/ARM-Relocations.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="arm-relocation-reference">
+<h1><span class="section-number">2. </span>ARM Relocation Reference<a class="headerlink" href="#arm-relocation-reference" title="Permalink to this heading"></a></h1>
+<div class="section" id="introduction">
+<h2><span class="section-number">2.1. </span>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading"></a></h2>
+<p>ARM (32-bit) supports two instruction set architectures: the 32-bit ARM ISA and the 16/32-bit Thumb/Thumb-2 ISA. Relocations encode symbol references into instruction immediate fields and, for branch relocations, into the encoded offset. The linker selects ARM or Thumb encoding based on whether the target symbol is a Thumb function (the T bit).</p>
+</div>
+<div class="section" id="relocation-conventions">
+<h2><span class="section-number">2.2. </span>Relocation Conventions<a class="headerlink" href="#relocation-conventions" title="Permalink to this heading"></a></h2>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Symbol</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">S</span></code></p></td>
+<td><p>Runtime address of the referenced symbol</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">A</span></code></p></td>
+<td><p>Relocation addend</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">P</span></code></p></td>
+<td><p>Address of the relocation site (place)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T</span></code></p></td>
+<td><p>1 if the target symbol is a Thumb function, 0 otherwise</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">B(S)</span></code></p></td>
+<td><p>Base address of the segment containing symbol <code class="docutils literal notranslate"><span class="pre">S</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GOT_ORG</span></code></p></td>
+<td><p>Address of the Global Offset Table</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span></code></p></td>
+<td><p>Address of the GOT entry for symbol <code class="docutils literal notranslate"><span class="pre">S</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TLS</span></code></p></td>
+<td><p>TLS segment base address</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TP</span></code></p></td>
+<td><p>Thread pointer</p></td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="the-t-bit">
+<h3><span class="section-number">2.2.1. </span>The T Bit<a class="headerlink" href="#the-t-bit" title="Permalink to this heading"></a></h3>
+<p>ARM and Thumb functions are distinguished by the least-significant bit of a branch target. When <code class="docutils literal notranslate"><span class="pre">T</span> <span class="pre">=</span> <span class="pre">1</span></code>, the expression <code class="docutils literal notranslate"><span class="pre">(S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">\|</span> <span class="pre">T</span></code> sets bit 0, signalling an interworking branch to a Thumb function. Plain data relocations (<code class="docutils literal notranslate"><span class="pre">R_ARM_ABS16</span></code>, <code class="docutils literal notranslate"><span class="pre">R_ARM_ABS8</span></code>) do not OR in <code class="docutils literal notranslate"><span class="pre">T</span></code>.</p>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="absolute-relocations">
+<h2><span class="section-number">2.3. </span>Absolute Relocations<a class="headerlink" href="#absolute-relocations" title="Permalink to this heading"></a></h2>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Expression</p></th>
+<th class="head"><p>Bits</p></th>
+<th class="head"><p>Range Check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ABS32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T</span></code></p></td>
+<td><p>32</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ABS16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>16</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ABS8</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>8</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_MOVW_ABS_NC</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[15:0]</span></code></p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_MOVT_ABS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[31:16]</span></code></p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_MOVW_ABS_NC</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[15:0]</span></code></p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_MOVT_ABS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[31:16]</span></code></p></td>
+<td><p>none</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">R_ARM_MOVW_ABS_NC</span></code> and <code class="docutils literal notranslate"><span class="pre">R_ARM_MOVT_ABS</span></code> are used in pairs: <code class="docutils literal notranslate"><span class="pre">MOVW</span></code> loads bits <code class="docutils literal notranslate"><span class="pre">[15:0]</span></code> and <code class="docutils literal notranslate"><span class="pre">MOVT</span></code> loads bits <code class="docutils literal notranslate"><span class="pre">[31:16]</span></code> of a 32-bit address.</p>
+<div class="section" id="example-loading-a-32-bit-address-arm">
+<h3><span class="section-number">2.3.1. </span>Example: Loading a 32-bit Address (ARM)<a class="headerlink" href="#example-loading-a-32-bit-address-arm" title="Permalink to this heading"></a></h3>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">movw</span><span class="w"> </span><span class="no">r0</span><span class="p">,</span><span class="w"> </span><span class="c1">#:lower16:symbol   @ R_ARM_MOVW_ABS_NC</span>
+<span class="nf">movt</span><span class="w"> </span><span class="no">r0</span><span class="p">,</span><span class="w"> </span><span class="c1">#:upper16:symbol   @ R_ARM_MOVT_ABS</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="example-loading-a-32-bit-address-thumb">
+<h3><span class="section-number">2.3.2. </span>Example: Loading a 32-bit Address (Thumb)<a class="headerlink" href="#example-loading-a-32-bit-address-thumb" title="Permalink to this heading"></a></h3>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">movw</span><span class="w"> </span><span class="no">r0</span><span class="p">,</span><span class="w"> </span><span class="c1">#:lower16:symbol   @ R_ARM_THM_MOVW_ABS_NC</span>
+<span class="nf">movt</span><span class="w"> </span><span class="no">r0</span><span class="p">,</span><span class="w"> </span><span class="c1">#:upper16:symbol   @ R_ARM_THM_MOVT_ABS</span>
+</pre></div>
+</div>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="pc-relative-relocations">
+<h2><span class="section-number">2.4. </span>PC-Relative Relocations<a class="headerlink" href="#pc-relative-relocations" title="Permalink to this heading"></a></h2>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Expression</p></th>
+<th class="head"><p>Bits</p></th>
+<th class="head"><p>Range Check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_REL32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>32</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_SBREL32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>32</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_PREL31</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>31</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_BASE_PREL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">B(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>32</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_MOVW_PREL_NC</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[15:0]</span></code></p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_MOVT_PREL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[31:16]</span></code></p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_MOVW_PREL_NC</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[15:0]</span></code></p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_MOVT_PREL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[31:16]</span></code></p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_MOVT_BREL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[31:16]</span></code></p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_MOVW_BREL_NC</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">B(S)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[15:0]</span></code></p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_MOVW_BREL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">B(S)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[15:0]</span></code></p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_PC_G0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>top 8 bits, 4-bit rotation</p></td>
+<td><p>none</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">R_ARM_SBREL32</span></code> uses the same handler as <code class="docutils literal notranslate"><span class="pre">R_ARM_REL32</span></code> but produces a segment-base-relative offset. <code class="docutils literal notranslate"><span class="pre">R_ARM_PREL31</span></code> is used in ARM exception table entries.</p>
+</div>
+<hr class="docutils" />
+<div class="section" id="branch-relocations">
+<h2><span class="section-number">2.5. </span>Branch Relocations<a class="headerlink" href="#branch-relocations" title="Permalink to this heading"></a></h2>
+<p>ARM branch instructions encode a signed byte offset divided by 4 into a 24-bit field, giving a range of ±32 MB. Thumb branch instructions encode the offset divided by 2.</p>
+<div class="section" id="arm-branch">
+<h3><span class="section-number">2.5.1. </span>ARM Branch<a class="headerlink" href="#arm-branch" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Expression</p></th>
+<th class="head"><p>Instruction</p></th>
+<th class="head"><p>Encoded bits</p></th>
+<th class="head"><p>Range</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_PC24</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">b</span></code></p></td>
+<td><p>24-bit signed (<code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">&gt;&gt;</span> <span class="pre">2</span></code>)</p></td>
+<td><p>±32 MB</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_PLT32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">b</span></code></p></td>
+<td><p>24-bit signed (<code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">&gt;&gt;</span> <span class="pre">2</span></code>)</p></td>
+<td><p>±32 MB</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_JUMP24</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">b</span></code>/<code class="docutils literal notranslate"><span class="pre">bx</span></code></p></td>
+<td><p>24-bit signed (<code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">&gt;&gt;</span> <span class="pre">2</span></code>)</p></td>
+<td><p>±32 MB</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_CALL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bl</span></code>/<code class="docutils literal notranslate"><span class="pre">blx</span></code></p></td>
+<td><p>24-bit signed (<code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">&gt;&gt;</span> <span class="pre">2</span></code>)</p></td>
+<td><p>±32 MB</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="thumb-branch">
+<h3><span class="section-number">2.5.2. </span>Thumb Branch<a class="headerlink" href="#thumb-branch" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Expression</p></th>
+<th class="head"><p>Instruction</p></th>
+<th class="head"><p>Encoded bits</p></th>
+<th class="head"><p>Range</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_JUMP8</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">b</span></code> (cond)</p></td>
+<td><p>8-bit signed (<code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">&gt;&gt;</span> <span class="pre">1</span></code>)</p></td>
+<td><p>±256 B</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_JUMP11</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">b</span></code> (uncond)</p></td>
+<td><p>11-bit signed (<code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">&gt;&gt;</span> <span class="pre">1</span></code>)</p></td>
+<td><p>±2 KB</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_JUMP19</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">b.cond</span></code> (Thumb-2)</p></td>
+<td><p>21-bit signed (<code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">&gt;&gt;</span> <span class="pre">1</span></code>)</p></td>
+<td><p>±1 MB</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_CALL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bl</span></code>/<code class="docutils literal notranslate"><span class="pre">blx</span></code> (Thumb-2)</p></td>
+<td><p>25-bit signed (<code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">&gt;&gt;</span> <span class="pre">1</span></code>)</p></td>
+<td><p>±16 MB</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_JUMP24</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">b</span></code> (Thumb-2)</p></td>
+<td><p>25-bit signed (<code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">&gt;&gt;</span> <span class="pre">1</span></code>)</p></td>
+<td><p>±16 MB</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="got-relative-relocations">
+<h2><span class="section-number">2.6. </span>GOT-Relative Relocations<a class="headerlink" href="#got-relative-relocations" title="Permalink to this heading"></a></h2>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Expression</p></th>
+<th class="head"><p>Bits</p></th>
+<th class="head"><p>Range Check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_GOTOFF32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">GOT_ORG</span></code></p></td>
+<td><p>32</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_GOT_BREL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">GOT_ORG</span></code></p></td>
+<td><p>12</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_GOT_PREL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>32</p></td>
+<td><p>none</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<div class="section" id="tls-relocations">
+<h2><span class="section-number">2.7. </span>TLS Relocations<a class="headerlink" href="#tls-relocations" title="Permalink to this heading"></a></h2>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Expression</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_GD32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>General Dynamic — two-GOT-entry sequence</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_LDM32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>Local Dynamic — module GOT entry</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_IE32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>Initial Exec — GOT-indirect TP offset</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_LDO32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">TLS</span></code></p></td>
+<td><p>Local Dynamic offset within TLS block</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_LE32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">+</span> <span class="pre">2*WordSize</span> <span class="pre">+</span> <span class="pre">...</span></code></p></td>
+<td><p>Local Exec — TP-relative offset, static only</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<div class="section" id="unsupported-relocations">
+<h2><span class="section-number">2.8. </span>Unsupported Relocations<a class="headerlink" href="#unsupported-relocations" title="Permalink to this heading"></a></h2>
+<p>The table below lists every relocation that ELD’s ARM backend maps to the <code class="docutils literal notranslate"><span class="pre">unsupport</span></code> handler. Applying any of these to a non-dynamic object causes a link error. Relocations not listed here are handled. The <strong>ABI category</strong> column records how the ARM ELF ABI classifies the entry, and the <strong>TODO</strong> column records cases where the linker could reasonably add support.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Relocation</p></th>
+<th class="head"><p>ABI category</p></th>
+<th class="head"><p>TODO</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>4</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDR_PC_G0</span></code></p></td>
+<td><p>Group reloc — literal-pool PC-relative LDR (G0)</p></td>
+<td><p>Implement LDR PC-group G0</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ABS16</span></code></p></td>
+<td><p>16-bit absolute</p></td>
+<td><p>Implement 16-bit absolute</p></td>
+</tr>
+<tr class="row-even"><td><p>6</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ABS12</span></code></p></td>
+<td><p>12-bit absolute (LDR/STR immediate)</p></td>
+<td><p>Implement ABS12</p></td>
+</tr>
+<tr class="row-odd"><td><p>7</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_ABS5</span></code></p></td>
+<td><p>Thumb 5-bit absolute (LDR/STR)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>8</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ABS8</span></code></p></td>
+<td><p>8-bit absolute</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>11</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_PC8</span></code></p></td>
+<td><p>Thumb 8-bit PC-relative (LDR literal)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>12</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_BREL_ADJ</span></code></p></td>
+<td><p>Dynamic — adjustment for R_ARM_TLS_DESC</p></td>
+<td><p>Dynamic only</p></td>
+</tr>
+<tr class="row-odd"><td><p>13</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_DESC</span></code></p></td>
+<td><p>Dynamic TLS descriptor</p></td>
+<td><p>Dynamic only</p></td>
+</tr>
+<tr class="row-even"><td><p>14</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_SWI8</span></code></p></td>
+<td><p>Obsolete</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>15</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_XPC25</span></code></p></td>
+<td><p>Obsolete</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>16</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_XPC22</span></code></p></td>
+<td><p>Obsolete</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>17</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_DTPMOD32</span></code></p></td>
+<td><p>Dynamic TLS module index</p></td>
+<td><p>Dynamic only</p></td>
+</tr>
+<tr class="row-even"><td><p>18</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_DTPOFF32</span></code></p></td>
+<td><p>Dynamic TLS symbol offset</p></td>
+<td><p>Dynamic only</p></td>
+</tr>
+<tr class="row-odd"><td><p>19</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_TPOFF32</span></code></p></td>
+<td><p>Dynamic TLS thread-pointer offset</p></td>
+<td><p>Dynamic only</p></td>
+</tr>
+<tr class="row-even"><td><p>20</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_COPY</span></code></p></td>
+<td><p>Dynamic copy reloc</p></td>
+<td><p>Dynamic only</p></td>
+</tr>
+<tr class="row-odd"><td><p>21</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_GLOB_DAT</span></code></p></td>
+<td><p>Dynamic GOT fill</p></td>
+<td><p>Dynamic only</p></td>
+</tr>
+<tr class="row-even"><td><p>22</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_JUMP_SLOT</span></code></p></td>
+<td><p>Dynamic PLT fill</p></td>
+<td><p>Dynamic only</p></td>
+</tr>
+<tr class="row-odd"><td><p>23</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_RELATIVE</span></code></p></td>
+<td><p>Dynamic base-relative</p></td>
+<td><p>Dynamic only</p></td>
+</tr>
+<tr class="row-even"><td><p>31</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_BASE_ABS</span></code></p></td>
+<td><p>Segment-base absolute</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>32</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_PCREL_7_0</span></code></p></td>
+<td><p>Deprecated (ELF B02 name for ALU_PC_G0_NC)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>33</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_PCREL_15_8</span></code></p></td>
+<td><p>Deprecated (ELF B02 name for ALU_PC_G1_NC)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>34</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_PCREL_23_15</span></code></p></td>
+<td><p>Deprecated (ELF B02 name for ALU_PC_G2)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>35</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDR_SBREL_11_0_NC</span></code></p></td>
+<td><p>Deprecated section-base relative LDR</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>36</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_SBREL_19_12_NC</span></code></p></td>
+<td><p>Deprecated section-base relative ALU</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>37</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_SBREL_27_20_CK</span></code></p></td>
+<td><p>Deprecated section-base relative ALU</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>39</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_SBREL31</span></code></p></td>
+<td><p>Deprecated 31-bit section-relative</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>52</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_JUMP6</span></code></p></td>
+<td><p>Thumb 6-bit branch (CBZ/CBNZ)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>53</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_ALU_PREL_11_0</span></code></p></td>
+<td><p>Thumb-2 ALU PC-relative 11:0</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>54</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_PC12</span></code></p></td>
+<td><p>Thumb-2 LDR/STR 12-bit PC-relative</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>55</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ABS32_NOI</span></code></p></td>
+<td><p>32-bit absolute, no interworking bit</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>56</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_REL32_NOI</span></code></p></td>
+<td><p>32-bit PC-relative, no interworking bit</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>57</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_PC_G0_NC</span></code></p></td>
+<td><p>Group reloc — ALU PC-relative G0, no overflow</p></td>
+<td><p>Implement ALU_PC_G group</p></td>
+</tr>
+<tr class="row-even"><td><p>59</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_PC_G1_NC</span></code></p></td>
+<td><p>Group reloc — ALU PC-relative G1, no overflow</p></td>
+<td><p>Implement ALU_PC_G group</p></td>
+</tr>
+<tr class="row-odd"><td><p>60</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_PC_G1</span></code></p></td>
+<td><p>Group reloc — ALU PC-relative G1</p></td>
+<td><p>Implement ALU_PC_G group</p></td>
+</tr>
+<tr class="row-even"><td><p>61</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_PC_G2</span></code></p></td>
+<td><p>Group reloc — ALU PC-relative G2</p></td>
+<td><p>Implement ALU_PC_G group</p></td>
+</tr>
+<tr class="row-odd"><td><p>62</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDR_PC_G1</span></code></p></td>
+<td><p>Group reloc — LDR PC-relative G1</p></td>
+<td><p>Implement LDR PC-group</p></td>
+</tr>
+<tr class="row-even"><td><p>63</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDR_PC_G2</span></code></p></td>
+<td><p>Group reloc — LDR PC-relative G2</p></td>
+<td><p>Implement LDR PC-group</p></td>
+</tr>
+<tr class="row-odd"><td><p>64</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDRS_PC_G0</span></code></p></td>
+<td><p>Group reloc — LDRD/STRD PC-relative G0</p></td>
+<td><p>Implement LDRS PC-group</p></td>
+</tr>
+<tr class="row-even"><td><p>65</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDRS_PC_G1</span></code></p></td>
+<td><p>Group reloc — LDRD/STRD PC-relative G1</p></td>
+<td><p>Implement LDRS PC-group</p></td>
+</tr>
+<tr class="row-odd"><td><p>66</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDRS_PC_G2</span></code></p></td>
+<td><p>Group reloc — LDRD/STRD PC-relative G2</p></td>
+<td><p>Implement LDRS PC-group</p></td>
+</tr>
+<tr class="row-even"><td><p>67</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDC_PC_G0</span></code></p></td>
+<td><p>Group reloc — LDC/STC PC-relative G0</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>68</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDC_PC_G1</span></code></p></td>
+<td><p>Group reloc — LDC/STC PC-relative G1</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>69</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDC_PC_G2</span></code></p></td>
+<td><p>Group reloc — LDC/STC PC-relative G2</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>70</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_SB_G0_NC</span></code></p></td>
+<td><p>Group reloc — ALU section-base G0, no overflow</p></td>
+<td><p>Implement ALU_SB_G group</p></td>
+</tr>
+<tr class="row-even"><td><p>71</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_SB_G0</span></code></p></td>
+<td><p>Group reloc — ALU section-base G0</p></td>
+<td><p>Implement ALU_SB_G group</p></td>
+</tr>
+<tr class="row-odd"><td><p>72</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_SB_G1_NC</span></code></p></td>
+<td><p>Group reloc — ALU section-base G1, no overflow</p></td>
+<td><p>Implement ALU_SB_G group</p></td>
+</tr>
+<tr class="row-even"><td><p>73</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_SB_G1</span></code></p></td>
+<td><p>Group reloc — ALU section-base G1</p></td>
+<td><p>Implement ALU_SB_G group</p></td>
+</tr>
+<tr class="row-odd"><td><p>74</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_SB_G2</span></code></p></td>
+<td><p>Group reloc — ALU section-base G2</p></td>
+<td><p>Implement ALU_SB_G group</p></td>
+</tr>
+<tr class="row-even"><td><p>75</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDR_SB_G0</span></code></p></td>
+<td><p>Group reloc — LDR section-base G0</p></td>
+<td><p>Implement LDR_SB_G group</p></td>
+</tr>
+<tr class="row-odd"><td><p>76</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDR_SB_G1</span></code></p></td>
+<td><p>Group reloc — LDR section-base G1</p></td>
+<td><p>Implement LDR_SB_G group</p></td>
+</tr>
+<tr class="row-even"><td><p>77</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDR_SB_G2</span></code></p></td>
+<td><p>Group reloc — LDR section-base G2</p></td>
+<td><p>Implement LDR_SB_G group</p></td>
+</tr>
+<tr class="row-odd"><td><p>78</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDRS_SB_G0</span></code></p></td>
+<td><p>Group reloc — LDRD/STRD section-base G0</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>79</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDRS_SB_G1</span></code></p></td>
+<td><p>Group reloc — LDRD/STRD section-base G1</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>80</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDRS_SB_G2</span></code></p></td>
+<td><p>Group reloc — LDRD/STRD section-base G2</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>81</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDC_SB_G0</span></code></p></td>
+<td><p>Group reloc — LDC/STC section-base G0</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>82</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDC_SB_G1</span></code></p></td>
+<td><p>Group reloc — LDC/STC section-base G1</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>83</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_LDC_SB_G2</span></code></p></td>
+<td><p>Group reloc — LDC/STC section-base G2</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>84</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_MOVW_BREL_NC</span></code></p></td>
+<td><p>MOVW section-base relative, no overflow</p></td>
+<td><p>Implement MOVW/T_BREL (ARM)</p></td>
+</tr>
+<tr class="row-even"><td><p>85</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_MOVT_BREL</span></code></p></td>
+<td><p>MOVT section-base relative</p></td>
+<td><p>Implement MOVW/T_BREL (ARM)</p></td>
+</tr>
+<tr class="row-odd"><td><p>86</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_MOVW_BREL</span></code></p></td>
+<td><p>MOVW section-base relative</p></td>
+<td><p>Implement MOVW/T_BREL (ARM)</p></td>
+</tr>
+<tr class="row-even"><td><p>90</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_GOTDESC</span></code></p></td>
+<td><p>TLS descriptor GOT entry</p></td>
+<td><p>TLS-desc relaxation not implemented</p></td>
+</tr>
+<tr class="row-odd"><td><p>91</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_CALL</span></code></p></td>
+<td><p>TLS descriptor call (ARM)</p></td>
+<td><p>TLS-desc relaxation not implemented</p></td>
+</tr>
+<tr class="row-even"><td><p>92</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_DESCSEQ</span></code></p></td>
+<td><p>TLS descriptor sequence (ARM)</p></td>
+<td><p>TLS-desc relaxation not implemented</p></td>
+</tr>
+<tr class="row-odd"><td><p>93</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_TLS_CALL</span></code></p></td>
+<td><p>TLS descriptor call (Thumb)</p></td>
+<td><p>TLS-desc relaxation not implemented</p></td>
+</tr>
+<tr class="row-even"><td><p>94</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_PLT32_ABS</span></code></p></td>
+<td><p>PLT entry absolute address</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>95</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_GOT_ABS</span></code></p></td>
+<td><p>GOT entry absolute address</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>97</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_GOT_PREL12</span></code></p></td>
+<td><p>12-bit GOT-relative (LDR/STR)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>98</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_GOTOFF12</span></code></p></td>
+<td><p>12-bit GOT-offset</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>99</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_GOTRELAX</span></code></p></td>
+<td><p>Linker relaxation hint</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>100</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_GNU_VTENTRY</span></code></p></td>
+<td><p>Deprecated GNU C++ vtable entry</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>101</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_GNU_VTINHERIT</span></code></p></td>
+<td><p>Deprecated GNU C++ vtable inheritance</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>109</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_LDO12</span></code></p></td>
+<td><p>TLS LDO 12-bit offset (LDR/STR)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>110</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_LE12</span></code></p></td>
+<td><p>TLS LE 12-bit TP offset</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>111</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_IE12GP</span></code></p></td>
+<td><p>TLS IE 12-bit GOT-relative</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>112–127</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_PRIVATE_0–15</span></code></p></td>
+<td><p>Reserved for private use — not allocatable in portable objects</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>128</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ME_TOO</span></code></p></td>
+<td><p>Obsolete</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>129</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_TLS_DESCSEQ16</span></code></p></td>
+<td><p>Thumb-1 TLS descriptor sequence</p></td>
+<td><p>TLS-desc relaxation not implemented</p></td>
+</tr>
+<tr class="row-odd"><td><p>130</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_TLS_DESCSEQ32</span></code></p></td>
+<td><p>Thumb-2 TLS descriptor sequence</p></td>
+<td><p>TLS-desc relaxation not implemented</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<div class="section" id="abi-comparison-notes">
+<h2><span class="section-number">2.9. </span>ABI Comparison Notes<a class="headerlink" href="#abi-comparison-notes" title="Permalink to this heading"></a></h2>
+<p>The following discrepancies or gaps were found when comparing this document against the AAELF32 ABI specification:</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Area</p></th>
+<th class="head"><p>Observed difference</p></th>
+<th class="head"><p>TODO</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TLS_LE32</span></code> expression</p></td>
+<td><p>Document shows <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">+</span> <span class="pre">2*WordSize</span> <span class="pre">+</span> <span class="pre">...</span></code>; ABI defines it as <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">tp</span></code> (offset from thread pointer)</p></td>
+<td><p>Fix expression in TLS table to <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">tp</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_GOT_BREL</span></code> bits column</p></td>
+<td><p>Document shows <code class="docutils literal notranslate"><span class="pre">12</span></code>; ABI says the relocation places a 32-bit GOT-relative offset — the <code class="docutils literal notranslate"><span class="pre">12</span></code> refers to LDR’s 12-bit immediate encoding, which is an instruction constraint, not the relocation size</p></td>
+<td><p>Clarify as <code class="docutils literal notranslate"><span class="pre">32</span></code> with a note that the offset must fit in 12 bits</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_SBREL32</span></code></p></td>
+<td><p>Documented as identical to <code class="docutils literal notranslate"><span class="pre">R_ARM_REL32</span></code>; ABI marks it as using the segment base <code class="docutils literal notranslate"><span class="pre">B(S)</span></code> rather than <code class="docutils literal notranslate"><span class="pre">P</span></code>, so the formula is <code class="docutils literal notranslate"><span class="pre">((S+A)|T)</span> <span class="pre">-</span> <span class="pre">B(S)</span></code> not <code class="docutils literal notranslate"><span class="pre">-P</span></code></p></td>
+<td><p>Fix expression to <code class="docutils literal notranslate"><span class="pre">((S</span> <span class="pre">+</span> <span class="pre">A)</span> <span class="pre">|</span> <span class="pre">T)</span> <span class="pre">-</span> <span class="pre">B(S)</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_ALU_PC_G0</span></code> (type 58)</p></td>
+<td><p>Documented in this file and handled by ELD via the <code class="docutils literal notranslate"><span class="pre">alu_pc</span></code> handler; the G1/G2 variants and the <code class="docutils literal notranslate"><span class="pre">_NC</span></code> forms (57, 59-61) are unsupported — not noted in the PC-relative table</p></td>
+<td><p>Add a note that only G0 is supported</p></td>
+</tr>
+<tr class="row-even"><td><p>Thumb branch ranges</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_CALL</span></code> and <code class="docutils literal notranslate"><span class="pre">R_ARM_THM_JUMP24</span></code> are shown with <code class="docutils literal notranslate"><span class="pre">±16</span> <span class="pre">MB</span></code> range; ABI specifies the range depends on whether J1J2 encoding is available (±4 MB without it)</p></td>
+<td><p>Add conditional range note matching the Thumb Branch table in the Veneers section</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_TARGET2</span></code></p></td>
+<td><p>Handled by ELD (as <code class="docutils literal notranslate"><span class="pre">target2</span></code>) but not documented in any section of this file</p></td>
+<td><p>Add <code class="docutils literal notranslate"><span class="pre">R_ARM_TARGET2</span></code> to the PC-relative or absolute table with a note that its behaviour (ABS32 or GOT-relative) is controlled by a linker option</p></td>
+</tr>
+<tr class="row-even"><td><p>Deprecated relocations</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_PC24</span></code> and <code class="docutils literal notranslate"><span class="pre">R_ARM_PLT32</span></code> are listed in the Branch section without noting they are deprecated in favour of <code class="docutils literal notranslate"><span class="pre">R_ARM_CALL</span></code>/<code class="docutils literal notranslate"><span class="pre">R_ARM_JUMP24</span></code></p></td>
+<td><p>Add deprecation note</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<div class="section" id="veneers-branch-island-stubs">
+<h2><span class="section-number">2.10. </span>Veneers (Branch Island Stubs)<a class="headerlink" href="#veneers-branch-island-stubs" title="Permalink to this heading"></a></h2>
+<p>When a branch target is out of range or requires an ISA mode switch (ARM ↔ Thumb), the linker inserts a small stub function called a <strong>veneer</strong> (also called a trampoline or branch island). The veneer is placed near the caller and jumps to the real target using an absolute or PC-relative address.</p>
+<div class="section" id="when-the-linker-creates-veneers">
+<h3><span class="section-number">2.10.1. </span>When the Linker Creates Veneers<a class="headerlink" href="#when-the-linker-creates-veneers" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Caller ISA</p></th>
+<th class="head"><p>Target ISA</p></th>
+<th class="head"><p>Relocation</p></th>
+<th class="head"><p>Condition</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ARM</p></td>
+<td><p>ARM</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_PC24</span></code>, <code class="docutils literal notranslate"><span class="pre">R_ARM_CALL</span></code>, <code class="docutils literal notranslate"><span class="pre">R_ARM_JUMP24</span></code>, <code class="docutils literal notranslate"><span class="pre">R_ARM_PLT32</span></code></p></td>
+<td><p>Target out of ±32 MB range</p></td>
+<td><p>No stub if target is Thumb (T bit = 1)</p></td>
+</tr>
+<tr class="row-odd"><td><p>ARM</p></td>
+<td><p>Thumb</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_PC24</span></code>, <code class="docutils literal notranslate"><span class="pre">R_ARM_JUMP24</span></code>, <code class="docutils literal notranslate"><span class="pre">R_ARM_PLT32</span></code></p></td>
+<td><p>Always — instruction cannot be rewritten as <code class="docutils literal notranslate"><span class="pre">blx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">b</span></code>/<code class="docutils literal notranslate"><span class="pre">bl</span></code>/<code class="docutils literal notranslate"><span class="pre">b.w</span></code> cannot encode ISA switch directly</p></td>
+</tr>
+<tr class="row-even"><td><p>ARM</p></td>
+<td><p>Thumb</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_CALL</span></code></p></td>
+<td><p>Target out of ±32 MB range</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bl</span></code> → <code class="docutils literal notranslate"><span class="pre">blx</span></code> rewrite is possible in range; stub used only if out of range</p></td>
+</tr>
+<tr class="row-odd"><td><p>Thumb</p></td>
+<td><p>ARM</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_JUMP24</span></code></p></td>
+<td><p>Always — Thumb <code class="docutils literal notranslate"><span class="pre">b.w</span></code> cannot switch ISA</p></td>
+<td><p>Disabled on microcontroller profiles (Cortex-M0)</p></td>
+</tr>
+<tr class="row-even"><td><p>Thumb</p></td>
+<td><p>ARM</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_CALL</span></code></p></td>
+<td><p>Target out of ±4 MB range (23-bit) or ±16 MB range (25-bit J1J2)</p></td>
+<td><p>Disabled on microcontroller profiles</p></td>
+</tr>
+<tr class="row-odd"><td><p>Thumb</p></td>
+<td><p>Thumb</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R_ARM_THM_JUMP24</span></code>, <code class="docutils literal notranslate"><span class="pre">R_ARM_THM_CALL</span></code></p></td>
+<td><p>Target out of ±4 MB range (23-bit) or ±16 MB range (25-bit J1J2)</p></td>
+<td><p>No stub if target is ARM (T bit = 0)</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p><strong>Microcontroller profile:</strong> For CPUs such as Cortex-M0 (and those with the M-profile CPU attribute), Thumb→ARM veneers are never created — the ARM ISA is not available. Thumb→Thumb veneers still use Thumb-1-safe templates (see below).</p>
+<p><strong>J1J2 encoding:</strong> Thumb-2 processors with J1J2 branch encoding support a 25-bit offset (±16 MB); older Thumb-2 without J1J2 use a 23-bit offset (±4 MB). The linker detects this from the object attribute section.</p>
+</div></blockquote>
+</div>
+<div class="section" id="branch-range-reference">
+<h3><span class="section-number">2.10.2. </span>Branch Range Reference<a class="headerlink" href="#branch-range-reference" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Caller ISA</p></th>
+<th class="head"><p>Branch encoding</p></th>
+<th class="head"><p>Range</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ARM</p></td>
+<td><p>24-bit signed <code class="docutils literal notranslate"><span class="pre">×</span> <span class="pre">4</span></code>, bias 8</p></td>
+<td><p>±32 MB</p></td>
+</tr>
+<tr class="row-odd"><td><p>Thumb</p></td>
+<td><p>23-bit signed <code class="docutils literal notranslate"><span class="pre">×</span> <span class="pre">2</span></code>, bias 4</p></td>
+<td><p>±4 MB</p></td>
+</tr>
+<tr class="row-even"><td><p>Thumb (J1J2)</p></td>
+<td><p>25-bit signed <code class="docutils literal notranslate"><span class="pre">×</span> <span class="pre">2</span></code>, bias 4</p></td>
+<td><p>±16 MB</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="veneer-templates">
+<h3><span class="section-number">2.10.3. </span>Veneer Templates<a class="headerlink" href="#veneer-templates" title="Permalink to this heading"></a></h3>
+<p>The linker selects a veneer template based on link-time options and the target CPU profile:</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Template</p></th>
+<th class="head"><p>Selected when</p></th>
+<th class="head"><p>Instruction sequence</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ABS (default)</p></td>
+<td><p>Static link, no <code class="docutils literal notranslate"><span class="pre">-fPIC</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ldr</span> <span class="pre">ip,</span> <span class="pre">[pc,</span> <span class="pre">#0];</span> <span class="pre">bx</span> <span class="pre">ip;</span> <span class="pre">dcd</span> <span class="pre">target</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>PIC</p></td>
+<td><p>Position-independent code (<code class="docutils literal notranslate"><span class="pre">-fPIC</span></code> / <code class="docutils literal notranslate"><span class="pre">-fPIE</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ldr</span> <span class="pre">ip,</span> <span class="pre">[pc,</span> <span class="pre">#4];</span> <span class="pre">add</span> <span class="pre">ip,</span> <span class="pre">pc,</span> <span class="pre">ip;</span> <span class="pre">bx</span> <span class="pre">ip;</span> <span class="pre">dcd</span> <span class="pre">offset</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>MOV</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--use-mov-veneer</span></code> or microcontroller with MOVT/MOVW support</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">movw</span> <span class="pre">ip,</span> <span class="pre">#lo16;</span> <span class="pre">movt</span> <span class="pre">ip,</span> <span class="pre">#hi16;</span> <span class="pre">bx</span> <span class="pre">ip</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>THUMB1</p></td>
+<td><p>Microcontroller without MOVT/MOVW</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">push</span> <span class="pre">{r0,r1};</span> <span class="pre">ldr</span> <span class="pre">r0,</span> <span class="pre">[pc,</span> <span class="pre">#4];</span> <span class="pre">str</span> <span class="pre">r0,</span> <span class="pre">[sp,#4];</span> <span class="pre">pop</span> <span class="pre">{r0,pc};</span> <span class="pre">dcd</span> <span class="pre">target</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>For Thumb→Thumb veneers the stub body first switches to ARM mode (<code class="docutils literal notranslate"><span class="pre">bx</span> <span class="pre">pc;</span> <span class="pre">nop</span></code>) before executing the ABS or PIC template, because the ARM load/branch sequence is simpler. The MOV and THUMB1 templates operate entirely in Thumb-2 or Thumb-1 respectively and therefore do not need that prefix.</p>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="references">
+<h2><span class="section-number">2.11. </span>References<a class="headerlink" href="#references" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>ELF for the Arm Architecture (AAELF32)</p>
+<ul>
+<li><p>https://github.com/ARM-software/abi-aa/blob/main/aaelf32/aaelf32.rst</p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="AArch64-Relocations.html" class="btn btn-neutral float-left" title="1. AArch64 Relocation Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="AddingABackend.html" class="btn btn-neutral float-right" title="3. Adding a New Backend to ELD" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
