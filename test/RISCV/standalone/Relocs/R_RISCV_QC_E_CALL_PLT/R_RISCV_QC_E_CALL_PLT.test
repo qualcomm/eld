@@ -15,6 +15,8 @@ RUN: %objdump -dt %t1.out |  %filecheck %s
 
 CHECK-LABEL: SYMBOL TABLE:
 CHECK: 00000000 l   *ABS* 00000000 test_zero
+CHECK: abcdef78 l   *ABS* 00000000 test_distinct
+CHECK: fffffffe l   *ABS* 00000000 test_fffe
 CHECK: 00000074 l   .text 00000000 test_j_1
 CHECK: 0000007a l   .text 00000000 test_j_2
 CHECK: 00000080 l   .text 00000000 test_j_3
@@ -31,8 +33,6 @@ CHECK: 000000bc l   .text 00000000 test_jal_5
 CHECK: 000000c2 l   .text 00000000 test_jal_6
 CHECK: 000000c8 l   .text 00000000 test_jal_7
 CHECK: 000000ce l   .text 00000000 test_jal_8
-CHECK: abcdef78 l   *ABS* 00000000 test_distinct
-CHECK: fffffffe l   *ABS* 00000000 test_fffe
 CHECK: 000000d4 g F .text 00000002 test_vis_default
 CHECK: 000000d6 g F .text 00000002 .hidden test_vis_hidden
 CHECK: 000000da g F .text 00000002 .protected test_vis_protected
