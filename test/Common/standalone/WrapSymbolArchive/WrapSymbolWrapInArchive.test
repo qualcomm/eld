@@ -1,0 +1,60 @@
+#---WrapSymbolWrapInArchive.test---------- Executable ------------------#
+#BEGIN_COMMENT
+# Test that --wrap works when both the wrapper and the original symbol are
+# stored in an archive.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.1.wrap.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t.1.add.o
+
+# Archive contains both wrapper and original implementation
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.wrap.o %t.1.add.o
+
+# Link: main.o directly, both wrap and add from archive
+RUN: %link %linkopts %t.1.main.o %t.2.libfoo.a \
+RUN:   --wrap=add -o %t.2.out
+
+# Verify it linked successfully
+RUN: test -f %t.2.out
+
+# Compile inputs with LTO enabled.
+RUN: %clang %clangopts -flto -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -flto -c %p/Inputs/2.c -o %t.1.wrap.o
+RUN: %clang %clangopts -flto -c %p/Inputs/3.c -o %t.1.add.o
+
+# Archive contains both wrapper and original implementation
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.wrap.o %t.1.add.o
+
+# Link: main.o directly, both wrap and add from archive
+RUN: %link %linkopts %t.1.main.o %t.2.libfoo.a -flto\
+RUN:   --wrap=add -o %t.2.out
+
+# Compile inputs with ThinLTO enabled.
+RUN: %clang %clangopts -flto=thin -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -flto=thin -c %p/Inputs/2.c -o %t.1.wrap.o
+RUN: %clang %clangopts -flto=thin -c %p/Inputs/3.c -o %t.1.add.o
+
+# Archive contains both wrapper and original implementation
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.wrap.o %t.1.add.o
+
+# Link: main.o directly, both wrap and add from archive
+RUN: %link %linkopts %t.1.main.o %t.2.libfoo.a -flto=thin\
+RUN:   --wrap=add -o %t.2.out
+
+# Compile inputs with function/data sections enabled for --gc-sections.
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/2.c -o %t.1.wrap.o
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/3.c -o %t.1.add.o
+
+# Archive contains both wrapper and original implementation
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.wrap.o %t.1.add.o
+
+# Link with --gc-sections: main.o directly, both wrap and add from archive
+RUN: %link %linkopts %t.1.main.o %t.2.libfoo.a \
+RUN:   --wrap=add --gc-sections -o %t.2.out
+
+# Verify it linked successfully
+RUN: test -f %t.2.out
+#END_TEST

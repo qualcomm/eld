@@ -117,6 +117,7 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
       bool TraceWrap = ThisModule.getPrinter()->traceWrapSymbols();
       // If the renameMap is not empty, some symbols should be renamed.
       // --wrap and --portable defines the symbol rename map.
+      ThisModule.saveWrapReference(SymbolName);
       if (ResolveInfo::Undefined == Desc && (!EObj || !EObj->isLTOObject())) {
         Name = RenameSym->getValue();
         if (TraceWrap)

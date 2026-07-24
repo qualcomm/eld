@@ -1,0 +1,49 @@
+#---WrapSymbolArchivePullRealRefLTO.test---------- Executable -----------------#
+#BEGIN_COMMENT
+# Verify that when --wrap=<sym> is specified and an LTO bitcode file contains
+# an undefined reference to __real_<sym>, the linker correctly pulls the
+# archive member that defines <sym> from a static library.
+#END_COMMENT
+#START_TEST
+
+# Compile inputs
+RUN: %clang %clangopts -c %p/Inputs/5.c -o %t.1.main.o
+RUN: %clang %clangopts -c %p/Inputs/6.c -o %t.1.wrap.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t.1.add.o
+
+# Place the real add() implementation inside an archive.
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.add.o
+
+# Link with trace enabled to verify archive pull is reported
+RUN: %link %linkopts %t.1.main.o %t.1.wrap.o %t.2.libfoo.a \
+RUN:   --wrap=add -o %t.2.out --trace=wrap-symbols 2>&1 | %filecheck %s
+
+# Compile input with LTO
+RUN: %clang %clangopts -c %p/Inputs/6.c -o %t.1.wrap.o -flto
+
+# Link with trace enabled to verify archive pull is reported
+RUN: %link %linkopts %t.1.main.o %t.1.wrap.o %t.2.libfoo.a \
+RUN:   --wrap=add -o %t.2.out --trace=wrap-symbols 2>&1 | %filecheck %s
+
+# Compile input with ThinLTO
+RUN: %clang %clangopts -c %p/Inputs/6.c -o %t.1.wrap.o -flto=thin
+
+# Link with trace enabled to verify archive pull is reported
+RUN: %link %linkopts %t.1.main.o %t.1.wrap.o %t.2.libfoo.a \
+RUN:   --wrap=add -o %t.2.out --trace=wrap-symbols 2>&1 | %filecheck %s
+
+# Compile inputs with function/data sections enabled for --gc-sections.
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/5.c -o %t.1.main.o
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/6.c -o %t.1.wrap.o
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/3.c -o %t.1.add.o
+
+# Place the real add() implementation inside an archive.
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.add.o
+
+# Link with --gc-sections: archive pull must still be reported and the
+# pulled section must survive garbage collection.
+RUN: %link %linkopts %t.1.main.o %t.1.wrap.o %t.2.libfoo.a \
+RUN:   --wrap=add --gc-sections -o %t.2.out --trace=wrap-symbols 2>&1 | %filecheck %s
+
+# Verify archive pull trace message (your new trace)
+#CHECK: Pulling archive member from `{{.*}}libfoo.a' for wrapped symbol `add'
