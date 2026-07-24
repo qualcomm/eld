@@ -1,0 +1,84 @@
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #0D1117;
+    color: white;
+  }
+}
+
+#page-title {
+  cursor: pointer;
+}
+
+#content-div {
+  overflow-y: auto;
+  height: 80vh;
+}
+
+#filters-div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  margin-bottom: 10px;
+}
+
+.top-nav-label {
+  color: #f8f9fa;
+  font-weight: 600;
+}
+
+.date-filter-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.date-filter,
+.reset-filter {
+  color: #f8f9fa;
+  background-color: #343a40;
+  border: 1px solid #495057;
+  border-radius: 16px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.date-filter.active {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.status {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%; /* circular */
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.status-pass {
+  background-color: green;
+}
+
+.status-fail {
+  background-color: red;
+}
+
+.status-building {
+  background-color: orange;
+}
+
+.flex-parent {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.flex-child {
+  flex: auto;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}

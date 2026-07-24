@@ -1,0 +1,1 @@
+busybox_build_states = [{"run_id": "29983793342", "state": "pass", "date": "2026-07-23", "time": "06:02", "arch": "x86_64", "branch": "main"}, {"run_id": "30070936584", "state": "pass", "date": "2026-07-24", "time": "05:59", "arch": "x86_64", "branch": "main"}]
