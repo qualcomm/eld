@@ -710,9 +710,6 @@ plugin::InputFile plugin::Section::getRuleMatchingInput() const {
     return plugin::InputFile(nullptr);
   if (m_Section->hasOldInputFile())
     return plugin::InputFile(m_Section->originalInput());
-  if (CommonELFSection *commonSect =
-          llvm::dyn_cast<CommonELFSection>(m_Section))
-    return plugin::InputFile(commonSect->getOrigin());
   return plugin::InputFile(m_Section->originalInput());
 }
 

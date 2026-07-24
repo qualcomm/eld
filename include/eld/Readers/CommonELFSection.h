@@ -28,7 +28,9 @@ public:
     return S->getSectionKind() == Section::Kind::CommonELF;
   }
 
-  InputFile *getOrigin() const { return Origin; }
+  bool hasOldInputFile() const override { return Origin != nullptr; }
+
+  InputFile *getOldInputFile() const override { return Origin; }
 
   static constexpr uint32_t DefaultType = llvm::ELF::SHT_NOBITS;
   static constexpr uint32_t DefaultFlags =
