@@ -33,6 +33,38 @@ changelog:
       labels:
         - documentation
 
+    - title: Linker Script
+      labels:
+        - linkerscript
+
+    - title: Command line
+      labels:
+        - command-line
+
+    - title: Memory Usage
+      labels:
+        - memory-usage
+
+    - title: Diagnostics
+      labels:
+        - diagnostics
+
+    - title: Map File
+      labels:
+        - map-file
+
+    - title: Map File
+      labels:
+        - map-file
+
+    - title: Plugin
+      labels:
+        - plugin
+
+    - title: Reproduce
+      labels:
+        - reproduce-functionality
+
     - title: AArch64
       labels:
         - aarch64
@@ -47,11 +79,11 @@ changelog:
 
     - title: RISCV
       labels:
-        - riscv
+        - risc-v
 
-    - title: X86
+    - title: X86-64
       labels:
-        - x86
+        - x86-64
 
     - title: Other Changes
       labels:
