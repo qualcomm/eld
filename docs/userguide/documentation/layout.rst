@@ -513,6 +513,38 @@ Build and link::
   $ ld.eld -o bssmix.disable_conversion.out bssmix.o -T script.t --disable-bss-conversion \
       --enable-bss-mixing
 
+Symbol table order
+==================
+
+The linker writes symbols to the output ``.symtab`` and ``.dynsym`` in a fixed,
+reproducible order. Two links of the same inputs always produce byte-identical
+symbol tables, regardless of how many threads the linker uses.
+
+``.symtab``
+-----------
+
+Symbols are ordered as:
+
+1. Section symbols.
+2. Local symbols (ELF requires all locals before all globals).
+3. Global symbols.
+
+Within each group, symbols are ordered by the input file they came from (in
+command-line order), then by their index in that input's own symbol table. This
+preserves the original source order of symbols from each object file.
+
+``.dynsym``
+-----------
+
+The dynamic symbol table holds only the exported (dynamic) symbols. They are
+ordered as:
+
+1. Undefined symbols (including symbols defined by shared objects).
+2. Defined symbols.
+
+Within each group, symbols are ordered by input file (command-line order), then
+by their index in that input's symbol table, matching ``.symtab``.
+
 Advanced image layout control using linker plugins
 ====================================================
 
