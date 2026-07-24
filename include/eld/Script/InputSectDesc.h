@@ -93,13 +93,13 @@ public:
     }
 
     Spec &operator=(const Spec &RHS) {
-      if (this != &RHS) {
-        this->WildcardFilePattern = RHS.WildcardFilePattern;
-        this->InputArchiveMember = RHS.InputArchiveMember;
-        this->WildcardSectionPattern = RHS.WildcardSectionPattern;
-        this->InputIsArchive = RHS.InputIsArchive;
-        this->ExcludeFilesRule = RHS.ExcludeFilesRule;
-      }
+      if (this == &RHS)
+        return *this;
+      this->WildcardFilePattern = RHS.WildcardFilePattern;
+      this->InputArchiveMember = RHS.InputArchiveMember;
+      this->WildcardSectionPattern = RHS.WildcardSectionPattern;
+      this->InputIsArchive = RHS.InputIsArchive;
+      this->ExcludeFilesRule = RHS.ExcludeFilesRule;
       return *this;
     }
 
