@@ -944,6 +944,10 @@ public:
 
   bool getRISCVRelaxXqci() const { return BRiscvRelaxXqci; }
 
+  void setRISCVRelaxTP(bool Value) { BRiscvRelaxTP = Value; }
+
+  bool getRISCVRelaxTP() const { return BRiscvRelaxTP; }
+
   void setRISCVRelaxTLSDESC(bool Value) { BRiscvRelaxTLSDESC = Value; }
 
   bool getRISCVRelaxTLSDESC() const { return BRiscvRelaxTLSDESC; }
@@ -1332,6 +1336,7 @@ private:
   bool RiscvGPRelax = true;               // GP relaxation
   bool BRiscvRelaxToC = true; // enable riscv relax to compressed code
   bool BRiscvRelaxXqci = false; // enable riscv relaxations for xqci
+  bool BRiscvRelaxTP = true;    // enable riscv thread-pointer relaxation
   bool BRiscvRelaxTLSDESC = true; // enable riscv relaxations for TLSDESC
   RISCVRelaxTbljalMode RiscvRelaxTbljal =
       RISCVRelaxTbljalMode::None; // enable Zcmt/Xqccmt table jump relaxation
