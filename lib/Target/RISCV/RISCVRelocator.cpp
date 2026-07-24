@@ -448,9 +448,7 @@ void RISCVRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pLinker,
       }
     }
 
-    ELFSection *section = pSection.getLink()
-                              ? pSection.getLink()
-                              : pReloc.targetRef()->frag()->getOwningSection();
+    ELFSection *section = pSection.getLink();
 
     if (!section->isAlloc())
       return;
