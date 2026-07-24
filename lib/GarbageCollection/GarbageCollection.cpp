@@ -733,13 +733,13 @@ void GarbageCollection::stripSections(SectionSetTy &S,
       if (!mayProcessGC(*Section))
         continue;
       if (MReferencedSections.find(Section) == MReferencedSections.end()) {
-        bool IsCommonSection = false;
+        bool IsCommonSection = llvm::isa<CommonELFSection>(Section);
         Input *I = ObjFile->getInput();
-        if (CommonELFSection *CommonSection =
-                dyn_cast<CommonELFSection>(Section)) {
-          I = CommonSection->getOrigin()->getInput();
-          IsCommonSection = true;
+
+        if (Section->hasOldInputFile()) {
+          I = Section->getOldInputFile()->getInput();
         }
+
         // Print the GC collected input section if Tracing is enabled.
         if (ThisConfig.options().printGCSections() ||
             ThisModule.getPrinter()->traceGC()) {
