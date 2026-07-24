@@ -1,0 +1,313 @@
+name: Test ELD code coverage
+
+on:
+  workflow_dispatch: {}
+  pull_request: {}
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}
+      cancel-in-progress: true
+    permissions:
+      contents: write
+    env:
+      BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref || 'main' }}
+      CCACHE_DIR: ${{ github.workspace }}/ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_COMPILERCHECK: content
+
+    steps:
+      - name: Checkout llvm-project
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: llvm/llvm-project
+          ref: ${{ env.BASE_BRANCH_NAME }}
+          path: coverage
+          fetch-depth: 0
+
+      - name: Checkout eld
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          path: coverage/llvm/tools/eld
+          fetch-depth: 0
+
+      - name: Set up Clang 22
+        uses: egor-tensin/setup-clang@23bc15cd4207e45f1566447deb48f4ff3ef932cb #v2.3
+        with:
+          version: 22
+          platform: x64
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build \
+            ccache \
+            python3-psutil \
+            libc++-22-dev \
+            libc++abi-22-dev \
+            qemu-user
+          # Capture absolute paths before anything else touches PATH.
+          # Use readlink -f to resolve symlinks — egor-tensin/setup-clang puts
+          echo "CLANG=$(which clang)"                              >> $GITHUB_ENV
+          echo "CLANGXX=$(which clang++)"                          >> $GITHUB_ENV
+          echo "LLVM_BIN=$(dirname $(readlink -f $(which clang)))" >> $GITHUB_ENV
+
+      - name: Restore ccache
+        id: cache-ccache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: ${{ github.workspace }}/ccache
+          key: coverage-ccache-${{ runner.os }}
+
+      - name: Run CMake
+        run: |
+          rm -rf obj && mkdir -p obj
+          cd obj
+          cmake -G Ninja \
+            ../coverage/llvm/ \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
+            -DLLVM_ENABLE_ASSERTIONS:BOOL=ON \
+            -DCMAKE_C_COMPILER="${{ env.CLANG }}" \
+            -DCMAKE_CXX_COMPILER="${{ env.CLANGXX }}" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;X86" \
+            -DELD_TARGETS_TO_BUILD="ARM;AArch64;RISCV;X86" \
+            -DELD_ENABLE_SYMBOL_VERSIONING=ON \
+            -DELD_ENABLE_RUN_TESTS:BOOL=ON \
+            -DELD_COVERAGE=ON
+
+      - name: Build
+        working-directory: obj
+        run: ninja ld.eld 
+
+      - name: ccache stats
+        if: always()
+        run: ccache -s
+
+      - name: Prune ccache
+        if: always()
+        run: ccache --evict-older-than 7200s
+
+      - name: Save ccache
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: ${{ github.workspace }}/ccache
+          key: coverage-ccache-${{ runner.os }}
+
+      # Cross toolchains are only needed for running tests, not for building ELD.
+      # Downloaded after the build so their clang wrappers don't shadow the host
+      # clang during cmake configuration and compilation.
+      # - name: Download clang cross toolchains
+      #   run: |
+      #     BASE="https://github.com/cross-tools/clang-cross/releases/latest/download"
+
+      #     CROSS_PATHS=""
+      #     for asset in \
+      #       arm-unknown-linux-gnueabi \
+      #       aarch64-unknown-linux-gnu \
+      #       riscv64-unknown-linux-gnu; do
+      #       wget -q "${BASE}/${asset}.tar.xz"
+      #       mkdir -p "cross-tools/${asset}"
+      #       tar -xJf "${asset}.tar.xz" -C "cross-tools/${asset}" --strip-components=1
+      #       rm "${asset}.tar.xz"
+      #       CROSS_PATHS="$PWD/cross-tools/${asset}/bin:${CROSS_PATHS}"
+      #     done
+      #     echo "PATH=${CROSS_PATHS}$PATH" >> $GITHUB_ENV
+
+      # Nightly toolchain provides the test runner tools (lit, FileCheck,
+      # yaml2obj, not, etc.) without requiring a full LLVM build.
+      # LLVM_BIN is captured before this so coverage tools stay pinned
+      # to the host clang that built ELD.
+      - uses: ./coverage/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+
+      # Restore host clang to the front of PATH so lit's `which clang`
+      # resolves to clang-22, not the nightly toolchain's clang.
+      - name: Restore host clang on PATH
+        run: echo "PATH=${{ env.LLVM_BIN }}:$PATH" >> $GITHUB_ENV
+
+      - name: Verify tools
+        run: |
+          echo "clang        = $(which clang)"
+          echo "clang++      = $(which clang++)"
+          echo "llvm-cov     = $(which llvm-cov)"
+          echo "llvm-profdata= $(which llvm-profdata)"
+          echo "lit          = $(which lit || echo NOT FOUND)"
+          echo "FileCheck    = $(which FileCheck)"
+          clang --version
+          ls -la obj/lib/libLW*
+
+      - name: Dump lit configuration (llvm_tools_dir investigation)
+        working-directory: obj
+        run: |
+          echo "===== llvm_tools_dir in generated lit site configs ====="
+          find . -name "lit.site.cfg*" -o -name "lit.cfg" 2>/dev/null | sort
+          echo ""
+          for f in $(find . -name "lit.site.cfg*" 2>/dev/null | head -10); do
+            echo "--- $f ---"
+            grep -n "llvm_tools_dir\|llvm_tools\|FileCheck\|clang_path\|cpp_compiler" "$f" || true
+          done
+
+          echo ""
+          echo "===== Tool dir contents (first match) ====="
+          TOOL_DIR=$(grep -rh "llvm_tools_dir" . 2>/dev/null | head -1 | sed 's/.*= "//;s/"$//')
+          echo "TOOL_DIR=$TOOL_DIR"
+          if [ -d "$TOOL_DIR" ]; then
+            ls "$TOOL_DIR" | sort
+          else
+            echo "Directory not found or not set"
+          fi
+
+          echo ""
+          echo "===== Shell PATH tool resolution at test time ====="
+          which clang        && clang --version | head -1        || true
+          which llvm-objdump && llvm-objdump --version | head -2 || true
+          which FileCheck    && FileCheck --version | head -2     || true
+          which lit          && lit --version 2>/dev/null | head -1 || true
+
+          echo ""
+          echo "===== libclang_rt.profile.a location ====="
+          find /usr -name "libclang_rt.profile.a" 2>/dev/null | head -10 || true
+          clang --print-resource-dir 2>/dev/null || true
+
+      - name: Run tests with coverage profiling
+        working-directory: obj
+        run: |
+          export ELD_ARM_C_COMPILER=arm-unknown-linux-gnueabi-cc
+          export ELD_ARM_CXX_COMPILER=arm-unknown-linux-gnueabi-c++
+          export ELD_ARM_SYSROOT=${{ github.workspace }}/cross-tools/arm-unknown-linux-gnueabi/arm-unknown-linux-gnueabi/sysroot
+          export ELD_AARCH64_C_COMPILER=aarch64-unknown-linux-gnu-cc
+          export ELD_AARCH64_CXX_COMPILER=aarch64-unknown-linux-gnu-c++
+          export ELD_AARCH64_SYSROOT=${{ github.workspace }}/cross-tools/aarch64-unknown-linux-gnu/aarch64-unknown-linux-gnu/sysroot
+          export ELD_RISCV64_C_COMPILER=riscv64-unknown-linux-gnu-cc
+          export ELD_RISCV64_CXX_COMPILER=riscv64-unknown-linux-gnu-c++
+          export ELD_RISCV64_SYSROOT=${{ github.workspace }}/cross-tools/riscv64-unknown-linux-gnu/riscv64-unknown-linux-gnu/sysroot
+
+          # %16m = on-line merge pool of 16 raw profiles per binary signature.
+          # Each test process merges its counters into one pooled file on exit,
+          # so the raw-profile footprint stays bounded (~hundreds of MB) instead
+          # of one full-size ~11 MB file per invocation (~146 GB with %p across
+          # the whole suite) — which overflows the ~80 GB GitHub runner disk.
+          # The merge is lossless: coverage numbers are identical to %p.
+          LLVM_PROFILE_FILE="$PWD/eld-%16m.profraw" LIT_OPTS="--timeout=600" ninja check-eld
+
+      - name: Summarize test results
+        working-directory: obj
+        run: ninja check-eld-summary
+
+      - name: Merge profile data
+        working-directory: obj
+        run: |
+          shopt -s nullglob
+          files=(eld-*.profraw)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No .profraw files found — coverage instrumentation may not have run"
+            exit 1
+          fi
+          echo "Found ${#files[@]} profraw files"
+          llvm-profdata merge -sparse "${files[@]}" -o eld.profdata
+
+      - name: Generate HTML coverage report
+        working-directory: obj
+        run: |
+          llvm-cov show \
+            --format=html \
+            --instr-profile=eld.profdata \
+            --object lib/libLW.so \
+            --show-branches=count \
+            --show-expansions \
+            --show-instantiations \
+            --ignore-filename-regex='coverage/llvm/(include|lib|utils|unittests|examples|docs|cmake|test|benchmarks|projects|runtimes)/|coverage/llvm/tools/[^e]|coverage/llvm/tools/e[^l]|coverage/llvm/tools/el[^d]|third-party/|/obj/tools/[^e]|/obj/tools/e[^l]|/obj/tools/el[^d]|/obj/(include|lib|bin)/|coverage/llvm/tools/eld/test/|coverage/llvm/tools/eld/Plugins/HelloWorldPlugin/' \
+            -o coverage-report
+
+      - name: Extract coverage and check for regression
+        working-directory: obj
+        run: |
+          COV_SUMMARY=$(llvm-cov report \
+            --instr-profile=eld.profdata \
+            --object lib/libLW.so \
+            --ignore-filename-regex='coverage/llvm/(include|lib|utils|unittests|examples|docs|cmake|test|benchmarks|projects|runtimes)/|coverage/llvm/tools/[^e]|coverage/llvm/tools/e[^l]|coverage/llvm/tools/el[^d]|third-party/|/obj/tools/[^e]|/obj/tools/e[^l]|/obj/tools/el[^d]|/obj/(include|lib|bin)/|coverage/llvm/tools/eld/test/|coverage/llvm/tools/eld/Plugins/HelloWorldPlugin/')
+
+          TOTAL_LINE=$(echo "$COV_SUMMARY" | grep '^TOTAL')
+
+          REGION_COV=$(echo "$TOTAL_LINE" | awk '{print $4}')
+          FUNC_COV=$(echo   "$TOTAL_LINE" | awk '{print $7}')
+          LINE_COV=$(echo   "$TOTAL_LINE" | awk '{print $10}')
+          BRANCH_COV=$(echo "$TOTAL_LINE" | awk '{print $13}')
+
+          echo "LINE_COV=$LINE_COV"       >> "$GITHUB_ENV"
+          echo "FUNC_COV=$FUNC_COV"       >> "$GITHUB_ENV"
+          echo "REGION_COV=$REGION_COV"   >> "$GITHUB_ENV"
+          echo "BRANCH_COV=$BRANCH_COV"   >> "$GITHUB_ENV"
+
+          # Fetch baseline from the code-coverage-reports branch (if it exists)
+          git -C "${{ github.workspace }}/coverage/llvm/tools/eld" \
+            fetch origin code-coverage-reports:refs/remotes/origin/code-coverage-reports 2>/dev/null || true
+          BASELINE=$(git -C "${{ github.workspace }}/coverage/llvm/tools/eld" \
+            show origin/code-coverage-reports:coverage-baseline.txt 2>/dev/null || true)
+
+          if [ -z "$BASELINE" ]; then
+            echo "No baseline found — first run, will record baseline."
+            exit 0
+          fi
+
+          echo "Baseline:"
+          echo "$BASELINE"
+
+          PREV_LINE=$(echo     "$BASELINE" | grep '^LINE='     | cut -d= -f2)
+          PREV_FUNC=$(echo     "$BASELINE" | grep '^FUNCTION=' | cut -d= -f2)
+          PREV_REGION=$(echo   "$BASELINE" | grep '^REGION='   | cut -d= -f2)
+          PREV_BRANCH=$(echo   "$BASELINE" | grep '^BRANCH='   | cut -d= -f2)
+
+          # awk_lt a b — exits 0 (true) when a < b (strips trailing %)
+          awk_lt() {
+            awk -v a="${1%%%}" -v b="${2%%%}" 'BEGIN { exit !(a+0 < b+0) }'
+          }
+
+          REGRESSIONS=""
+          awk_lt "$LINE_COV"   "$PREV_LINE"   && REGRESSIONS="${REGRESSIONS}  LINE:     $LINE_COV < $PREV_LINE (baseline)\n"
+          awk_lt "$FUNC_COV"   "$PREV_FUNC"   && REGRESSIONS="${REGRESSIONS}  FUNCTION: $FUNC_COV < $PREV_FUNC (baseline)\n"
+          awk_lt "$REGION_COV" "$PREV_REGION" && REGRESSIONS="${REGRESSIONS}  REGION:   $REGION_COV < $PREV_REGION (baseline)\n"
+          awk_lt "$BRANCH_COV" "$PREV_BRANCH" && REGRESSIONS="${REGRESSIONS}  BRANCH:   $BRANCH_COV < $PREV_BRANCH (baseline)\n"
+
+          if [ -n "$REGRESSIONS" ]; then
+            echo "::warning::Coverage regression detected:"
+            printf "%b" "$REGRESSIONS"
+            echo "COVERAGE_REGRESSED=true" >> "$GITHUB_ENV"
+          else
+            echo "No regression detected."
+          fi
+
+      - name: Deploy coverage report to code-coverage-reports branch
+        run: |
+          REPORT_SRC="${{ github.workspace }}/obj/coverage-report"
+
+          cd coverage/llvm/tools/eld
+          git config user.name  'github-actions'
+          git config user.email 'github-actions@github.com'
+
+          git checkout --orphan code-coverage-reports
+          git rm -rf .
+
+          cp -r "${REPORT_SRC}/." .
+
+          printf 'LINE=%s\nFUNCTION=%s\nREGION=%s\nBRANCH=%s\n' \
+            "${LINE_COV}" "${FUNC_COV}" "${REGION_COV}" "${BRANCH_COV}" \
+            > coverage-baseline.txt
+
+          touch .nojekyll
+          git add .
+          git commit -m "Update ELD coverage report ($(date -u '+%Y-%m-%d'))"
+          git push -f origin HEAD:refs/heads/code-coverage-reports
+
+      - name: Fail if coverage regressed
+        if: env.COVERAGE_REGRESSED == 'true'
+        run: |
+          echo "Coverage regression detected — see 'Extract coverage' step for details."
+          exit 1
