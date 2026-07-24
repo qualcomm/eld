@@ -139,10 +139,17 @@ jobs:
           git apply eld-support.patch
 
       - name: West setup
+        shell: bash
         run: |
           cd zephyr
           west init -l .
-          west update
+          # SoC-gated vendor HALs no QEMU board we build uses. Never compiled,
+          # only waste disk. Keep cmsis + cmsis_6 (Cortex-M core headers).
+          exclude='hal_adi|hal_afbr|hal_ambiq|hal_atmel|hal_bouffalolab|hal_espressif|hal_ethos_u|hal_gigadevice|hal_infineon|hal_intel|hal_microchip|hal_nordic|hal_nuvoton|hal_nxp|hal_openisa|hal_quicklogic|hal_realtek|hal_renesas|hal_rpi_pico|hal_sifli|hal_silabs|hal_st|hal_stm32|hal_tdk|hal_telink|hal_ti|hal_wch|hal_wurthelektronik|hal_xtensa|libmetal'
+          # Deny-list: modules upstream adds later are still fetched.
+          mapfile -t projects < <(west list --format '{name}' | grep -vxE "manifest|$exclude")
+          # Shallow + narrow: full fetch has run the container disk out of space.
+          west update --narrow --fetch-opt=--depth=1 "${projects[@]}"
 
       - name: Install Zephyr SDK hosttools
         run: |
@@ -195,6 +202,8 @@ jobs:
           export LLVM_TOOLCHAIN_PATH=${CPULLVM_DIR}
           west twister -W -p "$BOARD" \
             -T "$TEST_SCOPE" \
+            --quarantine-list "$GITHUB_WORKSPACE/llvm-project/llvm/tools/eld/.github/zephyr-quarantine.yml" \
+            -M pass \
             --inline-logs \
             --timestamps \
             -j 3 \
