@@ -25,10 +25,10 @@ jobs:
             enabled: 1
           - arch: riscv32
             toolchain_asset: riscv32-unknown-linux-musl.tar.xz
-            enabled: 0
+            enabled: 1
           - arch: riscv64
             toolchain_asset: riscv64-unknown-linux-musl.tar.xz
-            enabled: 0
+            enabled: 1
           - arch: arm
             toolchain_asset: arm-unknown-linux-musleabi.tar.xz
             enabled: 0
@@ -63,13 +63,13 @@ jobs:
             target_triple: riscv32-unknown-linux-musl
             toolchain_dir: riscv32-unknown-linux-musl
             qemu_bin: qemu-riscv32
-            enabled: 0
+            enabled: 1
           - arch: riscv64
             busybox_arch: riscv
             target_triple: riscv64-unknown-linux-musl
             toolchain_dir: riscv64-unknown-linux-musl
             qemu_bin: qemu-riscv64
-            enabled: 0
+            enabled: 1
           - arch: arm
             busybox_arch: arm
             target_triple: arm-unknown-linux-musleabi
@@ -116,6 +116,21 @@ jobs:
           run-id: ${{github.run_id}}
           arch-name: "${{ matrix.arch }}"
           branch-name: "${{env.BUILD_BRANCH}}"
+
+      - name: Install dependencies
+        if: matrix.enabled == 1
+        shell: bash
+        run: |
+          sudo apt update
+          if [[ -n "${{ matrix.qemu_bin }}" ]]; then
+            # qemu-user-static provides statically linked QEMU binaries that
+            # can be registered with binfmt_misc so the kernel transparently
+            # invokes QEMU for foreign ELF binaries without an extra wrapper
+            # shell layer. This is much lighter on process slots than forking
+            # a shell wrapper for every applet invocation in the test suite.
+            sudo apt install -y qemu-user-static binfmt-support
+            sudo update-binfmts --enable
+          fi
 
       - name: Fetch latest nightly toolset
         if: matrix.enabled == 1
@@ -191,20 +206,79 @@ jobs:
           cd busybox
           make defconfig
 
+          # Disable features.
+          #
+          # SHA*_HWACCEL: uses x86-only SHA-NI intrinsics (sha1_process_block64_shaNI
+          #   etc.) declared only under __i386__/__x86_64__ guards in
+          #   libbb/hash_md5_sha.c but referenced without an arch guard when
+          #   ENABLE_SHA1_HWACCEL is set. Disabled on all non-x86 targets.
+          case "${BUSYBOX_ARCH}" in
+            x86_64|i386) ;;
+            *)
+              sed -i \
+                -e 's/^CONFIG_SHA1_HWACCEL=y/# CONFIG_SHA1_HWACCEL is not set/' \
+                -e 's/^CONFIG_SHA256_HWACCEL=y/# CONFIG_SHA256_HWACCEL is not set/' \
+                .config
+              ;;
+          esac
+
+          # HWCLOCK: SYS_settimeofday and SYS_settimeofday_time32 are both
+          # absent from the musl/kernel headers for this target, causing an
+          # undeclared identifier error in util-linux/hwclock.c:143.
+          # BUSYBOX_ARCH is 'riscv' for both riscv32 and riscv64, so we
+          # distinguish them via TARGET_TRIPLE.
+          case "${TARGET_TRIPLE}" in
+            riscv32*)
+              sed -i \
+                -e 's/^CONFIG_HWCLOCK=y/# CONFIG_HWCLOCK is not set/' \
+                -e 's/^CONFIG_FEATURE_HWCLOCK_ADJTIME_FHS=y/# CONFIG_FEATURE_HWCLOCK_ADJTIME_FHS is not set/' \
+                .config
+              ;;
+          esac
+
+          # Extract from busybox/include/libbb.h:
+          # However, this may break on weird arches or toolchains. In this case,
+          # set "-DBB_GLOBAL_CONST=''" in CONFIG_EXTRA_CFLAGS to disable
+          # this optimization.
           make -j"$(nproc)" \
             ARCH="${BUSYBOX_ARCH}" \
             CC="${TARGET_TRIPLE}-clang --ld-path=${ELD_BIN}" \
             HOSTCC=clang \
             STRIP="${TARGET_TRIPLE}-strip" \
+            EXTRA_CFLAGS="-DBB_GLOBAL_CONST=" \
             LDFLAGS="-Wl,-dynamic-linker,${MUSL_LINKER} -Wl,-rpath,${SYSROOT}/lib"
 
       - name: Run BusyBox tests
         if: matrix.enabled == 1
-        timeout-minutes: 5
+        timeout-minutes: 20
         shell: bash
+        env:
+          CROSS_TOOLCHAIN_ROOT: ${{ env.CROSS_TOOLCHAIN_ROOT }}
+          TARGET_TRIPLE: ${{ matrix.target_triple }}
+          QEMU_BIN: ${{ matrix.qemu_bin }}
         run: |
           set -euo pipefail
-          cd busybox/testsuite
+
+          cd busybox
+
+          if [[ -n "${QEMU_BIN}" ]]; then
+            SYSROOT="${CROSS_TOOLCHAIN_ROOT}/${TARGET_TRIPLE}/sysroot"
+            if [[ ! -d "${SYSROOT}" ]]; then
+              SYSROOT="${CROSS_TOOLCHAIN_ROOT}/sysroot"
+            fi
+            if [[ ! -d "${SYSROOT}" ]]; then
+              echo "Unable to find sysroot under ${CROSS_TOOLCHAIN_ROOT}" >&2
+              exit 1
+            fi
+            # binfmt_misc + qemu-user-static lets the kernel invoke QEMU
+            # transparently for foreign ELF binaries. We only need to tell
+            # QEMU where the sysroot is via QEMU_LD_PREFIX; no wrapper script
+            # is needed, which avoids the extra shell fork per applet invocation
+            # that exhausts the runner's process limit under load.
+            export QEMU_LD_PREFIX="${SYSROOT}"
+          fi
+
+          cd testsuite
 
           # env --default-signal resets all signals (including SIGPIPE) to their
           # default handlers before exec-ing the shell. This is necessary because
