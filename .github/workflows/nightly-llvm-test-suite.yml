@@ -1,0 +1,133 @@
+name: Nightly LLVM Test Suite (x86_64)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nightly-llvm-test-suite.yml'
+  schedule:
+    - cron: '0 11 * * *'  # 5:00 AM CST
+  workflow_dispatch:
+
+
+permissions:
+  contents: write
+  actions: read
+jobs:
+  test-llvm-test-suite-x86_64:
+    if: github.repository == 'qualcomm/eld' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      ELD_SOURCE_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld
+
+    steps:
+      - name: Checkout eld
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          path: llvm-project/llvm/tools/eld
+
+      - name: Configure workflow environment variables
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+
+      - name: Record pre-build entry
+        if: github.event_name == 'schedule'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "pre-"
+          workflow-name: "llvm-test-suite"
+          record-mode: "record"
+          status: "fail"
+          run-id: ${{github.run_id}}
+          arch-name: "x86_64"
+          branch-name: "${{env.BUILD_BRANCH}}"
+
+      - name: Set up Clang 22
+        uses: egor-tensin/setup-clang@23bc15cd4207e45f1566447deb48f4ff3ef932cb #v2.3
+        with:
+          version: "22"
+          platform: x64
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y clang-22 lld-22 ninja-build libc++-22-dev \
+            libc++abi-22-dev ccache libclang-rt-22-dev libunwind-22-dev \
+            cmake
+          pip3 install lit
+          echo "PATH=/usr/lib/llvm-22/bin:$PATH" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=/usr/lib/llvm-22/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+      - name: Fetch nightly ELD
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+
+      - name: Clone LLVM test suite
+        run: |
+          git clone --depth 1 https://github.com/llvm/llvm-test-suite.git
+
+      - name: Configure test suite
+        run: |
+          ELD_BIN=$(which ld.eld)
+          # SingleSource, MultiSource, and MicroBenchmarks are currently enabled.
+          # TEST_SUITE_SUBDIRS controls what actually gets configured and
+          # built. If left unset it resolves to
+          # "Bitcode;External;MicroBenchmarks;MultiSource;SingleSource;tools/test".
+          #
+          # Other top-level llvm-test-suite directories, not enabled here:
+          #   - Bitcode: fails due to a bug in Bitcode/simd_ops (__cpu_model
+          #     resolved against the wrong libgcc/libgcc_s definition,
+          #     causing a segfault).
+          #   - External: licensed/proprietary sources aren't present on
+          #     this runner, so it contributes zero tests.
+          #   - CTMark: excluded by the test suite's own CMakeLists.txt
+          #     logic; it's just symlinks into MultiSource.
+          #   - Fortran: needs a Fortran compiler, which this runner
+          #     doesn't have.
+          #   - tools, litsupport, litsupport-tests: test-harness support
+          #     code, not linker output.
+          #   - ABI-Testsuite, ClangAnalyzer, LNTBased, test-suite-externals,
+          #     utils: no CMakeLists.txt, not part of the CMake-driven build.
+          cmake -G Ninja \
+            -S llvm-test-suite \
+            -B build-llvm-test-suite \
+            -DCMAKE_C_COMPILER=$(which clang) \
+            -DCMAKE_CXX_COMPILER=$(which clang++) \
+            -DCMAKE_C_FLAGS="--ld-path=$ELD_BIN" \
+            -DCMAKE_CXX_FLAGS="--ld-path=$ELD_BIN -stdlib=libc++" \
+            -DCMAKE_EXE_LINKER_FLAGS="--ld-path=$ELD_BIN -stdlib=libc++" \
+            -DTEST_SUITE_SUBDIRS="SingleSource;MultiSource;MicroBenchmarks" \
+            -DTEST_SUITE_RUN_TYPE=nightly
+
+      - name: Build test suite
+        run: |
+          ninja -C build-llvm-test-suite -j$(nproc)
+
+      - name: Run tests
+        run: |
+          lit -j$(nproc) \
+            build-llvm-test-suite/SingleSource \
+            build-llvm-test-suite/MultiSource \
+            build-llvm-test-suite/MicroBenchmarks \
+            2>&1 | tee test-output.txt
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+        with:
+          name: llvm-test-suite-results
+          path: test-output.txt
+          retention-days: 1
+
+      - name: Update build entry
+        if: github.event_name == 'schedule'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "post-"
+          workflow-name: "llvm-test-suite"
+          record-mode: "update"
+          status: "pass"
+          run-id: ${{github.run_id}}
+          arch-name: "x86_64"
+          branch-name: "${{env.BUILD_BRANCH}}"
