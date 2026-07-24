@@ -1,0 +1,36 @@
+name: "Labelling new pull requests"
+
+permissions:
+  contents: read
+
+on:
+  # Copied from LLVM's workflow
+  # It's safe to use pull_request_target here, because we aren't checking out
+  # code from the pull request branch.
+  # See https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
+      - synchronize
+
+jobs:
+  automate-pr-labels:
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: write
+    if: >
+      github.event.pull_request.draft == false
+    steps:
+      - uses: actions/labeler@b8dd2d9be0f68b860e7dae5dae7d772984eacd6d # v6.2.0
+        id: labeler
+        with:
+          configuration-path: .github/pr-labeler.yml
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply default label if none matched
+        if: steps.labeler.outputs.all-labels == ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr edit ${{ github.event.pull_request.number }} --add-label ignore-for-release-notes --repo ${{ github.repository }}
