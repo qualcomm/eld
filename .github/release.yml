@@ -53,10 +53,6 @@ changelog:
       labels:
         - map-file
 
-    - title: Map File
-      labels:
-        - map-file
-
     - title: Plugin
       labels:
         - plugin
