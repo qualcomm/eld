@@ -14,6 +14,40 @@
   height: 80vh;
 }
 
+#filters-div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  margin-bottom: 10px;
+}
+
+.top-nav-label {
+  color: #f8f9fa;
+  font-weight: 600;
+}
+
+.date-filter-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.date-filter,
+.reset-filter {
+  color: #f8f9fa;
+  background-color: #343a40;
+  border: 1px solid #495057;
+  border-radius: 16px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.date-filter.active {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
 .status {
   width: 25px;
   height: 25px;
