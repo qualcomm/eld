@@ -414,15 +414,13 @@ bool ObjectLinker::registerVersionScriptNodes(const VersionScript *VS,
 }
 
 void ObjectLinker::assignVersionNodesToSymbols() {
+  eld::RegisterTimer T("Assign Version Nodes to Symbols", "Version Scripts",
+                       ThisModule->getConfig().options().printTimingStats());
   auto &NP = ThisModule->getNamePool();
   auto &VersionNodes = ThisModule->getVersionScriptNodes();
 
   if (VersionNodes.empty())
     return;
-
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-  DemangledNamesMap demangledNames;
-#endif
 
   auto canAssignVersionNode = [](const ResolveInfo &R) {
     return (R.isDefine() || R.isCommon()) && !R.isDyn();
@@ -435,97 +433,141 @@ void ObjectLinker::assignVersionNodesToSymbols() {
     return (node->getName() + (VS->isGlobal() ? "(global)" : "(local)")).str();
   };
 
-  // Try assigning version node VS to the symbol R. It only assigns a
-  // version node to the symbol if the symbol does not already have an
-  // assigned version node. It emits version node reassign warning if
-  // warnOnReassing is true.
-  auto tryAssign = [&](ResolveInfo *R, VersionSymbol *VS, bool warnOnReassign) {
-    VersionSymbol *existing = getTargetBackend().getSymbolScope(R);
-    InputFile *verSymInputFile =
-        VS->getBlock()->getNode()->getVersionScript().getInputFile();
-    if (existing != nullptr) {
-      if (warnOnReassign && ThisConfig.showVersionScriptWarnings()) {
-        ThisConfig.raise(Diag::warn_version_script_reassign)
-            << verSymInputFile->getInput()->decoratedPath() << R->name()
-            << getVersionDesc(existing) << getVersionDesc(VS);
-      }
-      return false;
-    }
-
-    getTargetBackend().addSymbolScope(R, VS);
-
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-    if (ThisConfig.getPrinter()->traceSymbolVersioning()) {
-      ThisConfig.raise(Diag::trace_version_script_matched_scope)
-          << R->name() << getVersionDesc(VS);
-    }
-#endif
-    return true;
-  };
-
-  using PatternFilter = std::function<bool(const WildcardPattern &)>;
-
   std::vector<ResolveInfo *> VSApplicableSymbols;
   for (auto &G : NP.getGlobals()) {
     ResolveInfo *R = G.getValue();
     if (canAssignVersionNode(*R))
       VSApplicableSymbols.push_back(R);
   }
+  if (VSApplicableSymbols.empty())
+    return;
 
-  auto processBlock = [&](VersionScriptBlock *block, PatternFilter filter,
-                          bool warnOnReassign) {
+  // Precompute flat pattern lists in precedence order. Each list is walked
+  // per-symbol during assignment, so each thread reads a shared read-only
+  // view and mutates only its own slot in Results below.
+  //
+  //   Phase 1 (exact patterns, first-wins across nodes; warns on any later
+  //     exact match): forward node order, global-then-local within a node.
+  //   Phase 2 (non-star wildcards, last-wins): reverse node order,
+  //     local-then-global within a node.
+  //   Phase 3 (match-all `*`, last-wins): same ordering as Phase 2.
+  std::vector<VersionSymbol *> ExactPatterns;
+  std::vector<VersionSymbol *> WildcardPatterns;
+  std::vector<VersionSymbol *> MatchAllPatterns;
+
+  auto isExactP = [](const VersionSymbol *vs) {
+    return !vs->getSymbolPattern()->hasGlob();
+  };
+  auto isNonStarWildcardP = [](const VersionSymbol *vs) {
+    const auto *p = vs->getSymbolPattern();
+    return p->hasGlob() && !p->isMatchAll();
+  };
+  auto isMatchAllP = [](const VersionSymbol *vs) {
+    return vs->getSymbolPattern()->isMatchAll();
+  };
+
+  auto pushFiltered = [](VersionScriptBlock *block, auto filter,
+                         std::vector<VersionSymbol *> &out) {
     if (!block)
       return;
-
-    for (auto *sym : block->getSymbols()) {
-      auto *pattern = sym->getSymbolPattern();
-      if (!filter(*pattern))
-        continue;
-
-      for (auto *R : VSApplicableSymbols) {
-        if (!warnOnReassign && getTargetBackend().getSymbolScope(R) != nullptr)
-          continue;
-
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-        if (sym->matched(*R, NP, demangledNames))
-#else
-        if (pattern->matched(*R))
-#endif
-        {
-          tryAssign(R, sym, warnOnReassign);
-        }
-      }
-    }
+    for (auto *vs : block->getSymbols())
+      if (filter(vs))
+        out.push_back(vs);
   };
-
-  auto processNodeFirstWins = [&](const VersionScriptNode *node,
-                                  PatternFilter filter, bool warnOnReassign) {
-    processBlock(node->getGlobalBlock(), filter, warnOnReassign);
-    processBlock(node->getLocalBlock(), filter, warnOnReassign);
-  };
-
-  auto processNodeLastWins = [&](const VersionScriptNode *node,
-                                 PatternFilter filter, bool warnOnReassign) {
-    processBlock(node->getLocalBlock(), filter, warnOnReassign);
-    processBlock(node->getGlobalBlock(), filter, warnOnReassign);
-  };
-
-  auto isExact = [](const WildcardPattern &P) { return !P.hasGlob(); };
-  auto isNonStarWildcard = [](const WildcardPattern &P) {
-    return P.hasGlob() && !P.isMatchAll();
-  };
-  auto isMatchAll = [](const WildcardPattern &P) { return P.isMatchAll(); };
 
   for (const auto *N : VersionNodes) {
-    processNodeFirstWins(N, isExact, true);
+    pushFiltered(N->getGlobalBlock(), isExactP, ExactPatterns);
+    pushFiltered(N->getLocalBlock(), isExactP, ExactPatterns);
+  }
+  for (auto It = VersionNodes.rbegin(); It != VersionNodes.rend(); ++It) {
+    pushFiltered((*It)->getLocalBlock(), isNonStarWildcardP, WildcardPatterns);
+    pushFiltered((*It)->getGlobalBlock(), isNonStarWildcardP, WildcardPatterns);
+  }
+  for (auto It = VersionNodes.rbegin(); It != VersionNodes.rend(); ++It) {
+    pushFiltered((*It)->getLocalBlock(), isMatchAllP, MatchAllPatterns);
+    pushFiltered((*It)->getGlobalBlock(), isMatchAllP, MatchAllPatterns);
   }
 
-  for (auto It = VersionNodes.rbegin(); It != VersionNodes.rend(); ++It) {
-    processNodeLastWins(*It, isNonStarWildcard, false);
+  // Per-symbol decision. Reads only shared read-only state (NamePool,
+  // pattern lists, config flags); writes only to a caller-provided slot.
+  // Emits diagnostics via ThisConfig.raise which is thread-safe.
+  auto assignOneSymbol = [&](ResolveInfo *R) -> VersionSymbol * {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    DemangledNamesMap demangledName;
+#endif
+    auto matchesR = [&](VersionSymbol *vs) {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+      return vs->matched(*R, NP, demangledName);
+#else
+      return vs->getSymbolPattern()->matched(*R);
+#endif
+    };
+
+    auto trace = [&](VersionSymbol *scope) -> VersionSymbol * {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+      if (scope && ThisConfig.getPrinter()->traceSymbolVersioning())
+        ThisConfig.raise(Diag::trace_version_script_matched_scope)
+            << R->name() << getVersionDesc(scope);
+#endif
+      return scope;
+    };
+
+    // Phase 1: exact patterns, first-wins. Keep scanning after the first
+    // match so that any later exact match in a subsequent node emits the
+    // reassignment warning.
+    VersionSymbol *scope = nullptr;
+    for (VersionSymbol *vs : ExactPatterns) {
+      if (!matchesR(vs))
+        continue;
+      if (!scope) {
+        scope = vs;
+      } else if (ThisConfig.showVersionScriptWarnings()) {
+        InputFile *verSymInputFile =
+            vs->getBlock()->getNode()->getVersionScript().getInputFile();
+        ThisConfig.raise(Diag::warn_version_script_reassign)
+            << verSymInputFile->getInput()->decoratedPath() << R->name()
+            << getVersionDesc(scope) << getVersionDesc(vs);
+      }
+    }
+    if (scope)
+      return trace(scope);
+
+    // Phase 2: non-star wildcards, last-wins.
+    for (VersionSymbol *vs : WildcardPatterns)
+      if (matchesR(vs))
+        return trace(vs);
+
+    // Phase 3: match-all, last-wins.
+    for (VersionSymbol *vs : MatchAllPatterns)
+      if (matchesR(vs))
+        return trace(vs);
+
+    return nullptr;
+  };
+
+  std::vector<VersionSymbol *> Results(VSApplicableSymbols.size(), nullptr);
+
+  bool useThreads = ThisConfig.options().numThreads() > 1 &&
+                    ThisConfig.isAssignVersionScriptNodesMultiThreaded();
+  if (!useThreads) {
+    if (ThisModule->getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_disabled) << "AssignVersionScriptNodes";
+    for (size_t i = 0; i < VSApplicableSymbols.size(); ++i)
+      Results[i] = assignOneSymbol(VSApplicableSymbols[i]);
+  } else {
+    if (ThisModule->getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_enabled)
+          << "AssignVersionScriptNodes" << ThisConfig.options().numThreads();
+    llvm::parallelFor(0, VSApplicableSymbols.size(), [&](size_t i) {
+      Results[i] = assignOneSymbol(VSApplicableSymbols[i]);
+    });
   }
 
-  for (auto It = VersionNodes.rbegin(); It != VersionNodes.rend(); ++It) {
-    processNodeLastWins(*It, isMatchAll, false);
+  // Serial merge: writes to SymbolScopes are single-threaded. Preserves the
+  // hash-map's non-concurrent-insert invariant and keeps the diff minimal.
+  for (size_t i = 0; i < VSApplicableSymbols.size(); ++i) {
+    if (Results[i])
+      getTargetBackend().addSymbolScope(VSApplicableSymbols[i], Results[i]);
   }
 }
 

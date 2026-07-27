@@ -1,0 +1,49 @@
+REQUIRES: symbol_versioning
+#---VersionScriptParallel.test--------------- ExecutableAndSharedObject------#
+#BEGIN_COMMENT
+# Test the multi-threaded version-script pattern matching path
+# (AssignVersionScriptNodes). Verify:
+#   1. --trace=threads emits the "Threads Enabled AssignVersionScriptNodes"
+#      diagnostic when threads are on.
+#   2. --no-threads emits the "Threads Disabled : AssignVersionScriptNodes"
+#      diagnostic.
+#   3. Output symbol visibility (dyn-syms + version info) is identical
+#      whether the assignment path runs single-threaded or multi-threaded.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fpic %p/Inputs/symbols.c -o %t1.o
+
+# Threaded link. Use --enable-threads=all so per-target backends
+# (e.g. X86) do not silently disable the assignment thread option.
+# --soname is set explicitly so the output-parity diff below is not
+# tripped by the default SONAME being derived from the output file name.
+RUN: %link %linkopts -o %t1.mt.so -shared %t1.o \
+RUN:   --version-script=%p/Inputs/script.vs -soname=libvsparallel.so \
+RUN:   --enable-threads=all --thread-count=4 --trace=threads 2>&1 \
+RUN:   | %filecheck %s --check-prefix=MT
+
+# Serial link (threads disabled globally).
+RUN: %link %linkopts -o %t1.st.so -shared %t1.o \
+RUN:   --version-script=%p/Inputs/script.vs -soname=libvsparallel.so \
+RUN:   --no-threads --trace=threads 2>&1 \
+RUN:   | %filecheck %s --check-prefix=ST
+
+# Output parity: bit-identical dynamic symbol table & version info.
+RUN: %readelf --dyn-syms --version-info %t1.mt.so > %t1.mt.dump
+RUN: %readelf --dyn-syms --version-info %t1.st.so > %t1.st.dump
+RUN: diff %t1.mt.dump %t1.st.dump
+
+# Sanity-check the merged assignment result (from either dump).
+RUN: %readelf --dyn-syms --version-info %t1.mt.so | %filecheck %s --check-prefix=SYMS
+#END_TEST
+
+MT: Threads Enabled AssignVersionScriptNodes, Number of threads = 4
+ST: Threads Disabled : AssignVersionScriptNodes
+
+SYMS-DAG: GLOBAL {{.*}} foo@@V1
+SYMS-DAG: GLOBAL {{.*}} bar@@V1
+SYMS-DAG: GLOBAL {{.*}} bar1@@V1
+SYMS-DAG: GLOBAL {{.*}} helper1@@V2
+SYMS-DAG: GLOBAL {{.*}} helper2@@V2
+SYMS-NOT: internal_a
+SYMS-NOT: internal_b

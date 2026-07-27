@@ -73,6 +73,7 @@ public:
     CreateOutputSections = 0x10,
     ApplyRelocations = 0x20,
     LinkerRelaxation = 0x40,
+    AssignVersionScriptNodes = 0x80,
     AllThreads = 0x1 | 0x2 | 0x4 | 0x8 | 0x10 | 0x20 | 0x40 | 0x80,
   };
 
@@ -175,6 +176,10 @@ public:
     return EnableThreads & LinkerConfig::LinkerRelaxation;
   }
 
+  bool isAssignVersionScriptNodesMultiThreaded() const {
+    return EnableThreads & LinkerConfig::AssignVersionScriptNodes;
+  }
+
   void setThreadOptions(uint32_t EnableThreadsOpt) {
     EnableThreads = NoThreads;
     if (EnableThreadsOpt & AssignOutputSections)
@@ -191,6 +196,8 @@ public:
       EnableThreads |= ApplyRelocations;
     if (EnableThreadsOpt & LinkerRelaxation)
       EnableThreads |= LinkerRelaxation;
+    if (EnableThreadsOpt & AssignVersionScriptNodes)
+      EnableThreads |= AssignVersionScriptNodes;
   }
 
   void disableThreadOptions(uint32_t ThreadOptions) {
