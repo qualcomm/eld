@@ -7,9 +7,15 @@ name: Zephyr on ELD PR
 #   - workflow_dispatch: manual. Give a PR number or an explicit ci_run_id.
 #     NOTE: workflow_run only fires from the default-branch copy, so the auto
 #     path can't be exercised pre-merge.
+#
+# zizmor flags workflow_run as dangerous because it typically runs untrusted
+# PR code with a write token. Here the job that runs the PR's ld.eld has only
+# contents: read + actions: read and no secrets, on an ephemeral runner, so a
+# crafted artifact gains nothing beyond the fork author's own CI. Suppressed
+# below.
 
 on:
-  workflow_run:
+  workflow_run: # zizmor: ignore[dangerous-triggers] read-only token, no secrets, ephemeral runner
     workflows: ["CI"]   # ci.yml's `name:`
     types: [completed]
   workflow_dispatch:
@@ -146,9 +152,7 @@ jobs:
     needs: resolve
     if: needs.resolve.outputs.should_run == 'true'
     permissions:
-      # Must be >= zephyr-run.yml's declared contents: write; GitHub rejects
-      # the call otherwise. The write is only exercised on the nightly path.
-      contents: write
+      contents: read
       actions: read
     strategy:
       fail-fast: false
