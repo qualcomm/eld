@@ -656,6 +656,29 @@ Linker script symbol assignments are of 4 key types:
     Defines the :code:`symbol` only if it is required. If defined,
     the symbol will be a ``GLOBAL`` symbol with :code:`HIDDEN` visibility.
 
+Multiple PROVIDE commands for the same symbol
+""""""""""""""""""""""""""""""""""""""""""""""""
+
+When multiple :code:`PROVIDE` (or :code:`PROVIDE_HIDDEN`) commands provide the
+same symbol, the linker honors the **first** command and ignores all
+subsequent redeclarations of that symbol. This applies regardless of whether
+the later commands appear in the same linker script or in a different one,
+and regardless of whether they use :code:`PROVIDE` or
+:code:`PROVIDE_HIDDEN`.
+
+When ``-Wlinker-script`` is in effect, the linker emits a warning of the form::
+
+   <context>: Ignoring provide symbol '<symbol>' redeclaration
+
+for each ignored redeclaration.
+
+.. code-block::
+
+   // script.t
+   PROVIDE(foo = 0x100);        // Wins: foo is provided as 0x100 (if used).
+   PROVIDE(foo = 0x200);        // Ignored.
+   PROVIDE_HIDDEN(foo = 0x300); // Ignored.
+
 Section of linker script symbols
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
