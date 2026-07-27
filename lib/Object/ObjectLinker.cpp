@@ -375,6 +375,17 @@ bool ObjectLinker::parseVersionScript() {
       // Record the dynamic list script in the Map file.
       if (layoutInfo)
         layoutInfo->recordVersionScript(List);
+      if (layoutInfo)
+        layoutInfo->recordVersionScript(List);
+      bool IsPIE = ThisConfig.options().isPIE();
+      bool IsShared = ThisConfig.options().hasShared();
+      bool ForceDynamic = ThisConfig.options().forceDynamic();
+      bool ExportDynamic = ThisConfig.options().exportDynamic();
+      bool NoEffect = IsPIE ? !ExportDynamic : (!IsShared && !ForceDynamic);
+      if (NoEffect) {
+        ThisConfig.raise(Diag::warn_version_script_no_effect)
+            << VersionScriptInput->decoratedPath();
+      }
       // Read the dynamic List file
       ScriptFile VersionScriptReader(
           ScriptFile::VersionScript, *ThisModule,
@@ -389,6 +400,19 @@ bool ObjectLinker::parseVersionScript() {
                                       VersionScriptInput->decoratedPath()))
         return false;
     }
+    // Read the dynamic List file
+    ScriptFile VersionScriptReader(
+        ScriptFile::VersionScript, *ThisModule,
+        *(llvm::dyn_cast<eld::LinkerScriptFile>(VersionScriptInputFile)),
+        ThisModule->getIRBuilder()->getInputBuilder());
+    bool SuccessFullInParse =
+        getScriptReader()->readScript(ThisConfig, VersionScriptReader);
+    if (!SuccessFullInParse)
+      return false;
+    ThisModule->addVersionScript(VersionScriptReader.getVersionScript());
+    if (!registerVersionScriptNodes(VersionScriptReader.getVersionScript(),
+                                    VersionScriptInput->decoratedPath()))
+      return false;
   }
 
   // VersionScript objects parsed from a VERSION{} block embedded directly
