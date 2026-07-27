@@ -352,37 +352,48 @@ bool ObjectLinker::normalize() {
 // FIXME: We should maybe parse version script after reading LTO-generated
 // object files.
 bool ObjectLinker::parseVersionScript() {
-  if (ThisConfig.options().hasVersionScript()) {
-    LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
-    for (const auto &List : ThisConfig.options().getVersionScripts()) {
-      Input *VersionScriptInput =
-          eld::make<Input>(List, ThisConfig.getDiagEngine(), Input::Script);
-      if (!VersionScriptInput->resolvePath(ThisConfig))
-        return false;
-      // Create an Input file and set the input file to be of kind DynamicList
-      InputFile *VersionScriptInputFile =
-          InputFile::create(VersionScriptInput, InputFile::GNULinkerScriptKind,
-                            ThisConfig.getDiagEngine());
-      addInputFileToTar(VersionScriptInputFile,
-                        eld::MappingFile::VersionScript);
-      VersionScriptInput->setInputFile(VersionScriptInputFile);
-      // Record the dynamic list script in the Map file.
-      if (layoutInfo)
-        layoutInfo->recordVersionScript(List);
-      // Read the dynamic List file
-      ScriptFile VersionScriptReader(
-          ScriptFile::VersionScript, *ThisModule,
-          *(llvm::dyn_cast<eld::LinkerScriptFile>(VersionScriptInputFile)),
-          ThisModule->getIRBuilder()->getInputBuilder());
-      bool SuccessFullInParse =
-          getScriptReader()->readScript(ThisConfig, VersionScriptReader);
-      if (!SuccessFullInParse)
-        return false;
-      ThisModule->addVersionScript(VersionScriptReader.getVersionScript());
-      if (!registerVersionScriptNodes(VersionScriptReader.getVersionScript(),
-                                      VersionScriptInput->decoratedPath()))
-        return false;
+  if (!ThisConfig.options().hasVersionScript())
+    return true;
+  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
+  for (const auto &List : ThisConfig.options().getVersionScripts()) {
+    Input *VersionScriptInput =
+        eld::make<Input>(List, ThisConfig.getDiagEngine(), Input::Script);
+    if (!VersionScriptInput->resolvePath(ThisConfig))
+      return false;
+    // Create an Input file and set the input file to be of kind DynamicList
+    InputFile *VersionScriptInputFile =
+        InputFile::create(VersionScriptInput, InputFile::GNULinkerScriptKind,
+                          ThisConfig.getDiagEngine());
+    addInputFileToTar(VersionScriptInputFile, eld::MappingFile::VersionScript);
+    VersionScriptInput->setInputFile(VersionScriptInputFile);
+    // Record the dynamic list script in the Map file.
+    if (layoutInfo)
+      layoutInfo->recordVersionScript(List);
+    // Warn if the version script will have no effect because no dynamic
+    // symbol table will be emitted.
+    if (ThisConfig.isLinkPartial()) {
+      // Relocatable output (-r) never emits .dynsym.
+      ThisConfig.raise(Diag::warn_version_script_no_effect_relocatable)
+          << VersionScriptInput->decoratedPath();
+    } else if (ThisConfig.isCodeStatic() && !ThisConfig.options().isPIE() &&
+               !ThisConfig.options().forceDynamic()) {
+      // Static executable without PIE or --force-dynamic doesn't emit .dynsym.
+      ThisConfig.raise(Diag::warn_version_script_no_dynsym)
+          << VersionScriptInput->decoratedPath();
     }
+    // Read the dynamic List file
+    ScriptFile VersionScriptReader(
+        ScriptFile::VersionScript, *ThisModule,
+        *(llvm::dyn_cast<eld::LinkerScriptFile>(VersionScriptInputFile)),
+        ThisModule->getIRBuilder()->getInputBuilder());
+    bool SuccessFullInParse =
+        getScriptReader()->readScript(ThisConfig, VersionScriptReader);
+    if (!SuccessFullInParse)
+      return false;
+    ThisModule->addVersionScript(VersionScriptReader.getVersionScript());
+    if (!registerVersionScriptNodes(VersionScriptReader.getVersionScript(),
+                                    VersionScriptInput->decoratedPath()))
+      return false;
   }
 
   // VersionScript objects parsed from a VERSION{} block embedded directly
