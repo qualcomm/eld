@@ -10,8 +10,9 @@
 
 using namespace eld;
 
-DynamicFragment::DynamicFragment(ELFSection *S, ELFDynamic &Dynamic)
-    : Fragment(Fragment::Type::Dynamic, S), m_Dynamic(Dynamic) {}
+DynamicFragment::DynamicFragment(ELFSection *S, ELFDynamic &Dynamic,
+                                 uint32_t Align)
+    : Fragment(Fragment::Type::Dynamic, S, Align), m_Dynamic(Dynamic) {}
 
 size_t DynamicFragment::size() const { return m_Dynamic.numOfBytes(); }
 

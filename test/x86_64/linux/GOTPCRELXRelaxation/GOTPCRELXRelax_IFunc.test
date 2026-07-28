@@ -1,0 +1,20 @@
+#--GOTPCRELXRelax_IFunc.test----------Shared Library--------#
+# A hidden (non-preemptible) STT_GNU_IFUNC symbol must NOT be relaxed.
+# isSymbolPreemptible() returns false for a hidden ifunc (it is stopped at
+# the non-default-visibility check before reaching the ifunc case), so the
+# explicit isIFunc() guard is what prevents relaxation. Relaxing would bypass
+# the IRELATIVE/PLT resolution the ifunc requires at load time.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/ifunc.s -o %t.o
+RUN: %link %linkopts --relax -shared -o %t.so %t.o
+RUN: %objdump -d %t.so | %filecheck %s
+RUN: %readelf -r %t.so | %filecheck %s --check-prefix=RELOC
+#END_TEST
+
+# The instruction must remain a GOT-indirect movl (opcode 8b), NOT relaxed to
+# leal (opcode 8d).
+CHECK: <h>:
+CHECK-NEXT: {{[0-9a-f]+}}: 8b 05 {{.*}} movl
+
+# A GOT slot with a dynamic relocation must still exist for the ifunc.
+RELOC: .rela.dyn

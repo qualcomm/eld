@@ -21,8 +21,8 @@
 
 using namespace eld;
 
-GNUVerNeedFragment::GNUVerNeedFragment(ELFSection *S)
-    : Fragment(Fragment::Type::GNUVerNeed, S) {}
+GNUVerNeedFragment::GNUVerNeedFragment(ELFSection *S, uint32_t Align)
+    : Fragment(Fragment::Type::GNUVerNeed, S, Align) {}
 
 template <class ELFT>
 eld::Expected<void> GNUVerNeedFragment::computeVersionNeeds(

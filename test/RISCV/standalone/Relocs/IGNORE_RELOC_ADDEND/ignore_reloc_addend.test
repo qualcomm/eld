@@ -1,0 +1,16 @@
+#---ignore_reloc_addend.test----------------- Executable------------#
+#BEGIN_COMMENT
+# Produce a warning when non-zero addends are present for relocations
+# that must have an addend of zero.
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.1.o
+RUN: %link %linkopts %t.1.o -o %t.1.out 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: {{.*}}: ignoring addend for relocation `R_RISCV_PCREL_LO12_I' referring symbol external
+CHECK: {{.*}}: ignoring addend for relocation `R_RISCV_PCREL_LO12_S' referring symbol external
+CHECK: {{.*}}: ignoring addend for relocation `R_RISCV_TLSDESC_LOAD_LO12' referring symbol tlsdesc
+CHECK: {{.*}}: ignoring addend for relocation `R_RISCV_TLSDESC_ADD_LO12' referring symbol tlsdesc
+CHECK: {{.*}}: ignoring addend for relocation `R_RISCV_TLSDESC_CALL' referring symbol tlsdesc

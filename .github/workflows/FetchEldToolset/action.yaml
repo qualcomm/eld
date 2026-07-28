@@ -1,0 +1,38 @@
+name: FetchEldToolset
+description: >
+  Download an ELD toolset artifact from a workflow run, extract it to ./inst,
+  and prepend inst/bin to PATH.
+inputs:
+  run-id:
+    description: "Workflow run id to download the artifact from"
+    required: true
+  artifact-name:
+    description: "Artifact name to download (e.g. pr-eld-toolset)"
+    required: true
+  tarball:
+    description: "Tar filename inside the artifact to extract (e.g. install-pr-toolset.tar.xz)"
+    required: true
+  strip-components:
+    description: "tar --strip-components value applied during extraction"
+    required: false
+    default: "1"
+runs:
+  using: "composite"
+  steps:
+    - name: Download toolset
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c #v8.0.1
+      with:
+        name: ${{ inputs.artifact-name }}
+        run-id: ${{ inputs.run-id }}
+        github-token: ${{ github.token }}
+
+    - name: Extract toolset
+      shell: bash
+      env:
+        TARBALL: ${{ inputs.tarball }}
+        STRIP_COMPONENTS: ${{ inputs.strip-components }}
+      run: |
+        mkdir -p inst
+        tar -xf "$TARBALL" -C inst --strip-components="$STRIP_COMPONENTS"
+        ls inst
+        echo "PATH=$(pwd)/inst/bin:$PATH" >> "$GITHUB_ENV"

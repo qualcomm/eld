@@ -490,10 +490,6 @@ bool Linker::resolve() {
     LinkerProgress->incrementAndDisplayProgress();
     ObjLinker->assignOutputSections(ThisModule->getObjectList());
 
-    // Mark internal sections created by the linker and set to discard if any.
-    LinkerProgress->incrementAndDisplayProgress();
-    ObjLinker->markDiscardFileFormatSections();
-
     // Targets can update any information, if they care about.
     LinkerProgress->incrementAndDisplayProgress();
     Backend->finishAssignOutputSections();

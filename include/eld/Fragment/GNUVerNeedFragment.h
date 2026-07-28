@@ -29,7 +29,7 @@ class InputFile;
 // Region fragment expression
 class GNUVerNeedFragment : public Fragment {
 public:
-  GNUVerNeedFragment(ELFSection *S);
+  GNUVerNeedFragment(ELFSection *S, uint32_t Align = 1);
 
   static bool classof(const Fragment *F) {
     return F->getKind() == Fragment::Type::GNUVerNeed;

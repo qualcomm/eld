@@ -1498,3 +1498,157 @@ Error Examples
 
 Each of these invocations produces a ``PRINT``-related diagnostic and
 prevents the link from succeeding.
+
+Version Scripts
+---------------
+
+A *version script* controls the symbol visibility and defined versioned nodes of a
+shared library (or, more generally, of the symbols exported into the dynamic
+symbol table). It lets you:
+
+* Choose which global symbols are exported (``global``) and which are hidden
+  (``local``).
+* Attach *version nodes* (such as ``LIBFOO_1.0``) to exported symbols so that
+  multiple versions of the same symbol can coexist in a single library.
+
+.. code-block::
+
+  ld.eld -shared -o libfoo.so foo.o --version-script=version.map
+
+Syntax
+^^^^^^
+
+A version script is a sequence of *version nodes*. Each node has an optional
+name and contains ``global:`` and/or ``local:`` blocks. Each block lists symbol
+patterns terminated by ``;``.
+
+.. code-block::
+
+  /* Anonymous (unnamed) version node. */
+  {
+    global:
+      foo;
+      bar*;
+    local:
+      *;
+  };
+
+
+Symbol patterns may be:
+
+* **Exact names** — for example ``foo``. These match a single symbol.
+* **Wildcard patterns** — glob patterns such as ``foo*`` that match a set of
+  symbols.
+
+Only symbols that are **defined by the objects being linked** participate in
+version-script matching. Symbols that come from shared libraries are ignored,
+because it does not make sense to assign a version node to a symbol that
+is defined elsewhere.
+
+Pattern matching rules
+^^^^^^^^^^^^^^^^^^^^^^^
+
+eld follows the same version script pattern matching rules as GNU ``ld``.
+This is more subtle than a simple "first pattern in the file wins":
+the *kind* of pattern determines its priority, and only when two patterns
+are of the same kind does their order in the file matter. Matching proceeds in
+three phases:
+
+**Phase 1 — Exact patterns (first match wins).**
+All exact (non-wildcard) patterns are considered first, in the order the nodes
+and blocks appear in the file. Within a node the ``global:`` block is examined
+before the ``local:`` block. The first exact pattern that matches a symbol wins.
+
+**Phase 2 — Non-``*`` wildcards (last match wins).**
+Symbols still unassigned after Phase 1 are matched against wildcard patterns
+other than the bare ``*`` (for example ``foo*``). The *last* pattern that
+matches a symbol wins.
+
+**Phase 3 — The ``*`` catch-all (last match wins).**
+Finally, any symbols that are still unassigned are matched against the bare
+``*`` pattern. The *last* pattern that matches a symbol wins.
+
+The practical consequences of this ordering are:
+
+* An exact match always beats a wildcard match, regardless of where each appears
+  in the file.
+* A specific wildcard (``foo*``) always beats the catch-all ``*``.
+* Among patterns of the same kind, exact patterns favor the *first* occurrence
+  while wildcards favor the *last*.
+
+Examples
+^^^^^^^^
+
+**Exact match takes precedence over a wildcard.**
+Here ``foo`` is listed as a wildcard (``foo*``) in ``global`` but as an exact
+name in ``local``. The exact pattern wins, so ``foo`` becomes local (hidden)
+while ``foo1`` and ``foo2`` remain global (exported), matched by ``foo*``:
+
+.. code-block::
+
+  V1 {
+    global:
+      foo*;
+    local:
+      foo;
+  };
+
+**``*`` has the lowest priority.**
+``foo*`` beats the catch-all ``*``. Symbols ``foo``, ``foo1``, ``foo2`` become
+local, while every other exported symbol (``bar``, ``bar1``, ``baz``, ``qux``,
+...) is matched by ``*`` and stays global:
+
+.. code-block::
+
+  V1 {
+    global:
+      *;
+    local:
+      foo*;
+  };
+
+**Wildcards: last match wins across version nodes.**
+``V1`` marks ``foo*`` as global, but ``V2`` (processed later) marks the same
+``foo*`` as local. Because wildcards favor the last match, ``foo``, ``foo1`` and
+``foo2`` end up local:
+
+.. code-block::
+
+  V1 {
+    global:
+      foo*;
+  };
+
+  V2 {
+    local:
+      foo*;
+  } V1;
+
+**All three phases together.**
+The following script combines every rule. ``foo1`` matches the exact pattern in
+``V3`` (Phase 1) and is exported as ``foo1@@V3``. ``foo`` and ``foo2`` match the
+``foo*`` wildcard in ``V2``, which beats the ``*`` in ``V1`` (Phase 2), so they
+are exported as ``foo@@V2`` and ``foo2@@V2``. Everything else (``bar``,
+``bar1``, ``baz``, ``qux``) falls through to Phase 3, where ``V3``'s
+``local: *`` — the last ``*`` in the file — wins over ``V1``'s ``global: *``,
+hiding those symbols:
+
+.. code-block::
+
+  V1 {
+    global:
+      *;
+  };
+
+  V2 {
+    global:
+      foo*;
+  } V1;
+
+  V3 {
+    global:
+      foo1;
+    local:
+      *;
+  } V2;
+

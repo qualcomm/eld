@@ -20,7 +20,6 @@
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/SymbolResolver/LDSymbol.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/MathExtras.h"
@@ -98,6 +97,11 @@ static ARMGOT *CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
     G->setValueType(GOT::SymbolValue);
     return G;
   }
+
+  // A non-default-visibility weak undefined symbol resolves to 0; no dynamic
+  // relocation needed.
+  if ((rsym->isHidden() || rsym->isProtected()) && rsym->isWeakUndef())
+    return G;
 
   // If the symbol is not preemptible and we are not building an executable,
   // then try to use a relative reloc. We use a relative reloc if the symbol is

@@ -27,7 +27,8 @@ class ELFSEction;
 /// the dynamic symbol table.
 class GNUVerSymFragment : public Fragment {
 public:
-  GNUVerSymFragment(ELFSection *S, const std::vector<ResolveInfo *> &DynSyms);
+  GNUVerSymFragment(ELFSection *S, const std::vector<ResolveInfo *> &DynSyms,
+                    uint32_t Align = 1);
 
   static bool classof(const Fragment *F) {
     return F->getKind() == Fragment::Type::GNUVerSym;

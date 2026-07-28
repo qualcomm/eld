@@ -27,6 +27,7 @@
 #include "eld/Fragment/EhFrameFragment.h"
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/GNUHashFragment.h"
+#include "eld/Fragment/GOT.h"
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "eld/Fragment/GNUVerDefFragment.h"
 #include "eld/Fragment/GNUVerNeedFragment.h"
@@ -79,7 +80,6 @@
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/Target/ELFDynamic.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "eld/Target/LDFileFormat.h"
@@ -209,9 +209,25 @@ void GNULDBackend::insertTimingFragmentStub() {
 eld::Expected<void> GNULDBackend::initStdSections() {
   eld::RegisterTimer T("Initialize ELF default sections", "Link Summary",
                        m_Module.getConfig().options().printTimingStats());
-  m_pFileFormat = make<ELFFileFormat>();
 
-  m_pFileFormat->initStdSections(m_Module, config().targets().bitclass());
+  // Create standard ELF sections
+  ELFSection *NullSection = createOutputSection("", LDFileFormat::Null,
+                                                llvm::ELF::SHT_NULL, 0x0, 0x0);
+  NullSection->setOffset(0);
+
+  m_pShStrTab = createOutputSection(".shstrtab", LDFileFormat::NamePool,
+                                    llvm::ELF::SHT_STRTAB, 0x0, 0x1);
+
+  m_pSymTab = createOutputSection(".symtab", LDFileFormat::NamePool,
+                                  llvm::ELF::SHT_SYMTAB, 0x0,
+                                  config().targets().bitclass() / 8);
+
+  m_pSymTabShndxr =
+      createOutputSection(".symtab_shndxr", LDFileFormat::NamePool,
+                          llvm::ELF::SHT_SYMTAB_SHNDX, 0x0, 4);
+
+  m_pStrTab = createOutputSection(".strtab", LDFileFormat::NamePool,
+                                  llvm::ELF::SHT_STRTAB, 0x0, 0x1);
 
   if (!config().isCodeStatic() || config().options().isPIE() ||
       config().options().forceDynamic()) {
@@ -220,7 +236,8 @@ eld::Expected<void> GNULDBackend::initStdSections() {
         ".dynsym", llvm::ELF::SHT_DYNSYM, llvm::ELF::SHF_ALLOC,
         config().targets().bitclass() / 8);
     m_pDynSymFrag = make<DynSymFragment>(DynSymSection, DynamicSymbols,
-                                         config().targets().is32Bits());
+                                         config().targets().is32Bits(),
+                                         config().targets().bitclass() / 8);
     DynSymSection->addFragmentAndUpdateSize(m_pDynSymFrag);
     m_pDynSymSection = DynSymSection;
 
@@ -237,7 +254,8 @@ eld::Expected<void> GNULDBackend::initStdSections() {
         llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
         config().targets().bitclass() / 8);
     m_pDynamic = make<ELFDynamic>(config(), *DynSection);
-    m_pDynamicFrag = make<DynamicFragment>(DynSection, *m_pDynamic);
+    m_pDynamicFrag = make<DynamicFragment>(DynSection, *m_pDynamic,
+                                           config().targets().bitclass() / 8);
     DynSection->addFragment(m_pDynamicFrag);
     m_pDynamicSection = DynSection;
   }
@@ -332,6 +350,16 @@ eld::Expected<void> GNULDBackend::initStdSections() {
                                F->getOwningSection(), F);
 
   return eld::Expected<void>();
+}
+
+ELFSection *GNULDBackend::createOutputSection(llvm::StringRef pName,
+                                              LDFileFormat::Kind pKind,
+                                              uint32_t pType, uint32_t pFlag,
+                                              uint32_t pAlign) {
+  ELFSection *Section =
+      m_Module.createOutputSection(pName.str(), pKind, pType, pFlag, pAlign);
+  Section->setHasNoFragments();
+  return Section;
 }
 
 /// initStandardSymbols - define and initialize standard symbols.
@@ -761,8 +789,6 @@ uint64_t GNULDBackend::finalizeTLSSymbol(LDSymbol *pSymbol) {
   return value + addr - tls_seg->vaddr();
 }
 
-ELFFileFormat *GNULDBackend::getOutputFormat() const { return m_pFileFormat; }
-
 /// sizeShstrtab - compute the size of .shstrtab
 void GNULDBackend::sizeShstrtab() {
   eld::RegisterTimer T("Compute the size of .shstrtab", "Perform Layout",
@@ -773,7 +799,7 @@ void GNULDBackend::sizeShstrtab() {
   for (sect = m_Module.begin(); sect != sectEnd; ++sect) {
     shstrtab += (*sect)->name().size() + 1;
   } // end of for
-  getOutputFormat()->getShStrTab()->setSize(shstrtab);
+  getShStrTab()->setSize(shstrtab);
 }
 
 bool GNULDBackend::canSkipSymbolFromExport(ResolveInfo *R, bool isEntry) const {
@@ -916,6 +942,25 @@ void GNULDBackend::sizeDynNamePools() {
 
     // Copy all the DynamicSymbols.
     std::copy(PartitionBegin, RVect.end(), std::back_inserter(DynamicSymbols));
+
+    // Deterministic .dynsym order: undefined symbols first, then defined;
+    // within each group by (input ordinal, input .symtab index).
+    auto Cmp = [](const ResolveInfo *A, const ResolveInfo *B) -> bool {
+      bool UndA = A->isUndef() || A->isDyn();
+      bool UndB = B->isUndef() || B->isDyn();
+      if (UndA != UndB)
+        return UndA;
+      auto OrdA = A->resolvedOrigin()->getInput()->getInputOrdinal();
+      auto OrdB = B->resolvedOrigin()->getInput()->getInputOrdinal();
+      if (OrdA != OrdB)
+        return OrdA < OrdB;
+      return A->outSymbol()->getSymbolIndex() <
+             B->outSymbol()->getSymbolIndex();
+    };
+    // Skip the null symbol at index 0.
+    llvm::stable_sort(
+        llvm::make_range(DynamicSymbols.begin() + 1, DynamicSymbols.end()),
+        Cmp);
   }
 
   {
@@ -965,7 +1010,7 @@ void GNULDBackend::sizeDynNamePools() {
     if (DP->traceSymbolVersioning())
       config().raise(Diag::trace_creating_symbol_versioning_fragment)
           << GNUVerSymSection->name();
-    Fragment *F = make<GNUVerSymFragment>(GNUVerSymSection, DynamicSymbols);
+    Fragment *F = make<GNUVerSymFragment>(GNUVerSymSection, DynamicSymbols, 2);
     GNUVerSymSection->addFragmentAndUpdateSize(F);
   }
 
@@ -975,7 +1020,8 @@ void GNULDBackend::sizeDynNamePools() {
     if (DP->traceSymbolVersioning())
       config().raise(Diag::trace_creating_symbol_versioning_fragment)
           << GNUVerDefSection->name();
-    GNUVerDefFragment *F = make<GNUVerDefFragment>(GNUVerDefSection);
+    GNUVerDefFragment *F =
+        make<GNUVerDefFragment>(GNUVerDefSection, sizeof(uint32_t));
     bool is32Bits = config().targets().is32Bits();
     if (is32Bits)
       F->computeVersionDefs<llvm::object::ELF32LE>(m_Module, m_pDynStrFrag,
@@ -992,7 +1038,8 @@ void GNULDBackend::sizeDynNamePools() {
     if (DP->traceSymbolVersioning())
       config().raise(Diag::trace_creating_symbol_versioning_fragment)
           << GNUVerNeedSection->name();
-    GNUVerNeedFragment *F = make<GNUVerNeedFragment>(GNUVerNeedSection);
+    GNUVerNeedFragment *F =
+        make<GNUVerNeedFragment>(GNUVerNeedSection, sizeof(uint32_t));
     bool is32Bits = config().targets().is32Bits();
     if (is32Bits)
       F->computeVersionNeeds<llvm::object::ELF32LE>(
@@ -1115,19 +1162,19 @@ void GNULDBackend::reserveDynamic() {
 void GNULDBackend::initSymTab() {
   eld::RegisterTimer T("Initialize Symbol Table", "Perform Layout",
                        m_Module.getConfig().options().printTimingStats());
-  getOutputFormat()->getShStrTab()->setSize(0x1);
+  getShStrTab()->setSize(0x1);
 
   if (config().options().getStripSymbolMode() ==
       GeneralOptions::StripAllSymbols)
     return;
 
-  getOutputFormat()->getStrTab()->setSize(1);
+  getStrTab()->setSize(1);
   if (config().targets().is32Bits())
-    getOutputFormat()->getSymTab()->setSize(sizeof(llvm::ELF::Elf32_Sym));
+    getSymTab()->setSize(sizeof(llvm::ELF::Elf32_Sym));
   else
-    getOutputFormat()->getSymTab()->setSize(sizeof(llvm::ELF::Elf64_Sym));
+    getSymTab()->setSize(sizeof(llvm::ELF::Elf64_Sym));
   if (m_Module.size() >= llvm::ELF::SHN_LORESERVE)
-    getOutputFormat()->getSymTabShndxr()->setSize(4);
+    getSymTabShndxr()->setSize(4);
 }
 
 void GNULDBackend::sizeSymTab() {
@@ -1153,15 +1200,13 @@ void GNULDBackend::sizeSymTab() {
     strtab += symName.size() + 1;
     ++NumSymbols;
   }
-  getOutputFormat()->getStrTab()->setSize(strtab);
+  getStrTab()->setSize(strtab);
   if (config().targets().is32Bits())
-    getOutputFormat()->getSymTab()->setSize(++NumSymbols *
-                                            sizeof(llvm::ELF::Elf32_Sym));
+    getSymTab()->setSize(++NumSymbols * sizeof(llvm::ELF::Elf32_Sym));
   else
-    getOutputFormat()->getSymTab()->setSize(++NumSymbols *
-                                            sizeof(llvm::ELF::Elf64_Sym));
-  if (getOutputFormat()->getSymTabShndxr()->size()) {
-    getOutputFormat()->getSymTabShndxr()->setSize(NumSymbols * 4);
+    getSymTab()->setSize(++NumSymbols * sizeof(llvm::ELF::Elf64_Sym));
+  if (getSymTabShndxr()->size()) {
+    getSymTabShndxr()->setSize(NumSymbols * 4);
   } else {
     assert(m_Module.size() < llvm::ELF::SHN_LORESERVE &&
            "Didn't reserve extended symbol section");
@@ -1299,12 +1344,12 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
 
   bool isStripLocal = (S == GeneralOptions::StripLocals);
 
-  ELFFileFormat *file_format = getOutputFormat();
-  if (!file_format->hasSymTab())
+  // Check if we have symbol tables
+  if (!getSymTab())
     return {};
 
-  ELFSection &symtab_sect = *file_format->getSymTab();
-  ELFSection &strtab_sect = *file_format->getStrTab();
+  ELFSection &symtab_sect = *getSymTab();
+  ELFSection &strtab_sect = *getStrTab();
 
   MemoryRegion symtab_region =
       getFileOutputRegion(pOutput, symtab_sect.offset(), symtab_sect.size());
@@ -1352,7 +1397,8 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
     else
       emitSymbol64(symtab64[symIdx], S->outSymbol(), strtab, strtabsize, symIdx,
                    /*IsDynSymTab=*/false);
-    if ((S->isGlobal() || S->isWeak()) && !firstNonLocal)
+    if (getSymbolBinding(S->outSymbol()) != llvm::ELF::STB_LOCAL &&
+        !firstNonLocal)
       firstNonLocal = symIdx;
     std::string symName = std::string(S->name());
     strtabsize += symName.length() + 1;
@@ -1361,7 +1407,7 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
   if (firstNonLocal)
     symtab_sect.setInfo(*firstNonLocal);
 
-  ELFSection &symtab_shndxr_sect = *file_format->getSymTabShndxr();
+  ELFSection &symtab_shndxr_sect = *getSymTabShndxr();
   if (symtab_shndxr_sect.size()) {
     MemoryRegion symtab_shndxr_region = getFileOutputRegion(
         pOutput, symtab_shndxr_sect.offset(), symtab_shndxr_sect.size());
@@ -1381,23 +1427,22 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
 unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
   bool linkerScriptHasSectionsCommand =
       m_Module.getScript().linkerScriptHasSectionsCommand();
-  ELFFileFormat *file_format = getOutputFormat();
   llvm::StringRef sectionName = pSectHdr.name();
 
   // nullptr section should be the "1st" section
   if (LDFileFormat::Null == pSectHdr.getKind())
     return SHO_nullptr;
 
-  if (&pSectHdr == file_format->getShStrTab())
+  if (&pSectHdr == getShStrTab())
     return SHO_SHSTRTAB;
 
-  if (&pSectHdr == file_format->getSymTab())
+  if (&pSectHdr == getSymTab())
     return SHO_SYMTAB;
 
-  if (&pSectHdr == file_format->getSymTabShndxr())
+  if (&pSectHdr == getSymTabShndxr())
     return SHO_SYMTAB_SHNDX;
 
-  if (&pSectHdr == file_format->getStrTab())
+  if (&pSectHdr == getStrTab())
     return SHO_STRTAB;
 
   if (pSectHdr.isGroupKind())
@@ -1577,9 +1622,11 @@ Relocation::Type GNULDBackend::getCopyRelType() const {
   return m_pInfo->getTargetRelocationType().CopyRelocType;
 }
 
-/// getSymbolInfo
-uint64_t GNULDBackend::getSymbolInfo(LDSymbol *pSymbol) const {
-  // set binding
+/// getSymbolBinding - compute the ELF st_info binding a symbol is emitted with.
+/// sh_info of a symbol table must equal the index of the first symbol whose
+/// emitted binding is not STB_LOCAL, so the scan that sets sh_info must use
+/// this same classification (e.g. Absolute symbols emit as STB_GLOBAL).
+uint8_t GNULDBackend::getSymbolBinding(LDSymbol *pSymbol) const {
   uint8_t bind = 0x0;
   if (pSymbol->resolveInfo()->isLocal())
     bind = llvm::ELF::STB_LOCAL;
@@ -1588,13 +1635,22 @@ uint64_t GNULDBackend::getSymbolInfo(LDSymbol *pSymbol) const {
   else if (pSymbol->resolveInfo()->isWeak())
     bind = llvm::ELF::STB_WEAK;
   else if (pSymbol->resolveInfo()->isAbsolute()) {
-    // (Luba) Is a absolute but not global (weak or local) symbol meaningful?
+    // eld's ResolveInfo binding enum stores "absolute-valued" as a distinct
+    // binding, so isGlobal()/isWeak() are false here. In ELF this is really a
+    // global symbol with SHN_ABS section, so emit STB_GLOBAL.
     bind = llvm::ELF::STB_GLOBAL;
   }
 
   if (config().codeGenType() != LinkerConfig::Object &&
       pSymbol->visibility() == llvm::ELF::STV_INTERNAL)
     bind = llvm::ELF::STB_LOCAL;
+
+  return bind;
+}
+
+/// getSymbolInfo
+uint64_t GNULDBackend::getSymbolInfo(LDSymbol *pSymbol) const {
+  uint8_t bind = getSymbolBinding(pSymbol);
 
   uint32_t type = pSymbol->resolveInfo()->type();
   // if the IndirectFunc symbol (i.e., STT_GNU_IFUNC) is from dynobj, change
@@ -1661,6 +1717,26 @@ void GNULDBackend::reportErrorIfGOTPLTIsDiscarded(ResolveInfo *R) const {
     config().raise(Diag::error_discarded_dynamic_section_required)
         << SymName << FileName << ".got.plt";
   }
+}
+
+void GNULDBackend::traceGOTCreation(GOT::GOTType T,
+                                    const ResolveInfo *R) const {
+  if (R == nullptr)
+    return;
+  if ((config().options().isSymbolTracingRequested() &&
+       config().options().traceSymbol(*R)) ||
+      m_Module.getPrinter()->traceDynamicLinking())
+    config().raise(Diag::create_got_entry)
+        << GOT::getGOTTypeAsStr(T) << R->name();
+}
+
+void GNULDBackend::tracePLTCreation(const ResolveInfo *R) const {
+  if (R == nullptr)
+    return;
+  if ((config().options().isSymbolTracingRequested() &&
+       config().options().traceSymbol(*R)) ||
+      m_Module.getPrinter()->traceDynamicLinking())
+    config().raise(Diag::create_plt_entry) << R->name();
 }
 
 // Patching sections.
@@ -3464,9 +3540,9 @@ void GNULDBackend::finalizeBeforeWrite() {
 
   ELFSection *prev = nullptr;
 
-  ELFSection *shstrtab = getOutputFormat()->getShStrTab();
+  ELFSection *shstrtab = getShStrTab();
 
-  ELFSection *symtab = getOutputFormat()->getSymTab();
+  ELFSection *symtab = getSymTab();
 
   eld::RegisterTimer T("Set Offset of SymTab", "Perform Layout",
                        m_Module.getConfig().options().printTimingStats());
@@ -3822,8 +3898,9 @@ bool GNULDBackend::canIssueUndef(const ResolveInfo *pSym) {
       isSectionMagicSymbol(pSym->name()) || isStandardSymbol(pSym->name());
 
   // Visibility trumps --unresolved-symbols behavior. Dont check Unresolved
-  // symbol policy here.
-  if (!MagicSym && pSym->isUndef() &&
+  // symbol policy here. Weak undefined symbols with hidden/protected visibility
+  // are valid in shared objects — they resolve to 0 at runtime.
+  if (!MagicSym && pSym->isUndef() && !pSym->isWeak() &&
       pSym->visibility() != ResolveInfo::Default &&
       LinkerConfig::DynObj == config().codeGenType())
     return true;

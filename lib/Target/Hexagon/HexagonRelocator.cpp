@@ -10,7 +10,6 @@
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/Resolver.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/DataTypes.h"
@@ -67,6 +66,11 @@ void HexagonRelocator::CreateGOTAbsolute(ELFObjectFile *Obj,
       G->setValueType(GOT::SymbolValue);
     return;
   }
+
+  // A non-default-visibility weak undefined symbol resolves to 0; no dynamic
+  // relocation needed.
+  if ((rsym->isHidden() || rsym->isProtected()) && rsym->isWeakUndef())
+    return;
 
   // If the symbol is not preemptible and we are not building an executable,
   // then try to use a relative reloc. We use a relative reloc if the symbol is

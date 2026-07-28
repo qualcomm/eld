@@ -1,0 +1,30 @@
+#--GOTPCRELXRelax_BadInput.test----------Executable--------#
+# A GOTPCRELX relocation placed at offset 0 (via .reloc) means the opcode
+# bytes at loc[-2]/loc[-1] would be before the fragment buffer. The linker
+# must not crash; it must skip relaxation and keep the GOT slot instead.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/badinput.s -o %t.o
+RUN: %link %linkopts --relax -shared -o %t.so %t.o
+
+# Before: input object has a nop with a GOTPCRELX relocation at offset 0.
+RUN: %objdump -dr %t.o | %filecheck %s --check-prefix=BEFORE
+
+# After: output must not contain a leal (8d) — the relocation was not relaxed.
+RUN: %objdump -d %t.so | %filecheck %s --check-prefix=AFTER
+
+# A GOT slot must still exist (kept because the relocation was not relaxable).
+RUN: %readelf -r %t.so | %filecheck %s --check-prefix=RELOC
+#END_TEST
+
+# Input: nop at offset 0 with the GOTPCRELX reloc attached to it.
+BEFORE: <h>:
+BEFORE-NEXT: {{[ \t]+}}0: 90{{.*}}nop
+BEFORE: R_X86_64_GOTPCRELX
+
+# Output: not relaxed to leal (no opcode 8d).
+AFTER: <h>:
+AFTER-NOT: 8d {{.*}} leal
+
+# GOT slot kept with a RELATIVE dynamic relocation (foo is hidden/non-preemptible).
+RELOC: .rela.dyn
+RELOC: R_X86_64_RELATIVE

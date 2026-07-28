@@ -1,0 +1,22 @@
+#BEGIN_COMMENT
+# This test verifies that the reproduce functionality works correctly
+# with shared libraries specified using a sysroot marker (=lib1.so)
+#END_COMMENT
+RUN: %rm -rf %t.sysroot && %mkdir -p %t.sysroot/lib64
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t.sysroot/lib64/lib.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.sysroot/lib64/main.o
+RUN: %link %linkopts -shared %t.sysroot/lib64/lib.o -o %t.sysroot/lib64/lib.so
+RUN: %link %linkopts --dynamic =/main.o =/lib.so --sysroot %t.sysroot/lib64 \
+RUN:   --reproduce %t.tar --dump-mapping-file %t.mapping \
+RUN:   --dump-response-file %t.response -o %t.out
+# The shared library must be keyed by its marker form, not the resolved path.
+RUN: %filecheck %s --check-prefix=MAPPING < %t.mapping
+
+MAPPING-DAG: =/main.o=Object/
+MAPPING-DAG: =/lib.so=SharedLibrary/
+
+# Replaying the response file must succeed.
+RUN: %rm -rf %t.rep && %mkdir %t.rep
+RUN: %tar %gnutaropts -xf %t.tar -C %t.rep --strip-components=1
+RUN: cd %t.rep
+RUN: %link @response.txt

@@ -217,9 +217,9 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include/eld/PluginAPI/)
 
-option(ELD_COVERAGE "Build ELD with coverage" OFF)
+option(ELD_COVERAGE "Build ELD with LLVM source-based coverage instrumentation" OFF)
 if(ELD_COVERAGE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
 endif()
 
 option(ELD_SANITIZE "Build ELD with Sanitizer" OFF)

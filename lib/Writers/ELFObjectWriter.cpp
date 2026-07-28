@@ -32,7 +32,6 @@
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "eld/Target/GNULDBackend.h"
@@ -263,8 +262,7 @@ ELFObjectWriter::writeObject(llvm::FileOutputBuffer &CurOutput) {
       }
     }
 
-    emitShStrTab(ThisModule.getBackend().getOutputFormat()->getShStrTab(),
-                 CurOutput);
+    emitShStrTab(ThisModule.getBackend().getShStrTab(), CurOutput);
 
     if (ThisModule.getConfig().targets().is32Bits()) {
       // Write out ELF header
@@ -714,11 +712,11 @@ uint64_t ELFObjectWriter::getSectEntrySize(ELFSection *CurSection) const {
 uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
   ELFSection *Link = nullptr;
   if (S->isGroupKind())
-    Link = ThisModule.getBackend().getOutputFormat()->getSymTab();
+    Link = ThisModule.getBackend().getSymTab();
   if (llvm::ELF::SHT_SYMTAB == S->getType())
-    Link = ThisModule.getBackend().getOutputFormat()->getStrTab();
+    Link = ThisModule.getBackend().getStrTab();
   if (llvm::ELF::SHT_SYMTAB_SHNDX == S->getType())
-    Link = ThisModule.getBackend().getOutputFormat()->getSymTab();
+    Link = ThisModule.getBackend().getSymTab();
   if (llvm::ELF::SHT_DYNSYM == S->getType())
     Link = ThisModule.getBackend().getDynStrSection();
   if (llvm::ELF::SHT_DYNAMIC == S->getType())
@@ -739,7 +737,7 @@ uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
     return S->getLink()->getOutputSection()->getSection()->getIndex();
   if (S->isRelocationSection()) {
     if (S->getKind() != LDFileFormat::DynamicRelocation)
-      Link = ThisModule.getBackend().getOutputFormat()->getSymTab();
+      Link = ThisModule.getBackend().getSymTab();
     else
       Link = ThisModule.getBackend().getDynSymSection();
   }

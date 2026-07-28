@@ -1,0 +1,47 @@
+## Sort .symtab: section symbols first, locals before globals; within each
+## block, by input ordinal, input .symtab index.
+
+# RUN: rm -rf %t && split-file %s %t
+# RUN: %clang %clangopts -c -fPIC %t/a.c -o %t/a.o
+# RUN: %clang %clangopts -c -fPIC %t/b.c -o %t/b.o
+
+# RUN: %link %linkopts -shared %t/a.o %t/b.o -o %t.ab.so
+# RUN: %readelf -s %t.ab.so | %filecheck --check-prefix=AB %s
+
+## Each input's locals appear contiguously in input .symtab order. Inputs
+## appear in command-line order: a.c (a_z, a_b, a_alpha) then b.c (b_m, b_n).
+# AB:      FILE    LOCAL  DEFAULT   ABS a.c
+# AB:      OBJECT  LOCAL  DEFAULT {{.*}} a_z
+# AB-NEXT: OBJECT  LOCAL  DEFAULT {{.*}} a_b
+# AB-NEXT: OBJECT  LOCAL  DEFAULT {{.*}} a_alpha
+# AB:      FILE    LOCAL  DEFAULT   ABS b.c
+# AB:      OBJECT  LOCAL  DEFAULT {{.*}} b_m
+# AB-NEXT: OBJECT  LOCAL  DEFAULT {{.*}} b_n
+## Globals (after all locals, also in input order).
+# AB:      FUNC    GLOBAL DEFAULT {{.*}} get_a
+# AB-NEXT: FUNC    GLOBAL DEFAULT {{.*}} get_b
+
+## Reverse the input order and the symtab blocks follow.
+# RUN: %link %linkopts -shared %t/b.o %t/a.o -o %t.ba.so
+# RUN: %readelf -s %t.ba.so | %filecheck --check-prefix=BA %s
+
+# BA:      FILE    LOCAL  DEFAULT   ABS b.c
+# BA:      OBJECT  LOCAL  DEFAULT {{.*}} b_m
+# BA-NEXT: OBJECT  LOCAL  DEFAULT {{.*}} b_n
+# BA:      FILE    LOCAL  DEFAULT   ABS a.c
+# BA:      OBJECT  LOCAL  DEFAULT {{.*}} a_z
+# BA-NEXT: OBJECT  LOCAL  DEFAULT {{.*}} a_b
+# BA-NEXT: OBJECT  LOCAL  DEFAULT {{.*}} a_alpha
+# BA:      FUNC    GLOBAL DEFAULT {{.*}} get_b
+# BA-NEXT: FUNC    GLOBAL DEFAULT {{.*}} get_a
+
+#--- a.c
+static int a_z = 1;
+static int a_b = 2;
+static int a_alpha = 3;
+int get_a(void) { return a_z + a_b + a_alpha; }
+
+#--- b.c
+static int b_m = 4;
+static int b_n = 5;
+int get_b(void) { return b_m + b_n; }

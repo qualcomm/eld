@@ -1,0 +1,11 @@
+#--GOTPCRELXRelax_Trace.test----------Shared Library--------#
+# --trace=relax emits a message for each relaxed GOTPCRELX reference.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/mov.s -o %t.o
+RUN: %link %linkopts --relax --trace=relax -shared -o %t.so %t.o 2>&1 \
+RUN:   | %filecheck %s
+#END_TEST
+
+# The hidden (non-preemptible) reference is relaxed and traced; the
+# preemptible one is not.
+CHECK: Trace: {{.*}}: relaxed GOTPCRELX (mov->lea) for symbol 'sym_hidden' to PC-relative access

@@ -8,7 +8,6 @@
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/LDSymbol.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "x86_64PLT.h"
 #include "x86_64RelocationFunctions.h"
@@ -213,6 +212,11 @@ x86_64GOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
     G->setValueType(GOT::SymbolValue);
     return *G;
   }
+  // A non-default-visibility weak undefined symbol resolves to 0; no dynamic
+  // relocation needed.
+  if ((rsym->isHidden() || rsym->isProtected()) && rsym->isWeakUndef())
+    return *G;
+
   bool useRelative = !B.isSymbolPreemptible(*rsym);
   helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
                      useRelative ? llvm::ELF::R_X86_64_RELATIVE
@@ -285,6 +289,25 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
                          llvm::ELF::R_X86_64_TPOFF64, m_Target);
       m_Target.setHasStaticTLS();
     }
+    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
+  }
+  case llvm::ELF::R_X86_64_GOTPCRELX: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    // Relaxability is decided per relocation (it inspects this reference's own
+    // opcode bytes), so it must be checked before the per-symbol ReserveGOT
+    // short-circuit: a non-relaxable reference to the same symbol may have
+    // reserved a GOT slot first. With --relax, local symbols are always
+    // non-preemptible; skip the GOT slot for the relaxable reference and record
+    // it so postProcessing can patch it without re-walking.
+    if (config().options().getRelax() &&
+        m_Target.isGOTPCRELXRelaxable(&pReloc)) {
+      m_Target.recordGOTPCRELXRelaxCandidate(&pReloc);
+      return;
+    }
+    if (rsym->reserved() & ReserveGOT)
+      return;
+    CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
@@ -398,9 +421,34 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     rsym->setReserved(rsym->reserved() | ReservePLT);
     return;
   }
-
-  case llvm::ELF::R_X86_64_GOTPCREL:
-  case llvm::ELF::R_X86_64_GOTPCRELX:
+  case llvm::ELF::R_X86_64_GOTPCRELX: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    // Relaxability is decided per relocation (it inspects this reference's own
+    // opcode bytes), so it must be checked before the per-symbol ReserveGOT
+    // short-circuit: a non-relaxable reference to the same symbol may have
+    // reserved a GOT slot first. With --relax, non-preemptible non-IFUNC
+    // symbols with a relaxable opcode are handled by postProcessing: no GOT
+    // slot is needed and an out-of-range displacement is a link error. An
+    // addend != -4 or an unknown opcode keeps the GOT slot.
+    if (config().options().getRelax() &&
+        m_Target.isGOTPCRELXRelaxable(&pReloc)) {
+      m_Target.recordGOTPCRELXRelaxCandidate(&pReloc);
+      return;
+    }
+    if (rsym->reserved() & ReserveGOT)
+      return;
+    CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
+    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
+  }
+  case llvm::ELF::R_X86_64_GOTPCREL: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (rsym->reserved() & ReserveGOT)
+      return;
+    CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
+    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
+  }
   case llvm::ELF::R_X86_64_REX_GOTPCRELX: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->reserved() & ReserveGOT)
@@ -684,6 +732,11 @@ Relocator::Result eld::relocGOTRelative(Relocation &pReloc,
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   ResolveInfo *symInfo = pReloc.symInfo();
   const GeneralOptions &options = pParent.config().options();
+
+  // For relaxable GOTPCRELX relocations, postProcessing handles the opcode
+  // patch and displacement. Skip apply here to avoid a null GOT entry lookup.
+  if (pParent.getTarget().isGOTPCRELXRelaxCandidate(&pReloc))
+    return Relocator::OK;
 
   Relocator::DWord A = pReloc.addend();
   Relocator::DWord P = pReloc.place(pParent.module());

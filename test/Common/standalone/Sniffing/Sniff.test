@@ -17,7 +17,7 @@ RUN: %ar cr %t.lib1.a %t1.1.o
 # whole-archive sniffing (ELF)
 RUN: %eld --whole-archive %t.lib1.a -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=INFERRED
 # only archive sniffing
-RUN: %not %eld %t.lib1.a -o %t2.out 2>&1 | %filecheck %s -check-prefix=CANNOTINFER
+RUN: %eld %t.lib1.a -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=INFERRED
 # Create archive (LTO)
 RUN: %ar cr %t.lib1.lto.a %t1.1.lto.o
 # whole-archive sniffing (ELF)

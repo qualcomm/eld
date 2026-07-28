@@ -1,0 +1,34 @@
+#--GOTPCRELXRelax_PIE.test----------PIE--------#
+# R_X86_64_GOTPCRELX relaxation in PIE (-pie) mode.
+# In a PIE executable, default-visibility symbols are also non-preemptible
+# (the executable is the final definition), so both hidden and
+# default-visibility references relax to leal.
+# Also verifies that a non-relaxable GOTPCRELX (addend != -4) in PIE mode
+# correctly creates a GOT slot with a dynamic relocation.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/mov.s -o %t.o
+RUN: %link %linkopts --relax -pie -o %t.pie %t.o
+RUN: %objdump -d %t.pie | %filecheck %s
+
+# Non-relaxable: addend != -4 falls through to CreateGOT; verify GOT slot
+# is created with a dynamic relocation.
+RUN: %clang %clangopts -c %p/Inputs/addend_nonm4.s -o %t.nonm4.o
+RUN: %link %linkopts --relax -pie -o %t.nonm4.pie %t.nonm4.o
+RUN: %objdump -d %t.nonm4.pie | %filecheck %s --check-prefix=NONRELAX
+RUN: %readelf -r %t.nonm4.pie | %filecheck %s --check-prefix=DYNREL
+#END_TEST
+
+# Hidden symbol relaxes to leal.
+CHECK: <h_hidden>:
+CHECK-NEXT: {{[0-9a-f]+}}: 8d 05 {{.*}} leal
+
+# Default-visibility symbol also relaxes in PIE (non-preemptible in an exe).
+CHECK: <h_default>:
+CHECK-NEXT: {{[0-9a-f]+}}: 8d 05 {{.*}} leal
+
+# Non-relaxable GOTPCRELX stays as movl (8b) — not relaxed to leal (8d).
+NONRELAX: <h>:
+NONRELAX-NEXT: {{[0-9a-f]+}}: 8b 05 {{.*}} movl
+
+# GOT slot must exist with a dynamic relocation.
+DYNREL: .rela.dyn

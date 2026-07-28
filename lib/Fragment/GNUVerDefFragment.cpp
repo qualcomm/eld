@@ -24,8 +24,8 @@
 
 using namespace eld;
 
-GNUVerDefFragment::GNUVerDefFragment(ELFSection *S)
-    : Fragment(Fragment::Type::GNUVerDef, S) {}
+GNUVerDefFragment::GNUVerDefFragment(ELFSection *S, uint32_t Align)
+    : Fragment(Fragment::Type::GNUVerDef, S, Align) {}
 
 template <class ELFT>
 eld::Expected<void>

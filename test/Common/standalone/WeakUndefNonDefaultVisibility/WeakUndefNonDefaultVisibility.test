@@ -1,7 +1,9 @@
 #---WeakUndefNonDefaultVisibility.test----------- SharedLibrary----------------#
 #BEGIN_COMMENT
-# Weak undefined symbolos with non default visibility are not preemptible
-# They are converted to local default visibility and resolved to 0
+# Weak undefined symbols with non default visibility are not preemptible.
+# They are converted to local default visibility and resolved to 0.
+# When building a shared object the linker must also accept them (no error)
+# and must not emit a dynamic relocation for the GOT entry.
 #END_COMMENT
 RUN: %clang %clangopts -c %p/Inputs/1.c -fpic -o %t1.protected.o
 RUN: %clang %clangopts -c %p/Inputs/1.c -fpic -DHIDDEN -o %t1.hidden.o
@@ -18,3 +20,15 @@ RUN: %readelf --dyn-symbols %t2.out | %filecheck %s --check-prefix="DYNSYM-HIDDE
 #DYNSYM-PROT-NOT: foo
 #HIDDEN: NOTYPE  WEAK  HIDDEN  UND foo
 #DYNSYM-HIDDEN-NOT: foo
+
+# Shared object case: weak hidden/protected undef data symbol accessed via GOT.
+# Must link without error and must not emit a dynamic relocation for foo/bar.
+RUN: %clang %clangopts -c %p/Inputs/3.c -fPIC -o %t3.hidden.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -fPIC -DPROTECTED -o %t3.protected.o
+RUN: %link %linkopts -shared %t3.hidden.o -o %t3.hidden.so
+RUN: %link %linkopts -shared %t3.protected.o -o %t3.protected.so
+RUN: %readelf -r -W %t3.hidden.so | %filecheck %s --check-prefix="SHLIB-HIDDEN"
+RUN: %readelf -r -W %t3.protected.so | %filecheck %s --check-prefix="SHLIB-PROT"
+
+#SHLIB-HIDDEN-NOT: foo
+#SHLIB-PROT-NOT: bar

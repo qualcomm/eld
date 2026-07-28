@@ -33,7 +33,6 @@
 #include "eld/Support/Utils.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/ELFDynamic.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "eld/Target/GNULDBackend.h"
 #include "llvm/ADT/DenseSet.h"
@@ -2017,16 +2016,15 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
       m_GroupRelocs.insert(std::make_pair(reloc, offsetToReloc->second));
     return true;
   }
-  // R_RISCV_PCREL_LO* and TLSDESC relocations have the corresponding HI reloc
-  // as the syminfo, we need to find out the actual target by inspecting this
-  // reloc and set the appropriate relocation.
+  // R_RISCV_PCREL_LO* and TLSDESC relocations must have an addend of zero.
+  // Ignore any non-zero addends and warn.
   case llvm::ELF::R_RISCV_PCREL_LO12_I:
   case llvm::ELF::R_RISCV_PCREL_LO12_S:
   case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
   case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
   case llvm::ELF::R_RISCV_TLSDESC_CALL: {
     if (pAddend) {
-      config().raise(Diag::warn_ignore_pcrel_lo_addend)
+      config().raise(Diag::warn_ignore_reloc_addend)
           << pSym.name() << getRISCVRelocName(pType)
           << pSection->originalInput()->getInput()->decoratedPath();
       pAddend = 0;
@@ -2419,11 +2417,7 @@ bool RISCVLDBackend::finalizeScanRelocations() {
 RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                                     ResolveInfo *R) {
 
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_got_entry)
-        << GOT::getGOTTypeAsStr(T) << R->name();
+  traceGOTCreation(T, R);
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->hasFragments()) {
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
@@ -2505,10 +2499,7 @@ RISCVGOT *RISCVLDBackend::findEntryInGOT(ResolveInfo *I) const {
 RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
                                     bool isIRelative) {
   bool is32Bits = config().targets().is32Bits();
-  if ((config().options().isSymbolTracingRequested() &&
-       config().options().traceSymbol(*R)) ||
-      m_Module.getPrinter()->traceDynamicLinking())
-    config().raise(Diag::create_plt_entry) << R->name();
+  tracePLTCreation(R);
 
   reportErrorIfPLTIsDiscarded(R);
 

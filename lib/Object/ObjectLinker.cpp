@@ -63,7 +63,6 @@
 #include "eld/Support/Utils.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/GNULDBackend.h"
 #include "eld/Target/LDFileFormat.h"
 #include "eld/Target/Relocator.h"
@@ -407,65 +406,124 @@ bool ObjectLinker::parseVersionScript() {
       ThisModule->addVersionScriptNode(VersionScriptNode);
     }
   }
-  auto &SymbolScopes = getTargetBackend().symbolScopes();
+  assignVersionNodesToSymbols();
+  return true;
+}
+
+void ObjectLinker::assignVersionNodesToSymbols() {
   auto &NP = ThisModule->getNamePool();
+  auto &VersionNodes = ThisModule->getVersionScriptNodes();
+
+  if (VersionNodes.empty())
+    return;
+
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-  DemangledNamesMap DemangledNames;
+  DemangledNamesMap demangledNames;
 #endif
+
+  auto canAssignVersionNode = [](const ResolveInfo &R) {
+    return (R.isDefine() || R.isCommon()) && !R.isDyn();
+  };
+
+  auto getVersionDesc = [](const VersionSymbol *VS) -> std::string {
+    auto *node = VS->getBlock()->getNode();
+    if (node->isAnonymous())
+      return VS->isGlobal() ? "VER_NDX_GLOBAL" : "VER_NDX_LOCAL";
+    return (node->getName() + (VS->isGlobal() ? "(global)" : "(local)")).str();
+  };
+
+  // Try assigning version node VS to the symbol R. It only assigns a
+  // version node to the symbol if the symbol does not already have an
+  // assigned version node. It emits version node reassign warning if
+  // warnOnReassing is true.
+  auto tryAssign = [&](ResolveInfo *R, VersionSymbol *VS, bool warnOnReassign) {
+    VersionSymbol *existing = getTargetBackend().getSymbolScope(R);
+    InputFile *verSymInputFile =
+        VS->getBlock()->getNode()->getVersionScript().getInputFile();
+    if (existing != nullptr) {
+      if (warnOnReassign && ThisConfig.showVersionScriptWarnings()) {
+        ThisConfig.raise(Diag::warn_version_script_reassign)
+            << verSymInputFile->getInput()->decoratedPath() << R->name()
+            << getVersionDesc(existing) << getVersionDesc(VS);
+      }
+      return false;
+    }
+
+    getTargetBackend().addSymbolScope(R, VS);
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    if (ThisConfig.getPrinter()->traceSymbolVersioning()) {
+      ThisConfig.raise(Diag::trace_version_script_matched_scope)
+          << R->name() << getVersionDesc(VS);
+    }
+#endif
+    return true;
+  };
+
+  using PatternFilter = std::function<bool(const WildcardPattern &)>;
+
+  std::vector<ResolveInfo *> VSApplicableSymbols;
   for (auto &G : NP.getGlobals()) {
     ResolveInfo *R = G.getValue();
-    for (auto &VersionScriptNode : ThisModule->getVersionScriptNodes()) {
-      if (VersionScriptNode->getGlobalBlock()) {
-        for (auto *Sym : VersionScriptNode->getGlobalBlock()->getSymbols()) {
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-          bool isMatched = Sym->matched(*R, NP, DemangledNames);
-#else
-          bool isMatched = Sym->getSymbolPattern()->matched(*R);
-#endif
-          if (isMatched) {
-            getTargetBackend().addSymbolScope(R, Sym);
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-            if (ThisConfig.getPrinter()->traceSymbolVersioning())
-              ThisConfig.raise(Diag::trace_version_script_matched_scope)
-                  << "global" << R->name();
-            break;
-#endif
-          } // end Symbol Match
-        } // end Symbols
-      } // end Global
-      if (SymbolScopes.find(R) != SymbolScopes.end()) {
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-        break;
-#else
+    if (canAssignVersionNode(*R))
+      VSApplicableSymbols.push_back(R);
+  }
+
+  auto processBlock = [&](VersionScriptBlock *block, PatternFilter filter,
+                          bool warnOnReassign) {
+    if (!block)
+      return;
+
+    for (auto *sym : block->getSymbols()) {
+      auto *pattern = sym->getSymbolPattern();
+      if (!filter(*pattern))
         continue;
-#endif
-      }
-      if (VersionScriptNode->getLocalBlock()) {
-        for (auto *Sym : VersionScriptNode->getLocalBlock()->getSymbols()) {
+
+      for (auto *R : VSApplicableSymbols) {
+        if (!warnOnReassign && getTargetBackend().getSymbolScope(R) != nullptr)
+          continue;
+
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-          bool isMatched = Sym->matched(*R, NP, DemangledNames);
+        if (sym->matched(*R, NP, demangledNames))
 #else
-          bool isMatched = Sym->getSymbolPattern()->matched(*R);
+        if (pattern->matched(*R))
 #endif
-          if (isMatched) {
-            getTargetBackend().addSymbolScope(R, Sym);
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-            if (ThisConfig.getPrinter()->traceSymbolVersioning())
-              ThisConfig.raise(Diag::trace_version_script_matched_scope)
-                  << "local" << R->name();
-            break;
-#endif
-          } // end Symbol Match
-        } // end Symbols
-      } // end Local
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-      if (SymbolScopes.find(R) != SymbolScopes.end()) {
-        break;
+        {
+          tryAssign(R, sym, warnOnReassign);
+        }
       }
-#endif
-    } // end all Nodes
-  } // end Globals
-  return true;
+    }
+  };
+
+  auto processNodeFirstWins = [&](const VersionScriptNode *node,
+                                  PatternFilter filter, bool warnOnReassign) {
+    processBlock(node->getGlobalBlock(), filter, warnOnReassign);
+    processBlock(node->getLocalBlock(), filter, warnOnReassign);
+  };
+
+  auto processNodeLastWins = [&](const VersionScriptNode *node,
+                                 PatternFilter filter, bool warnOnReassign) {
+    processBlock(node->getLocalBlock(), filter, warnOnReassign);
+    processBlock(node->getGlobalBlock(), filter, warnOnReassign);
+  };
+
+  auto isExact = [](const WildcardPattern &P) { return !P.hasGlob(); };
+  auto isNonStarWildcard = [](const WildcardPattern &P) {
+    return P.hasGlob() && !P.isMatchAll();
+  };
+  auto isMatchAll = [](const WildcardPattern &P) { return P.isMatchAll(); };
+
+  for (const auto *N : VersionNodes) {
+    processNodeFirstWins(N, isExact, true);
+  }
+
+  for (auto It = VersionNodes.rbegin(); It != VersionNodes.rend(); ++It) {
+    processNodeLastWins(*It, isNonStarWildcard, false);
+  }
+
+  for (auto It = VersionNodes.rbegin(); It != VersionNodes.rend(); ++It) {
+    processNodeLastWins(*It, isMatchAll, false);
+  }
 }
 
 std::string ObjectLinker::getLTOTempPrefix() const {
@@ -759,29 +817,6 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
   if (ThisModule->getPrinter()->allStats())
     ThisConfig.raise(Diag::linker_script_rule_matching_time)
         << (int)std::chrono::duration<double, std::milli>(End - Start).count();
-}
-
-// Sections in ELFFileFormat are not internal but are Output sections.
-// At the moment, there is  no way being marked with assignOutputSections
-// We traverse them explicitly to mark them as ignore before placing them.
-void ObjectLinker::markDiscardFileFormatSections() {
-  auto &SectionMap = ThisModule->getScript().sectionMap();
-  SectionMap::iterator It = SectionMap.findIter("/DISCARD/");
-  bool IsGnuCompatible =
-      (ThisConfig.options().getScriptOption() == GeneralOptions::MatchGNU);
-  for (auto &Sec : getTargetBackend().getOutputFormat()->getSections()) {
-    SectionMap::mapping Pair =
-        SectionMap.findIn(It, "internal", *Sec, false, "internal",
-                          Sec->sectionNameHash(), 0, 0, IsGnuCompatible);
-    if (Pair.first && Pair.first->isDiscard()) {
-      Sec->setKind(LDFileFormat::Ignore);
-      if (ThisConfig.options().isSectionTracingRequested() &&
-          ThisConfig.options().traceSection(Pair.first->name().str())) {
-        ThisConfig.raise(Diag::discarded_section_info)
-            << Pair.first->getSection()->getDecoratedName(ThisConfig.options());
-      }
-    }
-  }
 }
 
 bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
@@ -3595,10 +3630,7 @@ void ObjectLinker::addInputFileToTar(InputFile *Ipt, MappingFile::Kind K) {
   if (Ipt->getInput()->isArchiveMember())
     return;
   Input *I = Ipt->getInput();
-  bool UseDecorated =
-      !I->isNamespec() &&
-      Ipt->getKind() == InputFile::InputFileKind::ELFDynObjFileKind;
-  Ipt->setMappedPath(UseDecorated ? I->decoratedPath() : I->getName());
+  Ipt->setMappedPath(I->getName());
   Ipt->setMappingFileKind(K);
   OutputTar->addInputFile(Ipt, /*isLTO*/ false);
 }
