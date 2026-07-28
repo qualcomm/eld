@@ -6,8 +6,7 @@ on:
   schedule:
    - cron: "0 5 * * *"
 
-permissions:
-  contents: write
+permissions: {}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -36,6 +35,8 @@ jobs:
             toolchain_asset: aarch64-unknown-linux-musl.tar.xz
             enabled: 1
     uses: ./.github/workflows/clang-cross-download.yml
+    permissions:
+      contents: write
     with:
       runner: ubuntu-latest
       workspace: /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}
@@ -48,6 +49,8 @@ jobs:
     if: github.repository == 'qualcomm/eld'
     needs: fetch-clang-cross-toolchain
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:

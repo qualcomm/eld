@@ -6,8 +6,7 @@ on:
   workflow_dispatch:
   # pull_request: {} # Uncomment only to test this WF file update.
 
-permissions:
-  contents: write
+permissions: {}
 jobs:
   gate:
     runs-on: self-hosted
@@ -26,6 +25,8 @@ jobs:
     needs: gate
     if: github.repository == 'qualcomm/eld' && needs.gate.outputs.run_fetch == 'true'
     uses: ./.github/workflows/clang-cross-download.yml
+    permissions:
+      contents: write
     with:
       runner: self-hosted
       workspace: "/local/mnt/workspace"

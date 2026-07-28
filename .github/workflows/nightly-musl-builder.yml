@@ -6,8 +6,7 @@ on:
   # pull_request: {} # Uncomment only to test this WF file update.
 
 
-permissions:
-  contents: write
+permissions: {}
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -16,6 +15,8 @@ jobs:
   test-musl-x86_64:
     if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       ELD_SOURCE_DIR: llvm-project/llvm/tools/eld
     steps:
@@ -127,6 +128,8 @@ jobs:
       matrix:
         arch: [arm, aarch64, riscv32, riscv64]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       ELD_SOURCE_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld
     steps:
@@ -162,15 +165,17 @@ jobs:
             libclang-rt-20-dev cmake ninja-build make qemu-user
 
       - name: Setup toolchain
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
           arm_toolchain_name_suffix=""
-          if [[ ${{ matrix.arch }} == "arm" ]]; then
+          if [[ "${ARCH}" == "arm" ]]; then
             arm_toolchain_name_suffix="eabi"
           fi
           echo "arm_toolchain_name_suffix=${arm_toolchain_name_suffix}" >> $GITHUB_ENV
-          wget https://github.com/cross-tools/clang-cross/releases/download/20251023/${{ matrix.arch }}-unknown-linux-musl${arm_toolchain_name_suffix}.tar.xz
+          wget "https://github.com/cross-tools/clang-cross/releases/download/20251023/${ARCH}-unknown-linux-musl${arm_toolchain_name_suffix}.tar.xz"
           mkdir toolchain
-          tar -xvf ${{ matrix.arch }}-unknown-linux-musl${arm_toolchain_name_suffix}.tar.xz -C toolchain --strip-components=1
+          tar -xvf "${ARCH}-unknown-linux-musl${arm_toolchain_name_suffix}.tar.xz" -C toolchain --strip-components=1
           echo "PATH=$PWD/toolchain/bin:$PATH" >> $GITHUB_ENV
           echo "TOOLCHAIN_ROOT=$(pwd)/toolchain" >> $GITHUB_ENV
 
@@ -183,6 +188,8 @@ jobs:
 
       - name: Setup musl libc-test environment
         shell: bash
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
           cd libc-test
           which grep
@@ -192,18 +199,20 @@ jobs:
             CFLAGS += -Wno-error -Wno-strict-prototypes -Wno-switch-bool -Wno-c23-extensions
             LDFLAGS += --ld-path=$(which ld.eld) -Wl,--image-base=0x1000
           EOF
-          cat >qemu-${{ matrix.arch }}-wrapper.sh <<EOF
+          cat >"qemu-${ARCH}-wrapper.sh" <<EOF
           #!/usr/bin/bash
-          qemu-${{ matrix.arch }} -L ${TOOLCHAIN_ROOT}/${{ matrix.arch }}-unknown-linux-musl${arm_toolchain_name_suffix}/sysroot "\$@"
+          qemu-${ARCH} -L ${TOOLCHAIN_ROOT}/${ARCH}-unknown-linux-musl${arm_toolchain_name_suffix}/sysroot "\$@"
           EOF
-          chmod +x ./qemu-${{ matrix.arch }}-wrapper.sh
+          chmod +x "./qemu-${ARCH}-wrapper.sh"
           cat config.mak
-          cat qemu-${{ matrix.arch }}-wrapper.sh
+          cat "qemu-${ARCH}-wrapper.sh"
 
       - name: Run musl libc-test suite
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
           cd libc-test
-          CC=${{ matrix.arch }}-unknown-linux-musl${arm_toolchain_name_suffix}-clang make RUN_WRAP="$(pwd)/qemu-${{ matrix.arch }}-wrapper.sh"
+          CC="${ARCH}-unknown-linux-musl${arm_toolchain_name_suffix}-clang" make RUN_WRAP="$(pwd)/qemu-${ARCH}-wrapper.sh"
 
       - name: Upload libc-test
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
@@ -213,10 +222,12 @@ jobs:
           path: libc-test
 
       - name: Validate test results with FileCheck
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
           cd libc-test
-          FileCheck --check-prefixes=CHECK ${ELD_SOURCE_DIR}/test/musl/${{ matrix.arch }}/test-failures.txt < src/REPORT
-          FileCheck --check-prefixes=COUNT ${ELD_SOURCE_DIR}/test/musl/${{ matrix.arch }}/test-failures.txt < src/REPORT
+          FileCheck --check-prefixes=CHECK "${ELD_SOURCE_DIR}/test/musl/${ARCH}/test-failures.txt" < src/REPORT
+          FileCheck --check-prefixes=COUNT "${ELD_SOURCE_DIR}/test/musl/${ARCH}/test-failures.txt" < src/REPORT
           echo "Test results validated"
 
       - name: Update build entry

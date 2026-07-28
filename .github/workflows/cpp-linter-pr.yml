@@ -37,10 +37,11 @@ jobs:
       - name: Collect changed C/C++ files
         id: changed-files
         shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
           set -uo pipefail
           # Build a deterministic file list used by all later steps.
-          BASE_REF="${{ github.base_ref }}"
           git fetch origin "${BASE_REF}" --depth=1
           git diff --name-only --diff-filter=ACMRT "origin/${BASE_REF}...HEAD" \
             | grep -E '\.(c|cc|cpp|cxx|h|hh|hpp|hxx|inc|def)$' > .cpp-linter-files.txt || true
@@ -97,12 +98,14 @@ jobs:
       - name: Configure and build ELD with external LLVM
         if: steps.changed-files.outputs.has_files == 'true'
         shell: bash
+        env:
+          EXT_LLVM_DIR: ${{ steps.llvm-layout.outputs.ext_llvm_dir }}
         run: |
           set -uo pipefail
           # Produce compile_commands.json for clang-tidy-driven checks.
           mkdir -p "${CPP_LINTER_BUILD_DIR}" "${CPP_LINTER_CCACHE_DIR}"
           ./configure_external_llvm.sh \
-            "${{ steps.llvm-layout.outputs.ext_llvm_dir }}" \
+            "${EXT_LLVM_DIR}" \
             "${CPP_LINTER_BUILD_DIR}" \
             --target ld.eld \
             --ccache-dir "${CPP_LINTER_CCACHE_DIR}"
@@ -132,25 +135,32 @@ jobs:
         if: steps.changed-files.outputs.has_files == 'true'
         continue-on-error: true
         shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
           set -uo pipefail
           # Helper script collects richer clang-tidy diagnostics into a log artifact.
           source ./etc/bash/eld_cpp_linter_helpers.sh
           eld_cpp_linter_check \
-            --base-branch "${{ github.base_ref }}" \
+            --base-branch "${BASE_REF}" \
             --build-directory "${CPP_LINTER_BUILD_DIR}" \
             > cpp-linter-helper.log 2>&1 || true
 
       - name: Write cpp-linter report
         if: always()
         shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          CHECKS_FAILED: ${{ steps.cpp-lint.outputs.checks-failed }}
+          TIDY_CHECKS_FAILED: ${{ steps.cpp-lint.outputs.tidy-checks-failed }}
+          FORMAT_CHECKS_FAILED: ${{ steps.cpp-lint.outputs.format-checks-failed }}
         run: |
           # Single downloadable report for reviewers and authors.
           {
             echo "Cpp Linter PR Report"
             echo "===================="
             echo "Date (UTC): $(date -u '+%Y-%m-%d %H:%M:%S')"
-            echo "Base branch: ${{ github.base_ref }}"
+            echo "Base branch: ${BASE_REF}"
             echo "clang-tidy version:"
             clang-tidy --version || true
             echo
@@ -165,16 +175,16 @@ jobs:
             fi
             echo
             echo "cpp-linter action outputs:"
-            echo "  checks-failed: ${{ steps.cpp-lint.outputs.checks-failed }}"
-            echo "  tidy-checks-failed: ${{ steps.cpp-lint.outputs.tidy-checks-failed }}"
-            echo "  format-checks-failed: ${{ steps.cpp-lint.outputs.format-checks-failed }}"
+            echo "  checks-failed: ${CHECKS_FAILED}"
+            echo "  tidy-checks-failed: ${TIDY_CHECKS_FAILED}"
+            echo "  format-checks-failed: ${FORMAT_CHECKS_FAILED}"
             echo
             echo "What to fix:"
             echo "  1. Download the 'cpp-linter-report' artifact from this workflow run."
             echo "  2. For local reproduction/fixes, use:"
             echo "       source etc/bash/eld_cpp_linter_helpers.sh"
-            echo "       eld_cpp_linter_check --base-branch '${{ github.base_ref }}' --build-directory '<build-dir>'"
-            echo "       eld_cpp_linter_fix   --base-branch '${{ github.base_ref }}' --build-directory '<build-dir>'"
+            echo "       eld_cpp_linter_check --base-branch '${BASE_REF}' --build-directory '<build-dir>'"
+            echo "       eld_cpp_linter_fix   --base-branch '${BASE_REF}' --build-directory '<build-dir>'"
             echo
             echo "Helper linter detailed log:"
             if [[ -f cpp-linter-helper.log ]]; then
@@ -202,9 +212,11 @@ jobs:
 
       - name: Report non-blocking lint warnings
         if: ${{ steps.cpp-lint.outputs.checks-failed != '' && steps.cpp-lint.outputs.checks-failed != '0' }}
+        env:
+          CHECKS_FAILED: ${{ steps.cpp-lint.outputs.checks-failed }}
         run: |
           # Keep job green for now, but visibly flag that follow-up is required.
-          echo "::warning::cpp-linter reported ${{ steps.cpp-lint.outputs.checks-failed }} warning(s). See workflow artifacts: cpp-linter-report."
+          echo "::warning::cpp-linter reported ${CHECKS_FAILED} warning(s). See workflow artifacts: cpp-linter-report."
 
       - name: Post PR comment with report link
         if: ${{ steps.cpp-lint.outputs.checks-failed != '' && steps.cpp-lint.outputs.checks-failed != '0' }}

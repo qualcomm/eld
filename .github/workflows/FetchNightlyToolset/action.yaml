@@ -40,8 +40,8 @@ runs:
 
     - name: Extract toolset
       shell: bash
-      run: |
+      run: | # zizmor: ignore[github-env] literal $(pwd)-derived path, not attacker-controlled
         mkdir -p inst
         tar -xvf install-nightly-toolchain.tar.xz -C inst --strip-components=1
         ls inst
-        echo "PATH=$(pwd)/inst/bin:$PATH" >> $GITHUB_ENV
+        echo "$(pwd)/inst/bin" >> "$GITHUB_PATH"

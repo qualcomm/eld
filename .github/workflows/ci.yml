@@ -24,8 +24,7 @@ on:
       - 'etc/**/*.sh'
       - '**/configure_external_llvm.sh'
 
-permissions:
-  contents: write
+permissions: {}
 jobs:
   build:
     # Skip label-triggered runs unless the label is `zephyr-check`.
@@ -72,8 +71,8 @@ jobs:
         id: file-check
         working-directory: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
         run: |
-          git fetch origin ${{ env.BASE_BRANCH_NAME }}
-          MERGE_BASE=$(git merge-base origin/${{ env.BASE_BRANCH_NAME }} HEAD)
+          git fetch origin "${BASE_BRANCH_NAME}"
+          MERGE_BASE=$(git merge-base "origin/${BASE_BRANCH_NAME}" HEAD)
           CHANGED_FILES=$(git diff --name-only "$MERGE_BASE" HEAD)
           echo "Changed files: $CHANGED_FILES"
           for file in $CHANGED_FILES; do
@@ -207,4 +206,4 @@ jobs:
       - name: Clean up
         if: always()
         run: |
-          rm -rf "pr-${{ env.PR_NUMBER }}"
+          rm -rf "pr-${PR_NUMBER}"

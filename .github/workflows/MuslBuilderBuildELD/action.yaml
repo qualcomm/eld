@@ -40,7 +40,7 @@ runs:
 
     - name: Build eld
       shell: bash
-      run: |
+      run: | # zizmor: ignore[github-env] literal $(pwd)-derived path, not attacker-controlled
         cd obj
         ninja ld.eld FileCheck
-        echo "PATH=$(pwd)/bin:$PATH" >> $GITHUB_ENV
+        echo "$(pwd)/bin" >> "$GITHUB_PATH"

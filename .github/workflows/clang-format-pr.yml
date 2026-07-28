@@ -36,9 +36,11 @@ jobs:
           clang-format --version
 
       - name: Check formatting of changed files
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
           set +e
           source ./etc/bash/eld_clang_format_helpers.sh
-          eld_clang_format_check "${{ github.base_ref }}"
+          eld_clang_format_check "${BASE_REF}"
           check_rc=$?
           exit "$check_rc"

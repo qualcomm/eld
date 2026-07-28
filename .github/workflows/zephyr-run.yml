@@ -38,12 +38,13 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: write
-  actions: read
+permissions: {}
 jobs:
   zephyr-build-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
     container:
       image: ghcr.io/zephyrproject-rtos/ci-base:main
       options: --user 0

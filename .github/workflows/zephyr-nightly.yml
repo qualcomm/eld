@@ -7,13 +7,13 @@ on:
   workflow_dispatch:
 
 
-permissions:
-  contents: write
-  actions: read
+permissions: {}
 jobs:
   resolve:
     if: github.repository == 'qualcomm/eld' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
     outputs:
       run_id: ${{ steps.find.outputs.run_id }}
     steps:
@@ -42,6 +42,9 @@ jobs:
 
   zephyr:
     needs: resolve
+    permissions:
+      contents: write
+      actions: read
     strategy:
       fail-fast: false
       matrix:
