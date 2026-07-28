@@ -812,7 +812,10 @@ bool GNULDBackend::canSkipSymbolFromExport(ResolveInfo *R, bool isEntry) const {
     return false;
   // For PIE, only symbols that really need to be exported are the only ones
   // that can be exported. Dynamic List will control this as well.
-  if (config().options().isPIE() && !isEntry)
+  // --export-dynamic is an explicit request to export all globals, so it
+  // overrides this default restriction.
+  if (config().options().isPIE() && !isEntry &&
+      !config().options().exportDynamic())
     return true;
   if (R->isAbsolute())
     return true;
