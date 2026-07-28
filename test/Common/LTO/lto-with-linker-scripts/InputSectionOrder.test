@@ -1,0 +1,132 @@
+# Check that the input section order within an output section is correct
+# when LTO is used with linker script.
+# RUN: rm -rf %t && split-file %s %t
+# RUN: %python -c "N=100; print('int bar();'); print('int baz();'); [print(f'int foo_{i}() {{ return {i}; }}') for i in range(N)]; print('int main() { return ' + ' + '.join(f'foo_{i}()' for i in range(N)) + ' + baz() + bar(); }')" > %t/1.c
+# RUN: %clang %clangopts %t/1.c -o %t/1.o -c -ffunction-sections -fdata-sections
+# RUN: %clang %clangopts %t/2.c -o %t/2.o -c -ffunction-sections -fdata-sections -flto -flto-linker-scripts
+# RUN: %clang %clangopts %t/3.c -o %t/3.o -c -ffunction-sections -fdata-sections -flto -flto-linker-scripts
+# RUN: %link -MapStyle txt %linkopts --lto-linker-scripts -o %t/out %t/2.o %t/1.o %t/3.o -T %t/script.t -e main\
+# RUN:   -flto-options=codegen="-function-sections -data-sections" --save-temps -Map %t/map.txt
+# RUN: %filecheck %s < %t/map.txt
+
+CHECK: Output Section and Layout
+CHECK: .text
+CHECK: *(*.text*)
+CHECK: .text.bar
+CHECK: .text.foo_0
+CHECK: .text.foo_1
+CHECK: .text.foo_2
+CHECK: .text.foo_3
+CHECK: .text.foo_4
+CHECK: .text.foo_5
+CHECK: .text.foo_6
+CHECK: .text.foo_7
+CHECK: .text.foo_8
+CHECK: .text.foo_9
+CHECK: .text.foo_10
+CHECK: .text.foo_11
+CHECK: .text.foo_12
+CHECK: .text.foo_13
+CHECK: .text.foo_14
+CHECK: .text.foo_15
+CHECK: .text.foo_16
+CHECK: .text.foo_17
+CHECK: .text.foo_18
+CHECK: .text.foo_19
+CHECK: .text.foo_20
+CHECK: .text.foo_21
+CHECK: .text.foo_22
+CHECK: .text.foo_23
+CHECK: .text.foo_24
+CHECK: .text.foo_25
+CHECK: .text.foo_26
+CHECK: .text.foo_27
+CHECK: .text.foo_28
+CHECK: .text.foo_29
+CHECK: .text.foo_30
+CHECK: .text.foo_31
+CHECK: .text.foo_32
+CHECK: .text.foo_33
+CHECK: .text.foo_34
+CHECK: .text.foo_35
+CHECK: .text.foo_36
+CHECK: .text.foo_37
+CHECK: .text.foo_38
+CHECK: .text.foo_39
+CHECK: .text.foo_40
+CHECK: .text.foo_41
+CHECK: .text.foo_42
+CHECK: .text.foo_43
+CHECK: .text.foo_44
+CHECK: .text.foo_45
+CHECK: .text.foo_46
+CHECK: .text.foo_47
+CHECK: .text.foo_48
+CHECK: .text.foo_49
+CHECK: .text.foo_50
+CHECK: .text.foo_51
+CHECK: .text.foo_52
+CHECK: .text.foo_53
+CHECK: .text.foo_54
+CHECK: .text.foo_55
+CHECK: .text.foo_56
+CHECK: .text.foo_57
+CHECK: .text.foo_58
+CHECK: .text.foo_59
+CHECK: .text.foo_60
+CHECK: .text.foo_61
+CHECK: .text.foo_62
+CHECK: .text.foo_63
+CHECK: .text.foo_64
+CHECK: .text.foo_65
+CHECK: .text.foo_66
+CHECK: .text.foo_67
+CHECK: .text.foo_68
+CHECK: .text.foo_69
+CHECK: .text.foo_70
+CHECK: .text.foo_71
+CHECK: .text.foo_72
+CHECK: .text.foo_73
+CHECK: .text.foo_74
+CHECK: .text.foo_75
+CHECK: .text.foo_76
+CHECK: .text.foo_77
+CHECK: .text.foo_78
+CHECK: .text.foo_79
+CHECK: .text.foo_80
+CHECK: .text.foo_81
+CHECK: .text.foo_82
+CHECK: .text.foo_83
+CHECK: .text.foo_84
+CHECK: .text.foo_85
+CHECK: .text.foo_86
+CHECK: .text.foo_87
+CHECK: .text.foo_88
+CHECK: .text.foo_89
+CHECK: .text.foo_90
+CHECK: .text.foo_91
+CHECK: .text.foo_92
+CHECK: .text.foo_93
+CHECK: .text.foo_94
+CHECK: .text.foo_95
+CHECK: .text.foo_96
+CHECK: .text.foo_97
+CHECK: .text.foo_98
+CHECK: .text.foo_99
+CHECK: .text.main
+CHECK: .text.baz
+
+#--- 2.c
+volatile int gbar = 3;
+int bar() { return gbar; }
+
+#--- 3.c
+volatile int gbaz = 5;
+int baz() { return gbaz; }
+
+#--- script.t
+SECTIONS {
+  .text : { *(*.text*) }
+  .sdata : { *(*.sdata*) }
+  .data : { *(*.data*) }
+}

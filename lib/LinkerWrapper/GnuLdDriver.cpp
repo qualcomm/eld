@@ -679,6 +679,13 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   Config.addCommandLine(Table->getOptionName(T::fat_lto_objects),
                         fatLTOObjects);
 
+  // --{no-,}lto-linker-scripts
+  bool ltoLinkerScripts =
+      Args.hasFlag(T::lto_linker_scripts, T::no_lto_linker_scripts, false);
+  Config.options().setLTOLinkerScripts(ltoLinkerScripts);
+  Config.addCommandLine(Table->getOptionName(T::lto_linker_scripts),
+                        ltoLinkerScripts);
+
   // --save-temps
   Config.options().setSaveTemps(Args.hasArg(T::save_temps));
 
@@ -1786,6 +1793,9 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
     }
     Config.options().setThinLTOJobs(S);
   }
+
+  if (const auto *Arg = Args.getLastArg(OptTable::thinlto_cache_dir_eq))
+    Config.options().setLTOOptions(("cache=" + std::string(Arg->getValue())));
 
   if (const auto *Arg = Args.getLastArg(OptTable::lto_obj_path_eq)) {
     Conf.AlwaysEmitRegularLTOObj = true;

@@ -1,0 +1,40 @@
+# RUN: rm -rf %t && split-file %s %t
+# RUN: %opt -mtriple=%triple %t/1.ll -o %t/1.o
+# RUN: %opt -mtriple=%triple %t/2.ll -o %t/2.o
+# RUN: %link %linkopts --lto-linker-scripts -T %t/script.t -plugin-opt=O0 \
+# RUN:   -plugin-opt=-data-sections -plugin-opt=-function-sections %t/1.o %t/2.o -o %t/out
+# RUN: %readelf -S -W %t/out | %filecheck %s --check-prefix=SEC
+
+# SEC:  .mydata1          PROGBITS
+# SEC:  .mydata2          PROGBITS
+
+#--- 1.ll
+
+@bar = internal global i32 20, section ".data.bar"
+
+declare i32 @baz()
+
+define i32 @foo() nounwind section ".text.foo" {
+  %a = load i32, ptr @bar
+  %b = call i32 @baz()
+  %c = add i32 %a, %b
+  ret i32 %c
+}
+
+#--- 2.ll
+
+@bar = internal global i64 30, section ".data.bar"
+
+define i32 @baz() nounwind section ".text.baz" {
+  %a = load i64, ptr @bar
+  %b = trunc i64 %a to i32
+  ret i32 %b
+}
+
+#--- script.t
+SECTIONS {
+  .text.foo : { *1.o(.text.foo) }
+  .text.baz : { *1.o(.text.baz) }
+  .mydata1 : { *1.o(.data.bar) }
+  .mydata2 : { *2.o(.data.bar) }
+}

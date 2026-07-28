@@ -1464,6 +1464,7 @@ struct DLL_A_EXPORT LinkerConfig {
   bool hasBSymbolic() const;
   bool hasGCSections() const;
   bool hasUniqueOutputSections() const;
+  bool hasLTOLinkerScripts() const;
 
   /// Return options set by --flto-options.
   const std::vector<std::string> &getLTOOptions() const;
