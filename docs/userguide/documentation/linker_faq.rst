@@ -2114,6 +2114,53 @@ This change in behavior is observed from linkers on release
 If you have a linker script that assumes the behavior of LOADADDR, you might want
 to fix that with the recent change to behavior.
 
+How to align the LMA of sections placed with AT > REGION
+---------------------------------------------------------
+
+When a section has its VMA in one memory region and its LMA in another using
+``AT > REGION``, the linker does not automatically apply the section's
+``ALIGN()`` to the LMA cursor. The LMA is packed contiguously after the
+previous section's LMA end, regardless of the next section's alignment.
+
+To align the LMA of the first such section, add ``. = ALIGN(N)`` at the end
+of the preceding section's body. This advances the AT-region cursor to the
+desired boundary before the first section's LMA is assigned:
+
+.. code-block:: none
+
+   MEMORY
+   {
+     FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 512K
+     SRAM  (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
+   }
+
+   rom_start : ALIGN(0x1000)
+   {
+     KEEP(*(.vectors.*))
+     . = ALIGN(0x1000);        /* advance FLASH cursor to page boundary */
+   } > FLASH
+
+   .sram_text : ALIGN(0x1000) { *(.text.sram*) } > SRAM AT > FLASH
+
+To align the LMA of each subsequent section, insert a zero-size ``NOLOAD``
+padding section in the AT-region before it:
+
+.. code-block:: none
+
+   .sram_text : ALIGN(0x1000) { *(.text.sram*) } > SRAM AT > FLASH
+
+   .sram_text_lma_pad (NOLOAD) : { . = ALIGN(0x1000); } > FLASH
+
+   .sram_rodata : ALIGN(0x1000) { *(.rodata.sram*) } > SRAM AT > FLASH
+
+   .sram_rodata_lma_pad (NOLOAD) : { . = ALIGN(0x1000); } > FLASH
+
+   .sram_data : ALIGN(0x1000) { *(.data.sram*) } > SRAM AT > FLASH
+
+The ``NOLOAD`` pad sections have no file content and no runtime cost. They
+appear in the ``None`` segment mapping and do not contribute to any PT_LOAD
+segment.
+
 What are BYTE/SHORT/LONG/QUAD/SQUAD linker script commands?
 -------------------------------------------------------------
 
