@@ -1,0 +1,29 @@
+#---ATRegionAlignPHDRS.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# Test that ALIGN() in the section address expression (after colon) causes the
+# LMA to be aligned when an explicit AT> LMA region is used, while ALIGN() in
+# the section prolog (before colon) does NOT affect the LMA -- only the VMA.
+#
+# .bar ALIGN(0x1000) :  -- prolog ALIGN, VMA aligned to page, LMA stays at cursor
+# .baz : ALIGN(0x1000)  -- section-expr ALIGN, both VMA and LMA aligned to page
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -Map %t1.map -o %t1.out 2>&1
+RUN: %readelf -l -W %t1.out | %filecheck %s
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+#END_TEST
+# .foo: VMA == PhysAddr == 0x1000
+#CHECK: Type           Offset   VirtAddr   PhysAddr
+#CHECK: LOAD {{.*}} 0x{{0+}}1000 0x{{0+}}1000 {{.*}} R E
+# .bar: VMA 0x2000 (prolog ALIGN applied), PhysAddr stays at cursor (not page-aligned)
+#CHECK: LOAD {{.*}} 0x{{0+}}2000 0x{{0+}}1{{.*}} {{.*}} R E
+# .baz: VMA 0x3000, PhysAddr 0x2000 (section-expr ALIGN applied to LMA)
+#CHECK: LOAD {{.*}} 0x{{0+}}3000 0x{{0+}}2000 {{.*}} R E
+#CHECK: Segment Sections...
+#CHECK:  00     .foo
+#CHECK:  01     .bar
+#CHECK:  02     .baz
+#MAP: .foo {{.*}} # Offset: {{.*}}, LMA: 0x1000, {{.*}}, Memory : [M1, M1_LMA]
+#MAP: .bar {{.*}} # Offset: {{.*}}, LMA: 0x1{{[0-9a-f][0-9a-f][0-9a-f]}}, {{.*}}, Memory : [M1, M1_LMA]
+#MAP: .baz {{.*}} # Offset: {{.*}}, LMA: 0x2000, {{.*}}, Memory : [M1, M1_LMA]
