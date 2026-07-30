@@ -247,6 +247,12 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
       return false;
   }
 
+  // A -T script may embed its own VERSION{} block. Record it now so
+  // parseVersionScript() can register its nodes later, once the target
+  // backend is guaranteed to be initialized, which is not yet the case here.
+  if (S->getVersionScript())
+    ThisModule->addLinkerScriptVersionScript(S->getVersionScript());
+
   Input->setUsed(true);
 
   return true;
@@ -350,63 +356,79 @@ bool ObjectLinker::normalize() {
 // FIXME: We should maybe parse version script after reading LTO-generated
 // object files.
 bool ObjectLinker::parseVersionScript() {
-  if (!ThisConfig.options().hasVersionScript())
-    return true;
-  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
-  for (const auto &List : ThisConfig.options().getVersionScripts()) {
-    Input *VersionScriptInput =
-        eld::make<Input>(List, ThisConfig.getDiagEngine(), Input::Script);
-    if (!VersionScriptInput->resolvePath(ThisConfig))
-      return false;
-    // Create an Input file and set the input file to be of kind DynamicList
-    InputFile *VersionScriptInputFile =
-        InputFile::create(VersionScriptInput, InputFile::GNULinkerScriptKind,
-                          ThisConfig.getDiagEngine());
-    addInputFileToTar(VersionScriptInputFile, eld::MappingFile::VersionScript);
-    VersionScriptInput->setInputFile(VersionScriptInputFile);
-    // Record the dynamic list script in the Map file.
-    if (layoutInfo)
-      layoutInfo->recordVersionScript(List);
-    // Read the dynamic List file
-    ScriptFile VersionScriptReader(
-        ScriptFile::VersionScript, *ThisModule,
-        *(llvm::dyn_cast<eld::LinkerScriptFile>(VersionScriptInputFile)),
-        ThisModule->getIRBuilder()->getInputBuilder());
-    bool SuccessFullInParse =
-        getScriptReader()->readScript(ThisConfig, VersionScriptReader);
-    if (!SuccessFullInParse)
-      return false;
-    ThisModule->addVersionScript(VersionScriptReader.getVersionScript());
-    for (auto &VersionScriptNode :
-         VersionScriptReader.getVersionScript()->getNodes()) {
-      if (!VersionScriptNode->isAnonymous()) {
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-        getTargetBackend().setShouldEmitVersioningSections(true);
-#else
-        ThisConfig.raise(Diag::unsupported_version_node)
-            << VersionScriptInput->decoratedPath();
-        continue;
-#endif
-      }
-      if (VersionScriptNode->hasDependency()) {
-        ThisConfig.raise(Diag::unsupported_dependent_node)
-            << VersionScriptNode->getName()
-            << VersionScriptInput->decoratedPath();
-#ifndef ELD_ENABLE_SYMBOL_VERSIONING
-        continue;
-#endif
-      }
-      // FIXME: Why did we reach here at all if the version script parsing
-      // failed? Shouldn't we have exited before reaching here?
-      if (VersionScriptNode->hasError()) {
-        ThisConfig.raise(Diag::error_parsing_version_script)
-            << VersionScriptInput->decoratedPath();
+  if (ThisConfig.options().hasVersionScript()) {
+    LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
+    for (const auto &List : ThisConfig.options().getVersionScripts()) {
+      Input *VersionScriptInput =
+          eld::make<Input>(List, ThisConfig.getDiagEngine(), Input::Script);
+      if (!VersionScriptInput->resolvePath(ThisConfig))
         return false;
-      }
-      ThisModule->addVersionScriptNode(VersionScriptNode);
+      // Create an Input file and set the input file to be of kind DynamicList
+      InputFile *VersionScriptInputFile =
+          InputFile::create(VersionScriptInput, InputFile::GNULinkerScriptKind,
+                            ThisConfig.getDiagEngine());
+      addInputFileToTar(VersionScriptInputFile,
+                        eld::MappingFile::VersionScript);
+      VersionScriptInput->setInputFile(VersionScriptInputFile);
+      // Record the dynamic list script in the Map file.
+      if (layoutInfo)
+        layoutInfo->recordVersionScript(List);
+      // Read the dynamic List file
+      ScriptFile VersionScriptReader(
+          ScriptFile::VersionScript, *ThisModule,
+          *(llvm::dyn_cast<eld::LinkerScriptFile>(VersionScriptInputFile)),
+          ThisModule->getIRBuilder()->getInputBuilder());
+      bool SuccessFullInParse =
+          getScriptReader()->readScript(ThisConfig, VersionScriptReader);
+      if (!SuccessFullInParse)
+        return false;
+      ThisModule->addVersionScript(VersionScriptReader.getVersionScript());
+      if (!registerVersionScriptNodes(VersionScriptReader.getVersionScript(),
+                                      VersionScriptInput->decoratedPath()))
+        return false;
     }
   }
+
+  // VersionScript objects parsed from a VERSION{} block embedded directly
+  // inside a -T linker script (recorded by readLinkerScript(), which runs
+  // before the target backend is guaranteed to exist). Process them here,
+  // where registerVersionScriptNodes() can safely touch the backend.
+  for (const VersionScript *VS : ThisModule->getLinkerScriptVersionScripts()) {
+    if (!registerVersionScriptNodes(
+            VS, VS->getInputFile()->getInput()->decoratedPath()))
+      return false;
+  }
+
   assignVersionNodesToSymbols();
+  return true;
+}
+
+bool ObjectLinker::registerVersionScriptNodes(const VersionScript *VS,
+                                              llvm::StringRef DecoratedPath) {
+  for (auto &VersionScriptNode : VS->getNodes()) {
+    if (!VersionScriptNode->isAnonymous()) {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+      getTargetBackend().setShouldEmitVersioningSections(true);
+#else
+      ThisConfig.raise(Diag::unsupported_version_node) << DecoratedPath;
+      continue;
+#endif
+    }
+    if (VersionScriptNode->hasDependency()) {
+      ThisConfig.raise(Diag::unsupported_dependent_node)
+          << VersionScriptNode->getName() << DecoratedPath;
+#ifndef ELD_ENABLE_SYMBOL_VERSIONING
+      continue;
+#endif
+    }
+    // FIXME: Why did we reach here at all if the version script parsing
+    // failed? Shouldn't we have exited before reaching here?
+    if (VersionScriptNode->hasError()) {
+      ThisConfig.raise(Diag::error_parsing_version_script) << DecoratedPath;
+      return false;
+    }
+    ThisModule->addVersionScriptNode(VersionScriptNode);
+  }
   return true;
 }
 

@@ -1,0 +1,26 @@
+REQUIRES: symbol_versioning
+#---VersionInLinkerScript.test-------------------------------------------------#
+#BEGIN_COMMENT
+# This test verifies that the linker applies a VERSION{} block that is
+# embedded directly inside a -T linker script (mixed together with
+# SECTIONS), rather than only recognizing VERSION{} in a separate
+# --version-script= file. This is the idiom used by VDSO linker scripts in
+# glibc/musl/the Linux kernel.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %link %linkopts -o %t1.1.so %t1.1.o -shared -T %p/Inputs/script.lds
+RUN: %readelf --dyn-syms --version-info %t1.1.so | %filecheck %s
+#END_TEST
+
+CHECK: Symbol table '.dynsym' contains 2 entries:
+CHECK-NOT: internal_symbol
+CHECK: exported_symbol@@V1
+CHECK-NOT: internal_symbol
+
+CHECK: '.gnu.version' contains 2 entries:
+CHECK: 0 (*local*)
+
+CHECK: '.gnu.version_d' contains 2 entries:
+CHECK: Name: {{[^ /\\]+}}1.1.so
+CHECK: Name: V1

@@ -406,6 +406,11 @@ private:
   /// - Pass 3: * wildcard (reverse order, last wins, lowest priority)
   void assignVersionNodesToSymbols();
 
+  /// Validates and registers every node of a single parsed VersionScript
+  /// DecoratedPath is used only for diagnostics.
+  bool registerVersionScriptNodes(const VersionScript *VS,
+                                  llvm::StringRef DecoratedPath);
+
   std::unique_ptr<llvm::lto::LTO> ltoInit(llvm::lto::Config Conf,
                                           bool CompileToAssembly);
 
