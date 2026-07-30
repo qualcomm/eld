@@ -191,8 +191,16 @@ void GnuLdDriver::printAboutInfo() const {
 }
 
 void GnuLdDriver::printVersionInfo() const {
-  outs() << "eld " << eld::getELDVersion() << " (GNU Compatible linker)"
-         << "\n";
+  // The first line's first two words are deliberately "GNU"/"ld", ending in
+  // nothing but the bare version number. Build systems that identify the
+  // linker by parsing --version output (e.g. the Linux kernel's
+  // scripts/ld-version.sh) look for a first line whose first two words are
+  // exactly "GNU"/"ld" and take the last word on that line as the version;
+  // without this, such scripts reject eld as an "unknown linker". This is
+  // an interim identification (agreed on until eld is proposed/added to the
+  // kernel community's own linker-detection logic) -- not a claim that eld
+  // is GNU ld.
+  outs() << "GNU ld compatible linker - eld " << eld::getELDVersion() << "\n";
   outs() << "Supported Targets: ";
   for (const auto &x : m_SupportedTargets)
     outs() << x << " ";
