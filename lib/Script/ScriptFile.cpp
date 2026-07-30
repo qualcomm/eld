@@ -296,9 +296,9 @@ void ScriptFile::addOutputArchCmd(const std::string &PArch) {
   LinkerScriptCommandQueue.push_back(Cmd);
 }
 
-void ScriptFile::addAssignment(const std::string &SymbolName,
-                               Expression *ScriptExpression,
-                               Assignment::Type AssignmentType) {
+Assignment *ScriptFile::addAssignment(const std::string &SymbolName,
+                                      Expression *ScriptExpression,
+                                      Assignment::Type AssignmentType) {
   Assignment *NewAssignment = nullptr;
   if (ScriptStateInSectionsCommmand) {
     assert(!LinkerScriptCommandQueue.empty());
@@ -333,6 +333,7 @@ void ScriptFile::addAssignment(const std::string &SymbolName,
     LinkerScriptCommandQueue.push_back(NewAssignment);
   }
   Assignments.push_back(NewAssignment);
+  return NewAssignment;
 }
 
 bool ScriptFile::linkerScriptHasSectionsCommand() const {

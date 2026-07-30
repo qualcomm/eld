@@ -10,7 +10,9 @@
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Input/ELFObjectFile.h"
+#include "eld/Input/Input.h"
 #include "eld/Readers/ELFSection.h"
+#include "eld/Script/Assignment.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
@@ -214,22 +216,56 @@ static std::string getLocation(FragmentRef *Ref, Relocator &R) {
   return "";
 }
 
+// Returns the text following "references " in the overflow diagnostic, naming
+// where the referenced symbol is defined.
+static std::string getReferenceClause(const Relocation &Reloc, Relocator &R,
+                                      const std::string &SymName) {
+  ResolveInfo *Info = Reloc.symInfo();
+
+  // Section symbols carry no useful origin, and an undefined symbol's origin is
+  // just the referencing file: name the symbol alone.
+  if (!Info || Info == ResolveInfo::null() || Info->isSection() ||
+      Info->isUndef())
+    return "'" + SymName + "'";
+
+  InputFile *Origin = Info->resolvedOrigin();
+  if (!Origin || Origin->isInternal() || !Origin->getInput())
+    return "linker internal symbol '" + SymName + "'";
+
+  if (Origin->getInput()->isDefSym())
+    return "'--defsym " + SymName + "'";
+
+  std::string DefinedIn;
+  if (const Assignment *A = R.module().getAssignmentForSymbol(Info->getName()))
+    if (A->getInputFileInContext() == Origin)
+      DefinedIn = A->getContextWithLineNumber();
+  if (DefinedIn.empty())
+    DefinedIn = Origin->getInput()->decoratedPath();
+
+  return DefinedIn + "('" + SymName + "')";
+}
+
+template <typename ValueT>
+static void raiseOverflow(const Relocation &Reloc, Relocator &R, ValueT Value,
+                          ValueT Min, ValueT Max) {
+  std::string Location = getLocation(Reloc.targetRef(), R);
+  std::string SymName =
+      Relocation::getSymbolName(Reloc.symInfo(), R.doDeMangle());
+  std::string Reference = getReferenceClause(Reloc, R, SymName);
+  R.config().getDiagEngine()->raise(Diag::result_overflow_moreinfo)
+      << Location << R.getName(Reloc.type()) << Value << Min << Max
+      << Reference;
+  ASSERT(!Location.empty(), "expected a section location.");
+}
+
 void Relocation::issueSignedOverflow(Relocator &R, int64_t Value, int64_t Min,
                                      int64_t Max) const {
-  std::string Location = getLocation(targetRef(), R);
-  R.config().getDiagEngine()->raise(Diag::result_overflow_moreinfo)
-      << Location << R.getName(type()) << Value << Min << Max
-      << getSymbolName(symInfo(), R.doDeMangle());
-  ASSERT(!Location.empty(), "expected a section location.");
+  raiseOverflow(*this, R, Value, Min, Max);
 }
 
 void Relocation::issueUnsignedOverflow(Relocator &R, uint64_t Value,
                                        uint64_t Min, uint64_t Max) const {
-  std::string Location = getLocation(targetRef(), R);
-  R.config().getDiagEngine()->raise(Diag::result_overflow_moreinfo)
-      << Location << R.getName(type()) << Value << Min << Max
-      << getSymbolName(symInfo(), R.doDeMangle());
-  ASSERT(!Location.empty(), "expected a section location.");
+  raiseOverflow(*this, R, Value, Min, Max);
 }
 
 bool Relocation::issueUnencodableImmediate(Relocator &R, int64_t Imm) const {

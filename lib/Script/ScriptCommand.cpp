@@ -52,8 +52,11 @@ void ScriptCommand::doIndent(llvm::raw_ostream &Outs) const {
 }
 
 std::string ScriptCommand::getContext() const {
-  return ThisScriptFile->getInput()->decoratedPath() +
-         (hasLineNumberInContext()
-              ? ":" + std::to_string(getLineNumberInContext())
-              : "");
+  return ThisScriptFile->getInput()->decoratedPath();
+}
+
+std::string ScriptCommand::getContextWithLineNumber() const {
+  return getContext() + (hasLineNumberInContext()
+                             ? ":" + std::to_string(getLineNumberInContext())
+                             : "");
 }
