@@ -14,5 +14,5 @@ RUN: %not %link %linkopts -march arm -T %p/Inputs/overflow.t %t3.1.o -o %t4.out 
 #VALID:      00800028 <_start>:
 #VALID-NEXT:   800028: e5900fd8 ldr r0, [r0, #0xfd8]
 
-#OVERFLOW: Error: {{.*}}3.1.o:(.text.1+0x28): relocation R_ARM_LDR_PC_G2 out of range: 16344 is not in [0, 4095]; references 'dat2'
+#OVERFLOW: Error: {{.*}}3.1.o:(.text.1+0x28): relocation R_ARM_LDR_PC_G2 out of range: 16344 is not in [0, 4095]; references {{.*}}'dat2'
 #END_TEST
