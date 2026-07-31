@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 #include "eld/Object/ObjectLinker.h"
 #include "eld/BranchIsland/BranchIslandFactory.h"
+#include "eld/Config/GeneralOptions.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Core/LinkerScript.h"
 #include "eld/Core/Module.h"
@@ -52,6 +53,7 @@
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/OutputSectData.h"
 #include "eld/Script/OutputSectDesc.h"
+#include "eld/Script/Plugin.h"
 #include "eld/Script/ScriptFile.h"
 #include "eld/Script/ScriptReader.h"
 #include "eld/Script/ScriptSymbol.h"
@@ -62,7 +64,10 @@
 #include "eld/Support/StringRefUtils.h"
 #include "eld/Support/Utils.h"
 #include "eld/SymbolResolver/IRBuilder.h"
+#include "eld/SymbolResolver/LDSymbol.h"
+#include "eld/SymbolResolver/NamePool.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
+#include "eld/SymbolResolver/SymbolResolutionInfo.h"
 #include "eld/Target/GNULDBackend.h"
 #include "eld/Target/LDFileFormat.h"
 #include "eld/Target/Relocator.h"
@@ -77,6 +82,8 @@
 #include "llvm/Support/Caching.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/FileOutputBuffer.h"
+#include "llvm/Support/FormatVariadic.h"
+#include "llvm/Support/JSON.h"
 #include "llvm/Support/MemoryBufferRef.h"
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/Path.h"
@@ -85,6 +92,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include <chrono>
 #include <mutex>
+#include <optional>
 #include <sstream>
 #include <unordered_set>
 
@@ -158,6 +166,138 @@ bool ObjectLinker::initialize() {
 bool ObjectLinker::emitArchiveMemberReport(llvm::StringRef Filename) const {
   return eld::emitArchiveMemberReport(*this, Filename,
                                       ThisConfig.getDiagEngine());
+}
+
+// clang-format off
+// JSON schema emitted by --emit-symbol-resolution-report:
+//
+// {
+//   "SymbolResolutionReportVersion": 1,
+//   "Symbols": [
+//     {
+//       "Name": "foo",
+//       "Selected": "libc.a(malloc.o)(foo)",  // <InputFile>(<SymbolName>)
+//       "Candidates": [
+//         {
+//           "Name": "foo",
+//           "InputFile": "libc.a(malloc.o)",
+//           "Section": ".text",             // omitted when no section
+//           "Plugin": "MyPlugin",           // only for plugin-created symbols
+//           "Size": 4,
+//           "Bitcode": false,
+//           "SectionIndexKind": "Def",
+//           "Binding": "Global",            // always present
+//           "Type": "Object",
+//           "Visibility": "Default",        // always present
+//           "IsSelected": true,
+//           "LTOObjectSymbol": { ...same shape... } // bitcode w/ post-LTO sym
+//         }
+//       ]
+//     }
+//   ]
+// }
+// clang-format on
+
+static llvm::json::Object buildCandidateObject(const LDSymbol *Candidate,
+                                               const SymbolInfo &SymInfo,
+                                               SymbolResolutionInfo &SRI,
+                                               const GeneralOptions &Options,
+                                               bool IsSelected) {
+  llvm::json::Object Obj;
+  Obj["Name"] =
+      Candidate->resolveInfo()->getDecoratedName(/*DoDemangle=*/false);
+  Obj["InputFile"] = SymInfo.getInputFile()->getInput()->decoratedPath();
+  std::string SectName = SRI.getSymbolSectionName(Candidate, SymInfo, Options);
+  if (!SectName.empty())
+    Obj["Section"] = SectName;
+  if (const Plugin *P = SRI.getSymbolPlugin(Candidate))
+    Obj["Plugin"] = P->getPluginName();
+  Obj["Size"] = static_cast<int64_t>(SymInfo.getSize());
+  Obj["Bitcode"] = SymInfo.isBitcodeSymbol();
+  Obj["SectionIndexKind"] = SymInfo.getSymbolSectionIndexKindAsStr();
+  Obj["Binding"] = SymInfo.getSymbolBindingAsStr();
+  Obj["Type"] = SymInfo.getSymbolTypeAsStr();
+  Obj["Visibility"] = SymInfo.getSymbolVisibilityAsStr();
+  Obj["IsSelected"] = IsSelected;
+  return Obj;
+}
+
+bool ObjectLinker::emitSymbolResolutionReport(llvm::StringRef Filename) const {
+  Module &CurModule = *ThisModule;
+  std::error_code EC;
+  llvm::raw_fd_ostream OS(Filename, EC);
+  if (EC) {
+    if (DiagnosticEngine *DiagEngine = ThisConfig.getDiagEngine()) {
+      DiagEngine->raise(Diag::unable_to_write_json_file)
+          << Filename << EC.message();
+    }
+    return false;
+  }
+
+  NamePool &NP = CurModule.getNamePool();
+  SymbolResolutionInfo &SRI = NP.getSRI();
+  const GeneralOptions &Options = CurModule.getConfig().options();
+  SRI.setupCandidatesInfo(NP, CurModule.getScript());
+
+  llvm::json::Array SymbolsArray;
+  for (const auto *RI : CurModule.getSymbols()) {
+    if (RI->isLocal() &&
+        RI->resolvedOrigin() !=
+            CurModule.getInternalInput(Module::InternalInputType::Plugin))
+      continue;
+
+    llvm::StringRef SymName = RI->getName();
+    const SymbolResolutionInfo::CandidatesType &Candidates =
+        SRI.getCandidates(SymName);
+
+    llvm::json::Object SymEntry;
+    SymEntry["Name"] = SymName;
+
+    llvm::json::Array CandidatesArray;
+    std::string Selected;
+    for (const LDSymbol *Candidate : Candidates) {
+      std::optional<SymbolInfo> OptSymbolInfo = SRI.getSymbolInfo(Candidate);
+      if (!OptSymbolInfo)
+        continue;
+      SymbolInfo CandidateInfo = OptSymbolInfo.value();
+
+      bool IsSelected = Candidate->resolveInfo()->outSymbol() == Candidate ||
+                        (CandidateInfo.isBitcodeSymbol() &&
+                         CandidateInfo.getInputFile() ==
+                             Candidate->resolveInfo()->resolvedOrigin());
+
+      llvm::json::Object CandObj = buildCandidateObject(
+          Candidate, CandidateInfo, SRI, Options, IsSelected);
+
+      if (CandidateInfo.isBitcodeSymbol()) {
+        if (const LDSymbol *LTOSym =
+                SRI.getCorrespondingLTOObjectSymIfAny(Candidate)) {
+          if (std::optional<SymbolInfo> LTOInfo = SRI.getSymbolInfo(LTOSym))
+            CandObj["LTOObjectSymbol"] = buildCandidateObject(
+                LTOSym, LTOInfo.value(), SRI, Options, IsSelected);
+        }
+      }
+
+      if (IsSelected)
+        Selected =
+            (CandidateInfo.getInputFile()->getInput()->decoratedPath() + "(" +
+             Candidate->resolveInfo()->getDecoratedName(/*DoDemangle=*/false) +
+             ")");
+
+      CandidatesArray.push_back(std::move(CandObj));
+    }
+
+    if (!Selected.empty())
+      SymEntry["Selected"] = Selected;
+    SymEntry["Candidates"] = std::move(CandidatesArray);
+    SymbolsArray.push_back(std::move(SymEntry));
+  }
+
+  llvm::json::Object Root;
+  Root["SymbolResolutionReportVersion"] = 1;
+  Root["Symbols"] = std::move(SymbolsArray);
+  OS << llvm::formatv("{0:2}\n", llvm::json::Value(std::move(Root)));
+  return true;
 }
 
 /// initStdSections - initialize standard sections

@@ -267,8 +267,7 @@ LDSymbol *IRBuilder::addSymbolFromObject(
     return InputSym;
   }
 
-  if (ThisModule.getLayoutInfo() &&
-      ThisModule.getLayoutInfo()->showSymbolResolution())
+  if (ThisModule.getConfig().options().shouldEmitSymbolResolutionReport())
     NP.getSRI().recordSymbolInfo(InputSym, SymInfo);
 
   bool S = NP.insertNonLocalSymbol(InputSymbolResolveInfo, *InputSym,
@@ -369,8 +368,7 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
     InputSym->setSectionIndex(Shndx);
     InputSym->setSymbolIndex(SymIdx);
 
-    if (ThisModule.getLayoutInfo() &&
-        ThisModule.getLayoutInfo()->showSymbolResolution())
+    if (ThisModule.getConfig().options().shouldEmitSymbolResolutionReport())
       ThisModule.getNamePool().getSRI().recordSymbolInfo(InputSym, SymInfo);
 
     Resolver::Result ResolvedResult = {nullptr, false, false};
@@ -606,8 +604,7 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
     OutputSym->setValue(Value, false);
   }
 
-  if (ThisModule.getLayoutInfo() &&
-      ThisModule.getLayoutInfo()->showSymbolResolution()) {
+  if (ThisModule.getConfig().options().shouldEmitSymbolResolutionReport()) {
     SymbolResolutionInfo &SRI = ThisModule.getNamePool().getSRI();
     SRI.recordSymbolInfo(OutputSym,
                          SymbolInfo{Input, Size, Binding, Type, Visibility,

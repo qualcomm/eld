@@ -517,6 +517,19 @@ public:
     return ArchiveMemberReportFile;
   }
 
+  // --emit-symbol-resolution-report
+  void setSymbolResolutionReportFile(llvm::StringRef File) {
+    SymbolResolutionReportFile = File.str();
+  }
+
+  const std::optional<std::string> &getSymbolResolutionReportFile() const {
+    return SymbolResolutionReportFile;
+  }
+
+  bool shouldEmitSymbolResolutionReport() const {
+    return SymbolResolutionReportFile.has_value();
+  }
+
   // --ld-generated-unwind-info
   void setGenUnwindInfo(bool PEnable = true) { BGenUnwindInfo = PEnable; }
 
@@ -1365,6 +1378,8 @@ private:
   std::optional<std::string> PluginActivityLogFile; // --plugin-activity-file output path
   std::optional<std::string>
       ArchiveMemberReportFile;           // --archive-member-report output path
+  std::optional<std::string>
+      SymbolResolutionReportFile; // --emit-symbol-resolution-report output path
   std::string MappingFileName;           // --Mapping-file
   std::string MappingDumpFile;           // --dump-mapping-file
   std::string ResponseDumpFile;          // --dump-response-file

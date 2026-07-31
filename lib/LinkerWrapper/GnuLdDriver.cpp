@@ -1332,6 +1332,11 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setArchiveMemberReportFile(A->getValue());
   }
 
+  // --emit-symbol-resolution-report=<file>
+  if (llvm::opt::Arg *A = Args.getLastArg(T::SymbolResolutionReportFile)) {
+    Config.options().setSymbolResolutionReportFile(A->getValue());
+  }
+
   if (Args.hasArg(T::use_old_rule_matching))
     Config.options().setUseOldRuleMatching(true);
 
@@ -2021,6 +2026,8 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
         linkStatus = linker.link();
       // llvm::errs() << "link: linkStatus: " << linkStatus << "\n";
       linker.printLayout();
+      if (linkStatus && Config.options().shouldEmitSymbolResolutionReport())
+        linkStatus &= linker.emitSymbolResolutionReport();
     }
     if (!linkStatus || Config.options().getRecordInputFiles())
       handleReproduce<T>(Args, actions, true);

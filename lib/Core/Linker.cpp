@@ -258,6 +258,12 @@ void Linker::printLayout() {
   ObjLinker->printlayout();
 }
 
+bool Linker::emitSymbolResolutionReport() {
+  const GeneralOptions &Options = ThisConfig->options();
+  return ObjLinker->emitSymbolResolutionReport(
+      *Options.getSymbolResolutionReportFile());
+}
+
 bool Linker::activateInputs(std::vector<InputAction *> &Actions) {
   LinkerProgress->incrementAndDisplayProgress();
   for (auto &Action : Actions) {
