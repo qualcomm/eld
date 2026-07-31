@@ -82,8 +82,7 @@ public:
                     DiagnosticPrinter *Printer);
 
   LDSymbol *createPluginSymbol(InputFile *Input, std::string SymbolName,
-                               Fragment *CurFragment, uint64_t Val,
-                               LayoutInfo *layoutInfo);
+                               Fragment *CurFragment, uint64_t Val);
 
   size_t getNumGlobalSize() const { return GlobalSymbols.size(); }
 
