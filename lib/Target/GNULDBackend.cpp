@@ -4231,6 +4231,10 @@ bool GNULDBackend::relax() {
   // Print memory regions
   printMemoryRegionsUsage();
 
+  // Warn about RWX segments after the final layout is known.
+  if (LinkerConfig::Object != config().codeGenType())
+    warnRWXSegments();
+
   // Verify memory regions
   verifyMemoryRegions();
 
@@ -5557,3 +5561,18 @@ void GNULDBackend::assignOutputVersionIDs() {
   }
 }
 #endif
+
+void GNULDBackend::warnRWXSegments() {
+  if (!config().options().warnRWXSegments())
+    return;
+  for (auto *Seg : elfSegmentTable()) {
+    if (!Seg->isLoadSegment())
+      continue;
+    uint32_t f = Seg->flag();
+    if ((f & llvm::ELF::PF_W) && (f & llvm::ELF::PF_X)) {
+      config().raise(Diag::warn_rwx_segment)
+          << config().options().outputFileName();
+      return;
+    }
+  }
+}

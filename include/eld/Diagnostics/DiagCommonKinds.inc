@@ -56,6 +56,8 @@ DIAG(symdef_incompatible_option, DiagnosticEngine::Fatal,
      "SymDef files are valid only when building executables")
 DIAG(warn_shared_textrel, DiagnosticEngine::Warning,
      "Add DT_TEXTREL in a shared object!")
+DIAG(warn_rwx_segment, DiagnosticEngine::Warning,
+     "'%0' has loadable segment(s) with RWX permissions")
 DIAG(err_invalid_emulation, DiagnosticEngine::Error,
      "Invalid target emulation: `%0'.")
 DIAG(err_cannot_find_scriptfile, DiagnosticEngine::Fatal,

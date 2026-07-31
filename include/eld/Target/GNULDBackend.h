@@ -512,6 +512,8 @@ public:
   /// Script
   bool createScriptProgramHdrs();
 
+  void warnRWXSegments();
+
   bool assignOffsets(uint64_t Offset);
 
   void evaluateAssignments(OutputSectionEntry *output);

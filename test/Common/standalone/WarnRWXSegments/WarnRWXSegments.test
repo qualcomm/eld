@@ -1,0 +1,35 @@
+#---WarnRWXSegments.test--------------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test --[no-]warn-rwx-segments option.
+# By default the linker warns when a PT_LOAD segment has RWX permissions.
+# --no-warn-rwx-segments suppresses the warning.
+# --warn-rwx-segments restores it.
+# Non-PT_LOAD segments with RWX (e.g. PT_GNU_STACK via -z execstack) must
+# not trigger the warning.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+
+# Default: warning is emitted for a PT_LOAD with RWX permissions.
+RUN: %link %linkopts %t.o -T %p/Inputs/rwx.t -o %t.out 2>&1 | %filecheck %s --check-prefix=WARN
+
+# --no-warn-rwx-segments: warning is suppressed.
+RUN: %link %linkopts %t.o -T %p/Inputs/rwx.t --no-warn-rwx-segments -o %t.out 2>&1 | %filecheck %s --allow-empty --check-prefix=NOWARN
+
+# --warn-rwx-segments: warning is emitted (explicit enable).
+RUN: %link %linkopts %t.o -T %p/Inputs/rwx.t --warn-rwx-segments -o %t.out 2>&1 | %filecheck %s --check-prefix=WARN
+
+# -z execstack makes PT_GNU_STACK RWX but must NOT trigger the warning.
+RUN: %link %linkopts %t.o -z execstack -o %t.execstack.out 2>&1 | %filecheck %s --allow-empty --check-prefix=NOWARN
+
+# Two RWX PT_LOAD segments: warning must appear exactly once.
+RUN: %link %linkopts %t.o -T %p/Inputs/rwx2.t -o %t.out2 2>&1 | %filecheck %s --check-prefix=WARN-ONCE
+
+# No RWX segments: no warning.
+RUN: %link %linkopts %t.o -o %t.norwx.out 2>&1 | %filecheck %s --allow-empty --check-prefix=NOWARN
+
+#WARN:          Warning: '{{.*}}' has loadable segment(s) with RWX permissions
+#NOWARN-NOT:    RWX
+#WARN-ONCE:     Warning: '{{.*}}' has loadable segment(s) with RWX permissions
+#WARN-ONCE-NOT: Warning: '{{.*}}' has loadable segment(s) with RWX permissions
+#END_TEST

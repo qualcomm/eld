@@ -595,6 +595,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   Config.options().setWarnSharedTextrel(Args.hasFlag(
       T::warn_shared_textrel, T::no_warn_shared_textrel, /*default=*/false));
 
+  // --[no-]warn-rwx-segments
+  Config.options().setWarnRWXSegments(Args.hasFlag(
+      T::warn_rwx_segments, T::no_warn_rwx_segments, /*default=*/true));
+
   // --warn-common
   if (Args.hasArg(T::warn_common))
     Config.options().setWarnCommon();

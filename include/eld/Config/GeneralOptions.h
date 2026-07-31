@@ -343,6 +343,11 @@ public:
 
   bool warnSharedTextrel() const { return BWarnSharedTextrel; }
 
+  // --no-warn-rwx-segments
+  void setWarnRWXSegments(bool V = true) { BWarnRWXSegments = V; }
+
+  bool warnRWXSegments() const { return BWarnRWXSegments; }
+
   void setDefineCommon(bool PEnable = true) { BDefineCommon = PEnable; }
 
   bool isDefineCommon() const { return BDefineCommon; }
@@ -1255,6 +1260,7 @@ private:
   bool BStripDebug = false;        // -S, --strip-debug
   bool BExportDynamic = false;     //-E, --export-dynamic
   bool BWarnSharedTextrel = false; // --warn-shared-textrel
+  bool BWarnRWXSegments = true;    // --no-warn-rwx-segments
   bool BWarnCommon = false;        // --warn-common
   bool BDefineCommon = false;      // -d, -dc, -dp
   bool BFatalWarnings = false;     // --fatal-warnings
