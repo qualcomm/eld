@@ -1,0 +1,11 @@
+# Verify that the old --MapDetail show-symbol-resolution sub-option is
+# removed. Symbol resolution reports are now emitted via
+# --emit-symbol-resolution-report. The old sub-option must be rejected and
+# must not appear in the help output.
+RUN: %clang %clangopts -o %t1.o %p/../CommonSymbols/Inputs/3.c -c
+RUN: %not %link %linkopts -o %t1.out %t1.o -MapStyle txt -Map %t1.map.txt --MapDetail show-symbol-resolution 2>&1 | %filecheck %s --check-prefix=REJECT
+RUN: %link --help 2>&1 | %filecheck %s --check-prefix=HELP
+
+REJECT: Invalid option show-symbol-resolution specified for --MapDetail
+
+HELP-NOT: show-symbol-resolution

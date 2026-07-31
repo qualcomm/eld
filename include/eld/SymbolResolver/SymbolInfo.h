@@ -75,6 +75,7 @@ private:
         : SymBinding(0), SymType(0), SymVisibility(0), SymSectIndexKind(0),
           IsBitcode(0) {}
     unsigned int SymBinding : 2;
+    // FIXME: SymType needs 4 bits.
     unsigned int SymType : 2;
     unsigned int SymVisibility : 2;
     unsigned int SymSectIndexKind : 3;
@@ -87,6 +88,7 @@ private:
   void setSymbolSectionIndexKind(ResolveInfo::Binding Binding,
                                  ResolveInfo::Desc SymDesc);
   void setBitcodeAttribute(bool IsBitcode);
+  // FIXME: Is the below bit pattern correct?
   /// Information is stored as follows in this bitfield:
   /// 0b000000000000000000000sssvvttttbb
   /// b: bits used to represent symbol binding.

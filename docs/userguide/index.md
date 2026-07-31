@@ -30,6 +30,7 @@ documentation/target_specific_features
 documentation/sframe_support
 documentation/editor_support
 documentation/linker_faq
+documentation/symbol_resolution_inspector.md
 ```
 
 ```{toctree}

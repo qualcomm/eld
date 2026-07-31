@@ -85,6 +85,11 @@ public:
 
   void printLayout();
 
+  /// Emits the JSON symbol resolution report. This function
+  /// must only be called if symbol resolution report is
+  /// requested.
+  bool emitSymbolResolutionReport();
+
   void unloadPlugins();
 
   // Set the GNU linker driver after sniffing

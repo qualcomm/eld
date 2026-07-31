@@ -1498,6 +1498,12 @@ defm ArchiveMemberReportFile
       MetaVarName<"<filename>">,
       Group<grp_miscfeatures>;
 
+defm SymbolResolutionReportFile
+    : mDashEq<"emit-symbol-resolution-report", "SymbolResolutionReportFile",
+              "Emit JSON symbol resolution report">,
+      MetaVarName<"<filename>">,
+      Group<grp_miscfeatures>;
+
 //===----------------------------------------------------------------------===//
 /// Help!
 //===----------------------------------------------------------------------===//
