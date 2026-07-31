@@ -381,6 +381,8 @@ RUN: %link --help 2>&1 | %filecheck %s
 #CHECK:   -archive-member-report=<filename>
 #CHECK:   --archive-member-report <filename>
 #CHECK:   -archive-member-report <filename>
+#CHECK:   --emit-symbol-resolution-report=<filename>
+#CHECK:   --emit-symbol-resolution-report <filename>
 #CHECK:   --eh-frame-hdr
 #CHECK:   --gc-sections
 #CHECK:   -gc-sections

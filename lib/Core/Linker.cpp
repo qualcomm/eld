@@ -34,6 +34,8 @@
 #include "eld/Support/TargetRegistry.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/SymbolResolver/LDSymbol.h"
+#include "eld/SymbolResolver/NamePool.h"
+#include "eld/SymbolResolver/SymbolResolutionInfo.h"
 #include "eld/Target/GNULDBackend.h"
 #include "llvm/Object/ELFTypes.h"
 #include "llvm/Support/CommandLine.h"
@@ -256,6 +258,12 @@ void Linker::printLayout() {
   eld::RegisterTimer F("Emit Map file", "Link Summary",
                        ThisConfig->options().printTimingStats());
   ObjLinker->printlayout();
+}
+
+bool Linker::emitSymbolResolutionReport() {
+  const GeneralOptions &Options = ThisConfig->options();
+  return ThisModule->getNamePool().getSRI().emitSymbolResolutionReport(
+      *ThisModule, *Options.getSymbolResolutionReportFile());
 }
 
 bool Linker::activateInputs(std::vector<InputAction *> &Actions) {
