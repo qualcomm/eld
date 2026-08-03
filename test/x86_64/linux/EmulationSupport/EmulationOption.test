@@ -1,4 +1,3 @@
-#UNSUPPORTED: windows
 #---x86_64_Emulation.test----------------- Executable --------------------#
 
 BEGIN_COMMENT
@@ -14,4 +13,6 @@ RUN: %link %linkopts -o %t.1.out %t.1.o --image-base=0x400000
 RUN: %run_and_print_exit %t.1.out > %t.code
 RUN: %filecheck --input-file=%t.code %s --check-prefix=EXITCODE
 EXITCODE: 5
+
+RUN: %qemu %qemuopts %t.1.out
 #END_TEST
