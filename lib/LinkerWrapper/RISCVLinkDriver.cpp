@@ -136,6 +136,10 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
       ArgList.hasFlag(OPT_RISCVLinkOptTable::riscv_relax_xqci,
                       OPT_RISCVLinkOptTable::no_riscv_relax_xqci, false));
 
+  // --no-relax-tp
+  if (ArgList.hasArg(OPT_RISCVLinkOptTable::no_relax_tp))
+    Config.options().setRISCVRelaxTP(false);
+
   // --no-relax-tlsdesc
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::no_relax_tlsdesc))
     Config.options().setRISCVRelaxTLSDESC(false);
