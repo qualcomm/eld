@@ -1,6 +1,7 @@
 name: CI
 
-on:
+# Syntax error to temporarily disable the CI.
+on1:
   pull_request:
     # `labeled` so adding `zephyr-check`/`kernel-check` mid-PR triggers a fresh
     # CI upload.
