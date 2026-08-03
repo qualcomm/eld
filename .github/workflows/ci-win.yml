@@ -12,13 +12,16 @@ permissions:
   contents: write
 jobs:
   build-windows:
-    if: github.repository == 'qualcomm/eld'
     permissions:
       contents: write
     env:
       BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
       ELD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
       ELD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
+      CCACHE_DIR: C:/ccache/${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_COMPILERCHECK: content
+      CCACHE_NOHASHDIR: true
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
 
@@ -40,6 +43,10 @@ jobs:
         run: |
           subst P: "C:\Program Files\Git\usr\bin"
           'P:\' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install ccache
+        shell: pwsh
+        run: choco install ccache --no-progress -y
 
       - name: Checkout llvm-project
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -74,6 +81,11 @@ jobs:
         working-directory: nightly
         shell: bash
         run: |
+          mkdir -p "$CCACHE_DIR"
+          ccache --zero-stats
+          ccache --set-config "max_size=0"
+          ccache --show-config
+
           mkdir -p obj
           cd obj
           cmake -G "Visual Studio 17 2022" -A ${{ matrix.arch }} \
@@ -83,12 +95,28 @@ jobs:
             -DLLVM_ENABLE_ASSERTIONS=ON \
             -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
             -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86;Template' \
+            -DLLVM_CCACHE_BUILD:BOOL=ON \
             ../llvm-project/llvm
+
+      - name: Cache usage before build
+        working-directory: nightly/obj
+        shell: bash
+        run: ccache --show-stats --dir="$CCACHE_DIR"
 
       - name: Build
         working-directory: nightly/obj
         shell: bash
         run: cmake --build . --config Release
+
+      - name: Cache usage after build
+        working-directory: nightly/obj
+        shell: bash
+        run: ccache --show-stats --dir="$CCACHE_DIR"
+
+      - name: Prune ccache after build
+        working-directory: nightly/obj
+        shell: bash
+        run: ccache --evict-older-than 7200s --dir="$CCACHE_DIR"
 
       - name: Install PyYAML
         shell: bash
