@@ -2,9 +2,12 @@ name: nightly picolibc builder
 
 on:
   # pull_request: {} # Uncomment only to test this WF file update.
-  schedule:
-    # 10:00 PM Central
-    - cron: '0 4 * * *'
+  workflow_run:
+    # Runs after the nightly toolchain build ("Nightly check" =
+    # nightly-test.yml) finishes, so we always consume a freshly built
+    # install-nightly-toolchain.tar.xz artifact.
+    workflows: ["Nightly check"]
+    types: [completed]
   workflow_dispatch:     # Allows manual triggering
 
 
@@ -13,7 +16,12 @@ permissions:
 jobs:
   build-and-test:
     name: ${{ matrix.arch.name }}
-    if: github.repository == 'qualcomm/eld'
+    # Only run on the canonical repo, and (for workflow_run) only when the
+    # triggering nightly toolchain build succeeded. Manual dispatch always runs.
+    if: >-
+      github.repository == 'qualcomm/eld' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -60,18 +68,14 @@ jobs:
             extra-cxx-flags: "-march=armv7-a"
 
     steps:
-      - name: Set up Clang 20
-        uses: egor-tensin/setup-clang@23bc15cd4207e45f1566447deb48f4ff3ef932cb #v2.3
-        with:
-          version: "20"
-          platform: x64
-
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y libc++-dev libc++abi-dev ccache libclang-rt-20-dev cmake ninja-build make bison flex python3 m4 git libglib2.0-dev
+          sudo apt install -y ccache cmake ninja-build make bison flex python3 m4 git libglib2.0-dev
       - name: Checkout LLVM Project
         run: |
+          # Only needed for the compiler-rt sources used to build builtins;
+          # the clang/eld toolchain itself comes from the nightly artifact.
           git clone --branch main --single-branch --depth 1 https://github.com/llvm/llvm-project ${{ github.workspace }}/llvm-project
 
       - name: Checkout ELD
@@ -83,7 +87,7 @@ jobs:
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
 
       - name: Record pre-build entry
-        if: github.event_name == 'schedule'
+        if: github.event_name == 'workflow_run'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -96,39 +100,26 @@ jobs:
           arch-name: ${{ matrix.arch.name }}
           branch-name: "${{env.BUILD_BRANCH}}"
 
-      - name: Configure LLVM toolchain for ${{ matrix.arch.name }}
-        run: |
-
-          cmake -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
-            -DLLVM_ENABLE_PROJECTS="llvm;clang" \
-            -DLLVM_DEFAULT_TARGET_TRIPLE=${{ matrix.arch.triple }} \
-            -DCMAKE_C_COMPILER=`which clang` \
-            -DCMAKE_CXX_COMPILER=`which clang++` \
-            -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
-            -DLLVM_TARGETS_TO_BUILD=${{ matrix.arch.llvm-target }} \
-            -DELD_TARGETS_TO_BUILD=${{ matrix.arch.llvm-target }} \
-            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain \
-            -S ${{ github.workspace }}/llvm-project/llvm \
-            -B ${{ github.workspace }}/build-${{ matrix.arch.name }}-toolchain/ \
-
-      - name: Build LLVM toolchain for ${{ matrix.arch.name }}
-        run: |
-          cmake --build ${{ github.workspace }}/build-${{ matrix.arch.name }}-toolchain/ -- install
+      - name: Fetch nightly toolset
+        # Downloads and extracts install-nightly-toolchain.tar.xz (multi-target
+        # clang/clang++ and ld.eld) from the latest successful nightly-test.yml
+        # run, prepending its bin dir to PATH.
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
       - name: Build compiler-rt builtins
         run: |
-          export TOOLCHAIN_INSTALL=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/
-          export PATH=$TOOLCHAIN_INSTALL/bin:$PATH
+          # The nightly toolchain (clang/clang++) is already on PATH via
+          # FetchNightlyToolset; derive its install root from the clang binary.
+          TOOLCHAIN_INSTALL="$(dirname "$(dirname "$(command -v clang)")")"
           if [ ${{ matrix.arch.name }} = "hexagon" ]; then
             cmake -G Ninja \
               -DCMAKE_C_COMPILER:STRING=`which clang` \
               -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
               -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
               -DCMAKE_BUILD_TYPE=Release \
-              -DLLVM_CMAKE_DIR:PATH=$TOOLCHAIN_INSTALL \
-              -DCMAKE_INSTALL_PREFIX:PATH=$($TOOLCHAIN_INSTALL/bin/clang -print-resource-dir) \
+              -DLLVM_CMAKE_DIR:PATH="$TOOLCHAIN_INSTALL" \
+              -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
+              -DCMAKE_ASM_COMPILER_TARGET=${{ matrix.arch.triple }} \
               -C ${{ github.workspace }}/llvm-project/compiler-rt/cmake/caches/hexagon-builtins-baremetal.cmake \
               -B build-${{ matrix.arch.triple }}-builtins/ \
               -S ${{ github.workspace }}/llvm-project/compiler-rt/
@@ -148,7 +139,7 @@ jobs:
               -DCMAKE_C_COMPILER_TARGET=${{ matrix.arch.triple }} \
               -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
               -DCMAKE_C_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding ${{ matrix.arch.extra-c-flags }}" \
-              -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding ${{ matrix.arch.extra-cxx-flags }}" \
+              -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding -nostdinc++ ${{ matrix.arch.extra-cxx-flags }}" \
               -DCMAKE_ASM_FLAGS="--target=${{ matrix.arch.triple }} ${{ matrix.arch.extra-cxx-flags }}" \
               -DCMAKE_C_COMPILER_FORCED=ON \
               -DCMAKE_CXX_COMPILER_FORCED=ON \
@@ -158,20 +149,6 @@ jobs:
               -S ${{ github.workspace }}/llvm-project/compiler-rt/
           fi
           cmake --build ${{ github.workspace }}/build-${{ matrix.arch.triple }}-builtins/ -- install-builtins
-
-      - name: Pack toolchain tarball
-        if: false
-        run: |
-          tar -C ${{ github.workspace }}/ \
-              -Jcvf install-${{ matrix.arch.name }}-toolchain.tar.xz install-${{ matrix.arch.name }}-toolchain
-
-      - name: Upload toolchain tarball
-        if: false
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
-        with:
-          name: install-${{ matrix.arch.name }}-toolchain.tar.xz
-          path: install-${{ matrix.arch.name }}-toolchain.tar.xz
-          retention-days: 2
 
       - name: Install Meson
         run: |
@@ -200,10 +177,9 @@ jobs:
           cd ${{ github.workspace }}/picolibc
           mkdir -p build-clang-${{ matrix.arch.name }}-picolibc-default-config
           cd build-clang-${{ matrix.arch.name }}-picolibc-default-config
-          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-default-config }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="${{ matrix.arch.extra-cxx-flags }}"
+          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-default-config }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
           ninja
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, no-tls
@@ -211,10 +187,9 @@ jobs:
           cd ${{ github.workspace }}/picolibc
           mkdir -p build-clang-${{ matrix.arch.name }}-picolibc-no-tls
           cd build-clang-${{ matrix.arch.name }}-picolibc-no-tls
-          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-no-tls }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="${{ matrix.arch.extra-cxx-flags }}"
+          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-no-tls }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
           ninja
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, tls-ie
@@ -222,20 +197,22 @@ jobs:
           cd ${{ github.workspace }}/picolibc
           mkdir -p build-clang-${{ matrix.arch.name }}-picolibc-tls-ie
           cd build-clang-${{ matrix.arch.name }}-picolibc-tls-ie
-          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-tls-ie }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="${{ matrix.arch.extra-cxx-flags }}"
+          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-tls-ie }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
           ninja
 
       - name: Get QEMU
         run: |
           if [ ${{ matrix.arch.name }} = "hexagon" ]; then
             # git clone --branch hex-next --single-branch --depth 1 https://github.com/quic/qemu.git ${{ github.workspace }}/qemu-system-hexagon
-            git clone --depth 1 --branch hexagon-sysemu-11-nov-2025 https://github.com/quic/qemu.git ${{ github.workspace }}/qemu-system-hexagon
+            git clone --depth 1 --branch hexagon-sysemu-23-apr-2026 https://github.com/qualcomm/qemu.git ${{ github.workspace }}/qemu-system-hexagon
             QEMU_INSTALL=${{ github.workspace }}/install-qemu-system-hexagon/
             cd ${{ github.workspace }}/qemu-system-hexagon
-            ./configure --target-list=hexagon-softmmu --prefix=$QEMU_INSTALL
+            ./configure --cc=clang --cxx=clang++ \
+              --target-list=hexagon-softmmu \
+              --prefix=$QEMU_INSTALL \
+              --extra-cflags="-Wno-misleading-indentation -Wno-unused-but-set-variable"
             cd build
             ninja install
             echo "PATH=$QEMU_INSTALL/bin/:$PATH" >> $GITHUB_ENV
@@ -270,7 +247,7 @@ jobs:
           retention-days: 2
 
       - name: Update build entry
-        if: github.event_name == 'schedule'
+        if: github.event_name == 'workflow_run'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
