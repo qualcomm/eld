@@ -315,6 +315,11 @@ defm sysroot : mDashDeprEq<"sysroot", "Set the system root">,
 def version : FF<"version">,
               HelpText<"Print the Linker version">,
               Group<grp_general>;
+// Unlike --version, -v prints the version banner but does not short-circuit
+// if input files are present.
+def v : Flag<["-"], "v">,
+       HelpText<"Print the Linker version and continue processing">,
+       Group<grp_general>;
 def repository_version : FF<"repository-version">,
                          HelpText<"Print the Linker Repository version">,
                          Group<grp_general>;

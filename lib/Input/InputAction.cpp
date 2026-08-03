@@ -13,12 +13,14 @@
 
 #include "eld/Input/InputAction.h"
 #include "eld/Config/LinkerConfig.h"
+#include "eld/Config/Version.h"
 #include "eld/Input/Input.h"
 #include "eld/Input/InputBuilder.h"
 #include "eld/Input/InputTree.h"
 #include "eld/Input/SearchDirs.h"
 #include "eld/Support/FileSystem.h"
 #include "eld/Support/MsgHandling.h"
+#include "llvm/Support/raw_ostream.h"
 #include <fstream>
 
 using namespace eld;
@@ -268,5 +270,29 @@ bool InputFormatAction::activate(InputBuilder &Builder) {
         << InputFormat;
     return false;
   }
+  return true;
+}
+
+//===----------------------------------------------------------------------===//
+// VersionAction
+//===----------------------------------------------------------------------===//
+VersionAction::VersionAction(const std::vector<std::string> &SupportedTargets,
+                             DiagnosticPrinter *Printer)
+    : InputAction(InputAction::InputActionKind::Version, Printer),
+      SupportedTargets(SupportedTargets) {}
+
+bool VersionAction::activate(InputBuilder &) {
+  // The first line's first two words are deliberately "GNU"/"ld", ending in
+  // nothing but the bare version number. Build systems that identify the
+  // linker by parsing --version output (e.g. the Linux kernel's
+  // scripts/ld-version.sh) look for a first line whose first two words are
+  // exactly "GNU"/"ld" and take the last word on that line as the version;
+  // without this, such scripts reject eld as an "unknown linker".
+  llvm::outs() << "GNU ld compatible linker - eld " << eld::getELDVersion()
+               << "\n";
+  llvm::outs() << "Supported Targets: ";
+  for (const auto &Target : SupportedTargets)
+    llvm::outs() << Target << " ";
+  llvm::outs() << "\n";
   return true;
 }

@@ -79,9 +79,12 @@ x86_64LinkDriver::parseOptions(ArrayRef<const char *> Args,
                      /*ShowAllAliases=*/true);
     return LINK_SUCCESS;
   }
-  if (ArgList.hasArg(OPT_x86_64LinkOptTable::version)) {
-    printVersionInfo();
-    return LINK_SUCCESS;
+  if (llvm::opt::Arg *Arg = ArgList.getLastArg(
+          OPT_x86_64LinkOptTable::v, OPT_x86_64LinkOptTable::version)) {
+    if (Arg->getOption().matches(OPT_x86_64LinkOptTable::version)) {
+      printVersionInfo();
+      return LINK_SUCCESS;
+    }
   }
   // --about
   if (ArgList.hasArg(OPT_x86_64LinkOptTable::about)) {

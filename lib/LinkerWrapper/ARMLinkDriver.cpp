@@ -106,9 +106,12 @@ ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
                      /*ShowAllAliases=*/true);
     return LINK_SUCCESS;
   }
-  if (ArgList.hasArg(OPT_ARMLinkOptTable::version)) {
-    printVersionInfo();
-    return LINK_SUCCESS;
+  if (llvm::opt::Arg *Arg = ArgList.getLastArg(OPT_ARMLinkOptTable::v,
+                                               OPT_ARMLinkOptTable::version)) {
+    if (Arg->getOption().matches(OPT_ARMLinkOptTable::version)) {
+      printVersionInfo();
+      return LINK_SUCCESS;
+    }
   }
   // --about
   if (ArgList.hasArg(OPT_ARMLinkOptTable::about)) {

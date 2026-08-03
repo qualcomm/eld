@@ -196,10 +196,7 @@ void GnuLdDriver::printVersionInfo() const {
   // linker by parsing --version output (e.g. the Linux kernel's
   // scripts/ld-version.sh) look for a first line whose first two words are
   // exactly "GNU"/"ld" and take the last word on that line as the version;
-  // without this, such scripts reject eld as an "unknown linker". This is
-  // an interim identification (agreed on until eld is proposed/added to the
-  // kernel community's own linker-detection logic) -- not a claim that eld
-  // is GNU ld.
+  // without this, such scripts reject eld as an "unknown linker".
   outs() << "GNU ld compatible linker - eld " << eld::getELDVersion() << "\n";
   outs() << "Supported Targets: ";
   for (const auto &x : m_SupportedTargets)
@@ -1346,6 +1343,7 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
   size_t input_num = 0;
   int GroupMatchCount = 0;
   int LibMatchCount = 0;
+  bool HasVersionAction = false;
 
   for (llvm::opt::Arg *arg : Args) {
     switch (arg->getOption().getID()) {
@@ -1510,6 +1508,14 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
       ++input_num;
     } break;
 
+    // -v prints the version banner and lets linking continue. Unlike
+    // --version, -v only short-circuits when there are no real inputs.
+    case T::v: {
+      actions.push_back(eld::make<eld::VersionAction>(m_SupportedTargets,
+                                                      Config.getPrinter()));
+      HasVersionAction = true;
+    } break;
+
     default:
       break;
     }
@@ -1527,7 +1533,7 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
     return false;
   }
 
-  if (input_num == 0) {
+  if (input_num == 0 && !HasVersionAction) {
     Config.raise(Diag::err_no_inputs);
     Config.raise(Diag::linking_had_errors) << getOutputFileName();
     return false;
@@ -1958,6 +1964,12 @@ eld::Module *GnuLdDriver::ThisModule = nullptr;
 template <class T>
 bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
                          std::vector<eld::InputAction *> &actions) {
+  // Bare -v (no real inputs): print the banner and exit immediately.
+  if (Args.hasArg(T::v) && !Args.hasArg(T::INPUT)) {
+    printVersionInfo();
+    return true;
+  }
+
   const eld::Target *ELDTarget = nullptr;
   if (!isDriverFlavorUnknown()) {
     // Get the target specific parser.
@@ -2139,9 +2151,12 @@ std::optional<int> GnuLdDriver::parseOptions(ArrayRef<const char *> Args,
                      /*ShowAllAliases=*/true);
     return LINK_SUCCESS;
   }
-  if (ArgList.hasArg(OPT_GnuLdOptTable::version)) {
-    printVersionInfo();
-    return LINK_SUCCESS;
+  if (llvm::opt::Arg *Arg = ArgList.getLastArg(OPT_GnuLdOptTable::v,
+                                               OPT_GnuLdOptTable::version)) {
+    if (Arg->getOption().matches(OPT_GnuLdOptTable::version)) {
+      printVersionInfo();
+      return LINK_SUCCESS;
+    }
   }
   // --about
   if (ArgList.hasArg(OPT_GnuLdOptTable::about)) {
