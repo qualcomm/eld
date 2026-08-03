@@ -1,2 +1,18 @@
+#UNSUPPORTED: aarch64
+#---devnull.test--------------------- Executable--------------------#
+#BEGIN_COMMENT
+#This tests that /dev/null is supported by the linker
+#END_COMMENT
+
+#Test output files
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
 RUN: %link %linkopts %t1.o -o /dev/null
+
+#Test input files. Should throw an error because no emulation can be determined.
+RUN: %not %link %linkopts /dev/null 2>&1 | %filecheck %s -check-prefix=NOINPUT
+#Test that the linker behaves normally when multiple files are linked
+#and /dev/null is included
+RUN: %link %linkopts /dev/null %t1.o
+
+#NOINPUT-NOT: Note: Input file /dev/null has no contents
+#NOINPUT: Error: target emulation unknown: -m or at least one .o file required

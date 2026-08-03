@@ -1,3 +1,17 @@
-#UNSUPPORTED: windows
+#---devnull.test--------------------- Executable--------------------#
+#BEGIN_COMMENT
+#This tests that /dev/null is supported by the linker
+#END_COMMENT
+
+#Test output files
 RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.o
 RUN: %link %linkopts -march aarch64 %t1.o -o /dev/null
+
+#Test input files. Should link successfully because "%link" includes the
+#emulation
+RUN: %link %linkopts /dev/null 2>&1 | %filecheck %s -check-prefix=NOINPUT --allow-empty
+#Test that the linker behaves normally when multiple files are linked
+#and /dev/null is included
+RUN: %link %linkopts /dev/null %t1.o
+
+#NOINPUT-NOT: Note: Input file /dev/null has no contents
