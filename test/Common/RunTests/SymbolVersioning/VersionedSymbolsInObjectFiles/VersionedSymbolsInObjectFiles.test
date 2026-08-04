@@ -1,0 +1,60 @@
+REQUIRES: run_test, symbol_versioning
+#---HelloWorld.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+#END_COMMENT
+#START_TEST
+# Basic case: foo@@V1 and foo@V2
+RUN: %run_cc -o %t1.o %p/Inputs/1.c -c -fPIC
+RUN: %run_cc -o %t2.o %p/Inputs/2.c -c -fPIC
+RUN: %run_cc -o %t3.o %p/Inputs/3.c -c -fPIC
+RUN: %run_cc -o %tlib1.so %t1.o %t2.o %t3.o -shared -Wl,--version-script,%p/Inputs/vs.1.t
+RUN: %run_cc -o %tmain1.o %p/Inputs/main.1.c -c
+RUN: %run_cc -o %tmain1.out %tmain1.o %tlib1.so
+RUN: %run %tmain1.out | %filecheck %s --check-prefix=CHECK1
+
+# weak foo@@V1 and strong foo@V1
+RUN: %run_cc -o %t4.o %p/Inputs/4.c -c -fPIC
+RUN: %run_cc -o %t5.o %p/Inputs/5.c -c -fPIC
+RUN: %run_cc -o %t6.o %p/Inputs/6.c -c -fPIC
+RUN: %run_cc -o %tlib2.so %t4.o %t5.o %t6.o -shared -Wl,--version-script,%p/Inputs/vs.1.t
+RUN: %run_cc -o %tmain2.o %p/Inputs/main.2.c -c
+RUN: %run_cc -o %tmain2.out %tmain2.o %tlib2.so
+RUN: %run %tmain2.out | %filecheck %s --check-prefix=CHECK2
+
+# weak foo@@V1 and strong plain foo. The strong plain `foo` wins the
+# unversioned slot; the default `foo@V1` alias is backed by it too.
+RUN: %run_cc -o %t7.o %p/Inputs/7.c -c -fPIC
+RUN: %run_cc -o %tlib3.so %t4.o %t7.o %t6.o -shared -Wl,--version-script,%p/Inputs/vs.1.t
+RUN: %run_cc -o %tmain3.out %tmain2.o %tlib3.so
+RUN: %run %tmain3.out | %filecheck %s --check-prefix=CHECK3
+
+# weak foo@@V1, weak foo@V1, and strong plain foo. The strong plain `foo`
+# still wins the canonical foo@V1 slot over the weak foo@V1.
+RUN: %run_cc -o %t8.o %p/Inputs/8.c -c -fPIC
+RUN: %run_cc -o %tlib4.so %t4.o %t8.o %t7.o %t6.o -shared -Wl,--version-script,%p/Inputs/vs.1.t
+RUN: %run_cc -o %tmain4.out %tmain2.o %tlib4.so
+RUN: %run %tmain4.out | %filecheck %s --check-prefix=CHECK4
+
+# weak foo@@V1, strong foo@V1, and weak plain foo. The strong foo@V1 wins
+# the canonical slot; the weak plain `foo` follows the default version.
+RUN: %run_cc -o %t9.o %p/Inputs/9.c -c -fPIC
+RUN: %run_cc -o %tlib5.so %t4.o %t5.o %t9.o %t6.o -shared -Wl,--version-script,%p/Inputs/vs.1.t
+RUN: %run_cc -o %tmain5.out %tmain2.o %tlib5.so
+RUN: %run %tmain5.out | %filecheck %s --check-prefix=CHECK5
+#END_TEST
+
+CHECK1: fn(): 5
+CHECK1: fn_main(): 5
+
+CHECK2: fn(): 6
+CHECK2: fn_main(): 6
+
+CHECK3: fn(): 14
+CHECK3: fn_main(): 14
+
+CHECK4: fn(): 14
+CHECK4: fn_main(): 14
+
+CHECK5: fn(): 6
+CHECK5: fn_main(): 6
+

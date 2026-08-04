@@ -454,7 +454,7 @@ void ObjectLinker::assignVersionNodesToSymbols() {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
     if (ThisConfig.getPrinter()->traceSymbolVersioning()) {
       ThisConfig.raise(Diag::trace_version_script_matched_scope)
-          << R->name() << getVersionDesc(VS);
+          << R->getDecoratedName(/*DoDemangle=*/false) << getVersionDesc(VS);
     }
 #endif
     return true;
@@ -1646,6 +1646,9 @@ bool ObjectLinker::addSymbolToOutput(const ResolveInfo &PInfo) const {
 
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
   if (PInfo.isDyn() && PInfo.outSymbol() && PInfo.outSymbol()->shouldIgnore())
+    return false;
+  // Filter out non-canonical halves of a versioned alias pairs.
+  if (getTargetBackend().isNonCanonicalVersionedSym(&PInfo))
     return false;
 #endif
   // Let the backend choose to add the symbol to the output.
