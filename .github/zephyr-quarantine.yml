@@ -1,9 +1,144 @@
-# Twister quarantine list for Zephyr-on-ELD runs (PR and nightly), passed via
-# `west twister --quarantine-list`. Entries are skipped, not failed.
+# Twister quarantine list for Zephyr ELD runs (PR and nightly), passed via
+# `west twister --quarantine-list`.
+#
+# Everything here is a non-linker failure.
+#
+# https://docs.zephyrproject.org/latest/develop/twister/index.html#quarantine
+
+- scenarios:
+  - libraries\.devicetree\.memory_region
+  - libraries\.devicetree\.memory_region\.linker_generator
+  platforms:
+  - qemu_cortex_m3/.*
+  comment: >-
+    Zephyr's Z_GENERIC_SECTION(LINKER_DT_NODE_REGION_NAME(...)) double
+    stringifies, so clang emits a section literally named `"SRAM_REGION"` with
+    the quotes included.
 
 - scenarios:
   - kernel.fpu_sharing.generic.riscv32
+  - arch.riscv.fpu_sharing
+  - drivers.sensor.generic.fpu
+  - kernel.fpu_sharing.float_disable
+  - libraries.cbprintf.package_fp
+  - libraries.cbprintf.package_fp.picolibc
+  - libraries.cbprintf.package_fp_align_offset
+  - libraries.cbprintf.package_fp_align_offset_cpp
+  - libraries.cbprintf.package_fp_cpp
+  - libraries.cbprintf.package_fp_cpp.picolibc
+  - libraries.cbprintf.package_long_double
+  - libraries.cbprintf.package_long_double_align_offset
+  - libraries.cbprintf.package_long_double_align_offset_cpp
+  - libraries.cbprintf.package_long_double_cpp
+  - libraries.libc.sprintf
+  - libraries.libc.sprintf_new
+  - logging.dictionary.fpu
+  - net.prometheus.histogram
+  - zdsp.basicmath.fpu
+  platforms:
+  - qemu_riscv32/.*
   comment: >-
-    Forces -mabi=ilp32d -march=rv32imafdc (hard double-float); cpullvm picolibc
-    has no matching multilib, so the build fails with 'string.h' not found.
+    Forces rv32imafdc / -mabi=ilp32d and we have no matching multilib (yet).
+- scenarios:
+  - filesystem.lib_link
+  comment: >-
+    zephyr/subsys/fs/ext2/ext2_impl.c declares `strchrnul` static, colliding
+    with picolibc <string.h>'s non-static declaration.
+- scenarios:
+  - cpp.libcxx.libcxx.picolibc
+  - libraries.hash_map.cxx.djb2
+  comment: >-
+    Link fails on undefined `__cxa_throw` / `__cxa_begin_catch`. cpullvm does
+    ship libc++abi, but it is built with exceptions disabled.
+- scenarios:
+  - arch.arm64.pacbti
+  - arch.arm64.pacbti.user
+  platforms:
+  - qemu_cortex_a53/.*
+  comment: >-
+    These tests require PICOLIBC_USE_MODULE=y but our `-x` merges last and
+    forces PICOLIBC_USE_TOOLCHAIN. TODO: apply the libc `-x` per board
+    instead of globally, then drop this entry.
 
+- scenarios:
+  - net.socket.offload.dispatcher
+  - net.socket.register.tls
+  - net.socket.tls
+  - net.socket.tls.no_dtls_cid
+  - net.socket.tls.preempt
+  - net.socket.tls.sendmsg_no_buf
+  - net.tls_credentials.volatile.parse_crt
+  platforms:
+  - qemu_riscv64/.*
+  comment: >-
+    -Werror,-Wuninitialized-const-pointer
+
+- scenarios:
+  - arch.riscv.fpu_sharing
+  platforms:
+  - qemu_riscv64/.*
+  comment: >-
+    tests/arch/riscv/fpu_sharing/src/main.c POST_INSN emits `.option pop` with
+    no matching push and clang's assembler rejects it.
+
+- scenarios:
+  - llext.readonly_mmu
+  - llext.readonly_mmu.memblk
+  - llext.tls
+  platforms:
+  - qemu_cortex_a53/.*
+  comment: >-
+    test_inspect asserts the extension has a `.bss` section, but arm64 uses
+    LLEXT_TYPE_ELF_OBJECT, where the extension is a straight copy of clang's
+    .o and never reaches a linker, and clang under -fdata-sections emits only
+    `.bss.number_in_bss`. GCC also emits a zero-sized `.bss`, which is what
+    the test relies on. RISC-V is unaffected because it defaults to
+    LLEXT_TYPE_ELF_RELOCATABLE.
+
+- scenarios:
+  - bluetooth\.shell\.shell_br(\..*)?
+  - posix.threads_base.dynamic_stack
+  platforms:
+  - qemu_cortex_m3/.*
+  comment: >-
+      These overflow and are meant to be skipped | FLASH/RAM overflow" but the
+      test expects a GNU ld diagnostic. ELD's is slightly different so the tests
+      fail instead.
+
+- scenarios:
+  - buildsystem.sbom.spdx
+  platforms:
+  - qemu_cortex_m3/.*
+  comment: >-
+    This checks for modules we don't install/test.
+
+- scenarios:
+  - buildsystem.app_dev.code_relocation.no_itcm
+  platforms:
+  - qemu_cortex_m3/.*
+  comment: >-
+    `linker_arm_sram2.ld:42:10: fatal error: 'linker.ld' file not found`. The
+    ELD support patch's configure_linker_script does not pass the SOC linker
+    script's directory as an include path the way cmake/linker/ld/target.cmake
+    does, so the preprocessor cannot resolve `#include <linker.ld>`. Fix belongs
+    in the ELD support patch.
+
+# Lookaheads exclude the variants that pass. They are tied to the ARM job's
+# libc config, so recheck them if that changes.
+- scenarios:
+  - logging\.deferred\.api\.(?!.*(?:rt_filter|rt_filtering)).*
+  - logging\.frontend(?!.*(?:rt_filter|rt_filtering|immediate)).*
+  platforms:
+  - qemu_cortex_m3/.*
+  comment: >-
+    "unexpected byte" or "Timeout". Reproduces identically with clang+lld and
+    with SDK clang-19+lld, and disappears under SDK GCC+GNU. Clang codegen
+    issue.
+
+- scenarios:
+  - net.dhcpv4_server.no_probe
+  platforms:
+  - qemu_riscv64/.*
+  comment: >-
+    Stack overflow. Both toolchains allocate the same 4256-byte stack.
+    GCC+ELD passes.
