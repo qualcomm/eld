@@ -256,10 +256,10 @@ bool Module::createInternalInputs() {
   // Add implicit dot symbol
   Resolver::Result ResolvedResult;
   InputFile *I = getInternalInput(eld::Module::InternalInputType::Script);
-  getNamePool().insertSymbol(
-      I, ".", true, ResolveInfo::NoType, ResolveInfo::Define,
-      ResolveInfo::NoneBinding, 0, 0, ResolveInfo::Hidden, nullptr,
-      ResolvedResult, true, false, 0, false /* isPatchable */, getPrinter());
+  getNamePool().insertSymbol(I, ".", true, ResolveInfo::NoType,
+                             ResolveInfo::Define, ResolveInfo::NoneBinding, 0,
+                             0, ResolveInfo::Hidden, nullptr, ResolvedResult,
+                             true, false, 0, getPrinter());
   LDSymbol *DotSym = make<LDSymbol>(ResolvedResult.Info, true);
   DotSym->setFragmentRef(FragmentRef::null());
   DotSym->setValue(0);
@@ -663,7 +663,7 @@ LDSymbol *Module::addSymbolFromBitCode(
   } else {
     getNamePool().insertSymbol(&CurInput, Name, false, Type, Desc, Binding,
                                Size, 0, Visibility, nullptr, ResolvedResult,
-                               false /*isPostLTOPhase*/, true, PIdx, false,
+                               false /*isPostLTOPhase*/, true, PIdx,
                                getPrinter());
     if (!ThisConfig.options().renameMap().empty() &&
         Desc == ResolveInfo::Undefined) {

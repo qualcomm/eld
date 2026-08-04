@@ -54,12 +54,6 @@ public:
   ELFSection *getRelaDyn() const { return RelaDyn; }
   ELFSection *getRelaPLT() const { return RelaPLT; }
 
-  // Patching sections.
-  void setPatchSections(ELFSection &GOTPatch, ELFSection &RelaPatch);
-
-  ELFSection *getGOTPatch() const { return GOTPatch; }
-  ELFSection *getRelaPatch() const { return RelaPatch; }
-
   ~ELFObjectFile() {}
 
   // --- DWARF Support
@@ -148,8 +142,6 @@ private:
   ELFSection *PLT = nullptr;
   ELFSection *RelaDyn = nullptr;
   ELFSection *RelaPLT = nullptr;
-  ELFSection *GOTPatch = nullptr;
-  ELFSection *RelaPatch = nullptr;
   std::unordered_map<const ELFSection *, InputFile *> OldInputFileBySection;
   std::unordered_map<const ELFSection *, llvm::SmallVector<std::string, 1>>
       SectionAnnotationsBySection;

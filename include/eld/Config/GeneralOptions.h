@@ -1198,13 +1198,6 @@ public:
 
   llvm::StringRef getBuildID() const { return BuildIDValue.value(); }
 
-  // --patch-enable support
-  void setPatchEnable() { PatchEnable = true; }
-  bool isPatchEnable() const { return PatchEnable; }
-
-  void setPatchBase(const std::string &Value) { PatchBase = Value; }
-  const std::optional<std::string> &getPatchBase() const { return PatchBase; }
-
   void setIgnoreUnknownOptions() { IgnoreUnknownOptions = true; }
 
   bool shouldIgnoreUnknownOptions() const { return IgnoreUnknownOptions; }
@@ -1438,8 +1431,6 @@ private:
   std::vector<llvm::Regex> RelaxSections;
   bool BuildID = false;
   std::optional<llvm::StringRef> BuildIDValue;
-  bool PatchEnable = false;
-  std::optional<std::string> PatchBase;
   bool IgnoreUnknownOptions = false;
   std::vector<std::string> UnknownOptions;
   std::string LinkLaunchDirectory;

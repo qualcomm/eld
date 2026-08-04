@@ -640,9 +640,7 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
 
     // Absolute relocation type, symbol may needs PLT entry or
     // dynamic relocation entry
-    if ((isSymbolPreemptible ||
-         (config().options().isPatchEnable() && rsym->isPatchable())) &&
-        (rsym->type() == ResolveInfo::Function)) {
+    if ((isSymbolPreemptible) && (rsym->type() == ResolveInfo::Function)) {
       // create PLT for this symbol if it does not have.
       if (!(rsym->reserved() & ReservePLT)) {
         m_Target.createPLT(Obj, rsym);
@@ -705,8 +703,7 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->reserved() & ReservePLT)
       return;
-    if ((!config().isCodeStatic() && ld_backend.isSymbolPreemptible(*rsym)) ||
-        (config().options().isPatchEnable() && rsym->isPatchable())) {
+    if (!config().isCodeStatic() && ld_backend.isSymbolPreemptible(*rsym)) {
       m_Target.createPLT(Obj, rsym);
       rsym->setReserved(rsym->reserved() | ReservePLT);
     }
@@ -885,20 +882,7 @@ RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVLDBackend &Backend,
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
 
-  // Normally, relocations are resolved to the PLT if it exists for a symbol.
-  // However, relocations in the patch table must be resolved to the real
-  // symbol, otherwise, they will point to themselves.
-  bool IsPatchSection = (pReloc.type() == llvm::ELF::R_RISCV_32 ||
-                         pReloc.type() == llvm::ELF::R_RISCV_64) &&
-                        pReloc.targetRef()
-                            ->frag()
-                            ->getOwningSection()
-                            ->getInputFile()
-                            ->getInput()
-                            ->getAttribute()
-                            .isPatchBase();
-  uint64_t S = IsPatchSection ? pReloc.symValue(Backend.getModule())
-                              : Backend.getSymbolValuePLT(pReloc);
+  uint64_t S = Backend.getSymbolValuePLT(pReloc);
   uint64_t A = pReloc.addend();
   int64_t Result = S + A;
 
@@ -1077,15 +1061,7 @@ RISCVRelocator::Result applyJumpOrCall(Relocation &pReloc,
 
   // Normally, relocations are resolved to the PLT if it exists for a symbol.
   // Direct calls can be optimized to use the real symbol.
-  bool IsPatchSection = pReloc.targetRef()
-                            ->frag()
-                            ->getOwningSection()
-                            ->getInputFile()
-                            ->getInput()
-                            ->getAttribute()
-                            .isPatchBase();
-  int64_t S = IsPatchSection ? pReloc.symValue(Backend.getModule())
-                             : Backend.getSymbolValuePLT(pReloc);
+  int64_t S = Backend.getSymbolValuePLT(pReloc);
   int64_t A = pReloc.addend();
   int64_t P = pReloc.place(Backend.getModule());
 

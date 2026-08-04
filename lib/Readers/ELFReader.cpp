@@ -233,7 +233,7 @@ eld::Expected<uint32_t> ELFReader<ELFT>::getExtendedSymTabIdx(Elf_Sym rawSym,
 template <class ELFT>
 eld::Expected<LDSymbol *>
 ELFReader<ELFT>::createSymbol(llvm::StringRef stringTable, Elf_Sym rawSym,
-                              std::size_t idx, bool isPatchable) {
+                              std::size_t idx) {
   GNULDBackend &backend = m_Module.getBackend();
   IRBuilder &builder = *m_Module.getIRBuilder();
   ELFFileBase *EFileBase = llvm::cast<ELFFileBase>(&m_InputFile);
@@ -272,21 +272,13 @@ ELFReader<ELFT>::createSymbol(llvm::StringRef stringTable, Elf_Sym rawSym,
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expSymName);
   llvm::StringRef ldName = expSymName.value();
 
-  if (isPatchable) {
-    if (ldDesc != ResolveInfo::Define || ldBinding != ResolveInfo::Global) {
-      return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          Diag::error_patch_invalid_symbol,
-          {ldName.str(), m_InputFile.getInput()->decoratedPath()}));
-    }
-  }
-
   if (section && ldType != ResolveInfo::Section)
     section->setWanted(true);
 
   bool isPostLTOPhase = backend.getModule().isPostLTOPhase();
-  LDSymbol *sym = builder.addSymbol(
-      m_InputFile, ldName.str(), ldType, ldDesc, ldBinding, rawSym.st_size,
-      ldValue, section, ldVis, isPostLTOPhase, st_shndx, idx, isPatchable);
+  LDSymbol *sym = builder.addSymbol(m_InputFile, ldName.str(), ldType, ldDesc,
+                                    ldBinding, rawSym.st_size, ldValue, section,
+                                    ldVis, isPostLTOPhase, st_shndx, idx);
   eld::Expected<bool> expVerifySym = verifySymbol(sym);
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expVerifySym);
   return sym;
@@ -320,59 +312,16 @@ template <class ELFT> eld::Expected<bool> ELFReader<ELFT>::readSymbols() {
   if (builder.getModule().getPrinter()->traceSymbols())
     config.raise(Diag::process_file) << m_InputFile.getInput()->decoratedPath();
 
-  switch (m_InputFile.getKind()) {
-  case InputFile::ELFObjFileKind:
-  case InputFile::ELFExecutableFileKind:
-    break;
-  default:
-    if (m_Module.getConfig().options().isPatchEnable()) {
-      return std::make_unique<plugin::DiagnosticEntry>(
-          plugin::DiagnosticEntry(Diag::error_patch_dynamic_input,
-                                  {m_InputFile.getInput()->decoratedPath()}));
-    }
-  }
-
   ELFFileBase *EFileBase = llvm::cast<ELFFileBase>(&m_InputFile);
 
   // skip the first nullptr symbol
   EFileBase->addSymbol(LDSymbol::null());
 
-  auto IsPatchableAlias = [&](llvm::StringRef &Name) -> bool {
-    // TODO: Check other symbol attributes e.g. type value binding etc.
-    return Name.consume_front("__llvm_patchable_");
-  };
-
-  llvm::StringSet<> PatchableSymbols;
-  // Read the patchable attribute when linking the base image or only from the
-  // base image when linking the patch. Knowing the patchable attribute for all
-  // symbols in the base image is obviously needed. When building the patch, we
-  // also need to know which symbols were patchable because it will affect
-  // symbol resolution. Also, we ignore patchable attributes from other files in
-  // the patch link, which will include either the patched code itself or
-  // libraries. In the patch code, the attribute is not needed. The case of
-  // libraries is interesting but less certain: in case a library has patchable
-  // symbols, the user may want to compile it once with patching enabled,
-  // instead of compiling two versions, a patchable and unpatchable one. A
-  // reason not to do so is that a patchable version will be less optimized. To
-  // support this case, we should accept patchable object files in the patch
-  // link but ignore the patchable attribute.
-  if (m_Module.getConfig().options().isPatchEnable() ||
-      m_InputFile.getInput()->getAttribute().isPatchBase()) {
-    for (const Elf_Sym &rawSym : elfSyms) {
-      llvm::Expected<llvm::StringRef> expName = rawSym.getName(strTab);
-      LLVMEXP_RETURN_DIAGENTRY_IF_ERROR(expName);
-      llvm::StringRef Name = *expName;
-      if (IsPatchableAlias(Name))
-        PatchableSymbols.insert(Name);
-    }
-  }
-
   for (size_t idx = 1; idx < elfSyms.size(); ++idx) {
     const Elf_Sym &rawSym = elfSyms[idx];
     llvm::Expected<llvm::StringRef> expLdName = rawSym.getName(strTab);
     LLVMEXP_RETURN_DIAGENTRY_IF_ERROR(expLdName);
-    eld::Expected<LDSymbol *> expSym = createSymbol(
-        strTab, rawSym, idx, PatchableSymbols.contains(*expLdName));
+    eld::Expected<LDSymbol *> expSym = createSymbol(strTab, rawSym, idx);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expSym);
   }
   return true;

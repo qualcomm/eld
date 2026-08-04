@@ -97,7 +97,7 @@ public:
     uint64_t offset = 0;
   };
 
-  typedef std::tuple<ResolveInfo::Type, uint64_t, InputFile *, bool> SymDefInfo;
+  typedef std::tuple<ResolveInfo::Type, uint64_t, InputFile *> SymDefInfo;
 
   // Based on Kind in LDFileFormat to define basic section orders for ELF,
   // and refer gold linker to add more enumerations to handle Regular and
@@ -475,8 +475,6 @@ public:
 
   virtual void initTargetSymbols() = 0;
 
-  virtual void initPatchSections(ELFObjectFile &) {}
-
   /// getRelEntrySize - the size in BYTE of rel type relocation
   virtual size_t getRelEntrySize() = 0;
 
@@ -693,10 +691,9 @@ public:
 
   void addSymDefProvideSymbol(llvm::StringRef symName,
                               ResolveInfo::Type resolverType, uint64_t symVal,
-                              InputFile *file, bool isPatchable = false) {
+                              InputFile *file) {
     if (!m_SymDefProvideMap.count(symName))
-      m_SymDefProvideMap[symName] =
-          std::make_tuple(resolverType, symVal, file, isPatchable);
+      m_SymDefProvideMap[symName] = std::make_tuple(resolverType, symVal, file);
   }
 
   LDSymbol *canProvideSymbol(ResolveInfo *R);
@@ -728,10 +725,6 @@ public:
   void recordRelativeReloc(Relocation *R, const Relocation *N) {
     m_RelativeRelocMap[N] = R;
   }
-
-  // Patching sections.
-  ELFSection *getGOTPatch() const;
-  ELFSection *getRelaPatch() const;
 
   // -----------------Segment Size Helper --------------------------------
   bool isOffsetAssigned() const { return m_OffsetsAssigned; }
@@ -927,11 +920,6 @@ public:
   bool isPhdrNeeded() const { return m_NeedPhdr; }
 
   // ----------------------- Patching -----------------------------------
-  // Absolute PLTs are used to redirect symbols in patch builds.
-  void recordAbsolutePLT(ResolveInfo *, const ResolveInfo *);
-
-  const ResolveInfo *findAbsolutePLT(ResolveInfo *I) const;
-
   // Symbol versioning helpers
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
   void initSymbolVersioningSections();
@@ -1280,9 +1268,6 @@ protected:
   // (R_*_IRELATIVE) support.
   LDSymbol *m_pIRelativeStart = nullptr;
   LDSymbol *m_pIRelativeEnd = nullptr;
-
-  // Patching.
-  llvm::DenseMap<ResolveInfo *, const ResolveInfo *> m_AbsolutePLTMap;
 
   std::optional<uint64_t> m_ImageStartVMA;
 

@@ -69,8 +69,6 @@ Relocation::Address RISCVLDBackend::getSymbolValuePLT(const Relocation &R) {
   if (rsym && (rsym->reserved() & Relocator::ReservePLT)) {
     if (const Fragment *S = findEntryInPLT(rsym))
       return S->getAddr(config().getDiagEngine());
-    if (const ResolveInfo *S = findAbsolutePLT(rsym))
-      return S->value();
   }
   return getRelocator()->getSymValue(&R);
 }
@@ -79,8 +77,6 @@ Relocation::Address RISCVLDBackend::getSymbolValuePLT(ResolveInfo &Sym) {
   if (Sym.reserved() & Relocator::ReservePLT) {
     if (const Fragment *S = findEntryInPLT(&Sym))
       return S->getAddr(config().getDiagEngine());
-    if (const ResolveInfo *S = findAbsolutePLT(&Sym))
-      return S->value();
   }
 
   if (const LDSymbol *Out = Sym.outSymbol())
@@ -143,17 +139,6 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
   }
 }
 
-void RISCVLDBackend::initPatchSections(ELFObjectFile &InputFile) {
-  InputFile.setPatchSections(
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".pgot", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
-          config().targets().is32Bits() ? 4 : 8),
-      *m_Module.createInternalSection(InputFile, LDFileFormat::Relocation,
-                                      ".rela.pgot", llvm::ELF::SHT_RELA, 0,
-                                      config().targets().is32Bits() ? 4 : 8));
-}
-
 void RISCVLDBackend::initTargetSymbols() {
   if (config().codeGenType() == LinkerConfig::Object)
     return;
@@ -187,10 +172,6 @@ void RISCVLDBackend::initTargetSymbols() {
         ResolveInfo::Local, /*Size=*/0, /*Value=*/0,
         make<FragmentRef>(*TableJumpFragment, 0x0), ResolveInfo::Default);
   }
-
-  // Do not create another __global_pointer$ when linking a patch.
-  if (config().options().getPatchBase())
-    return;
 
   if (m_Module.getScript().linkerScriptHasSectionsCommand()) {
     m_pGlobalPointer = m_Module.getNamePool().findSymbol("__global_pointer$");
@@ -2256,10 +2237,6 @@ void RISCVLDBackend::doPreLayout() {
                           getRelaEntrySize());
     m_Module.addOutputSection(getRelaDyn());
   }
-  if (ELFSection *S = getRelaPatch()) {
-    S->setSize(S->getRelocationCount() * getRelaEntrySize());
-    m_Module.addOutputSection(S);
-  }
 }
 
 void RISCVLDBackend::evaluateTargetSymbolsBeforeRelaxation() {
@@ -2376,9 +2353,8 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     GOT = false;
     break;
   case GOT::GOTPLTN: {
-    G = RISCVGOT::CreateGOTPLTN(R->isPatchable() ? getGOTPatch()
-                                                 : Obj->getGOTPLT(),
-                                R, config().targets().is32Bits());
+    G = RISCVGOT::CreateGOTPLTN(Obj->getGOTPLT(), R,
+                                config().targets().is32Bits());
     GOT = false;
     break;
   }
@@ -2443,41 +2419,19 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
   RISCVGOT *G = createGOT(GOT::GOTPLTN, Obj, R);
   RISCVPLT *P = RISCVPLT::CreatePLTN(G, Obj->getPLT(), R, is32Bits);
   recordPLT(R, P);
-  if (R->isPatchable()) {
-    G->setValueType(GOT::SymbolValue);
-    // Create a static relocation in the patch relocation section, which will
-    // be written to the output but will not be applied statically. Static
-    // relocations are normally resolved to the PLT for functions that have
-    // a PLT, but since this value is written by the GOT slot directly,
-    // it will store the real symbol value.
-    Relocation *Rel = Relocation::Create(
+  if (!config().options().hasNow()) {
+    // For lazy binding, create GOTPLT0 and PLT0, if they don't exist.
+    if (!getPLT()->hasFragments())
+      RISCVPLT::CreatePLT0(*this, createGOT(GOT::GOTPLT0, Obj, nullptr),
+                           getPLT(), is32Bits);
+    // Create a static relocation to the PLT0 fragment.
+    Relocation *r0 = Relocation::Create(
         is32Bits ? llvm::ELF::R_RISCV_32 : llvm::ELF::R_RISCV_64,
         is32Bits ? 32 : 64, make<FragmentRef>(*G));
-    Rel->setSymInfo(R);
-    getRelaPatch()->addRelocation(Rel);
-    // Point the `__llvm_patchable` alias to the PLT slot. If a patchable
-    // symbol is not referenced, the PLT and alias will not be created.
-    LDSymbol *PatchableAlias = m_Module.getNamePool().findSymbol(
-        std::string("__llvm_patchable_") + R->name());
-    if (!PatchableAlias || PatchableAlias->shouldIgnore())
-      config().raise(Diag::error_patchable_alias_not_found)
-          << std::string("__llvm_patchable_") + R->name();
-    else
-      PatchableAlias->setFragmentRef(make<FragmentRef>(*P));
-  } else {
-    if (!config().options().hasNow()) {
-      // For lazy binding, create GOTPLT0 and PLT0, if they don't exist.
-      if (!getPLT()->hasFragments())
-        RISCVPLT::CreatePLT0(*this, createGOT(GOT::GOTPLT0, Obj, nullptr),
-                             getPLT(), is32Bits);
-      // Create a static relocation to the PLT0 fragment.
-      Relocation *r0 = Relocation::Create(
-          is32Bits ? llvm::ELF::R_RISCV_32 : llvm::ELF::R_RISCV_64,
-          is32Bits ? 32 : 64, make<FragmentRef>(*G));
-      r0->modifyRelocationFragmentRef(
-          make<FragmentRef>(**getPLT()->getFragmentList().begin()));
-      Obj->getGOTPLT()->addRelocation(r0);
-    }
+    r0->modifyRelocationFragmentRef(
+        make<FragmentRef>(**getPLT()->getFragmentList().begin()));
+    Obj->getGOTPLT()->addRelocation(r0);
+  }
     Relocation::Type relocType = (isIRelative ? llvm::ELF::R_RISCV_IRELATIVE
                                               : llvm::ELF::R_RISCV_JUMP_SLOT);
     // Create a dynamic relocation for the GOTPLT slot.
@@ -2485,8 +2439,7 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
                                             make<FragmentRef>(*G));
     dynRel->setSymInfo(R);
     Obj->getRelaPLT()->addRelocation(dynRel);
-  }
-  return P;
+    return P;
 }
 
 // Record PLT entry

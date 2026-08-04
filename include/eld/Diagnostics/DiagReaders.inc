@@ -91,11 +91,6 @@ DIAG(verbose_reusing_prev_memory_mapping, DiagnosticEngine::Verbose,
      "Reusing previous memory mapping for input file '%0'")
 DIAG(verbose_reusing_archive_file_info, DiagnosticEngine::Verbose,
      "Reusing archive file info for '%0'")
-DIAG(error_patch_dynamic_input, DiagnosticEngine::Error,
-     "Dynamic input '%0' cannot be used with patching")
-DIAG(error_patch_invalid_symbol, DiagnosticEngine::Error,
-     "Symbol '%0' from file '%1' cannot be patched. Only global non-common "
-     "symbols can be patched")
 DIAG(warning_abi_differences, DiagnosticEngine::Warning,
      "'%0' has OS/ABI set to %1, previously seen %2")
 DIAG(error_unknown_target_emulation, DiagnosticEngine::Error,

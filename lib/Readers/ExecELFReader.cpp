@@ -68,23 +68,14 @@ eld::Expected<ELFSection *> ExecELFReader<ELFT>::createSection(
       ELFSection::isEmbeddedBitcodeMetadataSection(sectName))
     SectionIsIgnore = true;
 
-  if (this->getInputFile()->getInput()->getAttribute().isPatchBase()) {
-    // When reading the executable base image in the patch link, we ignore all
-    // the sections except those explicitly mentioned below.
-    if (!((sectName == ".pgot" || sectName == ".rel.pgot" ||
-           sectName == ".rela.pgot") &&
-          (kind == LDFileFormat::Regular || kind == LDFileFormat::Relocation)))
-      SectionIsIgnore = true;
-  } else {
-    if (kind == LDFileFormat::EhFrame)
-      return module.getScript().sectionMap().createEhFrameSection(
-          sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
-          rawSectHdr.sh_entsize);
-    if (kind == LDFileFormat::SFrame)
-      return module.getScript().sectionMap().createSFrameSection(
-          sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
-          rawSectHdr.sh_entsize);
-  }
+  if (kind == LDFileFormat::EhFrame)
+    return module.getScript().sectionMap().createEhFrameSection(
+        sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
+        rawSectHdr.sh_entsize);
+  if (kind == LDFileFormat::SFrame)
+    return module.getScript().sectionMap().createSFrameSection(
+        sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
+        rawSectHdr.sh_entsize);
 
   return module.getScript().sectionMap().createELFSection(
       sectName, (SectionIsIgnore ? LDFileFormat::Discard : kind),

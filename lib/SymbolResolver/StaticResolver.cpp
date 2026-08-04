@@ -136,10 +136,6 @@ bool StaticResolver::resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
         if (IsNewBitCode && !pNew.isUndef() && !IsOldBitCode)
           pOld.shouldPreserve(true);
       }
-      if (Old->isPatchable() && !pNew.isPatchable())
-        Config->raise(Diag::error_patchable_override)
-          << pOld.name() << pOld.resolvedOrigin()->getInput()->decoratedPath()
-          << pNew.resolvedOrigin()->getInput()->decoratedPath();
       Old->override(pNew);
       if (!Old->isDyn())
         Old->overrideVisibility(pNew);

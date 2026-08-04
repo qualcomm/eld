@@ -111,10 +111,7 @@ ResolveInfo::Desc ELFReaderBase::getSymbolDesc(const GNULDBackend &backend,
       (binding != llvm::ELF::STB_LOCAL &&
        (ObjFile->getELFSection(shndx)->isIgnore() ||
         ObjFile->getELFSection(shndx)->isDiscard()))) {
-    // Sections of patch-base symbols are not loaded, but the symbols will be
-    // converted to absolute later in IRBuilder::addSymbol.
-    if (!inputFile.getInput()->getAttribute().isPatchBase())
-      return ResolveInfo::Undefined;
+    return ResolveInfo::Undefined;
   }
 
   return ResolveInfo::Define;

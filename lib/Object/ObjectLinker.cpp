@@ -175,12 +175,6 @@ bool ObjectLinker::initStdSections() {
   if (LinkerConfig::Object != ThisConfig.codeGenType()) {
     getTargetBackend().initDynamicSections(
         *getTargetBackend().getDynamicSectionHeadersInputFile());
-
-    // Note that patch section are only created in one internal input file
-    // (DynamicSectionHeadersInputFile).
-    if (ThisConfig.options().isPatchEnable())
-      getTargetBackend().initPatchSections(
-          *getTargetBackend().getDynamicSectionHeadersInputFile());
   }
 
   // Initialize symbol versioning sections only for dynamic artifacts when
@@ -319,19 +313,6 @@ bool ObjectLinker::normalize() {
       readInputs(ThisModule->getIRBuilder()->getInputBuilder().getInputs());
   if (!ReadSuccess) {
     return false;
-  }
-
-  // Create patch base input.
-  if (const auto &PatchBase = ThisConfig.options().getPatchBase()) {
-    Input *Input = make<eld::Input>(*PatchBase, ThisConfig.getDiagEngine());
-    // Resolve the path.
-    if (!Input->resolvePath(ThisConfig)) {
-      ThisModule->setFailure(true);
-      return false;
-    }
-    Input->getAttribute().setPatchBase();
-    if (!readAndProcessInput(Input, MPostLtoPhase))
-      return false;
   }
 
   if (!isBackendInitialized()) {
@@ -653,16 +634,6 @@ bool ObjectLinker::readRelocations() {
   std::vector<InputFile *> Inputs;
   getInputs(Inputs);
   for (auto *Ai : Inputs) {
-    if (Ai->getInput()->getAttribute().isPatchBase()) {
-      if (auto *ELFFile = llvm::dyn_cast<ELFFileBase>(Ai)) {
-        eld::Expected<bool> Exp =
-            getELFExecObjParser()->parsePatchBase(*ELFFile);
-        if (!Exp.has_value())
-          ThisConfig.raiseDiagEntry(std::move(Exp.error()));
-        if (!Exp.has_value() || !Exp.value())
-          return false;
-      }
-    }
     if (!Ai->isObjectFile())
       continue;
     // Dont read relocations from inputs that are specified
@@ -1547,8 +1518,7 @@ bool ObjectLinker::addUndefSymbols() {
           I, (*UndefSym)->name(), false, eld::ResolveInfo::NoType,
           eld::ResolveInfo::Undefined, eld::ResolveInfo::Global, 0, 0,
           eld::ResolveInfo::Default, nullptr, Result,
-          false /* isPostLTOPhase */, false, 0, false /* isPatchable */,
-          ThisModule->getPrinter());
+          false /* isPostLTOPhase */, false, 0, ThisModule->getPrinter());
       // create a output LDSymbol. All external symbols are entry symbols.
       OutputSym = make<LDSymbol>(Result.Info, false);
       Result.Info->setOutSymbol(OutputSym);
@@ -1566,7 +1536,7 @@ bool ObjectLinker::addUndefSymbols() {
         I, S->name(), false, eld::ResolveInfo::NoType,
         eld::ResolveInfo::Undefined, eld::ResolveInfo::Global, 0, 0,
         eld::ResolveInfo::Default, NULL, Result, false /* isPostLTOPhase */,
-        false, 0, false /* isPatchable */, ThisModule->getPrinter());
+        false, 0, ThisModule->getPrinter());
     // create a output LDSymbol. All external symbols are entry symbols.
     OutputSym = make<LDSymbol>(Result.Info, false);
     Result.Info->setOutSymbol(OutputSym);
@@ -1828,12 +1798,6 @@ bool ObjectLinker::addScriptSymbols() {
       Type = static_cast<ResolveInfo::Type>(OldInfo->type());
       Vis = OldInfo->visibility();
       Size = OldInfo->size();
-
-      if (OldInfo->outSymbol() && OldInfo->outSymbol()->hasFragRefSection()) {
-        if (OldInfo->isPatchable())
-          ThisConfig.raise(Diag::error_patchable_script)
-              << OldInfo->outSymbol()->name();
-      }
     }
     PluginManager &PM = ThisModule->getPluginManager();
     SymbolInfo SymInfo(ScriptInput, Size, ResolveInfo::Absolute, Type, Vis,
@@ -3661,14 +3625,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     }
     return true;
   }
-  if (Input->getAttribute().isPatchBase() &&
-      CurInput->getKind() != InputFile::ELFExecutableFileKind) {
-    ThisConfig.raise(Diag::err_patch_base_not_executable)
-        << Input->getResolvedPath();
-    ThisModule->setFailure(true);
-    return false;
-  }
-
   if (CurInput->isBinaryFile()) {
     eld::RegisterTimer T("Read ELF Executable Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
