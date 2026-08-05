@@ -736,7 +736,7 @@ void GarbageCollection::stripSections(SectionSetTy &S,
         bool IsCommonSection = llvm::isa<CommonELFSection>(Section);
         Input *I = ObjFile->getInput();
 
-        if (Section->hasOldInputFile()) {
+        if (IsCommonSection && Section->hasOldInputFile()) {
           I = Section->getOldInputFile()->getInput();
         }
 
