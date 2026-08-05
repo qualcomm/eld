@@ -1,4 +1,4 @@
-name: BusyBox with ELD
+name: BusyBox
 
 on:
   workflow_dispatch:
@@ -26,28 +26,63 @@ jobs:
       matrix:
         include:
           - arch: x86_64
+            libc: musl
             busybox_arch: x86_64
             target_triple: x86_64-unknown-linux-musl
             qemu_bin: ""
             enabled: 1
           - arch: riscv32
+            libc: musl
             busybox_arch: riscv
             target_triple: riscv32-unknown-linux-musl
             qemu_bin: qemu-riscv32
             enabled: 1
           - arch: riscv64
+            libc: musl
             busybox_arch: riscv
             target_triple: riscv64-unknown-linux-musl
             qemu_bin: qemu-riscv64
             enabled: 1
           - arch: arm
+            libc: musl
             busybox_arch: arm
             target_triple: arm-unknown-linux-musleabi
             qemu_bin: qemu-arm
             enabled: 1
           - arch: aarch64
+            libc: musl
             busybox_arch: aarch64
             target_triple: aarch64-unknown-linux-musl
+            qemu_bin: qemu-aarch64
+            enabled: 1
+          - arch: x86_64
+            libc: gnu
+            busybox_arch: x86_64
+            target_triple: x86_64-unknown-linux-gnu
+            qemu_bin: ""
+            enabled: 1
+          - arch: riscv32
+            libc: gnu
+            busybox_arch: riscv
+            target_triple: riscv32-unknown-linux-gnu
+            qemu_bin: qemu-riscv32
+            enabled: 1
+          - arch: riscv64
+            libc: gnu
+            busybox_arch: riscv
+            target_triple: riscv64-unknown-linux-gnu
+            qemu_bin: qemu-riscv64
+            enabled: 1
+          - arch: arm
+            libc: gnu
+            busybox_arch: arm
+            target_triple: arm-unknown-linux-gnueabi
+            qemu_bin: qemu-arm
+            enabled: 1
+          - arch: aarch64
+            libc: gnu
+            busybox_arch: aarch64
+            target_triple: aarch64-unknown-linux-gnu
             qemu_bin: qemu-aarch64
             enabled: 1
     steps:
@@ -82,7 +117,7 @@ jobs:
           record-mode: "record"
           status: "fail"
           run-id: ${{github.run_id}}
-          arch-name: "${{ matrix.arch }}"
+          arch-name: "${{ matrix.arch }}${{ matrix.libc == 'gnu' && '-gnu' || '' }}"
           branch-name: "${{env.BUILD_BRANCH}}"
 
       - name: Install dependencies
@@ -130,11 +165,18 @@ jobs:
             echo "Could not find ld.eld in PATH after FetchNightlyToolset" >&2
             exit 1
           fi
+          host_cc="$(command -v clang || true)"
+          if [[ -z "${host_cc}" ]]; then
+            echo "Could not find clang in PATH after FetchNightlyToolset" >&2
+            exit 1
+          fi
           echo "CROSS_TOOLCHAIN_ROOT=${cross_root}" >> "${GITHUB_ENV}"
           echo "ELD_BIN=${eld_bin}" >> "${GITHUB_ENV}"
+          echo "HOST_CC=${host_cc}" >> "${GITHUB_ENV}"
           echo "${cross_root}/bin" >> "${GITHUB_PATH}"
           echo "Using cross toolchain root: ${cross_root}"
           echo "Using ld.eld: ${eld_bin}"
+          echo "Using host clang: ${host_cc}"
 
       - name: Clone BusyBox
         if: matrix.enabled == 1
@@ -149,7 +191,9 @@ jobs:
           CROSS_TOOLCHAIN_ROOT: ${{ env.CROSS_TOOLCHAIN_ROOT }}
           TARGET_TRIPLE: ${{ matrix.target_triple }}
           BUSYBOX_ARCH: ${{ matrix.busybox_arch }}
+          LIBC: ${{ matrix.libc }}
           ELD_BIN: ${{ env.ELD_BIN }}
+          HOST_CC: ${{ env.HOST_CC }}
         run: |
           set -euo pipefail
           command -v "${TARGET_TRIPLE}-clang"
@@ -158,7 +202,10 @@ jobs:
           "${ELD_BIN}" --version
 
           SYSROOT="${CROSS_TOOLCHAIN_ROOT}/${TARGET_TRIPLE}/sysroot"
-          MUSL_LINKER="$(find "${SYSROOT}/lib" -name 'ld-musl-*.so.1' | head -1)"
+          case "${LIBC}" in
+            musl) DYNAMIC_LINKER="$(find "${SYSROOT}/lib" -name 'ld-musl-*.so.1' | head -1)" ;;
+            gnu)  DYNAMIC_LINKER="$(find "${SYSROOT}/lib" -name 'ld-linux*.so.*' | head -1)" ;;
+          esac
 
           cd busybox
           make defconfig
@@ -200,10 +247,10 @@ jobs:
           make -j"$(nproc)" \
             ARCH="${BUSYBOX_ARCH}" \
             CC="${TARGET_TRIPLE}-clang --ld-path=${ELD_BIN}" \
-            HOSTCC=clang \
+            HOSTCC="${HOST_CC}" \
             STRIP="${TARGET_TRIPLE}-strip" \
             EXTRA_CFLAGS="-DBB_GLOBAL_CONST=" \
-            LDFLAGS="-Wl,-dynamic-linker,${MUSL_LINKER} -Wl,-rpath,${SYSROOT}/lib"
+            LDFLAGS="-Wl,-dynamic-linker,${DYNAMIC_LINKER} -Wl,-rpath,${SYSROOT}/lib"
 
       - name: Run BusyBox tests
         if: matrix.enabled == 1
@@ -248,13 +295,13 @@ jobs:
         if: matrix.enabled == 1
         shell: bash
         run: |
-          FileCheck --input-file=/tmp/busybox-test-output.txt "${{ github.workspace }}/test/BusyBox/${{ matrix.arch }}/test-failures.txt"
+          FileCheck --input-file=/tmp/busybox-test-output.txt "${{ github.workspace }}/test/BusyBox/${{ matrix.arch }}${{ matrix.libc == 'gnu' && '-gnu' || '' }}/test-failures.txt"
 
       - name: Upload BusyBox binary
         if: matrix.enabled == 1
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
-          name: busybox-eld-${{ matrix.arch }}
+          name: busybox-eld-${{ matrix.arch }}${{ matrix.libc == 'gnu' && '-gnu' || '' }}
           path: busybox/busybox
           retention-days: 1
 
@@ -269,5 +316,5 @@ jobs:
           record-mode: "update"
           status: "pass"
           run-id: ${{github.run_id}}
-          arch-name: "${{ matrix.arch }}"
+          arch-name: "${{ matrix.arch }}${{ matrix.libc == 'gnu' && '-gnu' || '' }}"
           branch-name: "${{env.BUILD_BRANCH}}"
