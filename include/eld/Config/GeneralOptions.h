@@ -765,6 +765,10 @@ public:
 
   bool hasEntry() const;
 
+  void setEntryFromCmdLine();
+
+  bool isEntryFromCmdLine() const;
+
   llvm::ArrayRef<std::string> mapStyle() const { return MapStyles; }
 
   bool setMapStyle(llvm::StringRef MapStyle);
@@ -1408,6 +1412,7 @@ private:
   std::vector<std::string> LTOOutputFile;
   std::optional<uint64_t> ImageBase; // --image-base=value
   std::string Entry;
+  bool EntryFromCmdLine = false;
   SymbolRenameMap SymbolRenames;
   AddressMapType AddressMap;
   std::vector<const char *> CommandLineArgs;
