@@ -713,6 +713,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // set up entry point from -e
   if (llvm::opt::Arg *arg = Args.getLastArg(T::entrypoint)) {
     Config.options().setEntry(arg->getValue());
+    Config.options().setEntryFromCmdLine();
     Config.addCommandLine(Table->getOptionName(T::entrypoint), arg->getValue());
   }
 
