@@ -151,7 +151,7 @@ Normalize phase (Linker::normalize)
   * Populates symbol tables and initial symbol resolution.
 * Loads non-universal plugins.
 * Computes code position (static/dynamic/PIE) and validates incompatible
-  options (e.g. patch options with non-static output).
+  options (e.g. combining shared-library output with static-only flags).
 * Parses external scripts:
 
   * Version scripts
@@ -344,7 +344,6 @@ Read relocations
 (``lib/Object/ObjectLinker.cpp``):
 
 * Skips non-object inputs, and skips inputs marked "just symbols".
-* For patch-base inputs, runs patch-base parsing via the executable-object parser.
 
 Scan relocations (reservation / planning)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

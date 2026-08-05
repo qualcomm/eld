@@ -124,8 +124,7 @@ protected:
 
   /// Create and return eld::LDSymbol from the raw symbol.
   eld::Expected<LDSymbol *> createSymbol(llvm::StringRef stringTable,
-                                         Elf_Sym rawSym, std::size_t idx,
-                                         bool isPatchable);
+                                         Elf_Sym rawSym, std::size_t idx);
 
   /// Set attributes to the section S.
   ///

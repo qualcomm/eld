@@ -89,9 +89,12 @@ HexagonLinkDriver::parseOptions(ArrayRef<const char *> Args,
                      /*ShowAllAliases=*/true);
     return LINK_SUCCESS;
   }
-  if (ArgList.hasArg(OPT_HexagonLinkOptTable::version)) {
-    printVersionInfo();
-    return LINK_SUCCESS;
+  if (llvm::opt::Arg *Arg = ArgList.getLastArg(
+          OPT_HexagonLinkOptTable::v, OPT_HexagonLinkOptTable::version)) {
+    if (Arg->getOption().matches(OPT_HexagonLinkOptTable::version)) {
+      printVersionInfo();
+      return LINK_SUCCESS;
+    }
   }
   // --about
   if (ArgList.hasArg(OPT_HexagonLinkOptTable::about)) {

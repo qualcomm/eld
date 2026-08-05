@@ -70,17 +70,13 @@ public:
 
   bool isBinary() const { return IsBinary; }
 
-  void setPatchBase(bool Value = true) { PatchBase = Value; }
-
-  bool isPatchBase() const { return PatchBase; }
-
   Attribute &operator=(const Attribute &) = default;
 
   Attribute(const Attribute &) = default;
 
   Attribute()
       : WholeArchive(false), AsNeeded(false), AddNeeded(false), Static(false),
-        JustSymbols(false), IsBinary(false), PatchBase(false) {}
+        JustSymbols(false), IsBinary(false) {}
 
 private:
   // FIXME: Convert to std::optional<bool>
@@ -90,7 +86,6 @@ private:
   bool Static;
   bool JustSymbols;
   bool IsBinary;
-  bool PatchBase;
 };
 
 // -----  comparisons  ----- //

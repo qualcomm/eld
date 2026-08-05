@@ -60,6 +60,10 @@ public:
     Unset             ///< Undetermine code position mode
   };
 
+  // FIXME: ARM/RISCV/X86 disable multithreading in ScanRelocations and
+  // ApplyRelocations by default, likely to avoid non-determinism. With
+  // dynsym order now fixed, revisit those defaults and whether per phase
+  // granularity is still needed.
   enum EnableThreadsOpt {
     NoThreads = 0,
     AssignOutputSections = 0x1,

@@ -143,12 +143,6 @@ public:
       ThisBitField &= ~PreserveFlag;
   }
 
-  void setPatchable() { ThisBitField |= PatchableFlag; }
-
-  bool isPatchable() const {
-    return ((ThisBitField & PatchableMask) == PatchableMask);
-  }
-
   void setIFuncDirectRef() { ThisBitField |= IFuncDirectRefFlag; }
 
   bool hasIFuncDirectRef() const {
@@ -329,9 +323,6 @@ private:
   static const uint32_t IFuncDirectRefOffset = 19;
   static const uint32_t IFuncDirectRefMask = 1 << IFuncDirectRefOffset;
 
-  static const uint32_t PatchableOffset = 20;
-  static const uint32_t PatchableMask = 1 << PatchableOffset;
-
   static const uint32_t IFuncNeedsGOTOffset = 21;
   static const uint32_t IFuncNeedsGOTMask = 1 << IFuncNeedsGOTOffset;
 
@@ -359,7 +350,6 @@ public:
   static const uint32_t ExportDynFlag = 1 << ExportDynOffset;
   static const uint32_t InbitcodeFlag = 1 << InBitcodeOffset;
   static const uint32_t PreserveFlag = 1 << PreserveOffset;
-  static const uint32_t PatchableFlag = 1 << PatchableOffset;
   static const uint32_t IFuncDirectRefFlag = 1 << IFuncDirectRefOffset;
   static const uint32_t IFuncNeedsGOTFlag = 1 << IFuncNeedsGOTOffset;
   ResolveInfo();

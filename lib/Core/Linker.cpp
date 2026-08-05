@@ -373,13 +373,6 @@ bool Linker::normalize() {
     ThisConfig->setCodePosition(LinkerConfig::DynamicDependent);
   }
 
-  if ((ThisConfig->options().isPatchEnable() ||
-       ThisConfig->options().getPatchBase()) &&
-      !ThisConfig->isCodeStatic()) {
-    ThisConfig->raise(Diag::err_patch_not_static);
-    return false;
-  }
-
   setUnresolvePolicy(ThisConfig->options().reportUndefPolicy());
 
   {
@@ -535,26 +528,6 @@ bool Linker::resolve() {
                          ThisConfig->options().printTimingStats("Plugin"));
     if (!ObjLinker->runSectionIteratorPlugin()) {
       return false;
-    }
-  }
-
-  // When linking the patch, most relocations need to resolve to the PLT stub
-  // from the base image. The address of the stub is communicated as the value
-  // of the `__llvm_patchable_` absolute symbol.
-  if (ThisConfig->options().getPatchBase()) {
-    for (auto &G : ThisModule->getNamePool().getGlobals()) {
-      ResolveInfo *SymInfo = G.getValue();
-      // We look for an alias for EVERY symbol, not only for the patchable ones
-      // because, during symbol resolution, if a patchable symbol is redefined
-      // in the patch, its patchable definition from the base will be replaced
-      // with the definition from the patch, which may not carry the patchable
-      // attribute. This much depends on the details of the symbol resolution.
-      // It may be possible to propagate the attribute during resolution.
-      if (LDSymbol *PatchableAlias = ThisModule->getNamePool().findSymbol(
-              std::string("__llvm_patchable_") + SymInfo->name())) {
-        Backend->recordAbsolutePLT(SymInfo, PatchableAlias->resolveInfo());
-        SymInfo->setReserved(SymInfo->reserved() | Relocator::ReservePLT);
-      }
     }
   }
 

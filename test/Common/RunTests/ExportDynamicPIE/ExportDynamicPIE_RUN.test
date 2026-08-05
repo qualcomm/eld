@@ -1,0 +1,22 @@
+REQUIRES: run_test
+#--ExportDynamicPIE_RUN.test---------------------Executable--------#
+#BEGIN_COMMENT
+# Run test: --export-dynamic (-E) must export globals to .dynsym for PIE
+# executables, so that a plugin dlopen()'d at runtime can resolve symbols
+# defined in the host executable.
+#
+# main.c defines exported_var/exported_func and links -pie -Wl,--export-dynamic.
+# plugin.c references exported_func without defining it; at runtime, main
+# dlopen()'s plugin.so and calls into it, which calls back into main via
+# exported_func. This only works if the linker actually exported
+# exported_func into main's .dynsym.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc -fPIC -c %p/Inputs/plugin.c -o %t.plugin.o
+RUN: %run_cc -shared %t.plugin.o -o %t.plugin.so
+RUN: %run_cc -fPIC -c %p/Inputs/main.c -o %t.main.o
+RUN: %run_cc -pie %t.main.o -o %t.out -Wl,--export-dynamic -ldl
+RUN: %run %t.out %t.plugin.so | %filecheck %s
+#END_TEST
+
+CHECK: plugin returned: 42

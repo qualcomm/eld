@@ -44,14 +44,6 @@ void ELFObjectFile::setDynamicSections(ELFSection &PGOT, ELFSection &PGOTPLT,
   RelaPLT->setExcludedFromGC();
 }
 
-void ELFObjectFile::setPatchSections(ELFSection &PGOTPatch,
-                                     ELFSection &PRelaPatch) {
-  GOTPatch = &PGOTPatch;
-  RelaPatch = &PRelaPatch;
-  if (RelaPatch)
-    RelaPatch->setLink(GOTPatch);
-}
-
 void ELFObjectFile::createDWARFContext(bool Is32) {
   if (DebugSections.empty())
     return;

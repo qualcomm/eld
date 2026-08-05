@@ -1,0 +1,9 @@
+# Twister quarantine list for Zephyr-on-ELD runs (PR and nightly), passed via
+# `west twister --quarantine-list`. Entries are skipped, not failed.
+
+- scenarios:
+  - kernel.fpu_sharing.generic.riscv32
+  comment: >-
+    Forces -mabi=ilp32d -march=rv32imafdc (hard double-float); cpullvm picolibc
+    has no matching multilib, so the build fails with 'string.h' not found.
+

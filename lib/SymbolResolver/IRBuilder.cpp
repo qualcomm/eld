@@ -68,41 +68,8 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
                                LDSymbol::ValueType Value,
                                ELFSection *CurSection,
                                ResolveInfo::Visibility Vis, bool IsPostLtoPhase,
-                               uint32_t Shndx, uint32_t Idx, bool IsPatchable) {
-  if (Input.getInput()->getAttribute().isPatchBase()) {
-    // Add patchable symbols from the base image because they will be referred
-    // from relocation by indexes. We have to add all symbols including local
-    // to ensure indexes the indexes are correct.
-    // Non-patchable symbols from the base will be added as normal symbols.
-    // Not sure how to better do this. Global symbols can become undefined
-    // + provide, or weak. Absolute should be converted to global as there are
-    // no undefined absolute. Patching local symbols is not supported, but it
-    // could be added in the future. In that case, they have to become undefined
-    // + provide, cannot be weak. But it won't work with provide? But the bigger
-    // problem with local symbols is that they can't be resolved by name.
-    if (IsPatchable) {
-      // Add patchable symbols as "sym-def".
-      // Ignore patchable non-global or hidden symbols.
-      if (Bind == ResolveInfo::Global || Bind == ResolveInfo::Absolute) {
-        ThisModule.getBackend().addSymDefProvideSymbol(
-            SymbolName, Type, Value, &Input, /* isPatchable */ true);
-        // Also add them as undefined because it's needed to process
-        // relocations.
-        Desc = ResolveInfo::Undefined;
-        Bind = ResolveInfo::Global;
-        CurSection = nullptr;
-        Shndx = llvm::ELF::SHN_UNDEF;
-      }
-    } else {
-      // Non-patchable patch-base symbols are added as Absolute.
-      if (Bind == ResolveInfo::Global && Desc == ResolveInfo::Define) {
-        Bind = ResolveInfo::Absolute;
-        CurSection = nullptr;
-        Shndx = llvm::ELF::SHN_ABS;
-      }
-    }
-    // Non-patchable symbols are added as normal defined symbols.
-  } else if (Input.getInput()->getAttribute().isJustSymbols()) {
+                               uint32_t Shndx, uint32_t Idx) {
+  if (Input.getInput()->getAttribute().isJustSymbols()) {
     ThisModule.getBackend().addSymDefProvideSymbol(SymbolName, Type, Value,
                                                    &Input);
     return nullptr;
@@ -180,9 +147,9 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
       eld::RegisterTimer T("Add symbols from object files", "Symbol Resolution",
                            ThisConfig.options().printTimingStats());
 
-      InputSym = addSymbolFromObject(Input, Name, Type, Desc, Binding, Size,
-                                     Value, FragRef, Vis, Shndx, IsPostLtoPhase,
-                                     Idx, IsPatchable);
+      InputSym =
+          addSymbolFromObject(Input, Name, Type, Desc, Binding, Size, Value,
+                              FragRef, Vis, Shndx, IsPostLtoPhase, Idx);
     }
     // Symbols from non allocatable sections should not participate in garbage
     // collection
@@ -235,7 +202,7 @@ LDSymbol *IRBuilder::addSymbolFromObject(
     ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
     ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
     FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
-    uint32_t Shndx, bool IsPostLtoPhase, uint32_t Idx, bool IsPatchable) {
+    uint32_t Shndx, bool IsPostLtoPhase, uint32_t Idx) {
   // Step 1. calculate a Resolver::Result
   // ResolvedResult is a triple <resolved_info, existent, override>
   Resolver::Result ResolvedResult = {nullptr, false, false};
@@ -244,7 +211,7 @@ LDSymbol *IRBuilder::addSymbolFromObject(
   NamePool &NP = ThisModule.getNamePool();
   ResolveInfo InputSymbolResolveInfo =
       NP.createInputSymbolRI(SymbolName, Input, /*isDyn=*/false, Type, Desc,
-                             Binding, Size, Visibility, Value, IsPatchable);
+                             Binding, Size, Visibility, Value);
   LDSymbol *InputSym = makeLDSymbol(nullptr);
   InputSym->setFragmentRef(CurFragmentRef);
   InputSym->setSectionIndex(Shndx);
@@ -336,9 +303,9 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
   ResolveInfo *oldInfo = NP.findInfo(SymbolName);
   InputFile *oldOrigin = (oldInfo ? oldInfo->resolvedOrigin() : nullptr);
 
-  ResolveInfo InputSymbolResolveInfo = NP.createInputSymbolRI(
-      SymbolName, Input, /*isDyn=*/true, Type, Desc, Binding, Size, Visibility,
-      Value, /*isPatchable=*/false);
+  ResolveInfo InputSymbolResolveInfo =
+      NP.createInputSymbolRI(SymbolName, Input, /*isDyn=*/true, Type, Desc,
+                             Binding, Size, Visibility, Value);
 
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
   ELFDynObjectFile *DynObjFile = llvm::cast<ELFDynObjectFile>(&Input);
@@ -561,7 +528,7 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
     ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
     ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
     FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
-    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable) {
+    bool IsPostLtoPhase, bool IsBitCode) {
   ResolveInfo *Info = ThisModule.getNamePool().findInfo(SymbolName);
   LDSymbol *OutputSym = nullptr;
   if (nullptr == Info) {
@@ -570,8 +537,7 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
     Resolver::Result Result;
     bool S = ThisModule.getNamePool().insertSymbol(
         Input, SymbolName, false, Type, Desc, Binding, Size, Value, Visibility,
-        nullptr, Result, IsPostLtoPhase, IsBitCode, 0, IsPatchable,
-        ThisModule.getPrinter());
+        nullptr, Result, IsPostLtoPhase, IsBitCode, 0, ThisModule.getPrinter());
     if (!S)
       return nullptr;
     assert(!Result.Existent);
@@ -624,8 +590,7 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::AsReferred, IRBuilder::Unresolve>(
     ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
     ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
     FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
-    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable) {
-  assert(!IsPatchable);
+    bool IsPostLtoPhase, bool IsBitCode) {
   ResolveInfo *Info = ThisModule.getNamePool().findInfo(SymbolName);
 
   if (nullptr == Info || !(Info->isUndef() || Info->isDyn())) {
@@ -668,15 +633,14 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
     ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
     ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
     FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
-    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable) {
+    bool IsPostLtoPhase, bool IsBitCode) {
   // Result is <info, existent, override>
   Resolver::Result Result;
   ResolveInfo OldInfo;
 
   bool S = ThisModule.getNamePool().insertSymbol(
       Input, SymbolName, false, Type, Desc, Binding, Size, Value, Visibility,
-      &OldInfo, Result, IsPostLtoPhase, IsBitCode, 0, IsPatchable,
-      ThisModule.getPrinter());
+      &OldInfo, Result, IsPostLtoPhase, IsBitCode, 0, ThisModule.getPrinter());
 
   if (!S)
     return nullptr;
@@ -704,7 +668,7 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
     ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
     ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
     FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
-    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable) {
+    bool IsPostLtoPhase, bool IsBitCode) {
   ResolveInfo *Info = ThisModule.getNamePool().findInfo(SymbolName);
 
   if (nullptr == Info || !(Info->isUndef() || Info->isDyn())) {
@@ -714,7 +678,7 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
 
   return addSymbol<Force, Resolve>(Input, SymbolName, Type, Desc, Binding, Size,
                                    Value, CurFragmentRef, Visibility,
-                                   IsPostLtoPhase, IsBitCode, IsPatchable);
+                                   IsPostLtoPhase, IsBitCode);
 }
 
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING

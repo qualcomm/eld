@@ -175,12 +175,6 @@ bool ObjectLinker::initStdSections() {
   if (LinkerConfig::Object != ThisConfig.codeGenType()) {
     getTargetBackend().initDynamicSections(
         *getTargetBackend().getDynamicSectionHeadersInputFile());
-
-    // Note that patch section are only created in one internal input file
-    // (DynamicSectionHeadersInputFile).
-    if (ThisConfig.options().isPatchEnable())
-      getTargetBackend().initPatchSections(
-          *getTargetBackend().getDynamicSectionHeadersInputFile());
   }
 
   // Initialize symbol versioning sections only for dynamic artifacts when
@@ -246,6 +240,12 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
     if (!ThisConfig.getDiagEngine()->diagnose())
       return false;
   }
+
+  // A -T script may embed its own VERSION{} block. Record it now so
+  // parseVersionScript() can register its nodes later, once the target
+  // backend is guaranteed to be initialized, which is not yet the case here.
+  if (S->getVersionScript())
+    ThisModule->addLinkerScriptVersionScript(S->getVersionScript());
 
   Input->setUsed(true);
 
@@ -321,19 +321,6 @@ bool ObjectLinker::normalize() {
     return false;
   }
 
-  // Create patch base input.
-  if (const auto &PatchBase = ThisConfig.options().getPatchBase()) {
-    Input *Input = make<eld::Input>(*PatchBase, ThisConfig.getDiagEngine());
-    // Resolve the path.
-    if (!Input->resolvePath(ThisConfig)) {
-      ThisModule->setFailure(true);
-      return false;
-    }
-    Input->getAttribute().setPatchBase();
-    if (!readAndProcessInput(Input, MPostLtoPhase))
-      return false;
-  }
-
   if (!isBackendInitialized()) {
     ThisConfig.raise(Diag::error_unknown_target_emulation);
     return false;
@@ -350,63 +337,79 @@ bool ObjectLinker::normalize() {
 // FIXME: We should maybe parse version script after reading LTO-generated
 // object files.
 bool ObjectLinker::parseVersionScript() {
-  if (!ThisConfig.options().hasVersionScript())
-    return true;
-  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
-  for (const auto &List : ThisConfig.options().getVersionScripts()) {
-    Input *VersionScriptInput =
-        eld::make<Input>(List, ThisConfig.getDiagEngine(), Input::Script);
-    if (!VersionScriptInput->resolvePath(ThisConfig))
-      return false;
-    // Create an Input file and set the input file to be of kind DynamicList
-    InputFile *VersionScriptInputFile =
-        InputFile::create(VersionScriptInput, InputFile::GNULinkerScriptKind,
-                          ThisConfig.getDiagEngine());
-    addInputFileToTar(VersionScriptInputFile, eld::MappingFile::VersionScript);
-    VersionScriptInput->setInputFile(VersionScriptInputFile);
-    // Record the dynamic list script in the Map file.
-    if (layoutInfo)
-      layoutInfo->recordVersionScript(List);
-    // Read the dynamic List file
-    ScriptFile VersionScriptReader(
-        ScriptFile::VersionScript, *ThisModule,
-        *(llvm::dyn_cast<eld::LinkerScriptFile>(VersionScriptInputFile)),
-        ThisModule->getIRBuilder()->getInputBuilder());
-    bool SuccessFullInParse =
-        getScriptReader()->readScript(ThisConfig, VersionScriptReader);
-    if (!SuccessFullInParse)
-      return false;
-    ThisModule->addVersionScript(VersionScriptReader.getVersionScript());
-    for (auto &VersionScriptNode :
-         VersionScriptReader.getVersionScript()->getNodes()) {
-      if (!VersionScriptNode->isAnonymous()) {
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-        getTargetBackend().setShouldEmitVersioningSections(true);
-#else
-        ThisConfig.raise(Diag::unsupported_version_node)
-            << VersionScriptInput->decoratedPath();
-        continue;
-#endif
-      }
-      if (VersionScriptNode->hasDependency()) {
-        ThisConfig.raise(Diag::unsupported_dependent_node)
-            << VersionScriptNode->getName()
-            << VersionScriptInput->decoratedPath();
-#ifndef ELD_ENABLE_SYMBOL_VERSIONING
-        continue;
-#endif
-      }
-      // FIXME: Why did we reach here at all if the version script parsing
-      // failed? Shouldn't we have exited before reaching here?
-      if (VersionScriptNode->hasError()) {
-        ThisConfig.raise(Diag::error_parsing_version_script)
-            << VersionScriptInput->decoratedPath();
+  if (ThisConfig.options().hasVersionScript()) {
+    LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
+    for (const auto &List : ThisConfig.options().getVersionScripts()) {
+      Input *VersionScriptInput =
+          eld::make<Input>(List, ThisConfig.getDiagEngine(), Input::Script);
+      if (!VersionScriptInput->resolvePath(ThisConfig))
         return false;
-      }
-      ThisModule->addVersionScriptNode(VersionScriptNode);
+      // Create an Input file and set the input file to be of kind DynamicList
+      InputFile *VersionScriptInputFile =
+          InputFile::create(VersionScriptInput, InputFile::GNULinkerScriptKind,
+                            ThisConfig.getDiagEngine());
+      addInputFileToTar(VersionScriptInputFile,
+                        eld::MappingFile::VersionScript);
+      VersionScriptInput->setInputFile(VersionScriptInputFile);
+      // Record the dynamic list script in the Map file.
+      if (layoutInfo)
+        layoutInfo->recordVersionScript(List);
+      // Read the dynamic List file
+      ScriptFile VersionScriptReader(
+          ScriptFile::VersionScript, *ThisModule,
+          *(llvm::dyn_cast<eld::LinkerScriptFile>(VersionScriptInputFile)),
+          ThisModule->getIRBuilder()->getInputBuilder());
+      bool SuccessFullInParse =
+          getScriptReader()->readScript(ThisConfig, VersionScriptReader);
+      if (!SuccessFullInParse)
+        return false;
+      ThisModule->addVersionScript(VersionScriptReader.getVersionScript());
+      if (!registerVersionScriptNodes(VersionScriptReader.getVersionScript(),
+                                      VersionScriptInput->decoratedPath()))
+        return false;
     }
   }
+
+  // VersionScript objects parsed from a VERSION{} block embedded directly
+  // inside a -T linker script (recorded by readLinkerScript(), which runs
+  // before the target backend is guaranteed to exist). Process them here,
+  // where registerVersionScriptNodes() can safely touch the backend.
+  for (const VersionScript *VS : ThisModule->getLinkerScriptVersionScripts()) {
+    if (!registerVersionScriptNodes(
+            VS, VS->getInputFile()->getInput()->decoratedPath()))
+      return false;
+  }
+
   assignVersionNodesToSymbols();
+  return true;
+}
+
+bool ObjectLinker::registerVersionScriptNodes(const VersionScript *VS,
+                                              llvm::StringRef DecoratedPath) {
+  for (auto &VersionScriptNode : VS->getNodes()) {
+    if (!VersionScriptNode->isAnonymous()) {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+      getTargetBackend().setShouldEmitVersioningSections(true);
+#else
+      ThisConfig.raise(Diag::unsupported_version_node) << DecoratedPath;
+      continue;
+#endif
+    }
+    if (VersionScriptNode->hasDependency()) {
+      ThisConfig.raise(Diag::unsupported_dependent_node)
+          << VersionScriptNode->getName() << DecoratedPath;
+#ifndef ELD_ENABLE_SYMBOL_VERSIONING
+      continue;
+#endif
+    }
+    // FIXME: Why did we reach here at all if the version script parsing
+    // failed? Shouldn't we have exited before reaching here?
+    if (VersionScriptNode->hasError()) {
+      ThisConfig.raise(Diag::error_parsing_version_script) << DecoratedPath;
+      return false;
+    }
+    ThisModule->addVersionScriptNode(VersionScriptNode);
+  }
   return true;
 }
 
@@ -653,16 +656,6 @@ bool ObjectLinker::readRelocations() {
   std::vector<InputFile *> Inputs;
   getInputs(Inputs);
   for (auto *Ai : Inputs) {
-    if (Ai->getInput()->getAttribute().isPatchBase()) {
-      if (auto *ELFFile = llvm::dyn_cast<ELFFileBase>(Ai)) {
-        eld::Expected<bool> Exp =
-            getELFExecObjParser()->parsePatchBase(*ELFFile);
-        if (!Exp.has_value())
-          ThisConfig.raiseDiagEntry(std::move(Exp.error()));
-        if (!Exp.has_value() || !Exp.value())
-          return false;
-      }
-    }
     if (!Ai->isObjectFile())
       continue;
     // Dont read relocations from inputs that are specified
@@ -1547,8 +1540,7 @@ bool ObjectLinker::addUndefSymbols() {
           I, (*UndefSym)->name(), false, eld::ResolveInfo::NoType,
           eld::ResolveInfo::Undefined, eld::ResolveInfo::Global, 0, 0,
           eld::ResolveInfo::Default, nullptr, Result,
-          false /* isPostLTOPhase */, false, 0, false /* isPatchable */,
-          ThisModule->getPrinter());
+          false /* isPostLTOPhase */, false, 0, ThisModule->getPrinter());
       // create a output LDSymbol. All external symbols are entry symbols.
       OutputSym = make<LDSymbol>(Result.Info, false);
       Result.Info->setOutSymbol(OutputSym);
@@ -1566,7 +1558,7 @@ bool ObjectLinker::addUndefSymbols() {
         I, S->name(), false, eld::ResolveInfo::NoType,
         eld::ResolveInfo::Undefined, eld::ResolveInfo::Global, 0, 0,
         eld::ResolveInfo::Default, NULL, Result, false /* isPostLTOPhase */,
-        false, 0, false /* isPatchable */, ThisModule->getPrinter());
+        false, 0, ThisModule->getPrinter());
     // create a output LDSymbol. All external symbols are entry symbols.
     OutputSym = make<LDSymbol>(Result.Info, false);
     Result.Info->setOutSymbol(OutputSym);
@@ -1828,12 +1820,6 @@ bool ObjectLinker::addScriptSymbols() {
       Type = static_cast<ResolveInfo::Type>(OldInfo->type());
       Vis = OldInfo->visibility();
       Size = OldInfo->size();
-
-      if (OldInfo->outSymbol() && OldInfo->outSymbol()->hasFragRefSection()) {
-        if (OldInfo->isPatchable())
-          ThisConfig.raise(Diag::error_patchable_script)
-              << OldInfo->outSymbol()->name();
-      }
     }
     PluginManager &PM = ThisModule->getPluginManager();
     SymbolInfo SymInfo(ScriptInput, Size, ResolveInfo::Absolute, Type, Vis,
@@ -3661,14 +3647,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     }
     return true;
   }
-  if (Input->getAttribute().isPatchBase() &&
-      CurInput->getKind() != InputFile::ELFExecutableFileKind) {
-    ThisConfig.raise(Diag::err_patch_base_not_executable)
-        << Input->getResolvedPath();
-    ThisModule->setFailure(true);
-    return false;
-  }
-
   if (CurInput->isBinaryFile()) {
     eld::RegisterTimer T("Read ELF Executable Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());

@@ -315,6 +315,11 @@ defm sysroot : mDashDeprEq<"sysroot", "Set the system root">,
 def version : FF<"version">,
               HelpText<"Print the Linker version">,
               Group<grp_general>;
+// Unlike --version, -v prints the version banner but does not short-circuit
+// if input files are present.
+def v : Flag<["-"], "v">,
+       HelpText<"Print the Linker version and continue processing">,
+       Group<grp_general>;
 def repository_version : FF<"repository-version">,
                          HelpText<"Print the Linker Repository version">,
                          Group<grp_general>;
@@ -657,6 +662,14 @@ def no_warn_shared_textrel : FF<"no-warn-shared-textrel">,
                              HelpText<"Don't Warn if the linker adds a "
                                       "DT_TEXTREL">,
                              Group<grp_dynlib>;
+def warn_rwx_segments : FF<"warn-rwx-segments">,
+                        HelpText<"Warn if the linker creates a segment with "
+                                 "RWX permissions (default)">,
+                        Group<grp_general>;
+def no_warn_rwx_segments : FF<"no-warn-rwx-segments">,
+                           HelpText<"Silence warnings for segments with RWX "
+                                    "permissions">,
+                           Group<grp_general>;
 defm Bsymbolic : mDashComp<"Bsymbolic", "Bind references to global symbols to "
                            "the definition within the shared library">,
                  Group<grp_dynlib>;

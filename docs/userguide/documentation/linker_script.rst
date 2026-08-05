@@ -1182,8 +1182,40 @@ In GNU linker scripts, the AT command is used to control the Load Memory Address
 
 .. important::
 
-   When an AT command is specified as part of the output section, the linker
-   will not automatically align the load memory address of the section.
+   When ``AT>REGION`` is specified on an output section, the linker does **not**
+   automatically align the LMA to match the natural alignment of the input
+   sections. The LMA region cursor is authoritative in that case.
+
+   However, if the output section description contains an explicit ``ALIGN(n)``
+   keyword *after* the colon (the section address expression form, e.g.
+   ``.sec : ALIGN(n) { }``), ELD applies that alignment to both the VMA and the
+   LMA, even when ``AT>REGION`` is present.
+
+   The ``ALIGN(n)`` keyword *before* the colon (the prolog/address-expression
+   form, e.g. ``.sec ALIGN(n) : { }``) sets only the VMA; the LMA stays at
+   the LMA region cursor and is not aligned.
+
+   Summary of LMA alignment behavior with ``AT>REGION``:
+
+   .. list-table::
+      :widths: 45 25 30
+      :header-rows: 1
+
+      * - Syntax
+        - VMA aligned?
+        - LMA aligned?
+      * - ``.sec : { }`` (no ALIGN)
+        - natural alignment
+        - no (cursor only)
+      * - ``.sec ALIGN(n) : { }`` (prolog form)
+        - yes, to n
+        - no (cursor only)
+      * - ``.sec : ALIGN(n) { }`` (section-description form)
+        - yes, to n
+        - yes, to n
+      * - ``.sec : ALIGN_WITH_INPUT { }``
+        - natural alignment
+        - tracks VMA delta
 
 ALIGN_WITH_INPUT attribute on an output section preserves the VMA-to-LMA offset
 from the previous output section when both sections use the same VMA region and
@@ -1198,6 +1230,10 @@ Behavior summary:
   the selected VMA region.
 - LMA placement is governed by the AT/AT> directives and the selected LMA
   region, and it is tracked independently from the VMA placement.
+- Explicit ``ALIGN(n)`` in the section description (after the colon) aligns
+  both VMA and LMA, even with ``AT>REGION``.
+- Prolog ``ALIGN(n)`` (before the colon) aligns only the VMA; LMA follows the
+  LMA region cursor.
 - ALIGN_WITH_INPUT preserves the prior VMA-to-LMA delta, but only while both
   regions remain the same.
 - When VMA and LMA resolve to the same region (for example, no ``AT>REGION``),
@@ -1208,6 +1244,8 @@ See also:
 - :file:`test/Common/standalone/linkerscript/AlignWithInput/NoPhdrs/AlignWithInput.test`
 - :file:`test/Common/standalone/linkerscript/AlignWithInput/TLS/TLS.test`
 - :file:`test/Common/standalone/linkerscript/AlignWithInput/NoLoadATRAM/NoLoadATRAM.test`
+- :file:`test/Common/standalone/linkerscript/MEMORY/ATRegionAlign/ATRegionAlign.test`
+- :file:`test/Common/standalone/linkerscript/MEMORY/ATRegionAlignPHDRS/ATRegionAlignPHDRS.test`
 
 GNU-compatibility
 --------------------

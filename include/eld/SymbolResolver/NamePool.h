@@ -52,8 +52,7 @@ public:
                                   ResolveInfo::Binding SymBinding,
                                   ResolveInfo::SizeType SymSize,
                                   ResolveInfo::Visibility SymVisibility,
-                                  LDSymbol::ValueType SymValue,
-                                  bool IsPatchable) const;
+                                  LDSymbol::ValueType SymValue) const;
 
   // -----  modifiers  ----- //
   /// createSymbol - create a symbol but do not insert into the pool.
@@ -80,7 +79,7 @@ public:
                     ResolveInfo::Visibility Visibility,
                     ResolveInfo *OldSymbolInfo, Resolver::Result &PResult,
                     bool IsLtoPhase, bool IsBitCode, unsigned int PSymIdx,
-                    bool IsPatchable, DiagnosticPrinter *Printer);
+                    DiagnosticPrinter *Printer);
 
   LDSymbol *createPluginSymbol(InputFile *Input, std::string SymbolName,
                                Fragment *CurFragment, uint64_t Val,

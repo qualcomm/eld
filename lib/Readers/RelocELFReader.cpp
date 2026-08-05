@@ -411,7 +411,7 @@ LDSymbol *RelocELFReader<ELFT>::createUndefReference(llvm::StringRef symName) {
       inputFile, symName.str(), false, eld::ResolveInfo::NoType,
       eld::ResolveInfo::Undefined, eld::ResolveInfo::Global, 0, 0,
       eld::ResolveInfo::Default, nullptr, result, false, false, 0,
-      false /* isPatchable */, this->m_Module.getPrinter());
+      this->m_Module.getPrinter());
 
   LDSymbol *sym = make<LDSymbol>(result.Info, false);
   result.Info->setOutSymbol(sym);

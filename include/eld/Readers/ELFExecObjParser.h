@@ -26,8 +26,6 @@ public:
   eld::Expected<bool> parseFile(InputFile &inputFile,
                                 bool &ELFOverriddenWithBC);
 
-  eld::Expected<bool> parsePatchBase(ELFFileBase &inputFile);
-
 private:
   eld::Expected<void> readSections(ELFReaderBase &ELFReader);
   eld::Expected<bool> readRelocations(InputFile &inputFile);

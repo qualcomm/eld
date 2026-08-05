@@ -325,8 +325,6 @@ std::string ResolveInfo::infoAsString() const {
     ResolveType += "{PRESERVE}";
   if (outSymbol() && outSymbol()->shouldIgnore())
     ResolveType += "{IGNORE}";
-  if (isPatchable())
-    ResolveType += "{PATCHABLE}";
   return ResolveType;
 }
 

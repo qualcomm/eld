@@ -69,15 +69,6 @@ eld::Expected<bool> ELFExecObjParser::parseFile(InputFile &inputFile,
   return true;
 }
 
-eld::Expected<bool> ELFExecObjParser::parsePatchBase(ELFFileBase &inputFile) {
-  eld::Expected<std::unique_ptr<ELFReaderBase>> expReader =
-      ELFReaderBase::Create(m_Module, inputFile);
-  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReader);
-  std::unique_ptr<ELFReaderBase> ELFReader = std::move(expReader.value());
-  ELFReader->recordInputActions();
-  return readRelocations(inputFile);
-}
-
 eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
   LinkerConfig &config = m_Module.getConfig();
   InputFile *inputFile = ELFReader.getInputFile();

@@ -56,6 +56,8 @@ DIAG(symdef_incompatible_option, DiagnosticEngine::Fatal,
      "SymDef files are valid only when building executables")
 DIAG(warn_shared_textrel, DiagnosticEngine::Warning,
      "Add DT_TEXTREL in a shared object!")
+DIAG(warn_rwx_segment, DiagnosticEngine::Warning,
+     "'%0' has loadable segment(s) with RWX permissions")
 DIAG(err_invalid_emulation, DiagnosticEngine::Error,
      "Invalid target emulation: `%0'.")
 DIAG(err_cannot_find_scriptfile, DiagnosticEngine::Fatal,
@@ -185,11 +187,7 @@ DIAG(error_cannot_read_tar_file, DiagnosticEngine::Error,
 DIAG(error_tar_file_not_found, DiagnosticEngine::Error,
      "File '%0' not found in tar archive")
 DIAG(err_shared_objects_in_partial_link, DiagnosticEngine::Error,
-    "Shared libraries are not allowed with partial links, found %0")
-DIAG(err_patch_base_not_executable, DiagnosticEngine::Error,
-     "The file %0, specified by --patch-base, must be an executable ELF file")
-DIAG(err_patch_not_static, DiagnosticEngine::Error,
-     "Patching is only supported for static linking")
+     "Shared libraries are not allowed with partial links, found %0")
 DIAG(error_invalid_target2, DiagnosticEngine::Error,
      "unknown --target2 option: %0")
 DIAG(err_remap_inputs_bad_format, DiagnosticEngine::Error,

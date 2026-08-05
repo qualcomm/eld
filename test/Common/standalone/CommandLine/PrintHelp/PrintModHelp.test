@@ -263,6 +263,7 @@ RUN: %link --help 2>&1 | %filecheck %s
 #CHECK:   --sysroot <sysroot-path>
 #CHECK:   -sysroot <sysroot-path>
 #CHECK:   --version
+#CHECK:   -v
 #CHECK:   --help-hidden
 #CHECK:   --help
 #CHECK:   --b=<input-format>

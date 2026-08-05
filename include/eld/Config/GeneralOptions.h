@@ -343,6 +343,11 @@ public:
 
   bool warnSharedTextrel() const { return BWarnSharedTextrel; }
 
+  // --no-warn-rwx-segments
+  void setWarnRWXSegments(bool V = true) { BWarnRWXSegments = V; }
+
+  bool warnRWXSegments() const { return BWarnRWXSegments; }
+
   void setDefineCommon(bool PEnable = true) { BDefineCommon = PEnable; }
 
   bool isDefineCommon() const { return BDefineCommon; }
@@ -1193,13 +1198,6 @@ public:
 
   llvm::StringRef getBuildID() const { return BuildIDValue.value(); }
 
-  // --patch-enable support
-  void setPatchEnable() { PatchEnable = true; }
-  bool isPatchEnable() const { return PatchEnable; }
-
-  void setPatchBase(const std::string &Value) { PatchBase = Value; }
-  const std::optional<std::string> &getPatchBase() const { return PatchBase; }
-
   void setIgnoreUnknownOptions() { IgnoreUnknownOptions = true; }
 
   bool shouldIgnoreUnknownOptions() const { return IgnoreUnknownOptions; }
@@ -1255,6 +1253,7 @@ private:
   bool BStripDebug = false;        // -S, --strip-debug
   bool BExportDynamic = false;     //-E, --export-dynamic
   bool BWarnSharedTextrel = false; // --warn-shared-textrel
+  bool BWarnRWXSegments = true;    // --no-warn-rwx-segments
   bool BWarnCommon = false;        // --warn-common
   bool BDefineCommon = false;      // -d, -dc, -dp
   bool BFatalWarnings = false;     // --fatal-warnings
@@ -1432,8 +1431,6 @@ private:
   std::vector<llvm::Regex> RelaxSections;
   bool BuildID = false;
   std::optional<llvm::StringRef> BuildIDValue;
-  bool PatchEnable = false;
-  std::optional<std::string> PatchBase;
   bool IgnoreUnknownOptions = false;
   std::vector<std::string> UnknownOptions;
   std::string LinkLaunchDirectory;

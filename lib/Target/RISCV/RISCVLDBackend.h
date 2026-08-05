@@ -48,8 +48,6 @@ public:
 
   void initDynamicSections(ELFObjectFile &) override;
 
-  void initPatchSections(ELFObjectFile &) override;
-
   void initTargetSymbols() override;
 
   bool initBRIslandFactory() override;

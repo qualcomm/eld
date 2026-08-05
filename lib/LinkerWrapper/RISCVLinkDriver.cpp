@@ -99,9 +99,12 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
                      /*ShowAllAliases=*/true);
     return LINK_SUCCESS;
   }
-  if (ArgList.hasArg(OPT_RISCVLinkOptTable::version)) {
-    printVersionInfo();
-    return LINK_SUCCESS;
+  if (llvm::opt::Arg *Arg = ArgList.getLastArg(
+          OPT_RISCVLinkOptTable::v, OPT_RISCVLinkOptTable::version)) {
+    if (Arg->getOption().matches(OPT_RISCVLinkOptTable::version)) {
+      printVersionInfo();
+      return LINK_SUCCESS;
+    }
   }
   // --about
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::about)) {
@@ -196,22 +199,6 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::keep_labels))
     Config.options().setKeepLabels();
 
-  // --patch-enable
-  if (ArgList.getLastArg(OPT_RISCVLinkOptTable::patch_enable))
-    Config.options().setPatchEnable();
-
-  // --patch-base
-  if (llvm::opt::Arg *arg =
-          ArgList.getLastArg(OPT_RISCVLinkOptTable::patch_base))
-    Config.options().setPatchBase(arg->getValue());
-
-  if (Config.options().isPatchEnable()) {
-    if (Config.options().getStripSymbolMode() ==
-        GeneralOptions::StripAllSymbols)
-      Config.raise(Diag::warn_strip_symbols) << "--patch-enable";
-    Config.options().setStripSymbols(eld::GeneralOptions::StripLocals);
-  }
-
   Config.options().setUnknownOptions(
       ArgList.getAllArgValues(OPT_RISCVLinkOptTable::UNKNOWN));
 
@@ -288,13 +275,6 @@ bool RISCVLinkDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (!GnuLdDriver::processOptions<T>(Args))
     return false;
 
-  // FIXME : remove duplicate code
-  if (Config.options().isPatchEnable()) {
-    if (Config.options().getStripSymbolMode() ==
-        GeneralOptions::StripAllSymbols)
-      Config.raise(Diag::warn_strip_symbols) << "--patch-enable";
-    Config.options().setStripSymbols(eld::GeneralOptions::StripLocals);
-  }
   return true;
 }
 
