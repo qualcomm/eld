@@ -24,13 +24,31 @@ jobs:
   fetch:
     needs: gate
     if: github.repository == 'qualcomm/eld' && needs.gate.outputs.run_fetch == 'true'
-    uses: ./.github/workflows/clang-cross-download.yml
+    runs-on: self-hosted
     permissions:
       contents: write
-    with:
-      runner: self-hosted
-      workspace: "/local/mnt/workspace"
-      assets: >-
-        aarch64-unknown-linux-musl.tar.xz,arm-unknown-linux-musleabi.tar.xz,riscv32-unknown-linux-musl.tar.xz,riscv64-unknown-linux-musl.tar.xz,x86_64-unknown-linux-musl.tar.xz,
-        arm-unknown-linux-gnueabi.tar.xz,aarch64-unknown-linux-gnu.tar.xz,riscv32-unknown-linux-gnu.tar.xz,riscv64-unknown-linux-gnu.tar.xz,
-        x86_64-unknown-linux-gnu.tar.xz
+    steps:
+      - name: Checkout eld
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: qualcomm/eld
+          ref: main
+          fetch-depth: 1
+
+      - name: Checkout eld PR branch
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 1
+
+      - name: Download clang-cross toolchains
+        uses: ./.github/workflows/DownloadClangCrossToolchain
+        with:
+          workspace: "/local/mnt/workspace"
+          assets: >-
+            aarch64-unknown-linux-musl.tar.xz,arm-unknown-linux-musleabi.tar.xz,riscv32-unknown-linux-musl.tar.xz,riscv64-unknown-linux-musl.tar.xz,x86_64-unknown-linux-musl.tar.xz,
+            arm-unknown-linux-gnueabi.tar.xz,aarch64-unknown-linux-gnu.tar.xz,riscv32-unknown-linux-gnu.tar.xz,riscv64-unknown-linux-gnu.tar.xz,
+            x86_64-unknown-linux-gnu.tar.xz

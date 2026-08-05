@@ -1,0 +1,115 @@
+name: DownloadClangCrossToolchain
+description: Download and extract the latest clang-cross release assets
+
+inputs:
+  workspace:
+    description: "Base directory where toolchains are extracted"
+    required: false
+    default: "/local/mnt/workspace"
+  assets:
+    description: "Comma-separated list of asset names to download"
+    required: true
+
+outputs:
+  artifact_tar:
+    description: "Path to a tar of the extracted toolchain(s)"
+    value: ${{ steps.fetch.outputs.artifact_tar }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download and extract release assets
+      id: fetch
+      shell: bash
+      env:
+        WORKSPACE: ${{ inputs.workspace }}
+        ASSETS: ${{ inputs.assets }}
+      run: |
+        set -euo pipefail
+        api_url="https://api.github.com/repos/cross-tools/clang-cross/releases/latest"
+        release_json="$(curl -fsSL "${api_url}")"
+        tag="$(printf '%s' "${release_json}" | jq -r '.tag_name')"
+
+        root_dir="${WORKSPACE}/clang-cross"
+        base_dir="${root_dir}/${tag}"
+
+        IFS=',' read -r -a asset_list <<< "${ASSETS}"
+        all_extracted=true
+        if [[ -d "${base_dir}" ]]; then
+          for asset in "${asset_list[@]}"; do
+            asset="$(printf '%s' "${asset}" | xargs)"
+            if [[ -z "${asset}" ]]; then
+              continue
+            fi
+            if [[ ! -f "${base_dir}/.extracted-${asset}" ]]; then
+              all_extracted=false
+              break
+            fi
+          done
+        else
+          all_extracted=false
+        fi
+
+        if [[ "${all_extracted}" == "true" ]]; then
+          echo "Latest release ${tag} already fully extracted."
+          exit 0
+        fi
+
+        if [[ -d "${root_dir}" ]]; then
+          find "${root_dir}" -mindepth 1 -maxdepth 1 -type d ! -name "${tag}" -exec rm -rf {} +
+        fi
+        rm -rf "${base_dir}"
+        mkdir -p "${base_dir}"
+
+        for asset in "${asset_list[@]}"; do
+          asset="$(printf '%s' "${asset}" | xargs)"
+          if [[ -z "${asset}" ]]; then
+            continue
+          fi
+
+          marker="${base_dir}/.extracted-${asset}"
+          url="$(printf '%s' "${release_json}" | jq -r --arg name "${asset}" '.assets[] | select(.name == $name) | .browser_download_url')"
+          if [[ -z "${url}" || "${url}" == "null" ]]; then
+            echo "Asset not found in release ${tag}: ${asset}" >&2
+            exit 1
+          fi
+
+          tmp_tar="${base_dir}/${asset}"
+          echo "Downloading ${asset}..."
+          curl -fsSL -o "${tmp_tar}" "${url}"
+
+          echo "Extracting ${asset}..."
+          tar -xJf "${tmp_tar}" -C "${base_dir}"
+          rm -f "${tmp_tar}"
+          asset_base="${asset%.tar.xz}"
+          asset_base="${asset_base%.tar.gz}"
+          asset_base="${asset_base%.tar}"
+          extracted_dir="${base_dir}/${asset_base}"
+          symlink_path="${WORKSPACE}/${asset_base}"
+
+          if [[ -d "${extracted_dir}" ]]; then
+            before_dir_perm="$(stat -c '%a' "${extracted_dir}")"
+            echo "Changing permissions for extracted directory ${extracted_dir} from ${before_dir_perm} to 777..."
+            chmod -R 777 "${extracted_dir}"
+            after_dir_perm="$(stat -c '%a' "${extracted_dir}")"
+            echo "Permissions updated for ${extracted_dir}: ${before_dir_perm} -> ${after_dir_perm}"
+          fi
+          ln -sfn "${extracted_dir}" "${symlink_path}"
+
+          if [[ -L "${symlink_path}" ]]; then
+            before_link_perm="$(stat -c '%a' "${symlink_path}")"
+            echo "Changing permissions via symlink ${symlink_path} from ${before_link_perm} to 777..."
+            chmod -R 777 "${symlink_path}"
+            after_link_perm="$(stat -c '%a' "${symlink_path}")"
+            echo "Permissions updated via symlink ${symlink_path}: ${before_link_perm} -> ${after_link_perm}"
+          fi
+
+          touch "${marker}"
+        done
+
+        echo "Symlinks in ${WORKSPACE}:"
+        find "${WORKSPACE}" -maxdepth 1 -type l -lname "${root_dir}/*" -printf "%p -> %l\n"
+
+        artifact_tar="${RUNNER_TEMP}/clang-cross-${tag}.tar"
+        tar -cf "${artifact_tar}" -C "${base_dir}" .
+        echo "artifact_tar=${artifact_tar}" >> "${GITHUB_OUTPUT}"

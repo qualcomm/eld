@@ -1,0 +1,358 @@
+name: Linux Kernel Boot
+
+# Build a Linux kernel for each architecture in the matrix below, package
+# BusyBox into an initramfs, and boot it in qemu-system-* to confirm ELD can
+# correctly link and run something as structurally complex as a
+# kernel + real userspace.
+
+on:
+  workflow_dispatch:
+  # pull_request: {} # Uncomment only to test this WF file update.
+  schedule:
+    # Depends on both nightly-test.yml's toolset and busybox-eld.yml's
+    # BusyBox artifact; starts 1h after busybox-eld.yml (0 11 * * *) so that
+    # run has finished and published its artifact.
+    - cron: "0 12 * * *"
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  KERNEL_TAG: v7.1
+
+jobs:
+  kernel-boot:
+    if: github.repository == 'qualcomm/eld'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # BuildStatusDataRecorder pushes to the dashboard branch
+      actions: read # list/download artifacts from busybox-eld.yml and the nightly toolset run
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: riscv32
+            target_triple: riscv32-unknown-linux-musl
+            kbuild_arch: riscv
+            defconfig: rv32_defconfig
+            kernel_image: arch/riscv/boot/Image
+            qemu_bin: qemu-system-riscv32
+            qemu_machine: virt
+            qemu_cpu: ""
+            qemu_bios: /usr/lib/riscv32-linux-gnu/opensbi/generic/fw_dynamic.bin
+            console_device: ttyS0
+            enabled: 1
+          - arch: riscv64
+            target_triple: riscv64-unknown-linux-musl
+            kbuild_arch: riscv
+            defconfig: defconfig
+            kernel_image: arch/riscv/boot/Image
+            qemu_bin: qemu-system-riscv64
+            qemu_machine: virt
+            qemu_cpu: ""
+            qemu_bios: ""
+            console_device: ttyS0
+            enabled: 0
+          - arch: x86_64
+            target_triple: x86_64-unknown-linux-musl
+            kbuild_arch: x86_64
+            defconfig: x86_64_defconfig
+            kernel_image: arch/x86/boot/bzImage
+            qemu_bin: qemu-system-x86_64
+            qemu_machine: pc
+            qemu_cpu: ""
+            qemu_bios: ""
+            console_device: ttyS0
+            enabled: 0
+          - arch: arm
+            target_triple: arm-unknown-linux-musleabi
+            kbuild_arch: arm
+            defconfig: multi_v7_defconfig
+            kernel_image: arch/arm/boot/zImage
+            qemu_bin: qemu-system-arm
+            qemu_machine: virt
+            qemu_cpu: ""
+            qemu_bios: ""
+            console_device: ttyAMA0
+            enabled: 0
+          - arch: aarch64
+            target_triple: aarch64-unknown-linux-musl
+            kbuild_arch: arm64
+            defconfig: defconfig
+            kernel_image: arch/arm64/boot/Image
+            qemu_bin: qemu-system-aarch64
+            qemu_machine: virt
+            qemu_cpu: cortex-a57
+            qemu_bios: ""
+            console_device: ttyAMA0
+            enabled: 0
+    env:
+      KERNEL_IMAGE: ${{ matrix.kernel_image }}
+    steps:
+      - name: Checkout eld
+        if: matrix.enabled == 1 && github.event_name != 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: qualcomm/eld
+          ref: main
+          fetch-depth: 1
+
+      - name: Checkout eld PR branch
+        if: matrix.enabled == 1 && github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 1
+
+      - name: Configure workflow environment variables
+        if: matrix.enabled == 1
+        uses: ./.github/workflows/ConfigureBuildWorkflowENV
+
+      - name: Record pre-build entry
+        if: github.event_name == 'schedule' && matrix.enabled == 1
+        uses: ./.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "pre-"
+          workflow-name: "Linux Kernel"
+          record-mode: "record"
+          status: "fail"
+          run-id: ${{github.run_id}}
+          arch-name: "${{ matrix.arch }}"
+          branch-name: "${{env.BUILD_BRANCH}}"
+
+      - name: Fetch latest nightly toolset
+        if: matrix.enabled == 1
+        uses: ./.github/workflows/FetchNightlyToolset
+
+      - name: Install kernel build dependencies
+        if: matrix.enabled == 1
+        shell: bash
+        run: |
+          sudo apt update
+          sudo apt install -y bison flex libssl-dev libelf-dev bc \
+            qemu-system-misc qemu-system-x86 qemu-system-arm opensbi cpio ccache
+
+      - name: Download latest BusyBox binary
+        if: matrix.enabled == 1
+        uses: ./.github/workflows/DownloadLatestBusybox
+        with:
+          arch: ${{ matrix.arch }}
+          path: busybox-dl
+
+      - name: Download clang-cross toolchain
+        if: matrix.enabled == 1
+        uses: ./.github/workflows/DownloadClangCrossToolchain
+        with:
+          workspace: ${{ github.workspace }}
+          assets: ${{ matrix.target_triple }}.tar.xz
+
+      - name: Clone Linux kernel
+        if: matrix.enabled == 1
+        shell: bash
+        run: |
+          git clone --depth 1 --branch "${KERNEL_TAG}" \
+            https://github.com/torvalds/linux.git
+
+      - name: Configure kernel
+        if: matrix.enabled == 1
+        shell: bash
+        env:
+          KBUILD_ARCH: ${{ matrix.kbuild_arch }}
+          DEFCONFIG: ${{ matrix.defconfig }}
+        run: |
+          set -euo pipefail
+          cd linux
+          make ARCH="${KBUILD_ARCH}" "${DEFCONFIG}"
+          ./scripts/config \
+            --enable CONFIG_BLK_DEV_INITRD \
+            --enable CONFIG_DEVTMPFS \
+            --enable CONFIG_DEVTMPFS_MOUNT \
+            --disable CONFIG_DEBUG_INFO \
+            --disable CONFIG_GDB_SCRIPTS \
+            --enable CONFIG_EXPERT \
+            --enable CONFIG_VMLINUX_MAP
+          # CONFIG_SOC_VIRT is a RISC-V-specific Kconfig symbol.
+          if [[ "${KBUILD_ARCH}" == riscv ]]; then
+            ./scripts/config --enable CONFIG_SOC_VIRT
+          fi
+          make ARCH="${KBUILD_ARCH}" olddefconfig
+
+      - name: Restore linux kernel ccache
+        if: matrix.enabled == 1
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: ${{ github.workspace }}/ccache-linux
+          key: kernel-boot-linux-ccache-${{ matrix.arch }}-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            kernel-boot-linux-ccache-${{ matrix.arch }}-${{ runner.os }}-
+
+      - name: Build kernel with ELD
+        if: matrix.enabled == 1
+        shell: bash
+        env:
+          CCACHE_DIR: ${{ github.workspace }}/ccache-linux
+          KBUILD_ARCH: ${{ matrix.kbuild_arch }}
+          TARGET_TRIPLE: ${{ matrix.target_triple }}
+        run: |
+          set -euo pipefail
+          command -v clang
+          command -v ld.eld
+          clang --version | head -1
+          ld.eld --version | head -1
+          ccache -s
+
+          cd linux
+          make -j"$(nproc)" \
+            ARCH="${KBUILD_ARCH}" \
+            CROSS_COMPILE="${TARGET_TRIPLE}-" \
+            LLVM=1 \
+            KBUILD_BUILD_TIMESTAMP='' \
+            CC="ccache clang" \
+            LD=ld.eld \
+            "$(basename "${KERNEL_IMAGE}")"
+
+          ccache -s
+
+      - name: Prune linux kernel ccache before save
+        if: matrix.enabled == 1 && always()
+        env:
+          CCACHE_DIR: ${{ github.workspace }}/ccache-linux
+        run: ccache --evict-older-than 7200s
+
+      - name: Save linux kernel ccache
+        if: matrix.enabled == 1 && always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: ${{ github.workspace }}/ccache-linux
+          key: kernel-boot-linux-ccache-${{ matrix.arch }}-${{ runner.os }}-${{ github.run_id }}
+
+      - name: Upload vmlinux and linker map
+        if: matrix.enabled == 1 && always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+        with:
+          name: kernel-boot-${{ matrix.arch }}-vmlinux
+          retention-days: 1
+          path: |
+            linux/vmlinux
+            linux/vmlinux.map
+          if-no-files-found: warn
+
+      - name: Build initramfs
+        if: matrix.enabled == 1
+        shell: bash
+        env:
+          TARGET_TRIPLE: ${{ matrix.target_triple }}
+        run: |
+          set -euo pipefail
+          chmod +x busybox-dl/busybox
+
+          interp_path="$(readelf -p .interp busybox-dl/busybox | sed -n 's/^ *\[ *[0-9]*\] *//p')"
+          if [[ -z "${interp_path}" ]]; then
+            echo "Could not read PT_INTERP from downloaded busybox binary" >&2
+            exit 1
+          fi
+          echo "BusyBox expects its dynamic linker at: ${interp_path}"
+
+          musl_so="$(find -L "${TARGET_TRIPLE}" -name 'ld-musl-*.so.1' -print -quit)"
+          if [[ -z "${musl_so}" ]]; then
+            echo "Could not find ld-musl-*.so.1 in the clang-cross toolchain" >&2
+            exit 1
+          fi
+          musl_lib_dir="$(dirname "${musl_so}")"
+          echo "Using musl runtime from: ${musl_lib_dir}"
+
+          rm -rf initramfs
+          mkdir -p initramfs/bin initramfs/proc initramfs/sys initramfs/dev initramfs/tmp
+          mkdir -p "initramfs$(dirname "${interp_path}")"
+          # -L: some musl toolchains ship ld-musl-*.so.1 as a relative
+          # symlink pointing outside this directory (e.g. ../usr/lib/libc.so),
+          # which would land dangling in the initramfs otherwise.
+          cp -aL "${musl_lib_dir}"/. "initramfs$(dirname "${interp_path}")/"
+
+          cp busybox-dl/busybox initramfs/bin/busybox
+          for applet in sh mount echo cat grep mkdir ls poweroff; do
+            ln -sf busybox "initramfs/bin/${applet}"
+          done
+
+          cat > initramfs/init <<'EOF'
+          #!/bin/sh
+          mount -t proc none /proc
+          mount -t sysfs none /sys
+          echo "KERNEL-BOOT-OK"
+          mkdir -p /tmp/t && echo hello > /tmp/t/f && grep -q hello /tmp/t/f \
+            && echo "SELFTEST-PASS" || echo "SELFTEST-FAIL"
+          cat /proc/version
+          poweroff -f
+          EOF
+          chmod +x initramfs/init
+
+          ( cd initramfs && find . | cpio -o -H newc ) | gzip -9 > initramfs.cpio.gz
+
+      - name: Boot kernel in QEMU
+        if: matrix.enabled == 1
+        shell: bash
+        env:
+          QEMU_BIN: ${{ matrix.qemu_bin }}
+          QEMU_MACHINE: ${{ matrix.qemu_machine }}
+          QEMU_CPU: ${{ matrix.qemu_cpu }}
+          QEMU_BIOS: ${{ matrix.qemu_bios }}
+          CONSOLE_DEVICE: ${{ matrix.console_device }}
+        run: |
+          set -euo pipefail
+          qemu_args=(
+            -M "${QEMU_MACHINE}"
+            -m 256M
+            -nographic
+            -no-reboot
+            -kernel "linux/${KERNEL_IMAGE}"
+            -initrd initramfs.cpio.gz
+            -append "console=${CONSOLE_DEVICE} rw"
+          )
+          if [[ -n "${QEMU_CPU}" ]]; then
+            qemu_args+=(-cpu "${QEMU_CPU}")
+          fi
+          if [[ -n "${QEMU_BIOS}" ]]; then
+            # Some arches' apt-packaged qemu-system-data firmware doesn't
+            # cover every board/arch combination (e.g. riscv32's OpenSBI
+            # firmware isn't bundled the way riscv64's is) -- point -bios
+            # at an explicit firmware path in that case.
+            qemu_args+=(-bios "${QEMU_BIOS}")
+          fi
+          timeout -k 1s 60s "${QEMU_BIN}" "${qemu_args[@]}" \
+            > /tmp/kernel-boot-output.txt 2>&1 || true
+          pkill -KILL -f "${QEMU_BIN}.*${KERNEL_IMAGE}" 2>/dev/null || true
+          cat /tmp/kernel-boot-output.txt
+
+      - name: Upload boot log
+        if: matrix.enabled == 1 && always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+        with:
+          name: kernel-boot-${{ matrix.arch }}-log
+          retention-days: 1
+          path: /tmp/kernel-boot-output.txt
+
+      - name: Validate boot log with FileCheck
+        if: matrix.enabled == 1
+        shell: bash
+        run: |
+          FileCheck --input-file=/tmp/kernel-boot-output.txt "${{ github.workspace }}/test/LinuxKernel/${{ matrix.arch }}/test-failures.txt"
+
+      - name: Update build entry
+        if: matrix.enabled == 1 && success() && github.event_name == 'schedule'
+        uses: ./.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "post-"
+          workflow-name: "Linux Kernel"
+          record-mode: "update"
+          status: "pass"
+          run-id: ${{github.run_id}}
+          arch-name: "${{ matrix.arch }}"
+          branch-name: "${{env.BUILD_BRANCH}}"

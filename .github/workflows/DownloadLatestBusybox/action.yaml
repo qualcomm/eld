@@ -1,0 +1,59 @@
+name: DownloadLatestBusybox
+description: Download the BusyBox binary artifact from the latest successful busybox-eld.yml run
+
+inputs:
+  arch:
+    description: "Target architecture matrix key (e.g. riscv32, x86_64)"
+    required: true
+  path:
+    description: "Directory to download the busybox binary into"
+    required: false
+    default: "busybox-dl"
+
+outputs:
+  busybox_path:
+    description: "Path to the downloaded busybox binary"
+    value: ${{ steps.locate.outputs.busybox_path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Resolve busybox-eld.yml run id
+      id: resolve
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+      with:
+        github-token: ${{ github.token }}
+        script: |
+          const owner = context.repo.owner;
+          const repo = context.repo.repo;
+          const resp = await github.rest.actions.listWorkflowRuns({
+            owner, repo,
+            workflow_id: 'busybox-eld.yml',
+            status: 'success',
+            per_page: 1, // we only need the latest
+          });
+          const runs = resp.data.workflow_runs || [];
+          if (runs.length === 0) {
+            core.setFailed('No successful busybox-eld.yml run found.');
+            return;
+          }
+          const run = runs[0];
+          core.info(`Latest successful busybox-eld.yml run: id=${run.id}, run_number=${run.run_number}`);
+          core.setOutput('run_id', String(run.id));
+
+    - name: Download BusyBox binary
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c #v8.0.1
+      with:
+        name: busybox-eld-${{ inputs.arch }}
+        run-id: ${{ steps.resolve.outputs.run_id }}
+        github-token: ${{ github.token }}
+        path: ${{ inputs.path }}
+
+    - name: Locate downloaded binary
+      id: locate
+      shell: bash
+      env:
+        BUSYBOX_PATH: ${{ inputs.path }}
+      run: |
+        set -euo pipefail
+        echo "busybox_path=${BUSYBOX_PATH}/busybox" >> "${GITHUB_OUTPUT}"
