@@ -33,7 +33,11 @@ void EntryCmd::dump(llvm::raw_ostream &Outs) const {
 
 eld::Expected<void> EntryCmd::activate(Module &CurModule) {
   GeneralOptions &Options = CurModule.getConfig().options();
-  if (!EntrySymbol.empty() && !Options.isEntryFromCmdLine())
-    Options.setEntry(EntrySymbol);
+  if (!EntrySymbol.empty()) {
+    if (Options.hasEntry() && CurModule.getConfig().showLinkerScriptWarnings())
+      CurModule.getConfig().raise(Diag::warn_multiple_entry);
+    if (!Options.isEntryFromCmdLine())
+      Options.setEntry(EntrySymbol);
+  }
   return eld::Expected<void>();
 }
