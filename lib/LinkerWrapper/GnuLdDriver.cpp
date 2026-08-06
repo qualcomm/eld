@@ -719,7 +719,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
       T::fatal_internal_errors, T::no_fatal_internal_errors, /*default=*/false);
   Config.options().setFatalInternalErrors(enableFatalInternalErrors);
 
-  // set up entry point from -e
+  // set up entry point from -e;
   if (llvm::opt::Arg *arg = Args.getLastArg(T::entrypoint)) {
     Config.options().setEntry(arg->getValue());
     Config.options().setEntryFromCmdLine();
