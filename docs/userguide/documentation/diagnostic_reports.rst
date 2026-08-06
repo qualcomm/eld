@@ -85,7 +85,7 @@ General Warning Flags
    * - ``-Werror``
      - Treats all warnings as errors, halting the link process.
    * - ``-Wlinker-script``
-     - Enables warnings specific to linker script issues, such as malformed directives, deprecated syntax, or unsupported constructs.
+     - Enables warnings specific to linker script issues, such as malformed directives, deprecated syntax, unsupported constructs or specifying multiple entry points.
    * - ``-Wlinker-script-memory``
      - Focuses on memory region definitions in linker scripts, such as overlaps or undefined regions.
    * - ``-Wwhole-archive``

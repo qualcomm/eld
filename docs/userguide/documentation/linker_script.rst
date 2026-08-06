@@ -476,6 +476,10 @@ Syntax :- ``ENTRY(symbol)``
   program is loaded.
 - This command is equivalent to the linker command-line option
   :option:`-e`.
+- When multiple ENTRY() commands appear (in one script or across
+  several -T scripts), the last one takes effect.
+- When entry point is specified through both -e and -T script, -e will
+  be considered.
 
 OUTPUT_FORMAT
 ^^^^^^^^^^^^^
