@@ -421,13 +421,6 @@ private:
   Expression &RightExpression;
 };
 
-// Type aliases kept for call-site compatibility.
-using Add = BinaryOp;
-using Subtract = BinaryOp;
-using Modulo = BinaryOp;
-using Multiply = BinaryOp;
-using Divide = BinaryOp;
-
 //===----------------------------------------------------------------------===//
 /** \class SizeOf
  *  \brief This class extends an Expression to a SizeOf operator.
@@ -666,14 +659,6 @@ private:
   Expression &RightExpression;     /// represents the right hand expression.
 };
 
-// Condition operator aliases — all implemented by BinaryOp.
-using ConditionGT = BinaryOp;
-using ConditionLT = BinaryOp;
-using ConditionEQ = BinaryOp;
-using ConditionGTE = BinaryOp;
-using ConditionLTE = BinaryOp;
-using ConditionNEQ = BinaryOp;
-
 //===----------------------------------------------------------------------===//
 /** \class UnaryOp
  *  \brief Unified unary operator expression (complement, unary plus/minus/not).
@@ -713,11 +698,6 @@ private:
   Expression &ExpressionToEvaluate;
 };
 
-// Unary operator aliases — all implemented by UnaryOp.
-using Complement = UnaryOp;
-using UnaryPlus = UnaryOp;
-using UnaryMinus = UnaryOp;
-using UnaryNot = UnaryOp;
 //===----------------------------------------------------------------------===//
 /** \class Constant
  *  \brief This class extends an Expression to a Constant operator.
@@ -837,14 +817,6 @@ private:
   std::vector<Expression *> Arguments;
   std::vector<uint64_t> ArgValues;
 };
-
-// Bitwise and logical operator aliases — all implemented by BinaryOp.
-using RightShift = BinaryOp;
-using LeftShift = BinaryOp;
-using BitwiseOr = BinaryOp;
-using BitwiseAnd = BinaryOp;
-using BitwiseXor = BinaryOp;
-using LogicalOp = BinaryOp;
 
 //===----------------------------------------------------------------------===//
 /** \class Defined
@@ -1020,9 +992,6 @@ private:
   Expression &ExpressionToEvaluate; /// represents the expression to complement
 };
 
-// Max and Min aliases — all implemented by BinaryOp.
-using Max = BinaryOp;
-using Min = BinaryOp;
 class QueryMemory : public Expression {
 public:
   QueryMemory(Expression::Type Type, Module &Module, const std::string &Name);
