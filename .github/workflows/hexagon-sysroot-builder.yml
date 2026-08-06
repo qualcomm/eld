@@ -1,0 +1,147 @@
+name: Nightly Hexagon sysroot builder
+
+on:
+  workflow_run:
+    workflows: ["Nightly check"]   # matches name: in nightly-test.yml
+    types: [completed]
+  workflow_dispatch:     # Allows manual triggering
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-hexagon-sysroot:
+    name: Build Hexagon sysroot
+    if: >
+      github.repository == 'qualcomm/eld' &&
+      (github.event_name != 'workflow_run' ||
+       github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    env:
+      ELD_SOURCE_DIR: llvm-project/llvm/tools/eld
+    steps:
+      - name: Checkout eld
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: llvm-project/llvm/tools/eld
+
+      - name: Configure workflow environment variables
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+
+      - name: Record pre-build entry
+        if: github.event_name == 'workflow_run'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "pre-"
+          workflow-name: "hexagon-sysroot"
+          record-mode: "record"
+          status: "fail"
+          run-id: ${{github.run_id}}
+          arch-name: "hexagon"
+          branch-name: "${{env.BUILD_BRANCH}}"
+
+      - name: Install system dependencies
+        shell: bash
+        run: |
+          sudo apt update
+          sudo apt install -y clang ninja-build make bison flex python3 m4 git libglib2.0-dev cmake
+
+      - name: Fetch latest nightly toolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+
+      - name: Clone QEMU
+        shell: bash
+        run: |
+          git clone --depth 1 --branch hexagon-sysemu-23-apr-2026 \
+            https://github.com/qualcomm/qemu.git ${{ github.workspace }}/qemu-system-hexagon
+
+      - name: Build and install QEMU
+        shell: bash
+        run: |
+          cd ${{ github.workspace }}/qemu-system-hexagon
+          ./configure --cc=clang --cxx=clang++ \
+            --target-list=hexagon-softmmu \
+            --prefix=${{ github.workspace }}/install-qemu-system-hexagon \
+            --extra-cflags="-Wno-misleading-indentation -Wno-unused-but-set-variable"
+          cd build
+          ninja install
+          echo "${{ github.workspace }}/install-qemu-system-hexagon/bin" >> "$GITHUB_PATH"
+
+      - name: Install Meson
+        shell: bash
+        run: |
+          git clone https://github.com/mesonbuild/meson.git meson
+          cd meson
+          ./packaging/create_zipapp.py --outfile meson.pyz --interpreter '/usr/bin/env python3' .
+          mkdir -p bin
+          ln -s $(realpath meson.pyz) bin/meson
+          echo "PATH=$PWD/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Clone LLVM Project
+        shell: bash
+        run: |
+          git clone --depth 1 --branch main \
+            https://github.com/llvm/llvm-project ${{ github.workspace }}/llvm-project-src
+
+      - name: Clone Picolibc
+        shell: bash
+        run: |
+          git clone --depth 1 --branch main \
+            https://github.com/picolibc/picolibc.git ${{ github.workspace }}/picolibc
+
+      - name: Clone Hexagon Hypervisor (H2)
+        shell: bash
+        run: |
+          git clone --depth 1 --branch upstream-toolchain \
+            https://github.com/quic-k/hexagon-hypervisor.git ${{ github.workspace }}/hexagon-hypervisor
+
+      - name: Configure Hexagon sysroot build
+        shell: bash
+        run: |
+          set -euo pipefail
+          SYSROOT_CMAKE_DIR="${{ github.workspace }}/llvm-project/llvm/tools/eld/.github/workflows/hexagon-sysroot"
+          cmake -C "${SYSROOT_CMAKE_DIR}/build-hexagon-sysroot.cmake" \
+            -DTOOLCHAIN="${{ github.workspace }}/inst" \
+            -DSOURCECODE="${{ github.workspace }}/llvm-project-src" \
+            -DPICOLIBC_SRC="${{ github.workspace }}/picolibc" \
+            -DH2_SRC="${{ github.workspace }}/hexagon-hypervisor" \
+            -S "${SYSROOT_CMAKE_DIR}" \
+            -B "${{ github.workspace }}/build-hexagon-sysroot"
+
+      - name: Build Hexagon sysroot
+        shell: bash
+        run: |
+          cmake --build ${{ github.workspace }}/build-hexagon-sysroot -j"$(nproc)"
+
+      - name: Pack Hexagon sysroot tarball
+        shell: bash
+        run: |
+          tar -C ${{ github.workspace }}/inst \
+            -Jcvf hexagon-sysroot.tar.xz target/picolibc bin/h2-picolibc.cfg
+
+      - name: Upload Hexagon sysroot tarball
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+        with:
+          name: hexagon-sysroot
+          path: hexagon-sysroot.tar.xz
+          retention-days: 2
+
+      - name: Update build entry
+        if: github.event_name == 'workflow_run'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "post-"
+          workflow-name: "hexagon-sysroot"
+          record-mode: "update"
+          status: "pass"
+          run-id: ${{github.run_id}}
+          arch-name: "hexagon"
+          branch-name: "${{env.BUILD_BRANCH}}"
