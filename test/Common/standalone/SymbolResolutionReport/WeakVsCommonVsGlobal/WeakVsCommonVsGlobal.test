@@ -9,17 +9,18 @@ RUN: %clang %clangopts -fcommon -o %t1.1.o %p/Inputs/1.c -c
 RUN: %clang %clangopts -fcommon -o %t1.2.o %p/Inputs/2.c -c
 RUN: %clang %clangopts -fcommon -o %t1.3.o %p/Inputs/3.c -c
 RUN: %clang %clangopts -fcommon -o %t1.4.o %p/Inputs/4.c -c
-RUN: %link -MapStyle txt %linkopts -o %t1.foo.out %t1.0.o %t1.1.o %t1.2.o %t1.3.o %t1.4.o -Map %t1.foo.map.txt --MapDetail show-symbol-resolution
-RUN: %filecheck %s < %t1.foo.map.txt
+RUN: %link %linkopts -o %t1.foo.out %t1.0.o %t1.1.o %t1.2.o %t1.3.o %t1.4.o --emit-symbol-resolution-report %t1.foo.json
+RUN: %python %eld_src_tools_root/SymbolResolutionInspector/SymbolResolutionInspector.py %t1.foo.json | %filecheck %s
 
-CHECK: # Symbol Resolution:
 CHECK: fn
-CHECK-NEXT: fn({{.*}}0.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+CHECK-NEXT: Selected: {{.*}}0.o(fn)
+CHECK-NEXT: fn({{.*}}0.o:.text) [Size={{.*}}, Def, Global, Function, Default] [Selected]
 CHECK: foo
-CHECK-NEXT: foo({{.*}}0.o) [Size={{.*}}, Undef, Global, NoType]
-CHECK-NEXT: foo({{.*}}1.o:{{.*}}) [Size={{.*}}, Def, Global, Object] [Selected]
-CHECK-NEXT: foo({{.*}}2.o:{{.*}}) [Size={{.*}}, Def, Weak, Object]
-CHECK-NEXT: foo({{.*}}3.o:{{.*}}) [Size={{.*}}, Def, Weak, Object]
-CHECK-NEXT: foo({{.*}}4.o) [Size={{.*}}, Common, Global, Object]
+CHECK-NEXT: Selected: {{.*}}1.o(foo)
+CHECK-NEXT: foo({{.*}}0.o) [Size={{.*}}, Undef, Global, NoType, Default]
+CHECK-NEXT: foo({{.*}}1.o:{{.*}}) [Size={{.*}}, Def, Global, Object, Default] [Selected]
+CHECK-NEXT: foo({{.*}}2.o:{{.*}}) [Size={{.*}}, Def, Weak, Object, Default]
+CHECK-NEXT: foo({{.*}}3.o:{{.*}}) [Size={{.*}}, Def, Weak, Object, Default]
+CHECK-NEXT: foo({{.*}}4.o) [Size={{.*}}, Common, Global, Object, Default]
 
 

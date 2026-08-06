@@ -29,8 +29,21 @@ public:
   using CandidatesTableType = llvm::StringMap<CandidatesType>;
   using SymbolInfoMapType = llvm::MapVector<const LDSymbol *, SymbolInfo>;
 
-  std::string getSymbolInfoAsString(const LDSymbol *Sym,
-                                    const GeneralOptions &Options);
+  /// Returns the (decorated) section name for a defined symbol, or an empty
+  /// string when the symbol has no associated section (Undef/Abs/unknown
+  /// bitcode section). Shared by the JSON symbol resolution report.
+  std::string getSymbolSectionName(const LDSymbol *Sym,
+                                   const SymbolInfo &SymInfo,
+                                   const GeneralOptions &Options) const;
+
+  /// Returns the plugin that provided the symbol, or nullptr for
+  /// non-plugin symbols.
+  const Plugin *getSymbolPlugin(const LDSymbol *Sym) const {
+    auto Iter = SymbolToPluginMap.find(Sym);
+    if (Iter != SymbolToPluginMap.end())
+      return Iter->second;
+    return nullptr;
+  }
 
   /// Setup symbol resolution candidates information. This information is
   /// required for creating symbol resolution report. This function does two
@@ -57,6 +70,7 @@ public:
 
   const LDSymbol *getCorrespondingLTOObjectSymIfAny(const LDSymbol *S) const;
 
+  // FIXME: Shouldn't we record plugin symbols in SymbolInfoMap?
   void recordPluginSymbol(const LDSymbol *Sym, const Plugin *Plugin) {
     SymbolToPluginMap[Sym] = Plugin;
   }
