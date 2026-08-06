@@ -1,7 +1,14 @@
+#---IncludesInMap.test--------------------- Executable,LS-------------------#
+#BEGIN_COMMENT
+# Verify map-file output reports linker scripts used by INCLUDE in parse order
+# and annotates nested includes with their call-site line number.
+#END_COMMENT
+#START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.o
 RUN: %link %linkopts %t1.o -o %t.out -L%p/Inputs -T=%p/Inputs/1.t -M 2>&1 | %filecheck %s
+#END_TEST
 
-#CHECK: Linker scripts used
-#CHECK: 1.t
-#CHECK: 3.t
-#CHECK: 2.t
+# CHECK: Linker scripts used
+# CHECK: 1.t
+# CHECK: 3.t:2
+# CHECK: 2.t:1

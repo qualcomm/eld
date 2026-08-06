@@ -203,6 +203,8 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
     if (ThisLayoutInfo->getConfig().options().hasMappingFile())
       LinkerScriptName = ThisLayoutInfo->getPath(LinkerScriptName) + "(" +
                          LinkerScriptName + ")";
+    if (Script.LineNumber)
+      LinkerScriptName += ":" + std::to_string(*Script.LineNumber);
     if (!Script.Found)
       LinkerScriptName += "(NOTFOUND)";
     if (!Script.RemappedFrom.empty())

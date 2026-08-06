@@ -8,7 +8,7 @@ RUN: %not %link %linkopts %t1.o -T %p/Inputs/a.t 2>&1 | %filecheck %s
 RUN: %not %link %linkopts %t1.o -T %p/Inputs/a.t 2>&1 | %filecheck %s -check-prefix=MSG
 
 #CHECK-NOT: UNEXPECTED LINKER BEHAVIOR
-#MSG: {{.*}}a.t: division by zero in expression 0xa / 0x0
+#MSG: {{.*}}a.t:{{.*}}: division by zero in expression 0xa / 0x0
 #MSG: Fatal: Linking had errors
 
 #END_TEST

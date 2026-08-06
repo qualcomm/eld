@@ -26,6 +26,9 @@
 #include "eld/Script/RegionAlias.h"
 #include "eld/Script/StrToken.h"
 #include "eld/Script/VersionScript.h"
+#include "llvm/Support/raw_ostream.h"
+#include <functional>
+#include <optional>
 #include <stack>
 #include <string>
 #include <unordered_set>
@@ -66,7 +69,7 @@ public:
     ExcludeFile,           // EXCLUDE_FILE(...)
     ExternList,            // --extern-list
     DuplicateCodeList,     // --copy-farcalls-from-file
-    NoReuseTrampolineList, // --no-reuse-trampolines-file
+    NoReuseTrampolineList, // -no-reuse-trampolines-file
     Memory,                // MEMORY
     Unknown
   };
@@ -228,6 +231,16 @@ public:
 
   InputFile *getContext() const;
 
+  void setCurrentLineNumberSource(std::function<size_t()> Fn) {
+    CurrentLineNumberSource = std::move(Fn);
+  }
+
+  std::optional<size_t> getCurrentLineNumber() const {
+    if (CurrentLineNumberSource)
+      return CurrentLineNumberSource();
+    return std::nullopt;
+  }
+
   // Adds included linkerscript to --reproduce tarball
   void addInputToTar(const std::string &Filename,
                      const std::string &ResolvedPath) const;
@@ -286,7 +299,8 @@ public:
 
   // ------------------------ MEMORY ------------------------------------
   void addMemoryRegion(StrToken *Name, StrToken *Attributes, Expression *Origin,
-                       Expression *Length);
+                       Expression *Length, InputFile *CapturedContext,
+                       std::optional<size_t> CapturedLineNumber = std::nullopt);
 
   void leaveMemoryCmd() {}
 
@@ -351,6 +365,8 @@ private:
   std::stack<InputFile *> ScriptFileStack;
   std::vector<ScriptSymbol *> *DynamicListSymbols = nullptr;
   bool IsLeavingOutputSectDesc = false;
+
+  std::function<size_t()> CurrentLineNumberSource;
   eld::VersionScript *LinkerVersionScript = nullptr;
   eld::MemoryCmd *MemoryCmd = nullptr;
   std::vector<Assignment *> Assignments;

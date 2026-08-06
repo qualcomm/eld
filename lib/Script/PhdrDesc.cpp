@@ -43,6 +43,8 @@ void PhdrDesc::dump(llvm::raw_ostream &Outs) const {
     Outs << ")";
   }
   Outs << ";";
+  if (hasLineNumberInContext())
+    Outs << " # " << getContext();
   Outs << "\n";
 }
 
