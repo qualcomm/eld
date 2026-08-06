@@ -752,6 +752,13 @@ Relocator::Result eld::relocTPOFF(Relocation &pReloc, x86_64Relocator &pParent,
 
   uint64_t TLSTemplateSize = pParent.getTarget().getTLSTemplateSize();
 
+  ResolveInfo *rsym = pReloc.symInfo();
+  if (rsym && rsym->isWeakUndef() &&
+      (pParent.config().codeGenType() == LinkerConfig::Exec)) {
+    Relocator::DWord A = pReloc.addend();
+    return ApplyReloc(pReloc, A, pRelocDesc, DiagEngine, options, pParent);
+  }
+
   if (TLSTemplateSize == 0) {
     pParent.config().raise(Diag::no_pt_tls_segment);
     return Relocator::BadReloc;
