@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5. Hexagon Relocation Reference &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="6. GNU IFunc support" href="IFunc.html" />
+    <link rel="prev" title="4. ELD Code Coverage Guide" href="EldCodeCoverage.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_diagnostics.html">5. Linker Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/eld_debugging_guide.html">6. ELD  (debugging guide)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html">7. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">8. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/image_structure_and_generation.html">9. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/elf_tools.html">13. ELF TOOLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/lto_support.html">14. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/getting_image_details.html">15. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/options/options.html">16. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/target_specific_features.html">17. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/sframe_support.html">18. SFrame Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/editor_support.html">19. Editor Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_faq.html">20. Linker support and frequently asked questions!!!</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Docs</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="AArch64-Relocations.html">1. AArch64 Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ARM-Relocations.html">2. ARM Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AddingABackend.html">3. Adding a New Backend to ELD</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EldCodeCoverage.html">4. ELD Code Coverage Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">5. Hexagon Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="IFunc.html">6. GNU IFunc support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RISCV-Relocations.html">7. RISC-V Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="X86_64-Relocations.html">8. x86-64 Relocation Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5. </span>Hexagon Relocation Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/DeveloperDocs/Hexagon-Relocations.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="hexagon-relocation-reference">
+<h1><span class="section-number">5. </span>Hexagon Relocation Reference<a class="headerlink" href="#hexagon-relocation-reference" title="Permalink to this heading"></a></h1>
+<div class="section" id="introduction">
+<h2><span class="section-number">5.1. </span>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading"></a></h2>
+<p>Hexagon is a VLIW DSP architecture where all instructions are 32 bits wide. Relocations encode symbol references into instruction immediate fields. The Hexagon ABI supports an extended relocation pair mechanism for large offsets: a non-extended relocation encodes the low 6 bits, while a paired <code class="docutils literal notranslate"><span class="pre">_X</span></code>-suffix relocation encodes the upper bits of the value.</p>
+</div>
+<div class="section" id="relocation-conventions">
+<h2><span class="section-number">5.2. </span>Relocation Conventions<a class="headerlink" href="#relocation-conventions" title="Permalink to this heading"></a></h2>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Symbol</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">S</span></code></p></td>
+<td><p>Runtime address of the referenced symbol</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">A</span></code></p></td>
+<td><p>Relocation addend</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">P</span></code></p></td>
+<td><p>Address of the relocation site (place)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GP</span></code></p></td>
+<td><p>Global pointer value</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GOT</span></code></p></td>
+<td><p>Address of the Global Offset Table</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span></code></p></td>
+<td><p>Address of the GOT entry for symbol <code class="docutils literal notranslate"><span class="pre">S</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TP</span></code></p></td>
+<td><p>Thread pointer</p></td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="extended-relocation-pair-mechanism">
+<h3><span class="section-number">5.2.1. </span>Extended Relocation Pair Mechanism<a class="headerlink" href="#extended-relocation-pair-mechanism" title="Permalink to this heading"></a></h3>
+<p>For branch or absolute references that exceed the reach of a single immediate field, Hexagon uses a two-relocation sequence:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">R_HEX_B32_PCREL_X</span></code></strong> (or <code class="docutils literal notranslate"><span class="pre">R_HEX_32_6_X</span></code> for absolute) encodes bits <code class="docutils literal notranslate"><span class="pre">[31:6]</span></code> of the value into a 32-bit instruction immediate using a 26-bit field with shift 6.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">R_HEX_B*_PCREL_X</span></code> / <code class="docutils literal notranslate"><span class="pre">R_HEX_*_X</span></code></strong> (the non-extended counterpart) encodes bits <code class="docutils literal notranslate"><span class="pre">[5:0]</span></code> of the value into a 6-bit field with no shift.</p></li>
+</ul>
+<p>Relocations with the <code class="docutils literal notranslate"><span class="pre">_X</span></code> suffix are the upper-bits half of such a pair. The lower-bits half uses <code class="docutils literal notranslate"><span class="pre">R_HEX_6_PCREL_X</span></code> (PC-relative) or a corresponding <code class="docutils literal notranslate"><span class="pre">R_HEX_*_X</span></code> variant (absolute).</p>
+</div>
+<div class="section" id="table-columns">
+<h3><span class="section-number">5.2.2. </span>Table Columns<a class="headerlink" href="#table-columns" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>EffectiveBits</p></td>
+<td><p>Number of significant bits checked after the shift is applied</p></td>
+</tr>
+<tr class="row-odd"><td><p>Shift</p></td>
+<td><p>Right-shift applied to the value before encoding and before the range check</p></td>
+</tr>
+<tr class="row-even"><td><p>Signed</p></td>
+<td><p>Whether the field is treated as a signed two’s-complement value</p></td>
+</tr>
+<tr class="row-odd"><td><p>Range check</p></td>
+<td><p>Exact inequality the linker enforces on the raw value <code class="docutils literal notranslate"><span class="pre">X</span></code>; <code class="docutils literal notranslate"><span class="pre">—</span></code> means no check</p></td>
+</tr>
+<tr class="row-even"><td><p>Alignment check</p></td>
+<td><p>Exact divisibility condition the linker enforces on the raw value <code class="docutils literal notranslate"><span class="pre">X</span></code>; <code class="docutils literal notranslate"><span class="pre">—</span></code> means no check</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>How the checks work.</strong> Let <code class="docutils literal notranslate"><span class="pre">X</span></code> be the raw relocation value (e.g. <code class="docutils literal notranslate"><span class="pre">S+A-P</span></code>).</p>
+<ul class="simple">
+<li><p>Range (signed, N bits, shift S): <code class="docutils literal notranslate"><span class="pre">-(2^(N-1)</span> <span class="pre">×</span> <span class="pre">2^S)</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^(N-1)</span> <span class="pre">×</span> <span class="pre">2^S</span></code>  — i.e. <code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">&gt;&gt;</span> <span class="pre">S</span></code> fits in a signed N-bit field.</p></li>
+<li><p>Range (unsigned, N bits, shift S): <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^N</span> <span class="pre">×</span> <span class="pre">2^S</span></code> — i.e. <code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">&gt;&gt;</span> <span class="pre">S</span></code> fits in an unsigned N-bit field.</p></li>
+<li><p>Alignment: <code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">A</span> <span class="pre">==</span> <span class="pre">0</span></code> where <code class="docutils literal notranslate"><span class="pre">A</span></code> is the per-relocation alignment requirement shown in the check expression.</p></li>
+</ul>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="absolute-relocations">
+<h2><span class="section-number">5.3. </span>Absolute Relocations<a class="headerlink" href="#absolute-relocations" title="Permalink to this heading"></a></h2>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Expression</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>32</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_8</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>8</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_LO16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_HI16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>16</p></td>
+<td><p>16</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">R_HEX_LO16</span></code> encodes bits <code class="docutils literal notranslate"><span class="pre">[15:0]</span></code> and <code class="docutils literal notranslate"><span class="pre">R_HEX_HI16</span></code> encodes bits <code class="docutils literal notranslate"><span class="pre">[31:16]</span></code> of <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code> into an instruction immediate. <code class="docutils literal notranslate"><span class="pre">R_HEX_HL16</span></code> is not supported by ELD.</p>
+</div>
+<hr class="docutils" />
+<div class="section" id="pc-relative-branch-relocations">
+<h2><span class="section-number">5.4. </span>PC-Relative Branch Relocations<a class="headerlink" href="#pc-relative-branch-relocations" title="Permalink to this heading"></a></h2>
+<p>Expression: <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p>
+<div class="section" id="non-extended">
+<h3><span class="section-number">5.4.1. </span>Non-Extended<a class="headerlink" href="#non-extended" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_B22_PCREL</span></code></p></td>
+<td><p>22</p></td>
+<td><p>2</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^23</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^23</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">4</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_B15_PCREL</span></code></p></td>
+<td><p>15</p></td>
+<td><p>2</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^16</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">4</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_B13_PCREL</span></code></p></td>
+<td><p>13</p></td>
+<td><p>2</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^14</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^14</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">4</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_B9_PCREL</span></code></p></td>
+<td><p>9</p></td>
+<td><p>2</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^10</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^10</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">4</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_B7_PCREL</span></code></p></td>
+<td><p>7</p></td>
+<td><p>2</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^8</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^8</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">4</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_32_PCREL</span></code></p></td>
+<td><p>32</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_6_PCREL_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">R_HEX_32_PCREL</span></code> is a 32-bit PC-relative relocation used in data (not in instruction immediates). <code class="docutils literal notranslate"><span class="pre">R_HEX_6_PCREL_X</span></code> encodes the low 6 bits of an extended PC-relative pair.</p>
+</div>
+<div class="section" id="extended-x-variants-upper-bits-of-a-two-relocation-sequence">
+<h3><span class="section-number">5.4.2. </span>Extended (_X variants — upper bits of a two-relocation sequence)<a class="headerlink" href="#extended-x-variants-upper-bits-of-a-two-relocation-sequence" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_B32_PCREL_X</span></code></p></td>
+<td><p>26</p></td>
+<td><p>6</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_B22_PCREL_X</span></code></p></td>
+<td><p>22</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^21</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^21</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_B15_PCREL_X</span></code></p></td>
+<td><p>15</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^14</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^14</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_B13_PCREL_X</span></code></p></td>
+<td><p>13</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^12</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^12</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_B9_PCREL_X</span></code></p></td>
+<td><p>9</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^8</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^8</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_B7_PCREL_X</span></code></p></td>
+<td><p>7</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^6</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^6</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="example-extended-b22-pair">
+<h4><span class="section-number">5.4.2.1. </span>Example: Extended B22 Pair<a class="headerlink" href="#example-extended-b22-pair" title="Permalink to this heading"></a></h4>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1">; Upper bits: R_HEX_B32_PCREL_X encodes (S+A-P)[31:6]</span>
+<span class="c1">; Lower bits: R_HEX_6_PCREL_X encodes (S+A-P)[5:0]</span>
+<span class="nf">call</span><span class="w"> </span><span class="no">target</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="gp-relative-relocations">
+<h2><span class="section-number">5.5. </span>GP-Relative Relocations<a class="headerlink" href="#gp-relative-relocations" title="Permalink to this heading"></a></h2>
+<p>Expression: <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">GP</span></code></p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GPREL16_0</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">1</span> <span class="pre">==</span> <span class="pre">0</span></code> (any)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GPREL16_1</span></code></p></td>
+<td><p>16</p></td>
+<td><p>1</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^17</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">2</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GPREL16_2</span></code></p></td>
+<td><p>16</p></td>
+<td><p>2</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^18</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">4</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GPREL16_3</span></code></p></td>
+<td><p>16</p></td>
+<td><p>3</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^19</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">8</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>The suffix <code class="docutils literal notranslate"><span class="pre">_0</span></code> through <code class="docutils literal notranslate"><span class="pre">_3</span></code> reflects the access size: byte, halfword, word, and doubleword respectively.</p>
+</div>
+<hr class="docutils" />
+<div class="section" id="absolute-extended-truncated-relocations">
+<h2><span class="section-number">5.6. </span>Absolute Extended/Truncated Relocations<a class="headerlink" href="#absolute-extended-truncated-relocations" title="Permalink to this heading"></a></h2>
+<p>Expression: <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">R_HEX_32_6_X</span></code> encodes bits <code class="docutils literal notranslate"><span class="pre">[31:6]</span></code> into a 26-bit instruction field (shift 6). The <code class="docutils literal notranslate"><span class="pre">_X</span></code> variants encode only the low 6 bits of the value with no shift, forming the lower half of an absolute extended pair.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_32_6_X</span></code></p></td>
+<td><p>26</p></td>
+<td><p>6</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^32</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_16_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_12_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_11_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_10_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_9_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_8_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_7_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_6_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<div class="section" id="dynamic-relocations">
+<h2><span class="section-number">5.7. </span>Dynamic Relocations<a class="headerlink" href="#dynamic-relocations" title="Permalink to this heading"></a></h2>
+<p>These relocations are resolved by the dynamic linker at load time.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_COPY</span></code></p></td>
+<td><p>Copy relocation — copy symbol from shared library to executable’s BSS</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GLOB_DAT</span></code></p></td>
+<td><p>Fill a GOT entry with the symbol’s runtime address</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_JMP_SLOT</span></code></p></td>
+<td><p>PLT stub — dynamic linker fills with function address</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_RELATIVE</span></code></p></td>
+<td><p>Base-relative relocation — add load bias to a stored address</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<div class="section" id="got-relative-relocations">
+<h2><span class="section-number">5.8. </span>GOT-Relative Relocations<a class="headerlink" href="#got-relative-relocations" title="Permalink to this heading"></a></h2>
+<div class="section" id="got-offset-expression-got-s-a-got-org">
+<h3><span class="section-number">5.8.1. </span>GOT-offset (Expression: <code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">GOT_ORG</span></code>)<a class="headerlink" href="#got-offset-expression-got-s-a-got-org" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GOTREL_LO16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GOTREL_HI16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>16</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GOTREL_32</span></code></p></td>
+<td><p>32</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GOTREL_32_6_X</span></code></p></td>
+<td><p>26</p></td>
+<td><p>6</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GOTREL_16_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GOTREL_11_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="got-entry-pc-relative-expression-got-s-a-p">
+<h3><span class="section-number">5.8.2. </span>GOT entry PC-relative (Expression: <code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code>)<a class="headerlink" href="#got-entry-pc-relative-expression-got-s-a-p" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GOT_LO16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GOT_HI16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>16</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GOT_32</span></code></p></td>
+<td><p>32</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GOT_16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^15</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^15</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GOT_32_6_X</span></code></p></td>
+<td><p>26</p></td>
+<td><p>6</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GOT_16_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GOT_11_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="tls-relocations">
+<h2><span class="section-number">5.9. </span>TLS Relocations<a class="headerlink" href="#tls-relocations" title="Permalink to this heading"></a></h2>
+<div class="section" id="general-dynamic-gd-and-local-dynamic-ld">
+<h3><span class="section-number">5.9.1. </span>General Dynamic (GD) and Local Dynamic (LD)<a class="headerlink" href="#general-dynamic-gd-and-local-dynamic-ld" title="Permalink to this heading"></a></h3>
+<p>These relocations use a GOT-entry-based indirection. Expression: <code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code>.</p>
+<div class="section" id="gd-plt-call">
+<h4><span class="section-number">5.9.1.1. </span>GD PLT Call<a class="headerlink" href="#gd-plt-call" title="Permalink to this heading"></a></h4>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GD_PLT_B22_PCREL</span></code></p></td>
+<td><p>22</p></td>
+<td><p>2</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^23</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^23</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">4</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GD_PLT_B22_PCREL_X</span></code></p></td>
+<td><p>22</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GD_PLT_B32_PCREL_X</span></code></p></td>
+<td><p>26</p></td>
+<td><p>6</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="gd-got-access">
+<h4><span class="section-number">5.9.1.2. </span>GD GOT Access<a class="headerlink" href="#gd-got-access" title="Permalink to this heading"></a></h4>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GD_GOT_LO16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GD_GOT_HI16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>16</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GD_GOT_32</span></code></p></td>
+<td><p>32</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GD_GOT_16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^15</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^15</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">4</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GD_GOT_32_6_X</span></code></p></td>
+<td><p>26</p></td>
+<td><p>6</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GD_GOT_16_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_GD_GOT_11_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+<p>The LD variants follow the same structure:</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_LD_PLT_B22_PCREL</span></code></p></td>
+<td><p>22</p></td>
+<td><p>2</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^23</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^23</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">4</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_LD_PLT_B22_PCREL_X</span></code></p></td>
+<td><p>22</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_LD_PLT_B32_PCREL_X</span></code></p></td>
+<td><p>26</p></td>
+<td><p>6</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_LD_GOT_LO16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_LD_GOT_HI16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>16</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_LD_GOT_32</span></code></p></td>
+<td><p>32</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_LD_GOT_16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">4</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_LD_GOT_32_6_X</span></code></p></td>
+<td><p>26</p></td>
+<td><p>6</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_LD_GOT_16_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_LD_GOT_11_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="initial-exec-ie">
+<h3><span class="section-number">5.9.2. </span>Initial Exec (IE)<a class="headerlink" href="#initial-exec-ie" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_IE_LO16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_IE_HI16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>16</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_IE_32</span></code></p></td>
+<td><p>32</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_IE_32_6_X</span></code></p></td>
+<td><p>26</p></td>
+<td><p>6</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_IE_16_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_IE_GOT_LO16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_IE_GOT_HI16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>16</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_IE_GOT_32</span></code></p></td>
+<td><p>32</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_IE_GOT_32_6_X</span></code></p></td>
+<td><p>26</p></td>
+<td><p>6</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_IE_GOT_16_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_IE_GOT_11_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_IE_GOT_16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^15</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^15</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">4</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="local-exec-le-tp-relative">
+<h3><span class="section-number">5.9.3. </span>Local Exec (LE) — TP-Relative<a class="headerlink" href="#local-exec-le-tp-relative" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_TPREL_LO16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_TPREL_HI16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>16</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_TPREL_32</span></code></p></td>
+<td><p>32</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_TPREL_16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^15</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^15</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_TPREL_32_6_X</span></code></p></td>
+<td><p>26</p></td>
+<td><p>6</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_TPREL_16_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_TPREL_11_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="dtprel-module-relative-local-dynamic">
+<h3><span class="section-number">5.9.4. </span>DTPREL — Module-Relative (Local Dynamic)<a class="headerlink" href="#dtprel-module-relative-local-dynamic" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_DTPMOD_32</span></code></p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_DTPREL_LO16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_DTPREL_HI16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>16</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_DTPREL_32</span></code></p></td>
+<td><p>32</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_DTPREL_16</span></code></p></td>
+<td><p>16</p></td>
+<td><p>0</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^15</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^15</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">4</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_DTPREL_32_6_X</span></code></p></td>
+<td><p>26</p></td>
+<td><p>6</p></td>
+<td><p>yes</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_DTPREL_16_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_DTPREL_11_X</span></code></p></td>
+<td><p>6</p></td>
+<td><p>0</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">R_HEX_DTPMOD_32</span></code> is a dynamic relocation; the dynamic linker fills it with the module ID.</p>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="register-relocations">
+<h2><span class="section-number">5.10. </span>Register Relocations<a class="headerlink" href="#register-relocations" title="Permalink to this heading"></a></h2>
+<p>These relocations encode an address into an instruction’s register-index field.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_23_REG</span></code></p></td>
+<td><p>21</p></td>
+<td><p>2</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^23</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_27_REG</span></code></p></td>
+<td><p>25</p></td>
+<td><p>2</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^27</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<div class="section" id="plt-relocations">
+<h2><span class="section-number">5.11. </span>PLT Relocations<a class="headerlink" href="#plt-relocations" title="Permalink to this heading"></a></h2>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>EffectiveBits</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+<th class="head"><p>Alignment check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_HEX_PLT_B22_PCREL</span></code></p></td>
+<td><p>22</p></td>
+<td><p>2</p></td>
+<td><p>yes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-2^23</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^23</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">%</span> <span class="pre">4</span> <span class="pre">==</span> <span class="pre">0</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">R_HEX_PLT_B22_PCREL</span></code> is used in PLT stubs to call the PLT resolver.</p>
+</div>
+<hr class="docutils" />
+<div class="section" id="references">
+<h2><span class="section-number">5.12. </span>References<a class="headerlink" href="#references" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>ELF for the Hexagon Architecture (Hexagon V73 ABI)</p>
+<ul>
+<li><p>https://docs.qualcomm.com/bundle/publicresource/topics/80-N2040-1/ELF_for_the_Hexagon_Architecture.html</p></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="EldCodeCoverage.html" class="btn btn-neutral float-left" title="4. ELD Code Coverage Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="IFunc.html" class="btn btn-neutral float-right" title="6. GNU IFunc support" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

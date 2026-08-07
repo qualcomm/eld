@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>7. RISC-V Relocation Reference &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="8. x86-64 Relocation Reference" href="X86_64-Relocations.html" />
+    <link rel="prev" title="6. GNU IFunc support" href="IFunc.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_diagnostics.html">5. Linker Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/eld_debugging_guide.html">6. ELD  (debugging guide)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html">7. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">8. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/image_structure_and_generation.html">9. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/elf_tools.html">13. ELF TOOLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/lto_support.html">14. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/getting_image_details.html">15. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/options/options.html">16. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/target_specific_features.html">17. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/sframe_support.html">18. SFrame Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/editor_support.html">19. Editor Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_faq.html">20. Linker support and frequently asked questions!!!</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Docs</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="AArch64-Relocations.html">1. AArch64 Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ARM-Relocations.html">2. ARM Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AddingABackend.html">3. Adding a New Backend to ELD</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EldCodeCoverage.html">4. ELD Code Coverage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Hexagon-Relocations.html">5. Hexagon Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="IFunc.html">6. GNU IFunc support</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">7. RISC-V Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="X86_64-Relocations.html">8. x86-64 Relocation Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">7. </span>RISC-V Relocation Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/DeveloperDocs/RISCV-Relocations.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="risc-v-relocation-reference">
+<h1><span class="section-number">7. </span>RISC-V Relocation Reference<a class="headerlink" href="#risc-v-relocation-reference" title="Permalink to this heading"></a></h1>
+<div class="section" id="introduction">
+<h2><span class="section-number">7.1. </span>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading"></a></h2>
+<p>This document describes the RISC-V relocations handled by ELD, including
+their encoding types, alignment requirements, range checks, and the
+relaxations that transform instruction sequences at link time.</p>
+<p>The official ABI specification is the RISC-V ELF psABI:
+https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/master/riscv-elf.adoc</p>
+</div>
+<hr class="docutils" />
+<div class="section" id="relocation-conventions">
+<h2><span class="section-number">7.2. </span>Relocation Conventions<a class="headerlink" href="#relocation-conventions" title="Permalink to this heading"></a></h2>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Symbol</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">S</span></code></p></td>
+<td><p>Runtime address of the referenced symbol</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">A</span></code></p></td>
+<td><p>Relocation addend</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">P</span></code></p></td>
+<td><p>Address of the relocation site</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">G</span></code></p></td>
+<td><p>Address of the global pointer (<code class="docutils literal notranslate"><span class="pre">__global_pointer$</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GOT</span></code></p></td>
+<td><p>Global Offset Table base address</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">X</span></code></p></td>
+<td><p>Relocation result before masking/encoding</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<div class="section" id="encoding-types">
+<h2><span class="section-number">7.3. </span>Encoding Types<a class="headerlink" href="#encoding-types" title="Permalink to this heading"></a></h2>
+<p>Each relocation carries an encoding type that describes which instruction
+immediate field is written and how the value is packed into it.  The
+“Immediate bits written” column shows which bits of the computed relocation
+value <code class="docutils literal notranslate"><span class="pre">X</span></code> are placed into which instruction word bits, matching the
+<code class="docutils literal notranslate"><span class="pre">encode*</span></code> helpers in <code class="docutils literal notranslate"><span class="pre">RISCVHelper.h</span></code>.</p>
+<div class="section" id="unscrambled-linear-encodings">
+<h3><span class="section-number">7.3.1. </span>Unscrambled (linear) encodings<a class="headerlink" href="#unscrambled-linear-encodings" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Encoding</p></th>
+<th class="head"><p>Instruction format</p></th>
+<th class="head"><p>Value bits → instruction bits</p></th>
+<th class="head"><p>Width</p></th>
+<th class="head"><p>Inst size</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_None</span></code></p></td>
+<td><p>No field written</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_8</span></code></p></td>
+<td><p>Data byte</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[7:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[7:0]</span></code></p></td>
+<td><p>8</p></td>
+<td><p>8-bit</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_16</span></code></p></td>
+<td><p>Data halfword</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[15:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[15:0]</span></code></p></td>
+<td><p>16</p></td>
+<td><p>16-bit</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>Data word</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[31:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[31:0]</span></code></p></td>
+<td><p>32</p></td>
+<td><p>32-bit</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p>Data doubleword</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[63:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[63:0]</span></code></p></td>
+<td><p>64</p></td>
+<td><p>64-bit</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_6</span></code></p></td>
+<td><p>Byte, low 6 bits</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[5:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[5:0]</span></code></p></td>
+<td><p>6</p></td>
+<td><p>8-bit</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_LEB128</span></code></p></td>
+<td><p>ULEB128 data</p></td>
+<td><p>Variable-length unsigned LEB128</p></td>
+<td><p>var</p></td>
+<td><p>variable</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="bit-instruction-encodings">
+<h3><span class="section-number">7.3.2. </span>32-bit instruction encodings<a class="headerlink" href="#bit-instruction-encodings" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Encoding</p></th>
+<th class="head"><p>Instruction format</p></th>
+<th class="head"><p>Value bits → instruction bits</p></th>
+<th class="head"><p>Width</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_I</span></code></p></td>
+<td><p>I-type (<code class="docutils literal notranslate"><span class="pre">addi</span></code>, <code class="docutils literal notranslate"><span class="pre">lw</span></code>, …)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[11:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[31:20]</span></code></p></td>
+<td><p>12</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_S</span></code></p></td>
+<td><p>S-type (<code class="docutils literal notranslate"><span class="pre">sw</span></code>, <code class="docutils literal notranslate"><span class="pre">sb</span></code>, …)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[11:5]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[31:25]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[4:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[11:7]</span></code></p></td>
+<td><p>12</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_SB</span></code></p></td>
+<td><p>B-type (branch)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[12]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[31]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[10:5]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[30:25]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[4:1]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[11:8]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[11]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[7]</span></code></p></td>
+<td><p>13 (signed, 2-byte aligned)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_UJ</span></code></p></td>
+<td><p>J-type (<code class="docutils literal notranslate"><span class="pre">jal</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[20]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[31]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[10:1]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[30:21]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[11]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[20]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[19:12]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[19:12]</span></code></p></td>
+<td><p>21 (signed, 2-byte aligned)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_U_HI20</span></code></p></td>
+<td><p>U-type (<code class="docutils literal notranslate"><span class="pre">lui</span></code>, <code class="docutils literal notranslate"><span class="pre">auipc</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(X</span> <span class="pre">+</span> <span class="pre">0x800)[31:12]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[31:12]</span></code>  (carry-adjusted upper 20 bits)</p></td>
+<td><p>20</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_U_ABS20</span></code></p></td>
+<td><p>Xqci 20-bit U-type</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[19]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[31]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[14:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[30:16]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[18:15]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[15:12]</span></code></p></td>
+<td><p>20</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p><strong><code class="docutils literal notranslate"><span class="pre">EncTy_U_HI20</span></code> carry adjustment:</strong> <code class="docutils literal notranslate"><span class="pre">0x800</span></code> is added before masking so that
+when the low 12-bit <code class="docutils literal notranslate"><span class="pre">addi</span></code> immediate is sign-extended, it correctly
+reconstructs the original address together with the upper 20 bits.</p>
+</div></blockquote>
+</div>
+<div class="section" id="bit-rvc-instruction-encodings">
+<h3><span class="section-number">7.3.3. </span>16-bit (RVC) instruction encodings<a class="headerlink" href="#bit-rvc-instruction-encodings" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Encoding</p></th>
+<th class="head"><p>Instruction format</p></th>
+<th class="head"><p>Value bits → instruction bits</p></th>
+<th class="head"><p>Width</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_CB</span></code></p></td>
+<td><p>C.B-type (RVC branch)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[8]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[12]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[4:3]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[11:10]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[7:6]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[6:5]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[2:1]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[4:3]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[5]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[2]</span></code></p></td>
+<td><p>9 (signed, 2-byte aligned)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_CJ</span></code></p></td>
+<td><p>C.J-type (RVC jump)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[11]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[12]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[4]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[11]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[9:8]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[10:9]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[10]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[8]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[6]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[7]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[7]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[6]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[3:1]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[5:3]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[5]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[2]</span></code></p></td>
+<td><p>12 (signed, 2-byte aligned)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_CI</span></code></p></td>
+<td><p>C.I-type (<code class="docutils literal notranslate"><span class="pre">c.lui</span></code>, <code class="docutils literal notranslate"><span class="pre">c.li</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[5+shift]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[12]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[4+shift:shift]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[6:2]</span></code><br>(shift=12 for <code class="docutils literal notranslate"><span class="pre">c.lui</span></code>, shift=0 for <code class="docutils literal notranslate"><span class="pre">c.li</span></code>)</p></td>
+<td><p>6</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="bit-xqci-xqcilo-instruction-encodings">
+<h3><span class="section-number">7.3.4. </span>48-bit (Xqci/Xqcilo) instruction encodings<a class="headerlink" href="#bit-xqci-xqcilo-instruction-encodings" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Encoding</p></th>
+<th class="head"><p>Instruction format</p></th>
+<th class="head"><p>Value bits → instruction bits</p></th>
+<th class="head"><p>Width</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_QC_EI</span></code></p></td>
+<td><p>Xqcilo E-I-type load</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[9:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[29:20]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[25:10]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[47:32]</span></code></p></td>
+<td><p>26 (signed)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_QC_ES</span></code></p></td>
+<td><p>Xqcilo E-S-type store</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[4:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[11:7]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[9:5]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[31:25]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[25:10]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[47:32]</span></code></p></td>
+<td><p>26 (signed)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_QC_EB</span></code></p></td>
+<td><p>Xqci E-B-type branch</p></td>
+<td><p>same scramble as <code class="docutils literal notranslate"><span class="pre">EncTy_SB</span></code> in <code class="docutils literal notranslate"><span class="pre">inst[31:0]</span></code> (the low 32 bits of the 48-bit instruction)</p></td>
+<td><p>13 (signed, 2-byte aligned)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_QC_EJ</span></code></p></td>
+<td><p>Xqci E-J-type call</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[31:16]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[63:48]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[12]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[31]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[10:5]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[30:25]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[15:13]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[20:17]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[4:1]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[11:8]</span></code><br><code class="docutils literal notranslate"><span class="pre">X[11]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[7]</span></code></p></td>
+<td><p>32 (signed)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_QC_EAI</span></code></p></td>
+<td><p>Xqci E-AI-type absolute imm</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[31:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[47:16]</span></code></p></td>
+<td><p>32 (signed)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="standard-relocations">
+<h2><span class="section-number">7.4. </span>Standard Relocations<a class="headerlink" href="#standard-relocations" title="Permalink to this heading"></a></h2>
+<div class="section" id="dynamic-runtime-relocations">
+<h3><span class="section-number">7.4.1. </span>Dynamic / Runtime Relocations<a class="headerlink" href="#dynamic-runtime-relocations" title="Permalink to this heading"></a></h3>
+<p>These are written by the dynamic linker at load time.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Size</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_NONE</span></code></p></td>
+<td><p>0</p></td>
+<td><p>none</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_32</span></code></p></td>
+<td><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_64</span></code></p></td>
+<td><p>2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>64</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_RELATIVE</span></code></p></td>
+<td><p>3</p></td>
+<td><p>none</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">B</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_COPY</span></code></p></td>
+<td><p>4</p></td>
+<td><p>none</p></td>
+<td><p>Copy from shared object</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_JUMP_SLOT</span></code></p></td>
+<td><p>5</p></td>
+<td><p>none</p></td>
+<td><p>PLT entry</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TLS_DTPMOD32</span></code></p></td>
+<td><p>6</p></td>
+<td><p>none</p></td>
+<td><p>TLS module index (32-bit)</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TLS_DTPMOD64</span></code></p></td>
+<td><p>7</p></td>
+<td><p>none</p></td>
+<td><p>TLS module index (64-bit)</p></td>
+<td><p>64</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TLS_DTPREL32</span></code></p></td>
+<td><p>8</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>TLS DTP offset (32-bit)</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TLS_DTPREL64</span></code></p></td>
+<td><p>9</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p>TLS DTP offset (64-bit)</p></td>
+<td><p>64</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TLS_TPREL32</span></code></p></td>
+<td><p>10</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>TLS TP offset (32-bit)</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TLS_TPREL64</span></code></p></td>
+<td><p>11</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p>TLS TP offset (64-bit)</p></td>
+<td><p>64</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="control-flow-relocations">
+<h3><span class="section-number">7.4.2. </span>Control Flow Relocations<a class="headerlink" href="#control-flow-relocations" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Inst size</p></th>
+<th class="head"><p>Alignment</p></th>
+<th class="head"><p>Range check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_BRANCH</span></code></p></td>
+<td><p>12</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_SB</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>32-bit</p></td>
+<td><p>2 bytes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−4096</span> <span class="pre">&lt;=</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">4096</span></code>, <code class="docutils literal notranslate"><span class="pre">X</span></code> must be even</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_JAL</span></code></p></td>
+<td><p>13</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_UJ</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>32-bit</p></td>
+<td><p>2 bytes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−1048576</span> <span class="pre">&lt;=</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">1048576</span></code>, <code class="docutils literal notranslate"><span class="pre">X</span></code> must be even</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_CALL</span></code></p></td>
+<td><p>14</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_None</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>32-bit</p></td>
+<td><p>2 bytes</p></td>
+<td><p>none (32-bit range via <code class="docutils literal notranslate"><span class="pre">auipc+jalr</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_CALL_PLT</span></code></p></td>
+<td><p>15</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_None</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code> (via PLT)</p></td>
+<td><p>32-bit</p></td>
+<td><p>2 bytes</p></td>
+<td><p>none (32-bit range via <code class="docutils literal notranslate"><span class="pre">auipc+jalr</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_RVC_BRANCH</span></code></p></td>
+<td><p>44</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_CB</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>16-bit</p></td>
+<td><p>2 bytes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−256</span> <span class="pre">&lt;=</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">256</span></code>, <code class="docutils literal notranslate"><span class="pre">X</span></code> must be even</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_RVC_JUMP</span></code></p></td>
+<td><p>45</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_CJ</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>16-bit</p></td>
+<td><p>2 bytes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−2048</span> <span class="pre">&lt;=</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2048</span></code>, <code class="docutils literal notranslate"><span class="pre">X</span></code> must be even</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p><strong><code class="docutils literal notranslate"><span class="pre">R_RISCV_CALL</span></code> / <code class="docutils literal notranslate"><span class="pre">R_RISCV_CALL_PLT</span></code>:</strong> Applied to an <code class="docutils literal notranslate"><span class="pre">auipc</span></code>+<code class="docutils literal notranslate"><span class="pre">jalr</span></code> pair
+(8 bytes). The linker splits <code class="docutils literal notranslate"><span class="pre">X</span></code> into a 20-bit upper part (encoded in <code class="docutils literal notranslate"><span class="pre">auipc</span></code>)
+and a 12-bit signed lower part (encoded in <code class="docutils literal notranslate"><span class="pre">jalr</span></code>), with a carry adjustment
+when bit 11 of the lower part is set. These relocations are the primary
+candidates for call relaxation (see <span class="xref myst">Relaxations</span>).</p>
+</div></blockquote>
+</div>
+<div class="section" id="pc-relative-address-relocations">
+<h3><span class="section-number">7.4.3. </span>PC-Relative Address Relocations<a class="headerlink" href="#pc-relative-address-relocations" title="Permalink to this heading"></a></h3>
+<p>These always appear in pairs: a HI20 relocation on <code class="docutils literal notranslate"><span class="pre">auipc</span></code> followed by a
+LO12 relocation on the instruction that uses the result.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Inst size</p></th>
+<th class="head"><p>Range check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_PCREL_HI20</span></code></p></td>
+<td><p>19</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_U_HI20</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>32-bit</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_PCREL_LO12_I</span></code></p></td>
+<td><p>20</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_I</span></code></p></td>
+<td><p>low 12 bits of paired HI20</p></td>
+<td><p>32-bit</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_PCREL_LO12_S</span></code></p></td>
+<td><p>21</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_S</span></code></p></td>
+<td><p>low 12 bits of paired HI20 (stores)</p></td>
+<td><p>32-bit</p></td>
+<td><p>none</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p><strong>Pair invariant:</strong> The symbol of <code class="docutils literal notranslate"><span class="pre">R_RISCV_PCREL_LO12_I/S</span></code> must point to
+the address of the corresponding <code class="docutils literal notranslate"><span class="pre">R_RISCV_PCREL_HI20</span></code> relocation site, not
+the target symbol. The linker resolves the HI20 first, then propagates its
+computed value to the LO12.</p>
+</div></blockquote>
+</div>
+<div class="section" id="absolute-address-relocations">
+<h3><span class="section-number">7.4.4. </span>Absolute Address Relocations<a class="headerlink" href="#absolute-address-relocations" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Inst size</p></th>
+<th class="head"><p>Range check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_HI20</span></code></p></td>
+<td><p>22</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_U_HI20</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>32-bit</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−2^31</span> <span class="pre">&lt;=</span> <span class="pre">X</span> <span class="pre">&lt;</span> <span class="pre">2^31</span></code> (32-bit range)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_LO12_I</span></code></p></td>
+<td><p>23</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_I</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code> low 12 bits</p></td>
+<td><p>32-bit</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_LO12_S</span></code></p></td>
+<td><p>24</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_S</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code> low 12 bits (stores)</p></td>
+<td><p>32-bit</p></td>
+<td><p>none</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="tls-relocations">
+<h3><span class="section-number">7.4.5. </span>TLS Relocations<a class="headerlink" href="#tls-relocations" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Inst size</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TPREL_HI20</span></code></p></td>
+<td><p>25</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_U_HI20</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">tp</span></code></p></td>
+<td><p>32-bit</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TPREL_LO12_I</span></code></p></td>
+<td><p>26</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_I</span></code></p></td>
+<td><p>low 12 bits of TP offset</p></td>
+<td><p>32-bit</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TPREL_LO12_S</span></code></p></td>
+<td><p>27</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_S</span></code></p></td>
+<td><p>low 12 bits of TP offset (stores)</p></td>
+<td><p>32-bit</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TPREL_ADD</span></code></p></td>
+<td><p>28</p></td>
+<td><p>none</p></td>
+<td><p>Relaxation hint (no bits written)</p></td>
+<td><p>32-bit</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TLS_GOT_HI20</span></code></p></td>
+<td><p>17</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_U_HI20</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>32-bit</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TLS_GD_HI20</span></code></p></td>
+<td><p>18</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_U_HI20</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">-</span> <span class="pre">P</span></code> (GD model)</p></td>
+<td><p>32-bit</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TLSDESC_HI20</span></code></p></td>
+<td><p>58</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_U_HI20</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TLSDESC(S)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>32-bit</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TLSDESC_LOAD_LO12</span></code></p></td>
+<td><p>59</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_I</span></code></p></td>
+<td><p>low 12 bits of TLSDESC</p></td>
+<td><p>32-bit</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TLSDESC_ADD_LO12</span></code></p></td>
+<td><p>60</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_I</span></code></p></td>
+<td><p>low 12 bits of TLSDESC</p></td>
+<td><p>32-bit</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TLSDESC_CALL</span></code></p></td>
+<td><p>61</p></td>
+<td><p>none</p></td>
+<td><p>TLSDESC call hint</p></td>
+<td><p>32-bit</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="got-relocations">
+<h3><span class="section-number">7.4.6. </span>GOT Relocations<a class="headerlink" href="#got-relocations" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Inst size</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_GOT_HI20</span></code></p></td>
+<td><p>16</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_U_HI20</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>32-bit</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_GOT32_PCREL</span></code></p></td>
+<td><p>37</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_None</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">-</span> <span class="pre">P</span></code> (32-bit)</p></td>
+<td><p>32-bit</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="arithmetic-addend-relocations">
+<h3><span class="section-number">7.4.7. </span>Arithmetic / Addend Relocations<a class="headerlink" href="#arithmetic-addend-relocations" title="Permalink to this heading"></a></h3>
+<p>Used in debug sections and compact unwind tables to encode label differences.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Size</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_ADD8</span></code></p></td>
+<td><p>29</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_8</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)</span> <span class="pre">+=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_ADD16</span></code></p></td>
+<td><p>30</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)</span> <span class="pre">+=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>16</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_ADD32</span></code></p></td>
+<td><p>31</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)</span> <span class="pre">+=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_ADD64</span></code></p></td>
+<td><p>32</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)</span> <span class="pre">+=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>64</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_SUB8</span></code></p></td>
+<td><p>33</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_8</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)</span> <span class="pre">-=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_SUB16</span></code></p></td>
+<td><p>34</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)</span> <span class="pre">-=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>16</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_SUB32</span></code></p></td>
+<td><p>35</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)</span> <span class="pre">-=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_SUB64</span></code></p></td>
+<td><p>36</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)</span> <span class="pre">-=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>64</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_SUB6</span></code></p></td>
+<td><p>52</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_6</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)[5:0]</span> <span class="pre">-=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_SET6</span></code></p></td>
+<td><p>53</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_6</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)[5:0]</span> <span class="pre">=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_SET8</span></code></p></td>
+<td><p>54</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_8</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)</span> <span class="pre">=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_SET16</span></code></p></td>
+<td><p>55</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)</span> <span class="pre">=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>16</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_SET32</span></code></p></td>
+<td><p>56</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)</span> <span class="pre">=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_32_PCREL</span></code></p></td>
+<td><p>57</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code> (32-bit)</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_SET_ULEB128</span></code></p></td>
+<td><p>62</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_LEB128</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)</span> <span class="pre">=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code> (ULEB128)</p></td>
+<td><p>variable</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_SUB_ULEB128</span></code></p></td>
+<td><p>63</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_LEB128</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">*(loc)</span> <span class="pre">-=</span> <span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code> (ULEB128)</p></td>
+<td><p>variable</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="relaxation-hint-relocations">
+<h3><span class="section-number">7.4.8. </span>Relaxation Hint Relocations<a class="headerlink" href="#relaxation-hint-relocations" title="Permalink to this heading"></a></h3>
+<p>These carry no data; they mark sites eligible for relaxation.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_RELAX</span></code></p></td>
+<td><p>51</p></td>
+<td><p>Paired with another relocation to indicate the site may be relaxed</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_ALIGN</span></code></p></td>
+<td><p>43</p></td>
+<td><p>Requests NOP padding to meet an alignment requirement; bytes may be deleted by relaxation</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TPREL_ADD</span></code></p></td>
+<td><p>28</p></td>
+<td><p>Marks the <code class="docutils literal notranslate"><span class="pre">add</span></code> in a <code class="docutils literal notranslate"><span class="pre">TPREL_HI20</span></code>+<code class="docutils literal notranslate"><span class="pre">add</span></code>+<code class="docutils literal notranslate"><span class="pre">TPREL_LO12</span></code> TLS-LE sequence; deleted during relaxation</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_VENDOR</span></code></p></td>
+<td><p>255</p></td>
+<td><p>Vendor extension marker; the following relocation is vendor-defined</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="internal-linker-only-relocations">
+<h2><span class="section-number">7.5. </span>Internal (Linker-Only) Relocations<a class="headerlink" href="#internal-linker-only-relocations" title="Permalink to this heading"></a></h2>
+<p>These relocations are created by ELD during relaxation and are never
+present in input object files. They are used to apply the final encoding
+after an instruction sequence has been rewritten.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Inst size</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_RVC_LUI</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_CI</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span></code></p></td>
+<td><p>16-bit</p></td>
+<td><p>LUI compressed to <code class="docutils literal notranslate"><span class="pre">c.lui</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_RVC_LI</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_CI</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span></code></p></td>
+<td><p>16-bit</p></td>
+<td><p>Load immediate compressed to <code class="docutils literal notranslate"><span class="pre">c.li</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_GPREL_I</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_I</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">-</span> <span class="pre">G</span></code></p></td>
+<td><p>32-bit</p></td>
+<td><p>GP-relative I-type load/compute</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_GPREL_S</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_S</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">-</span> <span class="pre">G</span></code></p></td>
+<td><p>32-bit</p></td>
+<td><p>GP-relative S-type store</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TPREL_I</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_I</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">-</span> <span class="pre">tp</span></code></p></td>
+<td><p>32-bit</p></td>
+<td><p>TP-relative I-type after TLS-LE relaxation</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TPREL_S</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_S</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">-</span> <span class="pre">tp</span></code></p></td>
+<td><p>32-bit</p></td>
+<td><p>TP-relative S-type after TLS-LE relaxation</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_TBJAL</span></code></p></td>
+<td><p>none</p></td>
+<td><p>—</p></td>
+<td><p>16-bit</p></td>
+<td><p>Table-jump (<code class="docutils literal notranslate"><span class="pre">cm.jt</span></code>/<code class="docutils literal notranslate"><span class="pre">cm.jalt</span></code>) after call relaxation</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_QC_ABS26_I</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_QC_EI</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>48-bit</p></td>
+<td><p>Xqcilo absolute load (26-bit imm)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_QC_ABS26_S</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_QC_ES</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>48-bit</p></td>
+<td><p>Xqcilo absolute store (26-bit imm)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_QC_GPREL26_I</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_QC_EI</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">-</span> <span class="pre">G</span></code></p></td>
+<td><p>48-bit</p></td>
+<td><p>Xqcilo GP-relative load</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_QC_GPREL26_S</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_QC_ES</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">-</span> <span class="pre">G</span></code></p></td>
+<td><p>48-bit</p></td>
+<td><p>Xqcilo GP-relative store</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_QC_ABS20_U</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_U_ABS20</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>32-bit</p></td>
+<td><p>Xqci 20-bit absolute</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_QC_E_BRANCH</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_QC_EB</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>48-bit</p></td>
+<td><p>Xqci extended branch</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_QC_E_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_QC_EAI</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>48-bit</p></td>
+<td><p>Xqci extended 32-bit immediate</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_QC_E_CALL_PLT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_QC_EJ</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>48-bit</p></td>
+<td><p>Xqci extended call (via PLT)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_QC_ACCESS_16</span></code></p></td>
+<td><p>none</p></td>
+<td><p>—</p></td>
+<td><p>16-bit</p></td>
+<td><p>Xqcilo 16-bit access marker</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_RISCV_QC_ACCESS_32</span></code></p></td>
+<td><p>none</p></td>
+<td><p>—</p></td>
+<td><p>32-bit</p></td>
+<td><p>Xqcilo 32-bit access marker</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<div class="section" id="relaxations">
+<h2><span class="section-number">7.6. </span>Relaxations<a class="headerlink" href="#relaxations" title="Permalink to this heading"></a></h2>
+<p>Relaxation is an iterative pass that shrinks instruction sequences when the
+final link addresses allow it. Each pass may reduce code size; the linker
+repeats until no further changes occur.</p>
+<div class="section" id="relaxation-flags">
+<h3><span class="section-number">7.6.1. </span>Relaxation Flags<a class="headerlink" href="#relaxation-flags" title="Permalink to this heading"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--relax</span></code> / <code class="docutils literal notranslate"><span class="pre">--no-relax</span></code></p></td>
+<td><p><strong>enabled</strong></p></td>
+<td><p>Master switch; disables all relaxations when off</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--no-relax-c</span></code></p></td>
+<td><p>off</p></td>
+<td><p>Disable compressed-instruction relaxations (<code class="docutils literal notranslate"><span class="pre">c.j</span></code>, <code class="docutils literal notranslate"><span class="pre">c.jal</span></code>, <code class="docutils literal notranslate"><span class="pre">c.lui</span></code>, <code class="docutils literal notranslate"><span class="pre">c.li</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--no-relax-gp</span></code></p></td>
+<td><p>off</p></td>
+<td><p>Disable GP-relative relaxations (requires <code class="docutils literal notranslate"><span class="pre">__global_pointer$</span></code>, non-PIC only)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--no-relax-zero</span></code></p></td>
+<td><p>off</p></td>
+<td><p>Disable zero-page relaxations (symbols with value in signed 12-bit range)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--no-relax-got</span></code></p></td>
+<td><p>off</p></td>
+<td><p>Disable GOT load relaxations for non-preemptible symbols</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--no-relax-tlsdesc</span></code></p></td>
+<td><p>off</p></td>
+<td><p>Disable TLS descriptor relaxations</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--relax-xqci</span></code> / <code class="docutils literal notranslate"><span class="pre">--no-relax-xqci</span></code></p></td>
+<td><p><strong>disabled</strong></p></td>
+<td><p>Enable Xqci instruction relaxations (<code class="docutils literal notranslate"><span class="pre">qc.e.j</span></code>, <code class="docutils literal notranslate"><span class="pre">qc.e.jal</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--relax-tbljal[=zcmt|xqccmt]</span></code> / <code class="docutils literal notranslate"><span class="pre">--no-relax-tbljal</span></code></p></td>
+<td><p><strong>disabled</strong></p></td>
+<td><p>Enable table-jump relaxations (<code class="docutils literal notranslate"><span class="pre">cm.jt</span></code>/<code class="docutils literal notranslate"><span class="pre">cm.jalt</span></code>)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="call-relaxation-r-riscv-call-r-riscv-call-plt">
+<h3><span class="section-number">7.6.2. </span>Call Relaxation (<code class="docutils literal notranslate"><span class="pre">R_RISCV_CALL</span></code> / <code class="docutils literal notranslate"><span class="pre">R_RISCV_CALL_PLT</span></code>)<a class="headerlink" href="#call-relaxation-r-riscv-call-r-riscv-call-plt" title="Permalink to this heading"></a></h3>
+<p>An <code class="docutils literal notranslate"><span class="pre">auipc</span></code>+<code class="docutils literal notranslate"><span class="pre">jalr</span></code> pair (8 bytes) is shrunk in priority order.</p>
+<p><strong>→ <code class="docutils literal notranslate"><span class="pre">c.j</span></code> / <code class="docutils literal notranslate"><span class="pre">c.jal</span></code> (−6 bytes):</strong> offset fits 12 bits signed, <code class="docutils literal notranslate"><span class="pre">--no-relax-c</span></code>
+not set; <code class="docutils literal notranslate"><span class="pre">c.j</span></code> when <code class="docutils literal notranslate"><span class="pre">rd=x0</span></code>, <code class="docutils literal notranslate"><span class="pre">c.jal</span></code> when <code class="docutils literal notranslate"><span class="pre">rd=x1</span></code> (RV32 only).</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (8 bytes)</span>
+<span class="nf">auipc</span><span class="w">  </span><span class="no">ra</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_hi</span><span class="p">(</span><span class="no">func</span><span class="p">)</span><span class="w">     </span><span class="c1"># R_RISCV_CALL_PLT</span>
+<span class="nf">jalr</span><span class="w">   </span><span class="no">ra</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)(</span><span class="no">ra</span><span class="p">)</span>
+
+<span class="c1"># After (2 bytes)</span>
+<span class="nf">c.jal</span><span class="w">  </span><span class="no">func</span><span class="w">                    </span><span class="c1"># or c.j func  when rd=x0</span>
+</pre></div>
+</div>
+<p><strong>→ <code class="docutils literal notranslate"><span class="pre">cm.jt</span></code> / <code class="docutils literal notranslate"><span class="pre">cm.jalt</span></code> (−6 bytes):</strong> <code class="docutils literal notranslate"><span class="pre">--relax-tbljal</span></code> enabled, target has a
+valid JVT entry, non-PIC.</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span># Before (8 bytes)
+auipc  ra, %pcrel_hi(func)     # R_RISCV_CALL_PLT
+jalr   ra, %pcrel_lo(1b)(ra)
+
+# After (2 bytes)
+cm.jalt  &lt;jvt_index&gt;           # or cm.jt when rd=x0
+</pre></div>
+</div>
+<p><strong>→ <code class="docutils literal notranslate"><span class="pre">jal</span></code> (−4 bytes):</strong> offset fits 21 bits signed (±1 MiB).</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (8 bytes)</span>
+<span class="nf">auipc</span><span class="w">  </span><span class="no">ra</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_hi</span><span class="p">(</span><span class="no">func</span><span class="p">)</span><span class="w">     </span><span class="c1"># R_RISCV_CALL_PLT</span>
+<span class="nf">jalr</span><span class="w">   </span><span class="no">ra</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)(</span><span class="no">ra</span><span class="p">)</span>
+
+<span class="c1"># After (4 bytes)</span>
+<span class="nf">jal</span><span class="w">    </span><span class="no">ra</span><span class="p">,</span><span class="w"> </span><span class="no">func</span><span class="w">                </span><span class="c1"># R_RISCV_JAL</span>
+</pre></div>
+</div>
+<p><strong>→ <code class="docutils literal notranslate"><span class="pre">qc.e.j</span></code> / <code class="docutils literal notranslate"><span class="pre">qc.e.jal</span></code> (−2 bytes):</strong> <code class="docutils literal notranslate"><span class="pre">--relax-xqci</span></code> enabled, RV32 only.</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (8 bytes)</span>
+<span class="nf">auipc</span><span class="w">  </span><span class="no">ra</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_hi</span><span class="p">(</span><span class="no">func</span><span class="p">)</span>
+<span class="nf">jalr</span><span class="w">   </span><span class="no">ra</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)(</span><span class="no">ra</span><span class="p">)</span>
+
+<span class="c1"># After (6 bytes)</span>
+<span class="nf">qc.e.jal</span><span class="w">  </span><span class="no">func</span><span class="w">                 </span><span class="c1"># 48-bit Xqci extended call</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="jal-relaxation-r-riscv-jal">
+<h3><span class="section-number">7.6.3. </span>JAL Relaxation (<code class="docutils literal notranslate"><span class="pre">R_RISCV_JAL</span></code>)<a class="headerlink" href="#jal-relaxation-r-riscv-jal" title="Permalink to this heading"></a></h3>
+<p><strong>→ <code class="docutils literal notranslate"><span class="pre">cm.jt</span></code> / <code class="docutils literal notranslate"><span class="pre">cm.jalt</span></code> (−2 bytes):</strong> <code class="docutils literal notranslate"><span class="pre">--relax-tbljal</span></code> enabled, valid JVT
+entry.</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span># Before (4 bytes)
+jal    ra, func                # R_RISCV_JAL
+
+# After (2 bytes)
+cm.jalt  &lt;jvt_index&gt;
+</pre></div>
+</div>
+</div>
+<div class="section" id="lui-relaxation-r-riscv-hi20-r-riscv-lo12">
+<h3><span class="section-number">7.6.4. </span>LUI Relaxation (<code class="docutils literal notranslate"><span class="pre">R_RISCV_HI20</span></code> + <code class="docutils literal notranslate"><span class="pre">R_RISCV_LO12_*</span></code>)<a class="headerlink" href="#lui-relaxation-r-riscv-hi20-r-riscv-lo12" title="Permalink to this heading"></a></h3>
+<p>A <code class="docutils literal notranslate"><span class="pre">lui</span></code>+LO12 pair is shrunk in priority order.</p>
+<p><strong>→ zero-base (−4 bytes):</strong> symbol value fits signed 12 bits; <code class="docutils literal notranslate"><span class="pre">--no-relax-zero</span></code>
+not set.</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (8 bytes)</span>
+<span class="nf">lui</span><span class="w">   </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%hi</span><span class="p">(</span><span class="no">var</span><span class="p">)</span><span class="w">             </span><span class="c1"># R_RISCV_HI20</span>
+<span class="nf">addi</span><span class="w">  </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%lo</span><span class="p">(</span><span class="no">var</span><span class="p">)</span><span class="w">         </span><span class="c1"># R_RISCV_LO12_I</span>
+
+<span class="c1"># After (4 bytes)</span>
+<span class="nf">addi</span><span class="w">  </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">x0</span><span class="p">,</span><span class="w"> </span><span class="no">var</span><span class="w">              </span><span class="c1"># immediate encodes full value</span>
+</pre></div>
+</div>
+<p><strong>→ GP-relative (−4 bytes):</strong> symbol within <code class="docutils literal notranslate"><span class="pre">gp</span> <span class="pre">±</span> <span class="pre">2048</span></code>; <code class="docutils literal notranslate"><span class="pre">--no-relax-gp</span></code> not
+set, non-PIC.</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (8 bytes)</span>
+<span class="nf">lui</span><span class="w">   </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%hi</span><span class="p">(</span><span class="no">var</span><span class="p">)</span><span class="w">             </span><span class="c1"># R_RISCV_HI20</span>
+<span class="nf">lw</span><span class="w">    </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%lo</span><span class="p">(</span><span class="no">var</span><span class="p">)(</span><span class="no">a0</span><span class="p">)</span><span class="w">         </span><span class="c1"># R_RISCV_LO12_I</span>
+
+<span class="c1"># After (4 bytes)</span>
+<span class="nf">lw</span><span class="w">    </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">var</span><span class="p">(</span><span class="no">gp</span><span class="p">)</span><span class="w">              </span><span class="c1"># R_RISCV_GPREL_I</span>
+</pre></div>
+</div>
+<p><strong>→ <code class="docutils literal notranslate"><span class="pre">c.lui</span></code> (−2 bytes):</strong> immediate fits 6-bit non-zero CI field; <code class="docutils literal notranslate"><span class="pre">rd</span> <span class="pre">≠</span> <span class="pre">x0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">rd</span> <span class="pre">≠</span> <span class="pre">x2</span></code>; <code class="docutils literal notranslate"><span class="pre">--no-relax-c</span></code> not set.</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (4 bytes)</span>
+<span class="nf">lui</span><span class="w">   </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%hi</span><span class="p">(</span><span class="no">var</span><span class="p">)</span><span class="w">             </span><span class="c1"># R_RISCV_HI20</span>
+
+<span class="c1"># After (2 bytes)</span>
+<span class="nf">c.lui</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%hi</span><span class="p">(</span><span class="no">var</span><span class="p">)</span><span class="w">             </span><span class="c1"># R_RISCV_RVC_LUI</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="pc-relative-to-gp-relaxation-r-riscv-pcrel-hi20-r-riscv-pcrel-lo12-i">
+<h3><span class="section-number">7.6.5. </span>PC-Relative to GP Relaxation (<code class="docutils literal notranslate"><span class="pre">R_RISCV_PCREL_HI20</span></code> + <code class="docutils literal notranslate"><span class="pre">R_RISCV_PCREL_LO12_I</span></code>)<a class="headerlink" href="#pc-relative-to-gp-relaxation-r-riscv-pcrel-hi20-r-riscv-pcrel-lo12-i" title="Permalink to this heading"></a></h3>
+<p><strong>→ GP-relative (−4 bytes):</strong> symbol within <code class="docutils literal notranslate"><span class="pre">gp</span> <span class="pre">±</span> <span class="pre">2048</span></code>; <code class="docutils literal notranslate"><span class="pre">--no-relax-gp</span></code> not
+set, non-PIC.</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (8 bytes)</span>
+<span class="nf">auipc</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_hi</span><span class="p">(</span><span class="no">var</span><span class="p">)</span><span class="w">       </span><span class="c1"># R_RISCV_PCREL_HI20</span>
+<span class="nf">lw</span><span class="w">    </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)(</span><span class="no">a0</span><span class="p">)</span><span class="w">    </span><span class="c1"># R_RISCV_PCREL_LO12_I</span>
+
+<span class="c1"># After (4 bytes)</span>
+<span class="nf">lw</span><span class="w">    </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">var</span><span class="p">(</span><span class="no">gp</span><span class="p">)</span><span class="w">              </span><span class="c1"># R_RISCV_GPREL_I</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="got-relaxation-r-riscv-got-hi20-r-riscv-pcrel-lo12-i">
+<h3><span class="section-number">7.6.6. </span>GOT Relaxation (<code class="docutils literal notranslate"><span class="pre">R_RISCV_GOT_HI20</span></code> + <code class="docutils literal notranslate"><span class="pre">R_RISCV_PCREL_LO12_I</span></code>)<a class="headerlink" href="#got-relaxation-r-riscv-got-hi20-r-riscv-pcrel-lo12-i" title="Permalink to this heading"></a></h3>
+<p>For non-preemptible symbols the GOT indirection is bypassed.</p>
+<p><strong>→ <code class="docutils literal notranslate"><span class="pre">c.li</span></code> (−6 bytes):</strong> symbol value fits 6-bit signed CI field.</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (8 bytes)</span>
+<span class="nf">auipc</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_hi</span><span class="p">(</span><span class="no">sym@GOT</span><span class="p">)</span><span class="w">   </span><span class="c1"># R_RISCV_GOT_HI20</span>
+<span class="nf">lw</span><span class="w">    </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)(</span><span class="no">a0</span><span class="p">)</span><span class="w">    </span><span class="c1"># R_RISCV_PCREL_LO12_I  (GOT load)</span>
+
+<span class="c1"># After (2 bytes)</span>
+<span class="nf">c.li</span><span class="w">  </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">sym</span><span class="w">                  </span><span class="c1"># R_RISCV_RVC_LI</span>
+</pre></div>
+</div>
+<p><strong>→ <code class="docutils literal notranslate"><span class="pre">addi</span> <span class="pre">x0,</span> <span class="pre">imm</span></code> (−4 bytes):</strong> symbol value fits 12-bit signed.</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (8 bytes)</span>
+<span class="nf">auipc</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_hi</span><span class="p">(</span><span class="no">sym@GOT</span><span class="p">)</span>
+<span class="nf">lw</span><span class="w">    </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)(</span><span class="no">a0</span><span class="p">)</span>
+
+<span class="c1"># After (4 bytes)</span>
+<span class="nf">addi</span><span class="w">  </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">x0</span><span class="p">,</span><span class="w"> </span><span class="no">sym</span><span class="w">              </span><span class="c1"># immediate encodes full value</span>
+</pre></div>
+</div>
+<p><strong>→ <code class="docutils literal notranslate"><span class="pre">auipc</span></code> + <code class="docutils literal notranslate"><span class="pre">addi</span></code> PCREL (0 bytes):</strong> symbol fits PC-relative 32-bit range;
+GOT load converted to direct address calculation.</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (8 bytes)</span>
+<span class="nf">auipc</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_hi</span><span class="p">(</span><span class="no">sym@GOT</span><span class="p">)</span><span class="w">   </span><span class="c1"># R_RISCV_GOT_HI20</span>
+<span class="nf">lw</span><span class="w">    </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)(</span><span class="no">a0</span><span class="p">)</span><span class="w">    </span><span class="c1"># GOT load</span>
+
+<span class="c1"># After (8 bytes)</span>
+<span class="nf">auipc</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_hi</span><span class="p">(</span><span class="no">sym</span><span class="p">)</span><span class="w">       </span><span class="c1"># R_RISCV_PCREL_HI20</span>
+<span class="nf">addi</span><span class="w">  </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)</span><span class="w">    </span><span class="c1"># R_RISCV_PCREL_LO12_I  (no GOT access)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="tlsdesc-relaxation">
+<h3><span class="section-number">7.6.7. </span>TLSDESC Relaxation<a class="headerlink" href="#tlsdesc-relaxation" title="Permalink to this heading"></a></h3>
+<p>For symbols with local/static TLS, the TLSDESC call sequence is replaced
+with a direct TP-relative access. Disabled by <code class="docutils literal notranslate"><span class="pre">--no-relax-tlsdesc</span></code>.</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before: GD/TLSDESC (16 bytes, calls runtime)</span>
+<span class="nf">auipc</span><span class="w">  </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%tlsdesc_hi</span><span class="p">(</span><span class="no">x</span><span class="p">)</span><span class="w">      </span><span class="c1"># R_RISCV_TLSDESC_HI20</span>
+<span class="nf">lw</span><span class="w">     </span><span class="no">t0</span><span class="p">,</span><span class="w"> </span><span class="nv">%tlsdesc_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)(</span><span class="no">a0</span><span class="p">)</span><span class="w"> </span><span class="c1"># R_RISCV_TLSDESC_LOAD_LO12</span>
+<span class="nf">addi</span><span class="w">   </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%tlsdesc_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)</span><span class="w"> </span><span class="c1"># R_RISCV_TLSDESC_ADD_LO12</span>
+<span class="nf">jalr</span><span class="w">   </span><span class="no">t0</span><span class="p">,</span><span class="w"> </span><span class="no">t0</span><span class="p">(</span><span class="no">a0</span><span class="p">)</span><span class="w">              </span><span class="c1"># R_RISCV_TLSDESC_CALL</span>
+
+<span class="c1"># After: TLS-LE (8–12 bytes, no runtime call)</span>
+<span class="nf">lui</span><span class="w">    </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%tprel_hi</span><span class="p">(</span><span class="no">x</span><span class="p">)</span><span class="w">        </span><span class="c1"># R_RISCV_TPREL_HI20   (omitted if fits 12-bit)</span>
+<span class="nf">add</span><span class="w">    </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">tp</span><span class="w">              </span><span class="c1"># R_RISCV_TPREL_ADD</span>
+<span class="nf">lw</span><span class="w">     </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%tprel_lo</span><span class="p">(</span><span class="no">x</span><span class="p">)(</span><span class="no">a0</span><span class="p">)</span><span class="w">    </span><span class="c1"># R_RISCV_TPREL_LO12_I</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="zcmt-xqccmt-table-jump-relaxation-relax-tbljal">
+<h3><span class="section-number">7.6.8. </span>Zcmt / Xqccmt Table-Jump Relaxation (<code class="docutils literal notranslate"><span class="pre">--relax-tbljal</span></code>)<a class="headerlink" href="#zcmt-xqccmt-table-jump-relaxation-relax-tbljal" title="Permalink to this heading"></a></h3>
+<p>The Zcmt extension introduces a 64-entry Jump Vector Table (<code class="docutils literal notranslate"><span class="pre">.riscv.jvt</span></code>),
+a 64-byte aligned array of function-pointer-sized words. At link time ELD
+builds this table from all call targets that appear more than once, then
+replaces each call site with a 2-byte <code class="docutils literal notranslate"><span class="pre">cm.jalt</span> <span class="pre">N</span></code> (return via <code class="docutils literal notranslate"><span class="pre">ra</span></code>) or
+<code class="docutils literal notranslate"><span class="pre">cm.jt</span> <span class="pre">N</span></code> (tail call, no link register written). The index <code class="docutils literal notranslate"><span class="pre">N</span></code> is the
+zero-based slot in the JVT where the target address is stored.</p>
+<p>Xqccmt uses the same 16-bit encoding under the names <code class="docutils literal notranslate"><span class="pre">qc.cm.jalt</span></code> /
+<code class="docutils literal notranslate"><span class="pre">qc.cm.jt</span></code>, and additionally supports writing the return address into <code class="docutils literal notranslate"><span class="pre">t0</span></code>
+(x5) by setting bit 0 in the JVT entry.</p>
+<p><strong><code class="docutils literal notranslate"><span class="pre">.riscv.jvt</span></code> section layout (4 entries shown, 32-bit target):</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">.</span><span class="n">section</span> <span class="o">.</span><span class="n">riscv</span><span class="o">.</span><span class="n">jvt</span><span class="p">,</span><span class="s2">&quot;a&quot;</span><span class="p">,</span><span class="nd">@progbits</span>
+<span class="o">.</span><span class="n">align</span> <span class="mi">6</span>                         <span class="c1"># 64-byte alignment (Zcmt requirement)</span>
+<span class="n">jvt_base</span><span class="p">:</span>
+  <span class="o">.</span><span class="n">word</span>  <span class="n">foo</span>                     <span class="c1"># entry 0 — target of cm.jalt 0 / cm.jt 0</span>
+  <span class="o">.</span><span class="n">word</span>  <span class="n">bar</span>                     <span class="c1"># entry 1</span>
+  <span class="o">.</span><span class="n">word</span>  <span class="n">baz</span>                     <span class="c1"># entry 2</span>
+  <span class="o">.</span><span class="n">word</span>  <span class="n">qux</span>                     <span class="c1"># entry 3</span>
+  <span class="o">...</span>                            <span class="c1"># up to 64 entries</span>
+</pre></div>
+</div>
+<p><strong>Call site relaxation (−6 bytes per site, from <code class="docutils literal notranslate"><span class="pre">auipc</span></code>+<code class="docutils literal notranslate"><span class="pre">jalr</span></code> to <code class="docutils literal notranslate"><span class="pre">cm.jalt</span></code>):</strong></p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (8 bytes): called at many sites throughout the binary</span>
+<span class="nf">auipc</span><span class="w">  </span><span class="no">ra</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_hi</span><span class="p">(</span><span class="no">foo</span><span class="p">)</span><span class="w">        </span><span class="c1"># R_RISCV_CALL_PLT</span>
+<span class="nf">jalr</span><span class="w">   </span><span class="no">ra</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)(</span><span class="no">ra</span><span class="p">)</span>
+
+<span class="c1"># After (2 bytes): JVT entry 0 holds foo&#39;s address</span>
+<span class="nf">cm.jalt</span><span class="w">  </span><span class="mi">0</span><span class="w">                       </span><span class="c1"># R_RISCV_TBJAL — loads PC from jvt_base[0], links ra</span>
+</pre></div>
+</div>
+<p><strong>Tail-call relaxation (−6 bytes, <code class="docutils literal notranslate"><span class="pre">cm.jt</span></code> when <code class="docutils literal notranslate"><span class="pre">rd=x0</span></code>):</strong></p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (8 bytes)</span>
+<span class="nf">auipc</span><span class="w">  </span><span class="no">x0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_hi</span><span class="p">(</span><span class="no">baz</span><span class="p">)</span>
+<span class="nf">jalr</span><span class="w">   </span><span class="no">x0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)(</span><span class="no">x0</span><span class="p">)</span>
+
+<span class="c1"># After (2 bytes): JVT entry 2 holds baz&#39;s address</span>
+<span class="nf">cm.jt</span><span class="w">  </span><span class="mi">2</span><span class="w">                         </span><span class="c1"># tail call — no link register written</span>
+</pre></div>
+</div>
+<p><strong>JAL → <code class="docutils literal notranslate"><span class="pre">cm.jalt</span></code> (−2 bytes):</strong></p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (4 bytes): already within ±1 MiB but target is in the JVT</span>
+<span class="nf">jal</span><span class="w">    </span><span class="no">ra</span><span class="p">,</span><span class="w"> </span><span class="no">bar</span><span class="w">                   </span><span class="c1"># R_RISCV_JAL</span>
+
+<span class="c1"># After (2 bytes)</span>
+<span class="nf">cm.jalt</span><span class="w">  </span><span class="mi">1</span><span class="w">                       </span><span class="c1"># R_RISCV_TBJAL</span>
+</pre></div>
+</div>
+<p>The linker only builds JVT entries for targets where the total bytes saved
+across all call sites exceeds the 4-byte cost of the JVT entry itself plus
+any required padding to meet the 64-byte section alignment.</p>
+</div>
+<div class="section" id="align-relaxation-r-riscv-align">
+<h3><span class="section-number">7.6.9. </span>ALIGN Relaxation (<code class="docutils literal notranslate"><span class="pre">R_RISCV_ALIGN</span></code>)<a class="headerlink" href="#align-relaxation-r-riscv-align" title="Permalink to this heading"></a></h3>
+<p>NOP padding inserted by the assembler to satisfy <code class="docutils literal notranslate"><span class="pre">.align</span></code> directives is
+removed by the linker after relaxation shrinks preceding code. The linker
+recalculates required padding and deletes any excess NOP bytes.</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (assembler-inserted NOPs, e.g. .align 4 after a 2-byte instruction)</span>
+<span class="nf">c.j</span><span class="w">    </span><span class="no">target</span><span class="w">                  </span><span class="c1"># 2 bytes</span>
+<span class="nf">nop</span><span class="w">                            </span><span class="c1"># 2 bytes — R_RISCV_ALIGN padding</span>
+<span class="nf">nop</span><span class="w">                            </span><span class="c1"># 2 bytes — R_RISCV_ALIGN padding</span>
+<span class="nl">aligned_label:</span><span class="w">                 </span><span class="c1"># now at 4-byte boundary</span>
+
+<span class="c1"># After (if relaxation has already re-aligned the section)</span>
+<span class="nf">c.j</span><span class="w">    </span><span class="no">target</span><span class="w">                  </span><span class="c1"># 2 bytes</span>
+<span class="nf">nop</span><span class="w">                            </span><span class="c1"># 2 bytes — only one NOP needed</span>
+<span class="nl">aligned_label:</span>
+</pre></div>
+</div>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="common-instruction-sequences">
+<h2><span class="section-number">7.7. </span>Common Instruction Sequences<a class="headerlink" href="#common-instruction-sequences" title="Permalink to this heading"></a></h2>
+<div class="section" id="absolute-address-hi20-lo12">
+<h3><span class="section-number">7.7.1. </span>Absolute Address (HI20 + LO12)<a class="headerlink" href="#absolute-address-hi20-lo12" title="Permalink to this heading"></a></h3>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">lui</span><span class="w">   </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%hi</span><span class="p">(</span><span class="no">symbol</span><span class="p">)</span><span class="w">        </span><span class="c1"># R_RISCV_HI20</span>
+<span class="nf">addi</span><span class="w">  </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%lo</span><span class="p">(</span><span class="no">symbol</span><span class="p">)</span><span class="w">    </span><span class="c1"># R_RISCV_LO12_I</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="pc-relative-address-auipc-lo12">
+<h3><span class="section-number">7.7.2. </span>PC-Relative Address (AUIPC + LO12)<a class="headerlink" href="#pc-relative-address-auipc-lo12" title="Permalink to this heading"></a></h3>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">auipc</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_hi</span><span class="p">(</span><span class="no">symbol</span><span class="p">)</span><span class="w">  </span><span class="c1"># R_RISCV_PCREL_HI20</span>
+<span class="nf">addi</span><span class="w">  </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)</span><span class="w">  </span><span class="c1"># R_RISCV_PCREL_LO12_I</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="function-call-call-relaxed-to-jal-or-compressed">
+<h3><span class="section-number">7.7.3. </span>Function Call (CALL → relaxed to JAL or compressed)<a class="headerlink" href="#function-call-call-relaxed-to-jal-or-compressed" title="Permalink to this heading"></a></h3>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">auipc</span><span class="w"> </span><span class="no">ra</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_hi</span><span class="p">(</span><span class="no">func</span><span class="p">)</span><span class="w">    </span><span class="c1"># R_RISCV_CALL / R_RISCV_CALL_PLT</span>
+<span class="nf">jalr</span><span class="w">  </span><span class="no">ra</span><span class="p">,</span><span class="w"> </span><span class="nv">%pcrel_lo</span><span class="p">(</span><span class="mi">1</span><span class="no">b</span><span class="p">)(</span><span class="no">ra</span><span class="p">)</span><span class="w">  </span><span class="c1"># (paired with auipc)</span>
+</pre></div>
+</div>
+<p>After relaxation (if target within ±1 MiB):</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">jal</span><span class="w">   </span><span class="no">ra</span><span class="p">,</span><span class="w"> </span><span class="no">func</span><span class="w">               </span><span class="c1"># R_RISCV_JAL</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="tls-local-exec-tprel">
+<h3><span class="section-number">7.7.4. </span>TLS Local-Exec (TPREL)<a class="headerlink" href="#tls-local-exec-tprel" title="Permalink to this heading"></a></h3>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">lui</span><span class="w">   </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%tprel_hi</span><span class="p">(</span><span class="no">x</span><span class="p">)</span><span class="w">       </span><span class="c1"># R_RISCV_TPREL_HI20</span>
+<span class="nf">add</span><span class="w">   </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="no">tp</span><span class="p">,</span><span class="w"> </span><span class="nv">%tprel_add</span><span class="p">(</span><span class="no">x</span><span class="p">)</span><span class="w">  </span><span class="c1"># R_RISCV_TPREL_ADD</span>
+<span class="nf">lw</span><span class="w">    </span><span class="no">a0</span><span class="p">,</span><span class="w"> </span><span class="nv">%tprel_lo</span><span class="p">(</span><span class="no">x</span><span class="p">)(</span><span class="no">a0</span><span class="p">)</span><span class="w">   </span><span class="c1"># R_RISCV_TPREL_LO12_I</span>
+</pre></div>
+</div>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="references">
+<h2><span class="section-number">7.8. </span>References<a class="headerlink" href="#references" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>RISC-V ELF psABI specification:
+https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/master/riscv-elf.adoc</p></li>
+<li><p>RISC-V ISA specification:
+https://github.com/riscv/riscv-isa-manual</p></li>
+<li><p>RISC-V Compressed extension (RVC) — Volume I, Chapter 16</p></li>
+<li><p>Zcmt table-jump extension:
+https://github.com/riscv/riscv-isa-manual</p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="IFunc.html" class="btn btn-neutral float-left" title="6. GNU IFunc support" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="X86_64-Relocations.html" class="btn btn-neutral float-right" title="8. x86-64 Relocation Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

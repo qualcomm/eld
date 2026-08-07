@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>8. x86-64 Relocation Reference &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="7. RISC-V Relocation Reference" href="RISCV-Relocations.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_diagnostics.html">5. Linker Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/eld_debugging_guide.html">6. ELD  (debugging guide)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html">7. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">8. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/image_structure_and_generation.html">9. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/elf_tools.html">13. ELF TOOLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/lto_support.html">14. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/getting_image_details.html">15. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/options/options.html">16. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/target_specific_features.html">17. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/sframe_support.html">18. SFrame Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/editor_support.html">19. Editor Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_faq.html">20. Linker support and frequently asked questions!!!</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Docs</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="AArch64-Relocations.html">1. AArch64 Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ARM-Relocations.html">2. ARM Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AddingABackend.html">3. Adding a New Backend to ELD</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EldCodeCoverage.html">4. ELD Code Coverage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Hexagon-Relocations.html">5. Hexagon Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="IFunc.html">6. GNU IFunc support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RISCV-Relocations.html">7. RISC-V Relocation Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">8. x86-64 Relocation Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">8. </span>x86-64 Relocation Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/DeveloperDocs/X86_64-Relocations.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="x86-64-relocation-reference">
+<h1><span class="section-number">8. </span>x86-64 Relocation Reference<a class="headerlink" href="#x86-64-relocation-reference" title="Permalink to this heading"></a></h1>
+<div class="section" id="introduction">
+<h2><span class="section-number">8.1. </span>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading"></a></h2>
+<p>This document describes the x86-64 relocations handled by ELD, including
+their encoding types, operations, range checks, and dynamic relocation
+behaviour.</p>
+<p>The official ABI specification is the System V AMD64 ABI:
+https://gitlab.com/x86-psABIs/x86-64-ABI</p>
+</div>
+<hr class="docutils" />
+<div class="section" id="relocation-conventions">
+<h2><span class="section-number">8.2. </span>Relocation Conventions<a class="headerlink" href="#relocation-conventions" title="Permalink to this heading"></a></h2>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Symbol</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">S</span></code></p></td>
+<td><p>Runtime address of the referenced symbol</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">A</span></code></p></td>
+<td><p>Relocation addend</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">P</span></code></p></td>
+<td><p>Address of the relocation site</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">B</span></code></p></td>
+<td><p>Base address of the shared object (for <code class="docutils literal notranslate"><span class="pre">RELATIVE</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GOT</span></code></p></td>
+<td><p>Address of the symbol’s entry in the Global Offset Table</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PLT</span></code></p></td>
+<td><p>Address of the symbol’s entry in the Procedure Linkage Table</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TP</span></code></p></td>
+<td><p>Thread pointer (base of the TLS block for the current thread)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DTP</span></code></p></td>
+<td><p>Dynamic thread pointer (base of the TLS module block)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TLS</span></code></p></td>
+<td><p>Size of the TLS template (used to compute <code class="docutils literal notranslate"><span class="pre">TPOFF</span></code>)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<div class="section" id="encoding-types">
+<h2><span class="section-number">8.3. </span>Encoding Types<a class="headerlink" href="#encoding-types" title="Permalink to this heading"></a></h2>
+<p>x86-64 uses only flat-field encodings — no bit-scrambling.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Encoding</p></th>
+<th class="head"><p>Value bits written</p></th>
+<th class="head"><p>Field size</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_None</span></code></p></td>
+<td><p>none</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_8</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[7:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[7:0]</span></code></p></td>
+<td><p>8-bit</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[15:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[15:0]</span></code></p></td>
+<td><p>16-bit</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[31:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[31:0]</span></code></p></td>
+<td><p>32-bit</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X[63:0]</span></code> → <code class="docutils literal notranslate"><span class="pre">inst[63:0]</span></code></p></td>
+<td><p>64-bit</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="range-checks">
+<h2><span class="section-number">8.4. </span>Range Checks<a class="headerlink" href="#range-checks" title="Permalink to this heading"></a></h2>
+<p>Two distinct checks are applied, depending on the relocation:</p>
+<p><strong><code class="docutils literal notranslate"><span class="pre">VerifyRange</span></code> (hard error):</strong> Enabled only for specific relocations
+(see table). Checks whether the computed value <code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">=</span> <span class="pre">result</span> <span class="pre">&gt;&gt;</span> <span class="pre">Shift</span></code> fits
+in the encoding field. Signed relocations use <code class="docutils literal notranslate"><span class="pre">llvm::isInt&lt;N&gt;</span></code>, unsigned
+use <code class="docutils literal notranslate"><span class="pre">llvm::isUInt&lt;N&gt;</span></code>.</p>
+<p><strong>Truncation check (<code class="docutils literal notranslate"><span class="pre">forceVerify</span></code>, diagnostic only):</strong> Enabled when the
+user passes <code class="docutils literal notranslate"><span class="pre">--verify-reloc</span> <span class="pre">&lt;name&gt;</span></code>. Checks whether the unsigned result
+overflows the field width. No error is raised unless explicitly requested.</p>
+<p>The table below lists the exact bounds for each relocation.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">VerifyRange</span></code></p></th>
+<th class="head"><p>Effective bound</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_NONE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_None</span></code></p></td>
+<td><p>—</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 64 bits (no check)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 32 bits; overflow possible</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_32S</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 32 bits; sign-extended on load</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_16</span></code></p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 16 bits; overflow possible</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_8</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_8</span></code></p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 8 bits; overflow possible</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_PC32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 32 bits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_PC16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_16</span></code></p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 16 bits</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_PC8</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_8</span></code></p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 8 bits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_PC64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 64 bits</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_PLT32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 32 bits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_GOT32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 32 bits</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_GOTPCREL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 32 bits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_GOTPCRELX</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 32 bits</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_REX_GOTPCRELX</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 32 bits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_TLSGD</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>yes</p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−2^31</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">≤</span> <span class="pre">2^31</span> <span class="pre">−</span> <span class="pre">1</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_TLSLD</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>yes</p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−2^31</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">≤</span> <span class="pre">2^31</span> <span class="pre">−</span> <span class="pre">1</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_DTPOFF32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>yes</p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−2^31</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">≤</span> <span class="pre">2^31</span> <span class="pre">−</span> <span class="pre">1</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_GOTTPOFF</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>yes</p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−2^31</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">≤</span> <span class="pre">2^31</span> <span class="pre">−</span> <span class="pre">1</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_TPOFF32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p>yes</p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−2^31</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">≤</span> <span class="pre">2^31</span> <span class="pre">−</span> <span class="pre">1</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_DTPOFF64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 64 bits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_TPOFF64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code> truncated to 64 bits</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_DTPMOD64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p>filled by dynamic linker</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p><strong>Why only TLS 32-bit relocations have <code class="docutils literal notranslate"><span class="pre">VerifyRange</span></code>:</strong> These relocations
+encode offsets within a TLS block or a PC-relative offset to a GOT entry,
+both of which must fit in a sign-extended 32-bit immediate field in the
+instruction encoding. A value outside <code class="docutils literal notranslate"><span class="pre">[−2^31,</span> <span class="pre">2^31</span> <span class="pre">−</span> <span class="pre">1]</span></code> would silently
+truncate and produce a wrong address at runtime. For general data and
+PC-relative relocations the ABI permits truncation; for TLS it is always
+an error.</p>
+</div></blockquote>
+<blockquote>
+<div><p><strong>Implicit truncation for unsigned relocations:</strong> <code class="docutils literal notranslate"><span class="pre">R_X86_64_32</span></code>,
+<code class="docutils literal notranslate"><span class="pre">R_X86_64_16</span></code>, and <code class="docutils literal notranslate"><span class="pre">R_X86_64_8</span></code> silently truncate the result to the field
+width. Use <code class="docutils literal notranslate"><span class="pre">--verify-reloc</span> <span class="pre">R_X86_64_32</span></code> (etc.) to promote truncation to a
+diagnostic.</p>
+</div></blockquote>
+</div>
+<hr class="docutils" />
+<div class="section" id="relocation-table">
+<h2><span class="section-number">8.5. </span>Relocation Table<a class="headerlink" href="#relocation-table" title="Permalink to this heading"></a></h2>
+<div class="section" id="absolute-relocations">
+<h3><span class="section-number">8.5.1. </span>Absolute Relocations<a class="headerlink" href="#absolute-relocations" title="Permalink to this heading"></a></h3>
+<p>The computed value <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code> is written into the relocation site.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_NONE</span></code></p></td>
+<td><p>0</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_None</span></code></p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_64</span></code></p></td>
+<td><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>no</p></td>
+<td><p>truncated to 64 bits</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_32</span></code></p></td>
+<td><p>10</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>no</p></td>
+<td><p>truncated to 32 bits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_32S</span></code></p></td>
+<td><p>11</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p>truncated to 32 bits, sign-extended on load</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_16</span></code></p></td>
+<td><p>12</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>no</p></td>
+<td><p>truncated to 16 bits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_8</span></code></p></td>
+<td><p>14</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_8</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>no</p></td>
+<td><p>truncated to 8 bits</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p><strong><code class="docutils literal notranslate"><span class="pre">R_X86_64_32</span></code> vs <code class="docutils literal notranslate"><span class="pre">R_X86_64_32S</span></code>:</strong> Both write 32 bits. <code class="docutils literal notranslate"><span class="pre">R_X86_64_32</span></code>
+zero-extends (result must fit in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">2^32)</span></code>); <code class="docutils literal notranslate"><span class="pre">R_X86_64_32S</span></code> sign-extends
+(result must fit in <code class="docutils literal notranslate"><span class="pre">[-2^31,</span> <span class="pre">2^31)</span></code>). The compiler emits <code class="docutils literal notranslate"><span class="pre">32S</span></code> for
+addresses that are sign-extended when loaded into 64-bit registers, such as
+data or code in the low 2 GiB.</p>
+</div></blockquote>
+</div>
+<div class="section" id="pc-relative-relocations">
+<h3><span class="section-number">8.5.2. </span>PC-Relative Relocations<a class="headerlink" href="#pc-relative-relocations" title="Permalink to this heading"></a></h3>
+<p>The computed value <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code> is written. <code class="docutils literal notranslate"><span class="pre">P</span></code> is the address of the
+relocation site; the caller’s instruction already adds <code class="docutils literal notranslate"><span class="pre">P</span></code> back at runtime,
+so the net effect is a direct reference to <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code>.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_PC32</span></code></p></td>
+<td><p>2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>no</p></td>
+<td><p>truncated to 32 bits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_PC16</span></code></p></td>
+<td><p>13</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>no</p></td>
+<td><p>truncated to 16 bits</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_PC8</span></code></p></td>
+<td><p>15</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_8</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>no</p></td>
+<td><p>truncated to 8 bits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_PC64</span></code></p></td>
+<td><p>24</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p>no</p></td>
+<td><p>truncated to 64 bits</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_PLT32</span></code></p></td>
+<td><p>4</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PLT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p>truncated to 32 bits</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p><strong><code class="docutils literal notranslate"><span class="pre">R_X86_64_PLT32</span></code>:</strong> Used for function calls (<code class="docutils literal notranslate"><span class="pre">call</span> <span class="pre">foo</span></code>). If <code class="docutils literal notranslate"><span class="pre">foo</span></code> is
+non-preemptible the linker writes <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code> directly. If <code class="docutils literal notranslate"><span class="pre">foo</span></code> is
+preemptible a PLT entry is created and the formula becomes
+<code class="docutils literal notranslate"><span class="pre">PLT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code>.</p>
+</div></blockquote>
+</div>
+<div class="section" id="got-relative-relocations">
+<h3><span class="section-number">8.5.3. </span>GOT-Relative Relocations<a class="headerlink" href="#got-relative-relocations" title="Permalink to this heading"></a></h3>
+<p>These embed the PC-relative offset to the symbol’s GOT entry. At runtime
+the instruction loads the actual symbol address from the GOT.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_GOT32</span></code></p></td>
+<td><p>3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span></code></p></td>
+<td><p>no</p></td>
+<td><p>truncated to 32 bits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_GOTPCREL</span></code></p></td>
+<td><p>9</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p>truncated to 32 bits</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_GOTPCRELX</span></code></p></td>
+<td><p>41</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p>truncated to 32 bits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_REX_GOTPCRELX</span></code></p></td>
+<td><p>42</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p>truncated to 32 bits</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p><strong><code class="docutils literal notranslate"><span class="pre">GOTPCRELX</span></code> / <code class="docutils literal notranslate"><span class="pre">REX_GOTPCRELX</span></code>:</strong> Relaxable variants of <code class="docutils literal notranslate"><span class="pre">GOTPCREL</span></code>.
+<code class="docutils literal notranslate"><span class="pre">GOTPCRELX</span></code> is used without a REX prefix; <code class="docutils literal notranslate"><span class="pre">REX_GOTPCRELX</span></code> is used with
+one. When the symbol is non-preemptible the linker may rewrite the
+instruction sequence to avoid the GOT load entirely (see
+<span class="xref myst">Relaxations</span>).</p>
+</div></blockquote>
+</div>
+<div class="section" id="dynamic-runtime-relocations">
+<h3><span class="section-number">8.5.4. </span>Dynamic / Runtime Relocations<a class="headerlink" href="#dynamic-runtime-relocations" title="Permalink to this heading"></a></h3>
+<p>Written by the dynamic linker at load time; not applied statically by ELD.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_COPY</span></code></p></td>
+<td><p>5</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_None</span></code></p></td>
+<td><p>Copy symbol value from DSO into the executable</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_GLOB_DAT</span></code></p></td>
+<td><p>6</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span></code> — resolve GOT entry to symbol address</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_JUMP_SLOT</span></code></p></td>
+<td><p>7</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span></code> — lazy PLT resolution</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_RELATIVE</span></code></p></td>
+<td><p>8</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">B</span> <span class="pre">+</span> <span class="pre">A</span></code> — base-relative fixup for non-preemptible symbols in PIC</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="tls-relocations">
+<h3><span class="section-number">8.5.5. </span>TLS Relocations<a class="headerlink" href="#tls-relocations" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="general-dynamic-gd-r-x86-64-tlsgd">
+<h3><span class="section-number">8.5.6. </span>General Dynamic (GD) — <code class="docutils literal notranslate"><span class="pre">R_X86_64_TLSGD</span></code><a class="headerlink" href="#general-dynamic-gd-r-x86-64-tlsgd" title="Permalink to this heading"></a></h3>
+<p>Calls <code class="docutils literal notranslate"><span class="pre">__tls_get_addr</span></code> with a two-word GOT descriptor (module ID +
+DTP offset). Works in all contexts.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_TLSGD</span></code></p></td>
+<td><p>19</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−2^31</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">≤</span> <span class="pre">2^31</span> <span class="pre">−</span> <span class="pre">1</span></code> (hard error)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">leaq</span><span class="w">  </span><span class="no">x@tlsgd</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span><span class="w"> </span><span class="nv">%rdi</span><span class="w">      </span><span class="c1"># R_X86_64_TLSGD; GOT holds {dtpmod, dtpoff}</span>
+<span class="nf">call</span><span class="w">  </span><span class="no">__tls_get_addr@PLT</span>
+<span class="c1"># %rax now holds &amp;x in the current thread&#39;s TLS block</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="local-dynamic-ld-r-x86-64-tlsld">
+<h3><span class="section-number">8.5.7. </span>Local Dynamic (LD) — <code class="docutils literal notranslate"><span class="pre">R_X86_64_TLSLD</span></code><a class="headerlink" href="#local-dynamic-ld-r-x86-64-tlsld" title="Permalink to this heading"></a></h3>
+<p>Like GD but for symbols local to the module; one <code class="docutils literal notranslate"><span class="pre">__tls_get_addr</span></code> call
+covers all LD symbols in the module.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_TLSLD</span></code></p></td>
+<td><p>20</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−2^31</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">≤</span> <span class="pre">2^31</span> <span class="pre">−</span> <span class="pre">1</span></code> (hard error)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">leaq</span><span class="w">  </span><span class="no">x@tlsld</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span><span class="w"> </span><span class="nv">%rdi</span><span class="w">      </span><span class="c1"># R_X86_64_TLSLD; GOT holds {dtpmod, 0}</span>
+<span class="nf">call</span><span class="w">  </span><span class="no">__tls_get_addr@PLT</span>
+<span class="c1"># %rax is the base of this module&#39;s TLS block</span>
+<span class="nf">movl</span><span class="w">  </span><span class="no">x@dtpoff</span><span class="p">(</span><span class="nv">%rax</span><span class="p">),</span><span class="w"> </span><span class="nv">%eax</span><span class="w">     </span><span class="c1"># R_X86_64_DTPOFF32: DTP offset added by linker</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="initial-exec-ie-r-x86-64-gottpoff">
+<h3><span class="section-number">8.5.8. </span>Initial Exec (IE) — <code class="docutils literal notranslate"><span class="pre">R_X86_64_GOTTPOFF</span></code><a class="headerlink" href="#initial-exec-ie-r-x86-64-gottpoff" title="Permalink to this heading"></a></h3>
+<p>Loads the TP-relative offset from the GOT; no runtime call.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_GOTTPOFF</span></code></p></td>
+<td><p>22</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GOT(S)</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">P</span></code></p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−2^31</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">≤</span> <span class="pre">2^31</span> <span class="pre">−</span> <span class="pre">1</span></code> (hard error)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">movq</span><span class="w">  </span><span class="no">x@gottpoff</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span><span class="w"> </span><span class="nv">%rax</span><span class="w">   </span><span class="c1"># R_X86_64_GOTTPOFF; GOT[x] = tpoff(x)</span>
+<span class="nf">movl</span><span class="w">  </span><span class="nv">%fs</span><span class="p">:(</span><span class="nv">%rax</span><span class="p">),</span><span class="w"> </span><span class="nv">%eax</span><span class="w">         </span><span class="c1"># load x relative to TP</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="local-exec-le-r-x86-64-tpoff32-r-x86-64-tpoff64">
+<h3><span class="section-number">8.5.9. </span>Local Exec (LE) — <code class="docutils literal notranslate"><span class="pre">R_X86_64_TPOFF32</span></code> / <code class="docutils literal notranslate"><span class="pre">R_X86_64_TPOFF64</span></code><a class="headerlink" href="#local-exec-le-r-x86-64-tpoff32-r-x86-64-tpoff64" title="Permalink to this heading"></a></h3>
+<p>Encodes the TP-relative offset directly; fastest model, only valid in
+executables.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_TPOFF32</span></code></p></td>
+<td><p>23</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">TLS</span></code></p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−2^31</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">≤</span> <span class="pre">2^31</span> <span class="pre">−</span> <span class="pre">1</span></code> (hard error)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_TPOFF64</span></code></p></td>
+<td><p>18</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span> <span class="pre">-</span> <span class="pre">TLS</span></code></p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p>truncated to 64 bits</p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">movl</span><span class="w">  </span><span class="nv">%fs</span><span class="p">:</span><span class="no">x@tpoff</span><span class="p">,</span><span class="w"> </span><span class="nv">%eax</span><span class="w">        </span><span class="c1"># R_X86_64_TPOFF32: offset baked in at link time</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="dtp-offset-relocations">
+<h3><span class="section-number">8.5.10. </span>DTP Offset Relocations<a class="headerlink" href="#dtp-offset-relocations" title="Permalink to this heading"></a></h3>
+<p>Used inside GOT entries created for GD/LD access.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Relocation</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Encoding</p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Signed</p></th>
+<th class="head"><p>Range check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_DTPMOD64</span></code></p></td>
+<td><p>16</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p>TLS module index (filled by dynamic linker)</p></td>
+<td><p>no</p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_DTPOFF64</span></code></p></td>
+<td><p>17</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code> — DTP-relative offset</p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p>truncated to 64 bits</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_DTPOFF32</span></code></p></td>
+<td><p>21</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EncTy_32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">+</span> <span class="pre">A</span></code> — DTP-relative offset (32-bit)</p></td>
+<td><p><strong>yes</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">−2^31</span> <span class="pre">≤</span> <span class="pre">X</span> <span class="pre">≤</span> <span class="pre">2^31</span> <span class="pre">−</span> <span class="pre">1</span></code> (hard error)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="dynamic-relocation-behaviour">
+<h2><span class="section-number">8.6. </span>Dynamic Relocation Behaviour<a class="headerlink" href="#dynamic-relocation-behaviour" title="Permalink to this heading"></a></h2>
+<p>ELD emits dynamic relocations during link when static resolution is not
+possible. The table below summarises when each dynamic relocation type is
+created.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Dynamic relocation</p></th>
+<th class="head"><p>Trigger condition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_RELATIVE</span></code></p></td>
+<td><p>Non-preemptible symbol referenced by <code class="docutils literal notranslate"><span class="pre">R_X86_64_64</span></code> in PIC/PIE; or non-preemptible symbol referenced by <code class="docutils literal notranslate"><span class="pre">GOTPCREL*</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_GLOB_DAT</span></code></p></td>
+<td><p>Preemptible symbol with a GOT entry (<code class="docutils literal notranslate"><span class="pre">GOTPCREL*</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_64</span></code></p></td>
+<td><p>Preemptible symbol referenced by <code class="docutils literal notranslate"><span class="pre">R_X86_64_64</span></code> in a shared object</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_JUMP_SLOT</span></code></p></td>
+<td><p>Symbol referenced via PLT (<code class="docutils literal notranslate"><span class="pre">PLT32</span></code>) in a shared object</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_COPY</span></code></p></td>
+<td><p>Global data symbol referenced from a non-PIC executable</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_TPOFF64</span></code></p></td>
+<td><p>TLS IE/LD symbol in a shared object (<code class="docutils literal notranslate"><span class="pre">GOTTPOFF</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_DTPMOD64</span></code></p></td>
+<td><p>TLS GD/LD first GOT entry (module ID)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">R_X86_64_DTPOFF64</span></code></p></td>
+<td><p>TLS GD second GOT entry for preemptible symbol</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<div class="section" id="relaxations">
+<h2><span class="section-number">8.7. </span>Relaxations<a class="headerlink" href="#relaxations" title="Permalink to this heading"></a></h2>
+<p>x86-64 supports GOT-load relaxation for <code class="docutils literal notranslate"><span class="pre">GOTPCRELX</span></code> and <code class="docutils literal notranslate"><span class="pre">REX_GOTPCRELX</span></code>
+when the referenced symbol is non-preemptible. The linker rewrites the
+instruction in-place; no separate flag is required.</p>
+<div class="section" id="gotpcrelx-relaxation-no-rex-prefix">
+<h3><span class="section-number">8.7.1. </span><code class="docutils literal notranslate"><span class="pre">GOTPCRELX</span></code> Relaxation (no REX prefix)<a class="headerlink" href="#gotpcrelx-relaxation-no-rex-prefix" title="Permalink to this heading"></a></h3>
+<p>Applies to instructions that load or call through the GOT without a REX
+prefix (typically 32-bit operand-size or short-form instructions).</p>
+<p><strong><code class="docutils literal notranslate"><span class="pre">call</span> <span class="pre">*foo&#64;GOTPCREL(%rip)</span></code> → <code class="docutils literal notranslate"><span class="pre">call</span> <span class="pre">foo</span></code></strong></p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (FF /2 — indirect call through GOT, 6 bytes)</span>
+<span class="nf">call</span><span class="w">  </span><span class="p">*</span><span class="no">foo@GOTPCREL</span><span class="p">(</span><span class="nv">%rip</span><span class="p">)</span><span class="w">      </span><span class="c1"># R_X86_64_GOTPCRELX</span>
+<span class="w">                               </span><span class="c1"># encodes: FF 15 &lt;pcrel32 to GOT slot&gt;</span>
+
+<span class="c1"># After (E8 — direct call, 5 bytes + 1 NOP)</span>
+<span class="nf">call</span><span class="w">  </span><span class="no">foo</span><span class="w">                      </span><span class="c1"># direct; R_X86_64_PC32 applied to offset</span>
+<span class="nf">nop</span><span class="w">                            </span><span class="c1"># 1-byte filler to preserve instruction length</span>
+</pre></div>
+</div>
+<p><strong><code class="docutils literal notranslate"><span class="pre">jmp</span> <span class="pre">*foo&#64;GOTPCREL(%rip)</span></code> → <code class="docutils literal notranslate"><span class="pre">jmp</span> <span class="pre">foo</span></code></strong></p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (FF /4 — indirect jump, 6 bytes)</span>
+<span class="nf">jmp</span><span class="w">   </span><span class="p">*</span><span class="no">foo@GOTPCREL</span><span class="p">(</span><span class="nv">%rip</span><span class="p">)</span><span class="w">      </span><span class="c1"># R_X86_64_GOTPCRELX</span>
+
+<span class="c1"># After (E9 — direct jump, 5 bytes + 1 NOP)</span>
+<span class="nf">jmp</span><span class="w">   </span><span class="no">foo</span>
+<span class="nf">nop</span>
+</pre></div>
+</div>
+<p><strong><code class="docutils literal notranslate"><span class="pre">mov</span> <span class="pre">foo&#64;GOTPCREL(%rip),</span> <span class="pre">%reg</span></code> → <code class="docutils literal notranslate"><span class="pre">lea</span> <span class="pre">foo(%rip),</span> <span class="pre">%reg</span></code></strong></p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before: load address from GOT</span>
+<span class="nf">movq</span><span class="w">  </span><span class="no">foo@GOTPCREL</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span><span class="w"> </span><span class="nv">%rax</span><span class="w"> </span><span class="c1"># R_X86_64_GOTPCRELX</span>
+
+<span class="c1"># After: compute address directly (non-preemptible, no GOT needed)</span>
+<span class="nf">leaq</span><span class="w">  </span><span class="no">foo</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span><span class="w"> </span><span class="nv">%rax</span><span class="w">          </span><span class="c1"># R_X86_64_PC32</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="rex-gotpcrelx-relaxation-rex-prefix-present">
+<h3><span class="section-number">8.7.2. </span><code class="docutils literal notranslate"><span class="pre">REX_GOTPCRELX</span></code> Relaxation (REX prefix present)<a class="headerlink" href="#rex-gotpcrelx-relaxation-rex-prefix-present" title="Permalink to this heading"></a></h3>
+<p>Applies to 64-bit forms of the same instructions (REX.W prefix).</p>
+<p><strong><code class="docutils literal notranslate"><span class="pre">movq</span> <span class="pre">foo&#64;GOTPCREL(%rip),</span> <span class="pre">%reg</span></code> → <code class="docutils literal notranslate"><span class="pre">leaq</span> <span class="pre">foo(%rip),</span> <span class="pre">%reg</span></code></strong></p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (REX.W + 8B /5 — 64-bit GOT load, 7 bytes)</span>
+<span class="nf">movq</span><span class="w">  </span><span class="no">foo@GOTPCREL</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span><span class="w"> </span><span class="nv">%rax</span><span class="w"> </span><span class="c1"># R_X86_64_REX_GOTPCRELX</span>
+
+<span class="c1"># After (REX.W + 8D /5 — 64-bit LEA, 7 bytes)</span>
+<span class="nf">leaq</span><span class="w">  </span><span class="no">foo</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span><span class="w"> </span><span class="nv">%rax</span><span class="w">          </span><span class="c1"># R_X86_64_PC32</span>
+</pre></div>
+</div>
+<p><strong><code class="docutils literal notranslate"><span class="pre">movq</span> <span class="pre">foo&#64;GOTPCREL(%rip),</span> <span class="pre">%reg</span></code> → <code class="docutils literal notranslate"><span class="pre">movq</span> <span class="pre">$imm32,</span> <span class="pre">%reg</span></code></strong> (small absolute)</p>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before (REX.W + 8B — GOT load, 7 bytes)</span>
+<span class="nf">movq</span><span class="w">  </span><span class="no">foo@GOTPCREL</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span><span class="w"> </span><span class="nv">%rax</span><span class="w"> </span><span class="c1"># R_X86_64_REX_GOTPCRELX</span>
+
+<span class="c1"># After (REX.W + C7 — sign-extended 32-bit immediate, 7 bytes)</span>
+<span class="nf">movq</span><span class="w">  </span><span class="no">$foo</span><span class="p">,</span><span class="w"> </span><span class="nv">%rax</span><span class="w">               </span><span class="c1"># R_X86_64_32S; valid when foo fits in 32 bits</span>
+</pre></div>
+</div>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="common-instruction-sequences">
+<h2><span class="section-number">8.8. </span>Common Instruction Sequences<a class="headerlink" href="#common-instruction-sequences" title="Permalink to this heading"></a></h2>
+<div class="section" id="absolute-address-64-bit">
+<h3><span class="section-number">8.8.1. </span>Absolute Address (64-bit)<a class="headerlink" href="#absolute-address-64-bit" title="Permalink to this heading"></a></h3>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">movabsq</span><span class="w">  </span><span class="no">$symbol</span><span class="p">,</span><span class="w"> </span><span class="nv">%rax</span><span class="w">         </span><span class="c1"># R_X86_64_64</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="absolute-address-32-bit-zero-extend">
+<h3><span class="section-number">8.8.2. </span>Absolute Address (32-bit zero-extend)<a class="headerlink" href="#absolute-address-32-bit-zero-extend" title="Permalink to this heading"></a></h3>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">movl</span><span class="w">  </span><span class="no">$symbol</span><span class="p">,</span><span class="w"> </span><span class="nv">%eax</span><span class="w">            </span><span class="c1"># R_X86_64_32; valid when symbol &lt; 2^32</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="pc-relative-data-access">
+<h3><span class="section-number">8.8.3. </span>PC-Relative Data Access<a class="headerlink" href="#pc-relative-data-access" title="Permalink to this heading"></a></h3>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">leaq</span><span class="w">  </span><span class="no">symbol</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span><span class="w"> </span><span class="nv">%rax</span><span class="w">       </span><span class="c1"># R_X86_64_PC32</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="function-call-direct-or-via-plt">
+<h3><span class="section-number">8.8.4. </span>Function Call (direct or via PLT)<a class="headerlink" href="#function-call-direct-or-via-plt" title="Permalink to this heading"></a></h3>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">call</span><span class="w">  </span><span class="no">foo</span><span class="w">                      </span><span class="c1"># R_X86_64_PLT32</span>
+<span class="w">                               </span><span class="c1"># linker uses direct offset if non-preemptible,</span>
+<span class="w">                               </span><span class="c1"># PLT stub otherwise</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="got-indirect-load">
+<h3><span class="section-number">8.8.5. </span>GOT-Indirect Load<a class="headerlink" href="#got-indirect-load" title="Permalink to this heading"></a></h3>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">movq</span><span class="w">  </span><span class="no">foo@GOTPCREL</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span><span class="w"> </span><span class="nv">%rax</span><span class="w"> </span><span class="c1"># R_X86_64_REX_GOTPCRELX (or GOTPCREL)</span>
+<span class="nf">movq</span><span class="w">  </span><span class="p">(</span><span class="nv">%rax</span><span class="p">),</span><span class="w"> </span><span class="nv">%rax</span><span class="w">             </span><span class="c1"># dereference the loaded address</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="tls-local-exec">
+<h3><span class="section-number">8.8.6. </span>TLS Local-Exec<a class="headerlink" href="#tls-local-exec" title="Permalink to this heading"></a></h3>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">movl</span><span class="w">  </span><span class="nv">%fs</span><span class="p">:</span><span class="no">x@tpoff</span><span class="p">,</span><span class="w"> </span><span class="nv">%eax</span><span class="w">        </span><span class="c1"># R_X86_64_TPOFF32</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="tls-initial-exec">
+<h3><span class="section-number">8.8.7. </span>TLS Initial-Exec<a class="headerlink" href="#tls-initial-exec" title="Permalink to this heading"></a></h3>
+<div class="highlight-asm notranslate"><div class="highlight"><pre><span></span><span class="nf">movq</span><span class="w">  </span><span class="no">x@gottpoff</span><span class="p">(</span><span class="nv">%rip</span><span class="p">),</span><span class="w"> </span><span class="nv">%rax</span><span class="w">   </span><span class="c1"># R_X86_64_GOTTPOFF</span>
+<span class="nf">movl</span><span class="w">  </span><span class="nv">%fs</span><span class="p">:(</span><span class="nv">%rax</span><span class="p">),</span><span class="w"> </span><span class="nv">%eax</span>
+</pre></div>
+</div>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="references">
+<h2><span class="section-number">8.9. </span>References<a class="headerlink" href="#references" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>System V AMD64 ABI specification:
+https://gitlab.com/x86-psABIs/x86-64-ABI</p></li>
+<li><p>Intel 64 and IA-32 Architectures Software Developer Manuals:
+https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html</p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="RISCV-Relocations.html" class="btn btn-neutral float-left" title="7. RISC-V Relocation Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
