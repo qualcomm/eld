@@ -85,12 +85,51 @@ public:
     return "unknown";
   }
 
-  static bool isValidEmulation(llvm::StringRef Emulation) {
-    return Emulation.starts_with("arm") || Emulation.starts_with("aarch64");
+  static bool isValidEmulation(llvm::StringRef Emulation);
+
+  static bool inferFromMarch(llvm::StringRef MArch, std::string &InferredArch) {
+    if (MArch.starts_with("aarch64")) {
+      InferredArch = "aarch64";
+      return true;
+    }
+    if (MArch.starts_with("arm")) {
+      InferredArch = "arm";
+      return true;
+    }
+    return false;
+  }
+
+  static bool inferFromTriple(const llvm::Triple &T, std::string &InferredArch) {
+    switch (T.getArch()) {
+    case llvm::Triple::aarch64:
+      InferredArch = "aarch64";
+      return true;
+    case llvm::Triple::arm:
+    case llvm::Triple::thumb:
+    case llvm::Triple::armeb:
+    case llvm::Triple::thumbeb:
+      InferredArch = "arm";
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  static bool inferFromCpu(llvm::StringRef Cpu, std::string &InferredArch) {
+    if (Cpu.starts_with("aarch64") || Cpu.starts_with("cortex-a")) {
+      InferredArch = "aarch64";
+      return true;
+    }
+    if (Cpu.starts_with("cortex") || Cpu.starts_with("arm")) {
+      InferredArch = "arm";
+      return true;
+    }
+    return false;
   }
 
   static bool isMyArch(llvm::StringRef MArch) {
-    return MArch == "arm" || MArch == "aarch64";
+    std::string Arch;
+    return inferFromMarch(MArch, Arch);
   }
 };
 
