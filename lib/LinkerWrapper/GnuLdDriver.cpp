@@ -719,9 +719,16 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
       T::fatal_internal_errors, T::no_fatal_internal_errors, /*default=*/false);
   Config.options().setFatalInternalErrors(enableFatalInternalErrors);
 
-  // set up entry point from -e
+  // set up entry point from -e; warn if specified more than once
+  unsigned NumEntryArgs = 0;
+  for (auto *Arg : Args.filtered(T::entrypoint))
+    ++NumEntryArgs;
+  if (NumEntryArgs > 1 && Config.showLinkerScriptWarnings())
+    Config.raise(Diag::warn_multiple_entry);
+
   if (llvm::opt::Arg *arg = Args.getLastArg(T::entrypoint)) {
     Config.options().setEntry(arg->getValue());
+    Config.options().setEntryFromCmdLine();
     Config.addCommandLine(Table->getOptionName(T::entrypoint), arg->getValue());
   }
 

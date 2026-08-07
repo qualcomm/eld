@@ -1,0 +1,50 @@
+#---EntryCmdPrecedence.test-------------- Executable,LS ----------------------#
+#BEGIN_COMMENT
+# Tests GNU ld entry point precedence rules:
+#   Case 1: Last ENTRY() in a single script wins over earlier ENTRY() commands.
+#   Case 2: Command-line -e always overrides any script ENTRY().
+#   Case 3: Last -e on command line wins over earlier -e.
+#   Case 4: -e with a raw address overrides script ENTRY().
+#   Case 5: Across multiple -T scripts, the last ENTRY() activated wins.
+#   Case 6: -e overrides script ENTRY() regardless of command-line order
+#           (i.e. -e placed before -T still wins).
+#
+# Input scripts fix symbol addresses so entry points can be verified with
+# literal address checks (same style as EntryCmd.test):
+#   two_entries.t  : bar=0x1000, foo=0x2000
+#   script.t       : foo=0x1000, bar=0x2000
+#   entry_foo.t    : bar=0x1000, foo=0x2000  (SECTIONS; entry_bar.t is ENTRY only)
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+
+# Case 1: ENTRY(bar) then ENTRY(foo) in one script -- foo must win (last wins).
+RUN: %link %linkopts %t1.o -T %p/Inputs/two_entries.t -o %t.lastwins.out
+RUN: %readelf -h %t.lastwins.out | %filecheck %s --check-prefix=LASTWINS
+#LASTWINS: Entry point address: 0x2000
+
+# Case 2: -e bar overrides the script ENTRY(foo) -- command line always wins.
+RUN: %link %linkopts %t1.o -T %p/Inputs/two_entries.t -e bar -o %t.cmdline.out
+RUN: %readelf -h %t.cmdline.out | %filecheck %s --check-prefix=CMDLINE
+#CMDLINE: Entry point address: 0x1000
+
+# Case 3: -e foo -e bar -- bar must win (last -e wins).
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -e foo -e bar -o %t.lastcmd.out
+RUN: %readelf -h %t.lastcmd.out | %filecheck %s --check-prefix=LASTCMD
+#LASTCMD: Entry point address: 0x2000
+
+# Case 4: -e 0 overrides script ENTRY(foo) -- entry must be 0x0.
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -e 0 -o %t.rawaddr.out
+RUN: %readelf -h %t.rawaddr.out | %filecheck %s --check-prefix=RAWADDR
+#RAWADDR: Entry point address: 0x0
+
+# Case 5: Two separate scripts, ENTRY(bar) then ENTRY(foo) -- last script wins.
+RUN: %link %linkopts %t1.o -T %p/Inputs/entry_bar.t -T %p/Inputs/entry_foo.t -o %t.crossscript.out
+RUN: %readelf -h %t.crossscript.out | %filecheck %s --check-prefix=CROSSSCRIPT
+#CROSSSCRIPT: Entry point address: 0x2000
+
+# Case 6: -e bar placed BEFORE -T -- command line still wins over script ENTRY(foo).
+RUN: %link %linkopts %t1.o -e bar -T %p/Inputs/two_entries.t -o %t.eorder.out
+RUN: %readelf -h %t.eorder.out | %filecheck %s --check-prefix=EORDER
+#EORDER: Entry point address: 0x1000
+#END_TEST

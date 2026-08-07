@@ -39,6 +39,8 @@ DIAG(assert_failed, DiagnosticEngine::Error, "Assertion failed %0")
 DIAG(error_printcmd, DiagnosticEngine::Error, "%0: PRINT: %1")
 DIAG(linker_script_uses_phdrs_no_sections, DiagnosticEngine::Error,
      "Linker Script is using PHDR's but not using SECTIONS command")
+DIAG(warn_multiple_entry, DiagnosticEngine::Warning,
+     "multiple entry points specified; the last one takes effect")
 DIAG(cannot_set_at_address, DiagnosticEngine::Error,
      "Address for section %0 specified with AT cannot be set, as there is a "
      "dependency issue, check the map file for more analysis")
