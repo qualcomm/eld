@@ -2,7 +2,8 @@ name: CI
 
 on:
   pull_request:
-    # `labeled` so adding `zephyr-check` mid-PR triggers a fresh CI upload.
+    # `labeled` so adding `zephyr-check`/`kernel-check` mid-PR triggers a fresh
+    # CI upload.
     types: [opened, synchronize, reopened, labeled]
     paths-ignore:
       - '.github/workflows/sanitize.yml'
@@ -14,7 +15,9 @@ on:
       - '.github/workflows/DownloadClangCrossToolchain/action.yaml'
       - '.github/workflows/DownloadLatestBusybox/action.yaml'
       - '.github/workflows/busybox.yml'
-      - '.github/workflows/linux-kernel.yml'
+      - '.github/workflows/linux-kernel-nightly.yml'
+      - '.github/workflows/linux-kernel-run.yml'
+      - '.github/workflows/linux-kernel-pr.yml'
       - '.github/workflows/nightly-musl-builder.yml'
       - '.github/workflows/picolibc-builder.yml'
       - '.github/workflows/nightly-test.yml'
@@ -29,10 +32,12 @@ on:
 permissions: {}
 jobs:
   build:
-    # Skip label-triggered runs unless the label is `zephyr-check`.
+    # Skip label-triggered runs unless the label is `zephyr-check` or
+    # `kernel-check`.
     if: |
       github.event.action != 'labeled' ||
-      github.event.label.name == 'zephyr-check'
+      github.event.label.name == 'zephyr-check' ||
+      github.event.label.name == 'kernel-check'
     runs-on: self-hosted
     concurrency:
       group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
@@ -171,12 +176,14 @@ jobs:
         working-directory: pr-${{ env.PR_NUMBER }}/obj
         run: ninja check-eld-summary
 
-      # Package the PR-built ld.eld (+ libs) for zephyr-pr.yml. `inst/` layout
-      # matches FetchNightlyToolset (~27MB compressed). Gated on `zephyr-check`.
+      # Package the PR-built ld.eld (+ libs) for zephyr-pr.yml and
+      # linux-kernel-pr.yml. `inst/` layout matches FetchNightlyToolset
+      # (~27MB compressed). Gated on `zephyr-check`/`kernel-check`.
       - name: Package PR ELD toolset
         if: |
           steps.file-check.outputs.skip_build == 'false' &&
-          contains(github.event.pull_request.labels.*.name, 'zephyr-check')
+          (contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
+           contains(github.event.pull_request.labels.*.name, 'kernel-check'))
         working-directory: pr-${{ env.PR_NUMBER }}
         shell: bash
         run: |
@@ -196,7 +203,8 @@ jobs:
       - name: Upload PR ELD toolset
         if: |
           steps.file-check.outputs.skip_build == 'false' &&
-          contains(github.event.pull_request.labels.*.name, 'zephyr-check')
+          (contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
+           contains(github.event.pull_request.labels.*.name, 'kernel-check'))
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: pr-eld-toolset

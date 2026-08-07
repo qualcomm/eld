@@ -1,0 +1,128 @@
+name: Linux Kernel Boot Nightly with ELD
+
+# Boot a Linux kernel built with the latest nightly ELD toolset. Depends on
+# nightly-test.yml's toolset and busybox-eld.yml's BusyBox artifact; starts 1h
+# after busybox-eld.yml (0 11 * * *) so that run has finished and published its
+# artifact. The kernel boot body lives in the reusable linux-kernel-run.yml.
+
+on:
+  # pull_request: {} # Uncomment only to test this WF file update.
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    if: github.repository == 'qualcomm/eld' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      run_id: ${{ steps.find.outputs.run_id }}
+    steps:
+      - name: Resolve nightly-test.yml run id
+        id: find
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const resp = await github.rest.actions.listWorkflowRuns({
+              owner, repo,
+              workflow_id: 'nightly-test.yml',
+              status: 'success',
+              per_page: 1, // we only need the latest
+            });
+            const runs = resp.data.workflow_runs || [];
+            if (runs.length === 0) {
+              core.setFailed('No successful nightly-test.yml run found.');
+              return;
+            }
+            const run = runs[0];
+            core.info(`Latest successful nightly-test.yml run: id=${run.id}, run_number=${run.run_number}`);
+            core.setOutput('run_id', String(run.id));
+
+  kernel:
+    needs: resolve
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: riscv32
+            target_triple: riscv32-unknown-linux-musl
+            kbuild_arch: riscv
+            defconfig: rv32_defconfig
+            kernel_image: arch/riscv/boot/Image
+            qemu_bin: qemu-system-riscv32
+            qemu_machine: virt
+            qemu_cpu: ""
+            qemu_bios: /usr/lib/riscv32-linux-gnu/opensbi/generic/fw_dynamic.bin
+            console_device: ttyS0
+            enabled: 1
+          - arch: riscv64
+            target_triple: riscv64-unknown-linux-musl
+            kbuild_arch: riscv
+            defconfig: defconfig
+            kernel_image: arch/riscv/boot/Image
+            qemu_bin: qemu-system-riscv64
+            qemu_machine: virt
+            qemu_cpu: ""
+            qemu_bios: ""
+            console_device: ttyS0
+            enabled: 0
+          - arch: x86_64
+            target_triple: x86_64-unknown-linux-musl
+            kbuild_arch: x86_64
+            defconfig: x86_64_defconfig
+            kernel_image: arch/x86/boot/bzImage
+            qemu_bin: qemu-system-x86_64
+            qemu_machine: pc
+            qemu_cpu: ""
+            qemu_bios: ""
+            console_device: ttyS0
+            enabled: 0
+          - arch: arm
+            target_triple: arm-unknown-linux-musleabi
+            kbuild_arch: arm
+            defconfig: multi_v7_defconfig
+            kernel_image: arch/arm/boot/zImage
+            qemu_bin: qemu-system-arm
+            qemu_machine: virt
+            qemu_cpu: ""
+            qemu_bios: ""
+            console_device: ttyAMA0
+            enabled: 0
+          - arch: aarch64
+            target_triple: aarch64-unknown-linux-musl
+            kbuild_arch: arm64
+            defconfig: defconfig
+            kernel_image: arch/arm64/boot/Image
+            qemu_bin: qemu-system-aarch64
+            qemu_machine: virt
+            qemu_cpu: cortex-a57
+            qemu_bios: ""
+            console_device: ttyAMA0
+            enabled: 0
+    uses: ./.github/workflows/linux-kernel-run.yml
+    with:
+      arch: ${{ matrix.arch }}
+      target_triple: ${{ matrix.target_triple }}
+      kbuild_arch: ${{ matrix.kbuild_arch }}
+      defconfig: ${{ matrix.defconfig }}
+      kernel_image: ${{ matrix.kernel_image }}
+      qemu_bin: ${{ matrix.qemu_bin }}
+      qemu_machine: ${{ matrix.qemu_machine }}
+      qemu_cpu: ${{ matrix.qemu_cpu }}
+      qemu_bios: ${{ matrix.qemu_bios }}
+      console_device: ${{ matrix.console_device }}
+      enabled: ${{ matrix.enabled }}
+      toolset_run_id: ${{ needs.resolve.outputs.run_id }}
+      toolset_artifact: install-nightly-toolchain.tar.xz
+      toolset_tarball: install-nightly-toolchain.tar.xz
