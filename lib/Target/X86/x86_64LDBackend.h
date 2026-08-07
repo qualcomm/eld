@@ -13,6 +13,7 @@
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"
 #include "x86_64PLT.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include <unordered_set>
 
@@ -124,6 +125,38 @@ public:
     return m_GOTPCRELXRelaxCandidates.count(reloc) != 0;
   }
 
+  /// Records a TLSGD relocation for GD→LE relaxation during scan.
+  /// Called under the relocator mutex; no GOT pair will be created.
+  void recordTLSGDLERelaxCandidate(Relocation *reloc) {
+    m_TLSGDLERelaxCandidates.insert(reloc);
+    m_TLSGDLEFragOffsets.insert(
+        {reloc->targetRef()->frag(),
+         static_cast<uint32_t>(reloc->targetRef()->offset())});
+  }
+
+  /// Returns true if this R_X86_64_TLSGD was marked for GD→LE relaxation.
+  bool isTLSGDLERelaxCandidate(Relocation *reloc) const {
+    return m_TLSGDLERelaxCandidates.count(reloc) != 0;
+  }
+
+  /// Returns true if this relocation is the companion call in a GD→LE relaxed
+  /// sequence. The companion sits exactly 8 bytes after the TLSGD displacement
+  /// field and is R_X86_64_PLT32 (standard) or R_X86_64_GOTPCRELX (-fno-plt).
+  bool isTLSGDCompanion(const Relocation *reloc) const {
+    uint32_t offset = reloc->targetRef()->offset();
+    if (offset < 8)
+      return false;
+    return m_TLSGDLEFragOffsets.count(
+               {reloc->targetRef()->frag(), offset - 8}) != 0;
+  }
+
+  /// Returns true if this relocation is part of a GD→LE relaxed sequence and
+  /// will be rewritten by postProcessing. Used to skip apply and dynamic-reloc
+  /// sync for both the TLSGD reloc itself and its companion call reloc.
+  bool isTLSGDRelaxCandidate(Relocation *reloc) const {
+    return isTLSGDLERelaxCandidate(reloc) || isTLSGDCompanion(reloc);
+  }
+
   DynRelocType getDynRelocType(const Relocation *X) const override {
     if (X->type() == llvm::ELF::R_X86_64_GLOB_DAT)
       return DynRelocType::GLOB_DAT;
@@ -182,6 +215,9 @@ private:
   /// Iterates the cached relaxation candidates and rewrites each one.
   eld::Expected<void> doRelax(llvm::FileOutputBuffer &pOutput);
 
+  /// Rewrites the 16-byte GD sequence to the LE form (movq %fs:0 + leaq).
+  eld::Expected<void> relaxTLSGDToLEReloc(Relocation *reloc, uint8_t *buf);
+
 private:
   Relocator *m_pRelocator;
 
@@ -198,6 +234,16 @@ private:
   /// postProcessing. unordered_set for O(1) membership checks in
   /// shouldIgnoreRelocSync and the apply-path guard.
   std::unordered_set<Relocation *> m_GOTPCRELXRelaxCandidates;
+
+  /// TLSGD relocations selected for GD→LE relaxation during the scan phase.
+  /// Non-preemptible symbols in executables (static or dynamic); no GOT pair
+  /// is created for these. Consumed single-threaded in doRelax.
+  std::unordered_set<Relocation *> m_TLSGDLERelaxCandidates;
+
+  /// Fragment + intra-fragment offset of each TLSGD candidate, stored as a
+  /// (Fragment*, uint32_t) pair. Used for O(1) companion detection.
+  /// LLVM provides DenseMapInfo for pointer+integer pairs.
+  llvm::DenseSet<std::pair<const Fragment *, uint32_t>> m_TLSGDLEFragOffsets;
 };
 } // namespace eld
 

@@ -1,0 +1,14 @@
+#--TLSGDRelax_SharedHidden_NoRelax.test----------Shared Library--------#
+# Non-preemptible hidden symbol in a DSO must not be relaxed; the tpoff
+# is not a link-time constant for DSO blocks.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_gd_hidden.s -o %t.o
+RUN: %link %linkopts -shared -o %t.so %t.o
+RUN: %readelf -r %t.so | %filecheck %s
+RUN: %objdump -d %t.so | %filecheck %s --check-prefix=NORELAX
+#END_TEST
+
+CHECK: R_X86_64_DTPMOD64
+
+NORELAX: <get_tls>:
+NORELAX-NOT: 64 48 8b 04 25

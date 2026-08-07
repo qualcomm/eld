@@ -136,11 +136,17 @@ void x86_64Relocator::scanRelocation(Relocation &pReloc,
   // symbol
   if (rsym->isUndef() || rsym->isBitCode()) {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (!m_Target.canProvideSymbol(rsym)) {
-      if (m_Target.canIssueUndef(rsym)) {
-        if (rsym->visibility() != ResolveInfo::Default)
-          issueInvisibleRef(pReloc, pInputFile);
-        issueUndefRef(pReloc, pInputFile, &pSection);
+    // Suppress undefined-ref for the companion call in a GD→LE relaxed
+    // sequence (R_X86_64_PLT32 with PLT, or R_X86_64_GOTPCRELX with -fno-plt):
+    // __tls_get_addr is unavailable in a static link, but the bytes at this
+    // offset are fully overwritten by postProcessing.
+    if (!m_Target.isTLSGDCompanion(&pReloc)) {
+      if (!m_Target.canProvideSymbol(rsym)) {
+        if (m_Target.canIssueUndef(rsym)) {
+          if (rsym->visibility() != ResolveInfo::Default)
+            issueInvisibleRef(pReloc, pInputFile);
+          issueUndefRef(pReloc, pInputFile, &pSection);
+        }
       }
     }
   }
@@ -402,6 +408,12 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     if (rsym->reserved() & ReservePLT)
       return;
 
+    // Suppress the companion call in a GD→LE relaxed sequence: the
+    // R_X86_64_PLT32 at TLSGD_offset+8 references __tls_get_addr, which does
+    // not exist in a static link. The bytes are overwritten by postProcessing;
+    if (m_Target.isTLSGDCompanion(&pReloc))
+      return;
+
     // create IRELATIVE for IFUNC symbol
     if (rsym->type() == ResolveInfo::IndirectFunc && config().isCodeStatic()) {
       m_Target.createPLT(Obj, rsym, true);
@@ -435,6 +447,11 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
       m_Target.recordGOTPCRELXRelaxCandidate(&pReloc);
       return;
     }
+    // The GOTPCRELX at TLSGD_offset+8 is the companion call in a -fno-plt
+    // GD sequence being relaxed to LE. Suppress GOT creation; the bytes are
+    // overwritten by postProcessing.
+    if (m_Target.isTLSGDCompanion(&pReloc))
+      return;
     if (rsym->reserved() & ReserveGOT)
       return;
     CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
@@ -479,7 +496,32 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     if (rsym->reserved() & ReserveGOT)
       return;
 
-    // Create GD GOT pair (x86_64GDGOT creates both entries)
+    // GD→LE: non-preemptible symbol in an executable (static, dynamic, or PIE)
+    // that is not a partial link. LE requires the variable's offset from the
+    // thread pointer to be a link-time constant. That holds only for the
+    // executable's own TLS block, which is always placed at a fixed distance
+    // below TP. A DSO's block is positioned by the loader at startup, so its
+    // tpoff is not known at link time — even for a hidden (non-preemptible)
+    // symbol; DSOs are therefore excluded. Partial links are excluded because
+    // they have no final layout; the re-link will decide. Preemptible symbols
+    // in a non-shared executable would go GD→IE.
+    if (!m_Target.isSymbolPreemptible(*rsym) &&
+        m_Target.config().isBuildingExecutable() && !config().isLinkPartial()) {
+      // Guard against a corrupt or hand-crafted object: require a
+      // RegionFragment with offset >= 4. The 16-byte GD sequence requires 4
+      // bytes of prefix before the TLSGD displacement field (same rationale as
+      // GOTPCRELX guarding !RF and offset < 2 in isGOTPCRELXRelaxable). Fall
+      // through to GOT creation for the corrupt case, consistent with GOTPCRELX
+      // behavior.
+      auto *RF = llvm::dyn_cast<RegionFragment>(pReloc.targetRef()->frag());
+      if (RF && pReloc.targetRef()->offset() >= 4) {
+        m_Target.recordTLSGDLERelaxCandidate(&pReloc);
+        // Do not create a GOT pair; postProcessing rewrites the sequence.
+        return;
+      }
+    }
+
+    // Non-relaxable: keep the full GD sequence with dynamic relocations.
     x86_64GOT *G = m_Target.createGOT(GOT::TLS_GD, Obj, rsym);
 
     // Always emit DTPMOD64 for first entry (module ID unknown for DSO)
@@ -698,6 +740,13 @@ Relocator::Result eld::relocPLT32(Relocation &pReloc, x86_64Relocator &pParent,
                                   RelocationDescription &pRelocDesc) {
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   ResolveInfo *symInfo = pReloc.symInfo();
+
+  // The companion PLT32 in a relaxed GD sequence has its bytes overwritten
+  // by postProcessing. Skip apply to avoid an undefined-symbol lookup for
+  // __tls_get_addr.
+  if (pParent.getTarget().isTLSGDCompanion(&pReloc))
+    return Relocator::OK;
+
   Relocator::Address S;
   if (symInfo->reserved() & Relocator::ReservePLT) {
     // Symbol has PLT entry - redirect through PLT
@@ -736,6 +785,11 @@ Relocator::Result eld::relocGOTRelative(Relocation &pReloc,
   // For relaxable GOTPCRELX relocations, postProcessing handles the opcode
   // patch and displacement. Skip apply here to avoid a null GOT entry lookup.
   if (pParent.getTarget().isGOTPCRELXRelaxCandidate(&pReloc))
+    return Relocator::OK;
+
+  // GD→LE candidates and their companion relocs (PLT32 or GOTPCRELX) have no
+  // GOT pair; postProcessing rewrites the entire sequence.
+  if (pParent.getTarget().isTLSGDRelaxCandidate(&pReloc))
     return Relocator::OK;
 
   Relocator::DWord A = pReloc.addend();

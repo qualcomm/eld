@@ -36,6 +36,8 @@ DIAG(relax_to_compress, DiagnosticEngine::Verbose,
      "%3 in section %4+0x%5 file %6")
 DIAG(trace_relax_gotpcrelx, DiagnosticEngine::Trace,
      "%0: relaxed GOTPCRELX (%1) for symbol '%2' to PC-relative access")
+DIAG(trace_relax_tlsgd_le, DiagnosticEngine::Trace,
+     "relaxed TLSGD for symbol '%0' to LE access in section %1+0x%2 file %3")
 DIAG(verbose_ehframe_remove_fde, DiagnosticEngine::Verbose, "EhFrame %0")
 DIAG(verbose_ehframe_read_fde, DiagnosticEngine::Verbose, "EhFrame %0")
 DIAG(verbose_ehframe_read_cie, DiagnosticEngine::Verbose, "EhFrame %0")
