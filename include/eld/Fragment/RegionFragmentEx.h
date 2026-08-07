@@ -10,6 +10,7 @@
 #include "eld/Fragment/Fragment.h"
 #include "eld/Readers/Relocation.h"
 #include "llvm/ADT/StringRef.h"
+#include <vector>
 
 namespace eld {
 class LinkerConfig;
@@ -39,6 +40,9 @@ public:
   bool replaceInstruction(uint32_t Offset, Relocation *Reloc, uint8_t *Instr,
                           uint8_t Size);
   void deleteInstruction(uint32_t Offset, uint32_t Size);
+
+  void insertInstruction(uint32_t Offset, uint32_t NumBytes);
+
   void addRequiredNops(uint32_t Offset, uint32_t NumNopsToAdd);
 
   size_t size() const override;
@@ -53,6 +57,10 @@ protected:
   std::vector<ResolveInfo *> Symbols;
   const char *Data;
   size_t Size;
+#ifndef NDEBUG
+  // Original allocation size of Data
+  size_t Capacity;
+#endif
 };
 
 } // namespace eld
