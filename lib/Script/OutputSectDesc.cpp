@@ -318,10 +318,10 @@ eld::Expected<void> OutputSectDesc::activate(Module &CurModule) {
       break;
     case ScriptCommand::INPUT_SECT_DESC:
     case ScriptCommand::OUTPUT_SECT_DATA: {
-      Cmd->activate(CurModule);
+      ELDEXP_RETURN_DIAGENTRY_IF_ERROR(Cmd->activateOnce(CurModule));
 
       for (auto &Assignment : Assignments) {
-        (Assignment)->activate(CurModule);
+        ELDEXP_RETURN_DIAGENTRY_IF_ERROR(Assignment->activateOnce(CurModule));
       }
       Assignments.clear();
       break;
