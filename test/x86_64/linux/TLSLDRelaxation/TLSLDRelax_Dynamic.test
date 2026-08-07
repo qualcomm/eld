@@ -1,0 +1,16 @@
+#--TLSLDRelax_Dynamic.test----------Shared Object--------#
+# Dynamic (-shared) link must NOT relax TLSLD: __tls_get_addr is available
+# at runtime and the DTPMOD64 relocation must be emitted for the loader.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ld.s -o %t.o
+RUN: %link %linkopts -shared -o %t.so %t.o
+RUN: %readelf -r %t.so | %filecheck %s --check-prefix=DYNRELOC
+RUN: %objdump -d %t.so | %filecheck %s --check-prefix=NOLE
+#END_TEST
+
+# Dynamic link keeps the GOT-pair DTPMOD64 reloc.
+DYNRELOC: R_X86_64_DTPMOD64
+
+# Instruction is NOT the LE replacement (opcode 0x66 prefix sequence).
+NOLE: <get_tls>:
+NOLE-NEXT: {{[0-9a-f]+}}: 48 8d {{.*}}

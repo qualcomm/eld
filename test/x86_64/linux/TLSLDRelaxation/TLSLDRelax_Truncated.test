@@ -1,0 +1,10 @@
+#--TLSLDRelax_Truncated.test----------Executable--------#
+# TLSLD with no trailing call bytes: offset+6 guard rejects it, no OOB read.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ld_truncated.s -o %t.o
+RUN: %link %linkopts -static -e trunc_fn -o %t.eld %t.o
+RUN: %objdump -d %t.eld | %filecheck %s
+#END_TEST
+
+CHECK: <trunc_fn>:
+CHECK-NEXT: {{[0-9a-f]+}}: 48 8d 3d {{.*}}leaq
