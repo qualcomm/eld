@@ -588,12 +588,7 @@ bool SectionMap::doesRuleMatchWithSection(const RuleContainer &R,
                                           bool DoNotUseRmName) const {
   InputFile *IF = S.getInputFile();
   ASSERT(IF != nullptr, "Section must always have a non-empty InputFile!");
-  bool IsCommonSection = false;
-  if (const CommonELFSection *CommonSection =
-          llvm::dyn_cast<const CommonELFSection>(&S)) {
-    IF = CommonSection->getOrigin();
-    IsCommonSection = true;
-  }
+  bool IsCommonSection = llvm::isa<CommonELFSection>(&S);
   if (S.getOldInputFile())
     IF = S.getOldInputFile();
   const std::string &InputFileName = IF->getInput()->getResolvedPath().native();
