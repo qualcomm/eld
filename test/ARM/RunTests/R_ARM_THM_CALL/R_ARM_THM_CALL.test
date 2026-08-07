@@ -1,0 +1,24 @@
+REQUIRES: run_test
+#---R_ARM_THM_CALL.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# Test the ARM R_ARM_THM_CALL relocation.
+# R_ARM_THM_CALL is a PC-relative relocation for Thumb BL/BLX
+# instructions that encodes the signed offset from the instruction to
+# the target function, allowing calls between Thumb and ARM code via
+# mode switching.
+# Covers: static
+#END_COMMENT
+#START_TEST
+
+#RUN: %run_cc -nostdlib -c -o %t.startup.o %p/Inputs/startup.s
+#RUN: %run_cc -nostdlib -c -o %t.main.o %p/Inputs/main.s
+#RUN: %readelf -r %t.startup.o | %filecheck %s -check-prefix START-RELOCS
+# Static
+#RUN: %run_cc -static -nostartfiles -o %t.static.out %t.startup.o %t.main.o
+#RUN: %objdump -d %t.static.out | %filecheck %s -check-prefix STATIC
+#RUN: %run %t.static.out
+
+#START-RELOCS: {{.*}} R_ARM_THM_CALL {{.*}} main
+#STATIC: bl {{.*}} <main>
+
+#END_TEST

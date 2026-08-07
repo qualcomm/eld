@@ -1,0 +1,22 @@
+REQUIRES: run_test
+#---R_ARM_TLS_TPOFF32.test-------------- Executable------------------#
+#BEGIN_COMMENT
+# Test the ARM R_ARM_TLS_TPOFF32 relocation.
+# R_ARM_TLS_TPOFF32 is a static TLS relocation that stores the offset
+# of a thread-local variable from the thread pointer, used in the
+# initial-exec TLS model to allow direct access to TLS variables
+# without going through the dynamic linker.
+# Covers: static
+#END_COMMENT
+#START_TEST
+
+#RUN: %run_cc -nostdlib -c -o %t.startup.o %p/Inputs/startup.s
+#RUN: %run_cc -nostdlib -c -o %t.main.o %p/Inputs/main.s
+#RUN: %readelf -r %t.main.o | %filecheck %s -check-prefix MAIN-RELOCS
+# Static - link is expected to fail because R_ARM_TLS_TPOFF32 is unsupported
+#RUN: %not %run_cc -static -nostartfiles -o %t.static.out %t.startup.o %t.main.o 2>&1 | %filecheck %s -check-prefix LINK-ERROR
+
+#MAIN-RELOCS: {{.*}} R_ARM_TLS_TPOFF32 {{.*}} tls_var
+#LINK-ERROR: Unsupported relocation found during relocation scan `R_ARM_TLS_TPOFF32'
+
+#END_TEST
