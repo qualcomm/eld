@@ -40,7 +40,6 @@ jobs:
     permissions:
       contents: write
       statuses: write
-      actions: write      # needed to dispatch zephyr-pr.yml for labeled PRs
 
     env:
       PR_NUMBER: ${{ github.event.number }}
@@ -173,9 +172,7 @@ jobs:
         run: ninja check-eld-summary
 
       # Package the PR-built ld.eld (+ libs) for zephyr-pr.yml. `inst/` layout
-      # matches FetchNightlyToolset (~27MB compressed). Gated on `zephyr-check`
-      # -- artifact is only consumed by the manual zephyr-pr.yml dispatch, so
-      # uploading on every PR would just fill Actions storage with unread tars.
+      # matches FetchNightlyToolset (~27MB compressed). Gated on `zephyr-check`.
       - name: Package PR ELD toolset
         if: |
           steps.file-check.outputs.skip_build == 'false' &&
@@ -205,25 +202,6 @@ jobs:
           name: pr-eld-toolset
           retention-days: 1
           path: pr-${{ env.PR_NUMBER }}/install-pr-toolset.tar.xz
-
-      - name: Trigger Zephyr PR workflow
-        if: |
-          steps.file-check.outputs.skip_build == 'false' &&
-          contains(github.event.pull_request.labels.*.name, 'zephyr-check')
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            // Dispatch the default-branch copy of zephyr-pr.yml. The artifact
-            // uploaded above is what its resolve job gates on, so by the time
-            // it runs the pr-eld-toolset is present on this CI run.
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'zephyr-pr.yml',
-              ref: context.payload.pull_request.base.ref,
-              inputs: { pr_number: String(context.payload.pull_request.number) },
-            });
 
       - name: Clean up
         if: always()

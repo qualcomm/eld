@@ -1,33 +1,38 @@
 name: Zephyr on ELD PR
 
-# Run Zephyr against a PR's own ELD build. Dispatched by ci.yml after a
-# `zephyr-check`-labeled build (passing the PR number), or manually with a PR
-# number. Resolve finds the newest ci.yml run for the PR head whose
-# pr-eld-toolset artifact is still available.
+# Run Zephyr against a PR's own ELD build. Opt-in via the `zephyr-check` label,
+# or manually with a PR number.
 
 on:
+  workflow_run: # zizmor: ignore[dangerous-triggers] read-only token, no secrets, ephemeral runner
+    workflows: [CI]
+    types: [completed]
   workflow_dispatch:
     inputs:
       pr_number:
         description: "PR number (discovers the latest ci.yml run whose pr-eld-toolset artifact is still available)"
         required: true
 
-# A newer dispatch for the same PR supersedes the previous run.
+# A newer run for the same PR supersedes the previous one.
 concurrency:
-  group: zephyr-pr-${{ github.event.inputs.pr_number || github.run_id }}
+  group: zephyr-pr-${{ github.event.inputs.pr_number || github.event.workflow_run.head_branch }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  actions: read       # needed to list/download artifacts from the ci.yml run
-  pull-requests: read # needed to resolve a PR number's head SHA
+permissions: {}
 
 jobs:
   resolve:
+    if: |
+      github.repository == 'qualcomm/eld' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pull-requests: read
     outputs:
       run_id: ${{ steps.find.outputs.run_id }}
-      should_run: ${{ steps.find.outputs.should_run }}
+      head_sha: ${{ steps.find.outputs.head_sha }}
     steps:
       - name: Resolve ci.yml run id
         id: find
@@ -40,19 +45,32 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
+            const liveToolset = async (runId) => {
+              const { data } = await github.rest.actions.listWorkflowRunArtifacts({
+                owner, repo, run_id: runId, name: 'pr-eld-toolset',
+              });
+              return data.artifacts.some(a => !a.expired);
+            };
+
+            const wr = context.payload.workflow_run;
+            if (wr) {
+              if (await liveToolset(wr.id)) {
+                core.setOutput('run_id', String(wr.id));
+                core.setOutput('head_sha', wr.head_sha);
+              }
+              return;
+            }
+
+            // Manual path: newest ci.yml run for the PR head that still has one.
             const prNumber = (process.env.PR_NUMBER || '').trim();
             if (!prNumber) {
               core.setFailed('Provide a pr_number.');
               return;
             }
-
-            // Resolve the PR's head SHA.
             const pr = await github.rest.pulls.get({
               owner, repo, pull_number: Number(prNumber),
             });
             const headSha = pr.data.head.sha;
-            core.info(`PR #${prNumber} head SHA: ${headSha}`);
-
             const runs = await github.paginate(
               github.rest.actions.listWorkflowRuns,
               {
@@ -64,28 +82,22 @@ jobs:
               }
             );
             runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
             for (const run of runs) {
-              const { data: { artifacts } } = await github.rest.actions.listWorkflowRunArtifacts({
-                owner, repo, run_id: run.id, per_page: 100,
-              });
-              if (artifacts.some(a => a.name === 'pr-eld-toolset' && !a.expired)) {
-                core.info(`Using ci.yml run ${run.id} (run_number=${run.run_number})`);
+              if (await liveToolset(run.id)) {
                 core.setOutput('run_id', String(run.id));
-                core.setOutput('should_run', 'true');
+                core.setOutput('head_sha', headSha);
                 return;
               }
             }
-
             core.setFailed(
-              `No ci.yml run for PR #${prNumber} (SHA ${headSha}) has an ` +
-              `available pr-eld-toolset artifact. Add the \`zephyr-check\` ` +
-              `label and re-run CI (the artifact has retention-days: 1), then ` +
-              `dispatch this workflow again.`);
+              `No ci.yml run for SHA ${headSha} has an available ` +
+              `pr-eld-toolset artifact. Add the \`zephyr-check\` label and ` +
+              `re-run CI (the artifact has retention-days: 1), then dispatch ` +
+              `this workflow again.`);
 
   zephyr:
     needs: resolve
-    if: needs.resolve.outputs.should_run == 'true'
+    if: needs.resolve.outputs.run_id != ''
     permissions:
       contents: read
       actions: read
@@ -109,3 +121,30 @@ jobs:
       toolset_run_id: ${{ needs.resolve.outputs.run_id }}
       toolset_artifact: pr-eld-toolset
       toolset_tarball: install-pr-toolset.tar.xz
+
+  # Post the result on the PR.
+  status:
+    needs: [resolve, zephyr]
+    if: |
+      always() && needs.resolve.outputs.run_id != '' &&
+      needs.zephyr.result != 'cancelled'
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - name: Report Zephyr result on the PR
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        env:
+          HEAD_SHA: ${{ needs.resolve.outputs.head_sha }}
+          RESULT: ${{ needs.zephyr.result }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: process.env.HEAD_SHA,
+              context: 'zephyr (informational)',
+              state: process.env.RESULT === 'success' ? 'success' : 'failure',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
