@@ -1,0 +1,10 @@
+#---MemoryRegionVMACheck.test----------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test that ELD errors when a section VMA does not fit in its assigned
+# memory region, matching BFD and LLD behavior. 
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s
+#END_TEST
+CHECK: address {{0x[0-9a-f]+}} of section '.foo' is not within region 'RAM'
