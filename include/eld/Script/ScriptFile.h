@@ -142,8 +142,9 @@ public:
   void addOutputArchCmd(const std::string &PArch);
 
   /// assignment
-  void addAssignment(const std::string &Symbol, Expression *ScriptExpression,
-                     Assignment::Type AssignmentType = Assignment::DEFAULT);
+  Assignment *
+  addAssignment(const std::string &Symbol, Expression *ScriptExpression,
+                Assignment::Type AssignmentType = Assignment::DEFAULT);
 
   bool linkerScriptHasSectionsCommand() const;
 
