@@ -760,11 +760,8 @@ uint64_t GNULDBackend::finalizeTLSSymbol(LDSymbol *pSymbol) {
   }
 
   // ignore if symbol has no fragRef
-  // FIXME: This is probably wrong. If a symbol does not have a fragment ref
-  // that implies the symbol is undefined, in that case, the symbol index should
-  // be 0 instead of 1 (true).
   if (!pSymbol->hasFragRef())
-    return true;
+    return false;
 
   // the value of a TLS symbol is the offset to the TLS segment
   std::vector<ELFSegment *> tls_segs =
