@@ -129,12 +129,6 @@ jobs:
       - name: Set safe.directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE/zephyr"
 
-      - name: Download and apply ELD support patch
-        run: |
-          cd zephyr
-          wget -q --tries=3 --retry-on-http-error=429,500,502,503,504 --waitretry=5 https://github.com/zephyrproject-rtos/zephyr/pull/103778.patch -O eld-support.patch
-          git apply eld-support.patch
-
       - name: West setup
         shell: bash
         run: |
