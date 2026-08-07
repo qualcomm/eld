@@ -1560,6 +1560,9 @@ A version script is a sequence of *version nodes*. Each node has an optional
 name and contains ``global:`` and/or ``local:`` blocks. Each block lists symbol
 patterns terminated by ``;``.
 
+It is an error for a ``local:`` block to appear before a ``global:`` block in
+the same version node.
+
 .. code-block::
 
   /* Anonymous (unnamed) version node. */
