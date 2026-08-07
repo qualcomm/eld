@@ -1,0 +1,14 @@
+#---EntryCmdTopLevelOverridesInSections.test---------- Executable,LS-----------#
+#BEGIN_COMMENT
+# This test checks that a top-level ENTRY command (outside SECTIONS) takes
+# precedence over an ENTRY command nested inside the SECTIONS command, since
+# the top-level command activates first.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -h %t2.out | %filecheck %s
+# .bar is placed at 0x1000 and .foo right after; if ENTRY(foo) had won the
+# entry point would be .foo's address instead.
+#CHECK: Entry point address: 0x1000
+#END_TEST
