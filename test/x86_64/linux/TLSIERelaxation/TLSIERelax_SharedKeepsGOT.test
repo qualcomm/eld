@@ -1,0 +1,16 @@
+#--TLSIERelax_SharedKeepsGOT.test----------Shared Library--------#
+# R_X86_64_GOTTPOFF must NOT be relaxed in a shared library link.
+# The dynamic loader must resolve the TLS offset at load time, so the GOT
+# slot and R_X86_64_TPOFF64 relocation must be preserved.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ie_mov.s -o %t.o
+RUN: %link %linkopts -shared -o %t.so %t.o
+RUN: %objdump -d %t.so | %filecheck %s
+RUN: %readelf -r %t.so | %filecheck %s --check-prefix=DYNRELOC
+#END_TEST
+
+# Original movq gottpoff(%rip), %rax encoding must remain (48 8b 05).
+CHECK: {{[0-9a-f]+}}: 48 8b 05 {{.*}}
+
+# The TPOFF64 dynamic reloc that populates the GOT at load time must be present.
+DYNRELOC: R_X86_64_TPOFF64

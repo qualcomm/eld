@@ -276,6 +276,11 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
     return;
   case llvm::ELF::R_X86_64_GOTTPOFF: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    // Local symbols are never preemptible; pass false directly.
+    if (m_Target.shouldRelaxTLSIEToLE(&pReloc, /*preemptible=*/false)) {
+      m_Target.recordTLSIERelaxCandidate(&pReloc);
+      return;
+    }
     if (rsym->reserved() & ReserveGOT)
       return;
     x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
@@ -459,12 +464,17 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
   }
   case llvm::ELF::R_X86_64_GOTTPOFF: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    const bool preemptible = m_Target.isSymbolPreemptible(*rsym);
+    if (m_Target.shouldRelaxTLSIEToLE(&pReloc, preemptible)) {
+      m_Target.recordTLSIERelaxCandidate(&pReloc);
+      return;
+    }
     if (rsym->reserved() & ReserveGOT)
       return;
     x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
-    const bool isExec = config().isBuildingExecutable();
-    const bool preemptible = m_Target.isSymbolPreemptible(*rsym);
-    if (isExec && !preemptible) {
+    if (config().isBuildingExecutable() && !preemptible) {
+      // TP offset is fixed at link time for non-preemptible symbols in
+      // executables. Compute it at layout; no dynamic reloc needed.
       G->setValueType(GOT::TLSStaticSymbolValue);
     } else {
       helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
@@ -736,6 +746,11 @@ Relocator::Result eld::relocGOTRelative(Relocation &pReloc,
   // For relaxable GOTPCRELX relocations, postProcessing handles the opcode
   // patch and displacement. Skip apply here to avoid a null GOT entry lookup.
   if (pParent.getTarget().isGOTPCRELXRelaxCandidate(&pReloc))
+    return Relocator::OK;
+
+  // IE→LE candidates also skip GOT lookup; the byte rewrite already happened
+  // in postProcessing.
+  if (pParent.getTarget().isTLSIERelaxCandidate(&pReloc))
     return Relocator::OK;
 
   Relocator::DWord A = pReloc.addend();
