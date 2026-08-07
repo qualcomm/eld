@@ -136,7 +136,7 @@ jobs:
           west init -l .
           # SoC-gated vendor HALs no QEMU board we build uses. Never compiled,
           # only waste disk. Keep cmsis + cmsis_6 (Cortex-M core headers).
-          exclude='hal_adi|hal_afbr|hal_ambiq|hal_atmel|hal_bouffalolab|hal_espressif|hal_ethos_u|hal_gigadevice|hal_infineon|hal_intel|hal_microchip|hal_nordic|hal_nuvoton|hal_nxp|hal_openisa|hal_quicklogic|hal_realtek|hal_renesas|hal_rpi_pico|hal_sifli|hal_silabs|hal_st|hal_stm32|hal_tdk|hal_telink|hal_ti|hal_wch|hal_wurthelektronik|hal_xtensa|libmetal|nrf_hw_models'
+          exclude='hal_adi|hal_afbr|hal_ambiq|hal_atmel|hal_bouffalolab|hal_espressif|hal_ethos_u|hal_gigadevice|hal_infineon|hal_intel|hal_microchip|hal_nordic|hal_nuvoton|hal_nxp|hal_openisa|hal_quicklogic|hal_realtek|hal_renesas|hal_rpi_pico|hal_sifli|hal_silabs|hal_st|hal_stm32|hal_tdk|hal_telink|hal_ti|hal_wch|hal_wurthelektronik|hal_xtensa|nrf_hw_models'
           # Deny-list: modules upstream adds later are still fetched.
           mapfile -t projects < <(west list --format '{name}' | grep -vxE "manifest|$exclude")
           # Shallow + narrow: full fetch has run the container disk out of space.
@@ -145,6 +145,29 @@ jobs:
       - name: Install Zephyr SDK hosttools
         run: |
           west sdk install --no-gnu-toolchains --install-base /opt/toolchains
+
+      # cpullvm's armv7m soft-float picolibc is PIC. Borrow the SDK's non-PIC one via
+      # SYSROOT_DIR so ARM can use PICOLIBC_USE_TOOLCHAIN=y like the other boards.
+      - name: Install SDK LLVM ARM picolibc (non-PIC, for ${{ inputs.arch }})
+        if: inputs.arch == 'arm'
+        shell: bash
+        env:
+          ARM_SYSROOT: /opt/arm-picolibc
+        run: |
+          west sdk install --llvm --no-gnu-toolchains --install-base /opt/toolchains
+          multilib="$(echo /opt/toolchains/zephyr-sdk-*/llvm/lib/clang-runtimes/arm-none-eabi/armv7m_soft_nofp)"
+          if [ ! -f "${multilib}/lib/libc.a" ]; then
+            echo "::error::expected non-PIC picolibc missing at ${multilib}"
+            exit 1
+          fi
+          # The multilib is a self-contained sysroot, so keep the 17MB we need
+          # and drop the ~3GB rest.
+          cp -r "${multilib}" "${ARM_SYSROOT}"
+          rm -rf /opt/toolchains/zephyr-sdk-*/llvm
+          echo "ARM_SYSROOT=${ARM_SYSROOT}" >> "$GITHUB_ENV"
+          # Some tests are compiled with their own -Werror. This turns -Wmultilib-not-founds into fatal
+          # errors that twister's -W can't reach, so disable that warning.
+          echo "ARM_CFLAGS=-Wno-multilib-not-found" >> "$GITHUB_ENV"
 
       - name: Build hello_world for ${{ inputs.board }} with ELD
         shell: bash
@@ -160,6 +183,9 @@ jobs:
           west build -p always -b "$BOARD" samples/hello_world -- \
             -DCONFIG_LLVM_USE_ELD=y \
             -DCONFIG_COMPILER_RT_RTLIB=y \
+            ${ARM_SYSROOT:+-DSYSROOT_DIR=$ARM_SYSROOT} \
+            ${ARM_SYSROOT:+-DCMAKE_C_FLAGS=$ARM_CFLAGS} \
+            ${ARM_SYSROOT:+-DCMAKE_CXX_FLAGS=$ARM_CFLAGS} \
             ${EXTRA_ARGS:+-D"$EXTRA_ARGS"}
 
       - name: Run hello_world on QEMU
@@ -202,6 +228,9 @@ jobs:
             -x=ZEPHYR_TOOLCHAIN_VARIANT=host/llvm \
             -x=CONFIG_LLVM_USE_ELD=y \
             -x=CONFIG_COMPILER_RT_RTLIB=y \
+            ${ARM_SYSROOT:+-x=SYSROOT_DIR=$ARM_SYSROOT} \
+            ${ARM_SYSROOT:+-x=CMAKE_C_FLAGS=$ARM_CFLAGS} \
+            ${ARM_SYSROOT:+-x=CMAKE_CXX_FLAGS=$ARM_CFLAGS} \
             ${EXTRA_ARGS:+-x="$EXTRA_ARGS"}
 
       - name: Upload twister results
