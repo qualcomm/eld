@@ -297,6 +297,124 @@ void RISCVLDBackend::reportMissedRelaxation(StringRef Name,
   recordRelaxationStats(Section, 0, NumBytes);
 }
 
+void RISCVLDBackend::recordCallRelaxation(RegionFragmentEx &Region,
+                                          Relocation *Reloc, uint64_t Offset,
+                                          uint32_t AuipcBytes,
+                                          uint32_t JalrBytes,
+                                          uint32_t RelaxedSize) {
+  m_CallRelaxRecords.push_back(
+      {&Region, Reloc, Offset, AuipcBytes, JalrBytes, RelaxedSize});
+}
+
+// After the ALIGN pass commits all deferred deletions, re-verify every
+// AUIPC+JALR→JAL relaxation using the final post-ALIGN symbol addresses.
+// Any relaxation whose final distance exceeds the ±1MB JAL range is undone:
+// the deleted JALR bytes are reinserted, the AUIPC is restored, and the
+// relocation type is changed back to R_RISCV_CALL_PLT.
+void RISCVLDBackend::verifyAndRollbackCallRelaxations(bool &pFinished) {
+  for (auto &R : m_CallRelaxRecords) {
+    if (R.rolledBack)
+      continue;
+
+    Relocator::DWord S = getSymbolValuePLT(*R.reloc);
+    Relocator::DWord A = R.reloc->addend();
+    Relocator::DWord P = R.reloc->place(m_Module);
+    int64_t X = static_cast<int64_t>(S + A - P);
+
+    if (R.relaxedSize == 2) {
+      // C.J/C.JAL path: check if still within ±2KB (12-bit) range.
+      if (llvm::isInt<12>(X))
+        continue;
+
+      unsigned rd = (R.jalrBytes >> 7) & 0x1fu;
+
+      if (llvm::isInt<21>(X)) {
+        // Out of C.J range but still within JAL range: expand C.J → JAL.
+        // C.J is 2B; JAL is 4B. Insert 2 bytes then overwrite with JAL.
+        R.region->insertInstruction(R.relocOffset + 2, 2);
+        uint32_t jal = 0x6fu | rd << 7;
+        R.region->replaceInstruction(R.relocOffset, R.reloc,
+                                     reinterpret_cast<uint8_t *>(&jal), 4);
+        R.reloc->setTargetData(jal);
+        R.reloc->setType(llvm::ELF::R_RISCV_JAL);
+        R.rolledBack = true;
+
+        if (m_Module.getPrinter()->isVerbose())
+          config().raise(Diag::relax_cj_rolled_back_to_jal)
+              << R.reloc->symInfo()->name()
+              << R.region->getOwningSection()->name()
+              << llvm::utohexstr(R.relocOffset)
+              << R.region->getOwningSection()
+                     ->getInputFile()
+                     ->getInput()
+                     ->decoratedPath();
+      } else {
+        // Out of JAL range too: expand C.J → AUIPC+JALR.
+        // C.J is 2B; AUIPC+JALR is 8B. Insert 6 bytes, then restore both.
+        R.region->insertInstruction(R.relocOffset + 2, 6);
+        uint32_t auipcCopy = R.auipcBytes;
+        R.region->replaceInstruction(
+            R.relocOffset, R.reloc, reinterpret_cast<uint8_t *>(&auipcCopy), 4);
+        uint32_t jalrCopy = R.jalrBytes;
+        std::memcpy(const_cast<char *>(R.region->getRegion().data()) +
+                        R.relocOffset + 4,
+                    &jalrCopy, 4);
+        R.reloc->setTargetData(R.auipcBytes);
+        R.reloc->setType(llvm::ELF::R_RISCV_CALL_PLT);
+        R.rolledBack = true;
+
+        if (m_Module.getPrinter()->isVerbose())
+          config().raise(Diag::relax_cj_rolled_back_to_call)
+              << R.reloc->symInfo()->name()
+              << R.region->getOwningSection()->name()
+              << llvm::utohexstr(R.relocOffset)
+              << R.region->getOwningSection()
+                     ->getInputFile()
+                     ->getInput()
+                     ->decoratedPath();
+      }
+
+      pFinished = false;
+      continue;
+    }
+
+    // JAL path (relaxedSize == 4): check if still within ±1MB (21-bit) range.
+    if (llvm::isInt<21>(X))
+      continue; // still in range, keep the JAL relaxation
+
+    // Out of range: undo the JAL relaxation.
+    // The JALR bytes were deleted (committed) at R.relocOffset + 4.
+    // Reinsert 4 bytes at that position and restore original instructions.
+    R.region->insertInstruction(R.relocOffset + 4, 4);
+
+    // Restore AUIPC at R.relocOffset.
+    uint32_t auipcCopy = R.auipcBytes;
+    R.region->replaceInstruction(R.relocOffset, R.reloc,
+                                 reinterpret_cast<uint8_t *>(&auipcCopy), 4);
+    // Write JALR bytes into the reinserted space.
+    uint32_t jalrCopy = R.jalrBytes;
+    std::memcpy(const_cast<char *>(R.region->getRegion().data()) +
+                    R.relocOffset + 4,
+                &jalrCopy, 4);
+
+    R.reloc->setTargetData(R.auipcBytes);
+    R.reloc->setType(llvm::ELF::R_RISCV_CALL_PLT);
+    R.rolledBack = true;
+
+    if (m_Module.getPrinter()->isVerbose())
+      config().raise(Diag::relax_call_rolled_back)
+          << R.reloc->symInfo()->name() << R.region->getOwningSection()->name()
+          << llvm::utohexstr(R.relocOffset)
+          << R.region->getOwningSection()
+                 ->getInputFile()
+                 ->getInput()
+                 ->decoratedPath();
+
+    // Fragment grew by 4 bytes: trigger another layout iteration.
+    pFinished = false;
+  }
+}
+
 // Select the matching JVT entry lookup for rd.
 // x0 uses the jump-only table instruction.
 // x1 uses the normal link-register table instruction.
@@ -399,6 +517,7 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
   const char *msgC = (rd == 1) ? "RISCV_CALL_JAL" : "RISCV_CALL_J";
   if (canRelaxCJ) {
     uint16_t c_j = (rd == 1) ? 0x2001u : 0xa001;
+    uint32_t auipcBytes = static_cast<uint32_t>(reloc->target());
 
     if (m_Module.getPrinter()->isVerbose())
       config().raise(Diag::relax_to_compress)
@@ -417,6 +536,8 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
     reloc->setType(llvm::ELF::R_RISCV_RVC_JUMP);
     relaxDeleteBytes("RISCV_CALL_C", *region, offset + 2, 6,
                      reloc->symInfo()->name());
+
+    recordCallRelaxation(*region, reloc, offset, auipcBytes, jalr_instr, 2);
 
     return true;
   }
@@ -442,15 +563,22 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
   }
 
   if (canRelaxJal) {
+    // Save original bytes before we overwrite them, so we can roll back
+    // this relaxation post-ALIGN if the final distance exceeds ±1MB.
+    uint32_t auipcBytes = static_cast<uint32_t>(reloc->target());
+
     // Replace the instruction to JAL
     uint32_t jal = 0x6fu | rd << 7;
 
     region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&jal), 4);
     reloc->setTargetData(jal);
     reloc->setType(llvm::ELF::R_RISCV_JAL);
-    // Delete the next instruction
+    // Delete the next instruction (deferred)
     relaxDeleteBytes("RISCV_CALL", *region, offset + 4, 4,
                      reloc->symInfo()->name());
+
+    // Record this relaxation for post-ALIGN reverification.
+    recordCallRelaxation(*region, reloc, offset, auipcBytes, jalr_instr, 4);
 
     // Report missed relaxation as we could still do a `C.J`/`C.JAL`
     reportMissedRelaxation("RISCV_CALL_C", *region, offset, 2,
@@ -1664,8 +1792,12 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
   pFinished = true;
 
   // TLSDESC relaxations only apply to executables.
-  if (relaxation_pass == RELAXATION_TLSDESC && !config().isBuildingExecutable())
+  if (relaxation_pass == RELAXATION_TLSDESC &&
+      !config().isBuildingExecutable()) {
+    pFinished =
+        false; // ALIGN pass must still run to commit deferred deletions.
     return;
+  }
 
   // RELAXATION_ALIGN pass, which is the last pass, will set pFinished to
   // false if it has made changes. It is needed to call createProgramHdrs()
@@ -1704,7 +1836,6 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
             pFinished = false;
           continue;
         }
-
         if (relaxation_pass == RELAXATION_TLSDESC) {
           // doRelaxationTLSDESC is used for both TLSDESC optimizations and
           // relaxations, therefore this function should be called regardless
@@ -1817,6 +1948,12 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
   // R_RISCV_ALIGN will cause another empty pass if it made changes.
   if (relaxation_pass < llvm::ELF::R_RISCV_ALIGN)
     pFinished = false;
+
+  if (relaxation_pass == RELAXATION_ALIGN) {
+    // With final layout addresses known, reverify every AUIPC+JALR→JAL
+    // relaxation from pass 0.  Any whose distance now exceeds ±1MB is undone
+    verifyAndRollbackCallRelaxations(pFinished);
+  }
 }
 
 /// finalizeSymbol - finalize the symbol value
