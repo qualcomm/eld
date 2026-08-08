@@ -51,6 +51,11 @@ jobs:
 
   kernel:
     needs: resolve
+    # Must grant at least what the reusable linux-kernel-run.yml kernel-boot job
+    # declares; a called job is capped at the caller job's permissions.
+    permissions:
+      contents: write # BuildStatusDataRecorder pushes to the dashboard branch
+      actions: read # list/download artifacts from busybox-eld.yml and the toolset run
     strategy:
       fail-fast: false
       matrix:
