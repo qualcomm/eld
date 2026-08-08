@@ -1,1 +1,1 @@
-linux-kernel_build_states = [{"run_id": "31177735703", "state": "fail", "date": "2026-08-07", "time": "12:20", "arch": "riscv32", "branch": "main"}]
+linux-kernel_build_states = [{"run_id": "31177735703", "state": "fail", "date": "2026-08-07", "time": "12:20", "arch": "riscv32", "branch": "main"}, {"run_id": "31256673523", "state": "fail", "date": "2026-08-08", "time": "12:11", "arch": "riscv32", "branch": "main"}]
