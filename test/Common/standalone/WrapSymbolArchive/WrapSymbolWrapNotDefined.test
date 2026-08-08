@@ -1,0 +1,31 @@
+#---WrapSymbolWrapNotDefined.test---------- Executable ------------------#
+#BEGIN_COMMENT
+# Test that specifying --wrap=<sym> without defining __wrap_<sym> reports a
+# clear undefined reference error.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t.1.add.o
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.add.o
+
+# Link without wrap.o __wrap_add is never defined.
+# This should fail with a clear undefined reference error.
+RUN: %link %linkopts %t.1.main.o %t.2.libfoo.a \
+RUN:   --wrap=add -o %t.2.out 2> %t..err; true
+RUN: %filecheck %s < %t..err
+
+#CHECK: undefined reference to `__wrap_add'
+
+# Compile inputs with function/data sections enabled for --gc-sections.
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/3.c -o %t.1.add.o
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.add.o
+
+# Link without wrap.o with --gc-sections enabled __wrap_add is still
+# never defined and should still fail with a clear undefined reference
+# error.
+RUN: %link %linkopts %t.1.main.o %t.2.libfoo.a \
+RUN:   --wrap=add --gc-sections -o %t.2.out 2> %t..err; true
+RUN: %filecheck %s < %t..err
+#END_TEST
