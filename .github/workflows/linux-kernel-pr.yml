@@ -130,7 +130,7 @@ jobs:
             qemu_cpu: ""
             qemu_bios: ""
             console_device: ttyS0
-            enabled: 0
+            enabled: 1
           - arch: x86_64
             target_triple: x86_64-unknown-linux-musl
             kbuild_arch: x86_64

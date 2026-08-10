@@ -245,16 +245,13 @@ jobs:
             echo "Could not find ld-musl-*.so.1 in the clang-cross toolchain" >&2
             exit 1
           fi
-          musl_lib_dir="$(dirname "${musl_so}")"
-          echo "Using musl runtime from: ${musl_lib_dir}"
+          echo "Using musl runtime from: ${musl_so}"
 
           rm -rf initramfs
           mkdir -p initramfs/bin initramfs/proc initramfs/sys initramfs/dev initramfs/tmp
           mkdir -p "initramfs$(dirname "${interp_path}")"
-          # -L: some musl toolchains ship ld-musl-*.so.1 as a relative
-          # symlink pointing outside this directory (e.g. ../usr/lib/libc.so),
-          # which would land dangling in the initramfs otherwise.
-          cp -aL "${musl_lib_dir}"/. "initramfs$(dirname "${interp_path}")/"
+          # Copy only the resolved musl runtime file itself.
+          cp -aL "${musl_so}" "initramfs${interp_path}"
 
           cp busybox-dl/busybox initramfs/bin/busybox
           for applet in sh mount echo cat grep mkdir ls poweroff; do
