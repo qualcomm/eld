@@ -57,17 +57,20 @@ on:
         required: true
         type: number
       toolset_run_id:
-        description: "Workflow run id to download the ELD toolset artifact from"
-        required: true
+        description: "Workflow run id to overlay a PR's own ELD toolset from; empty to use the nightly base as-is"
+        required: false
         type: string
+        default: ""
       toolset_artifact:
-        description: "Artifact name to download (e.g. pr-eld-toolset or install-nightly-toolchain.tar.xz)"
-        required: true
+        description: "Artifact name to download (e.g. pr-eld-toolset); unused when toolset_run_id is empty"
+        required: false
         type: string
+        default: ""
       toolset_tarball:
-        description: "Tar filename inside the artifact to extract (e.g. install-pr-toolset.tar.xz)"
-        required: true
+        description: "Tar filename inside the artifact to extract (e.g. install-pr-toolset.tar.xz); unused when toolset_run_id is empty"
+        required: false
         type: string
+        default: ""
 
 env:
   KERNEL_TAG: v7.1
@@ -103,8 +106,12 @@ jobs:
           arch-name: "${{ inputs.arch }}"
           branch-name: "${{env.BUILD_BRANCH}}"
 
-      - name: Fetch ELD toolset
+      - name: Fetch nightly toolchain base
         if: inputs.enabled == 1
+        uses: ./.github/workflows/FetchNightlyToolset
+
+      - name: Overlay ELD toolset
+        if: inputs.enabled == 1 && inputs.toolset_run_id != ''
         uses: ./.github/workflows/FetchEldToolset
         with:
           run-id: ${{ inputs.toolset_run_id }}
