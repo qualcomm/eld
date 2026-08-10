@@ -77,7 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # BuildStatusDataRecorder pushes to the dashboard branch
-      actions: read # list/download artifacts from busybox-eld.yml and the toolset run
+      actions: read # list/download artifacts from busybox.yml and the toolset run
     env:
       KERNEL_IMAGE: ${{ inputs.kernel_image }}
     steps:

@@ -1,8 +1,8 @@
 name: Linux Kernel Boot Nightly with ELD
 
 # Boot a Linux kernel built with the latest nightly ELD toolset. Depends on
-# nightly-test.yml's toolset and busybox-eld.yml's BusyBox artifact; starts 1h
-# after busybox-eld.yml (0 11 * * *) so that run has finished and published its
+# nightly-test.yml's toolset and busybox.yml's BusyBox artifact; starts 1h
+# after busybox.yml (0 11 * * *) so that run has finished and published its
 # artifact. The kernel boot body lives in the reusable linux-kernel-run.yml.
 
 on:
@@ -55,7 +55,7 @@ jobs:
     # declares; a called job is capped at the caller job's permissions.
     permissions:
       contents: write # BuildStatusDataRecorder pushes to the dashboard branch
-      actions: read # list/download artifacts from busybox-eld.yml and the toolset run
+      actions: read # list/download artifacts from busybox.yml and the toolset run
     strategy:
       fail-fast: false
       matrix:

@@ -1,5 +1,5 @@
 name: DownloadLatestBusybox
-description: Download the BusyBox binary artifact from the latest successful busybox-eld.yml run
+description: Download the BusyBox binary artifact from the latest successful busybox.yml run
 
 inputs:
   arch:
@@ -18,7 +18,7 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Resolve busybox-eld.yml run id
+    - name: Resolve busybox.yml run id
       id: resolve
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
       with:
@@ -28,17 +28,17 @@ runs:
           const repo = context.repo.repo;
           const resp = await github.rest.actions.listWorkflowRuns({
             owner, repo,
-            workflow_id: 'busybox-eld.yml',
+            workflow_id: 'busybox.yml',
             status: 'success',
             per_page: 1, // we only need the latest
           });
           const runs = resp.data.workflow_runs || [];
           if (runs.length === 0) {
-            core.setFailed('No successful busybox-eld.yml run found.');
+            core.setFailed('No successful busybox.yml run found.');
             return;
           }
           const run = runs[0];
-          core.info(`Latest successful busybox-eld.yml run: id=${run.id}, run_number=${run.run_number}`);
+          core.info(`Latest successful busybox.yml run: id=${run.id}, run_number=${run.run_number}`);
           core.setOutput('run_id', String(run.id));
 
     - name: Download BusyBox binary
