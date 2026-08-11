@@ -7,9 +7,11 @@ on:
     # Run once daily at 09:00 UTC.
     - cron: "0 9 * * *"
 
-# The workflow only reads Actions metadata to build the report.
+# The workflow reads Actions metadata and pushes the generated report to
+# the dashboard branch.
 permissions:
   actions: read
+  contents: write
 
 jobs:
   artifact-storage-report:
@@ -103,11 +105,13 @@ jobs:
             const workflows = new Map();
             let totalBytes = 0;
             let activeArtifacts = 0;
-            let expiredArtifacts = 0;
 
-            // Build the summary counts and retain only the artifact fields
-            // that belong in the JSON output.
+            // Exclude expired artifacts from the report.
             for (const artifact of artifacts) {
+              if (artifact.expired) {
+                continue;
+              }
+
               const sizeBytes = artifact.size_in_bytes || 0;
               const workflowName = await workflowNameFor(artifact);
               const artifactGroup = workflows.get(workflowName) || {
@@ -118,17 +122,11 @@ jobs:
 
               totalBytes += sizeBytes;
               artifactGroup.totalBytes += sizeBytes;
-
-              if (artifact.expired) {
-                expiredArtifacts++;
-              } else {
-                activeArtifacts++;
-              }
+              activeArtifacts++;
 
               artifactGroup.artifacts.push({
                 name: artifact.name,
                 size: formatBytes(sizeBytes),
-                expired: artifact.expired,
                 createdAt: artifact.created_at,
                 expiresAt: artifact.expires_at
               });
@@ -141,9 +139,8 @@ jobs:
             // solely to order the workflows and are not written to the file.
             const report = {
               summary: {
-                artifactCount: artifacts.length,
+                artifactCount: activeArtifacts,
                 activeArtifacts,
-                expiredArtifacts,
                 totalSize: formatBytes(totalBytes)
               },
               workflows: [...workflows.values()]
