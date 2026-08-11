@@ -1799,11 +1799,10 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
     return;
   }
 
-  // RELAXATION_ALIGN pass, which is the last pass, will set pFinished to
-  // false if it has made changes. It is needed to call createProgramHdrs()
-  // again in the outer loop. Therefore, this function may be entered once more,
-  // for no good reason.
   if (relaxation_pass >= RELAXATION_PASS_COUNT) {
+    // With final post-ALIGN layout addresses known, reverify every
+    // AUIPC+JALR→JAL relaxation.
+    verifyAndRollbackCallRelaxations(pFinished);
     return;
   }
 
@@ -1948,12 +1947,6 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
   // R_RISCV_ALIGN will cause another empty pass if it made changes.
   if (relaxation_pass < llvm::ELF::R_RISCV_ALIGN)
     pFinished = false;
-
-  if (relaxation_pass == RELAXATION_ALIGN) {
-    // With final layout addresses known, reverify every AUIPC+JALR→JAL
-    // relaxation from pass 0.  Any whose distance now exceeds ±1MB is undone
-    verifyAndRollbackCallRelaxations(pFinished);
-  }
 }
 
 /// finalizeSymbol - finalize the symbol value
