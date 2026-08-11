@@ -41,14 +41,14 @@ PLUGIN_ACT:     {
 PLUGIN_ACT-DAG:       "Annotation": "",
 PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.foo1)",
 PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
-PLUGIN_ACT-DAG:       "Rule": "*(.text.foo*) #Rule 1, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.foo*) #Rule 1, {{.*}}script.t{{.*}}",
 PLUGIN_ACT-DAG:       "Type": "RemoveChunk"
 PLUGIN_ACT:     },
 PLUGIN_ACT:     {
 PLUGIN_ACT-DAG:       "Annotation": "",
 PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.foo2)",
 PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
-PLUGIN_ACT-DAG:       "Rule": "*(.text.foo*) #Rule 1, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.foo*) #Rule 1, {{.*}}script.t{{.*}}",
 PLUGIN_ACT-DAG:       "Type": "RemoveChunk"
 PLUGIN_ACT:     },
 PLUGIN_ACT:     {
@@ -67,42 +67,42 @@ PLUGIN_ACT:     {
 PLUGIN_ACT-DAG:       "Annotation": "",
 PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.bar1)",
 PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
-PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t{{.*}}",
 PLUGIN_ACT-DAG:       "Type": "RemoveChunk"
 PLUGIN_ACT:     },
 PLUGIN_ACT:     {
 PLUGIN_ACT-DAG:       "Annotation": "",
 PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.bar2)",
 PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
-PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t{{.*}}",
 PLUGIN_ACT-DAG:       "Type": "RemoveChunk"
 PLUGIN_ACT:     },
 PLUGIN_ACT:     {
 PLUGIN_ACT-DAG:       "Annotation": "",
 PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.bar1)",
 PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
-PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t{{.*}}",
 PLUGIN_ACT-DAG:       "Type": "AddChunk"
 PLUGIN_ACT:     },
 PLUGIN_ACT:     {
 PLUGIN_ACT-DAG:       "Annotation": "",
 PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.bar2)",
 PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
-PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t{{.*}}",
 PLUGIN_ACT-DAG:       "Type": "AddChunk"
 PLUGIN_ACT:     },
 PLUGIN_ACT:     {
 PLUGIN_ACT-DAG:       "Annotation": "",
 PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.foo1)",
 PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
-PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t{{.*}}",
 PLUGIN_ACT-DAG:       "Type": "AddChunk"
 PLUGIN_ACT:     },
 PLUGIN_ACT:     {
 PLUGIN_ACT-DAG:       "Annotation": "",
 PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.foo2)",
 PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
-PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t{{.*}}",
 PLUGIN_ACT-DAG:       "Type": "AddChunk"
 PLUGIN_ACT:     },
 PLUGIN_ACT:     {
