@@ -6,7 +6,7 @@ name: Linux Kernel Boot Nightly with ELD
 # artifact. The kernel boot body lives in the reusable linux-kernel-run.yml.
 
 on:
-  pull_request: {} # Uncomment only to test this WF file update.
+  # pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     - cron: "0 12 * * *"
   workflow_dispatch:
