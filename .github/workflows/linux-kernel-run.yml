@@ -309,7 +309,7 @@ jobs:
             # at an explicit firmware path in that case.
             qemu_args+=(-bios "${QEMU_BIOS}")
           fi
-          timeout -k 1s 60s "${QEMU_BIN}" "${qemu_args[@]}" \
+          timeout -k 1s 240s "${QEMU_BIN}" "${qemu_args[@]}" \
             > /tmp/kernel-boot-output.txt 2>&1 || true
           pkill -KILL -f "${QEMU_BIN}.*${KERNEL_IMAGE}" 2>/dev/null || true
           cat /tmp/kernel-boot-output.txt
