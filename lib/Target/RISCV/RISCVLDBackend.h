@@ -302,6 +302,14 @@ private:
 
   void verifyAndRollbackCallRelaxations(bool &pFinished);
 
+  struct AlignRelaxRecord {
+    Relocation *alignReloc;
+    RegionFragmentEx *region;
+    uint32_t nopsAdded;
+    uint32_t bytesDeleted;
+  };
+
+  void undoAlignRelaxations();
   /// getRelEntrySize - the size in BYTE of rela type relocation
   size_t getRelEntrySize() override { return 0; }
 
@@ -409,6 +417,9 @@ private:
 
   // JAL-relaxed call records for post-ALIGN range reverification.
   std::vector<CallRelaxRecord> m_CallRelaxRecords;
+
+  std::vector<AlignRelaxRecord> m_AlignRelaxRecords;
+  bool m_NeedsAlignRerun = false;
 };
 } // namespace eld
 

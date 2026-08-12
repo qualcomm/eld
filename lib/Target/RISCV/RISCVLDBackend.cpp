@@ -374,6 +374,7 @@ void RISCVLDBackend::verifyAndRollbackCallRelaxations(bool &pFinished) {
                      ->decoratedPath();
       }
 
+      undoAlignRelaxations();
       pFinished = false;
       continue;
     }
@@ -410,11 +411,34 @@ void RISCVLDBackend::verifyAndRollbackCallRelaxations(bool &pFinished) {
                  ->getInput()
                  ->decoratedPath();
 
-    // Fragment grew by 4 bytes: trigger another layout iteration.
+    undoAlignRelaxations();
     pFinished = false;
   }
 }
 
+void RISCVLDBackend::undoAlignRelaxations() {
+  for (auto &A : llvm::reverse(m_AlignRelaxRecords)) {
+    if (A.bytesDeleted) {
+      uint32_t nopOffset = A.alignReloc->targetRef()->offset();
+      uint32_t insertOffset = nopOffset + A.nopsAdded;
+      A.region->insertInstruction(insertOffset, A.bytesDeleted);
+      A.region->addRequiredNops(insertOffset, A.bytesDeleted);
+      A.alignReloc->targetRef()->setOffset(nopOffset);
+    }
+    A.alignReloc->setType(llvm::ELF::R_RISCV_ALIGN);
+    if (m_Module.getPrinter()->isVerbose())
+      config().raise(Diag::relax_align_undone)
+          << A.nopsAdded << A.bytesDeleted
+          << A.region->getOwningSection()->name()
+          << llvm::utohexstr(A.alignReloc->targetRef()->offset(), true)
+          << A.region->getOwningSection()
+                 ->getInputFile()
+                 ->getInput()
+                 ->decoratedPath();
+  }
+  m_AlignRelaxRecords.clear();
+  m_NeedsAlignRerun = true;
+}
 // Select the matching JVT entry lookup for rd.
 // x0 uses the jump-only table instruction.
 // x1 uses the normal link-register table instruction.
@@ -1419,8 +1443,10 @@ bool RISCVLDBackend::doRelaxationAlign(Relocation *pReloc) {
   uint64_t TargetAddress = SymValue;
   alignAddress(TargetAddress, Alignment);
   uint32_t NopBytesToAdd = TargetAddress - SymValue;
-  if (NopBytesToAdd == pReloc->addend())
+  if (NopBytesToAdd == pReloc->addend()) {
+    region->addRequiredNops(offset, NopBytesToAdd);
     return false;
+  }
 
   if (NopBytesToAdd > pReloc->addend()) {
     config().raise(Diag::error_riscv_relaxation_align)
@@ -1443,9 +1469,11 @@ bool RISCVLDBackend::doRelaxationAlign(Relocation *pReloc) {
                ->getInput()
                ->decoratedPath();
 
+  uint32_t BytesDeleted = pReloc->addend() - NopBytesToAdd;
   region->addRequiredNops(offset, NopBytesToAdd);
-  relaxDeleteBytes("RISCV_ALIGN", *region, offset + NopBytesToAdd,
-                   pReloc->addend() - NopBytesToAdd, "");
+  relaxDeleteBytes("RISCV_ALIGN", *region, offset + NopBytesToAdd, BytesDeleted,
+                   "");
+  m_AlignRelaxRecords.push_back({pReloc, region, NopBytesToAdd, BytesDeleted});
   // Set the reloc to do nothing.
   pReloc->setType(llvm::ELF::R_RISCV_NONE);
   return true;
@@ -1800,10 +1828,13 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
   }
 
   if (relaxation_pass >= RELAXATION_PASS_COUNT) {
-    // With final post-ALIGN layout addresses known, reverify every
-    // AUIPC+JALR→JAL relaxation.
-    verifyAndRollbackCallRelaxations(pFinished);
-    return;
+    if (m_NeedsAlignRerun) {
+      m_NeedsAlignRerun = false;
+      relaxation_pass = RELAXATION_ALIGN;
+    } else {
+      verifyAndRollbackCallRelaxations(pFinished);
+      return;
+    }
   }
 
   // retrieve gp value, .data + 0x800

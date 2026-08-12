@@ -1,0 +1,17 @@
+#---AUIPC_JALR_TO_JAL_ROLLBACK_RISCV_ALIGN.test--------- Executable ------------------#
+#START_TEST
+RUN: %clang -target riscv64-linux-gnu -c %p/Inputs/calls.s   -o %t.calls.o
+RUN: %clang -target riscv64-linux-gnu -c %p/Inputs/kobject.s -o %t.kobject.o
+RUN: %clang -target riscv64-linux-gnu -c %p/Inputs/exit.s    -o %t.exit.o
+RUN: %link %linkopts -T %p/Inputs/ls.lds \
+RUN:   %t.calls.o %t.kobject.o %t.exit.o -o %t.out \
+RUN:   --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE
+RUN: %objdump -d %t.out 2>&1 | %filecheck %s --check-prefix=DUMP
+#END_TEST
+
+VERBOSE: RISCV_ALIGN : Deleting {{[0-9]+}} bytes for symbol '' in section .text.calls
+VERBOSE: RISCV_CALL : Rolled back JAL for symbol 'kobject_put' in section .exit.text+0x{{[[:xdigit:]]+}} file {{.*}}exit.o (out of range after ALIGN)
+
+DUMP-LABEL: <exit_func>:
+DUMP:        auipc
+DUMP-NEXT:   jalr
