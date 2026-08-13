@@ -1,34 +1,18 @@
+#---VersionScriptNoEffect.test--- Standalone ---#
+#BEGIN_COMMENT
 # Test that version scripts emit warnings when they have no effect
-# (i.e., when no dynamic symbol table will be created)
-
-# RUN 1: Static executable should warn
+#END_COMMENT
+#START_TEST
 RUN: %clang %clangopts -c -O2 %p/Inputs/1.c -o %t1.o
-RUN: %link %linkopts -static --entry=main --version-script=%p/Inputs/vs1 -o %t_static.out %t1.o 2>&1 | %filecheck --check-prefix=WARN-STATIC %s
-
-WARN-STATIC: warning: version script has no effect: static executable does not emit a dynamic symbol table
-
-# RUN 2: Relocatable output should warn
-RUN: %link %linkopts -r --version-script=%p/Inputs/vs1 -o %t_reloc.o %t1.o 2>&1 | %filecheck --check-prefix=WARN-RELOC %s
-
-WARN-RELOC: warning: version script has no effect: relocatable output (-r) does not emit a dynamic symbol table
-
-# RUN 3: PIE executable should NOT warn (has .dynsym)
 RUN: %clang %clangopts -c -fpic -O2 %p/Inputs/1.c -o %t1_pic.o
-RUN: %link %linkopts -pie --entry=main --version-script=%p/Inputs/vs1 -o %t_pie.out %t1_pic.o 2>&1 | %filecheck --allow-empty --check-prefix=NO-WARN-PIE %s
-
-NO-WARN-PIE-NOT: warning: version script has no effect
-
-# RUN 4: Shared library should NOT warn (has .dynsym)
-RUN: %link %linkopts -shared --version-script=%p/Inputs/vs1 -o %t_shared.so %t1_pic.o 2>&1 | %filecheck --allow-empty --check-prefix=NO-WARN-SHARED %s
-
-NO-WARN-SHARED-NOT: warning: version script has no effect
-
-# RUN 5: Static with --force-dynamic should NOT warn (forces .dynsym)
-RUN: %link %linkopts -static --force-dynamic --entry=main --version-script=%p/Inputs/vs1 -o %t_force.out %t1.o 2>&1 | %filecheck --allow-empty --check-prefix=NO-WARN-FORCE %s
-
-NO-WARN-FORCE-NOT: warning: version script has no effect
-
-# RUN 6: Verify the warnings include the version script path
-RUN: %link %linkopts -static --entry=main --version-script=%p/Inputs/vs1 -o %t_path.out %t1.o 2>&1 | %filecheck --check-prefix=CHECK-PATH %s
-
-CHECK-PATH: {{.*}}/Inputs/vs1: warning: version script has no effect
+RUN: %link %linkopts -Wlinker-script -static --entry=main --version-script=%p/Inputs/vs1 -o %t_static.out %t1.o 2>&1 | FileCheck %s --check-prefix=CHECK-WARN
+RUN: %link -Wlinker-script -r --version-script=%p/Inputs/vs1 -o %t_reloc.o %t1.o 2>&1 | FileCheck %s --check-prefix=CHECK-WARN
+RUN: %link -Wlinker-script -pie --entry=main --version-script=%p/Inputs/vs1 -o %t_pie.out %t1_pic.o 2>&1 | FileCheck %s --check-prefix=CHECK-WARN
+RUN: %link -Wlinker-script -static -pie --entry=main --version-script=%p/Inputs/vs1 -o %t_static_pie.out %t1_pic.o 2>&1 | FileCheck %s --check-prefix=CHECK-WARN
+RUN: %link -Wlinker-script -shared -pie --version-script=%p/Inputs/vs1 -o %t_shared_pie.so %t1_pic.o 2>&1 | FileCheck %s --check-prefix=CHECK-WARN
+RUN: %link -Wlinker-script -shared --version-script=%p/Inputs/vs1 -o %t_shared.so %t1_pic.o 2>&1 | FileCheck %s --check-prefix=CHECK-NO-WARN --allow-empty
+RUN: %link -Wlinker-script -static --force-dynamic --entry=main --version-script=%p/Inputs/vs1 -o %t_force.out %t1.o 2>&1 | FileCheck %s --check-prefix=CHECK-NO-WARN --allow-empty
+RUN: %link -Wlinker-script -pie --export-dynamic --entry=main --version-script=%p/Inputs/vs1 -o %t_pie_ed.out %t1_pic.o 2>&1 | FileCheck %s --check-prefix=CHECK-NO-WARN --allow-empty
+#END_TEST
+#CHECK-WARN: {{.*}}vs1: version script has no effect
+#CHECK-NO-WARN-NOT: warning
