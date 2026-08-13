@@ -1,0 +1,1 @@
+release_build_states = [{"run_id": "600", "state": "pass", "date": "2026-02-04", "time": "14:19", "arch": "all", "branch": "main"}, {"run_id": "700", "state": "pass", "date": "2026-02-04", "time": "14:19", "arch": "all", "branch": "main"}, {"run_id": "800", "state": "fail", "date": "2026-02-04", "time": "14:19", "arch": "all", "branch": "main"}]

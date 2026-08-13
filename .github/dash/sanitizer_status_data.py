@@ -1,0 +1,1 @@
+sanitizer_build_states = [{"run_id": "900", "state": "pass", "date": "2026-02-04", "time": "14:20", "arch": "all", "branch": "main"}, {"run_id": "1000", "state": "pass", "date": "2026-02-04", "time": "14:21", "arch": "all", "branch": "main"}, {"run_id": "2000", "state": "fail", "date": "2026-02-04", "time": "14:21", "arch": "all", "branch": "main"}]
