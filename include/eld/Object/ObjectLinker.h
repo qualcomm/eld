@@ -404,6 +404,8 @@ public:
 
   bool emitArchiveMemberReport(llvm::StringRef Filename) const;
 
+  bool emitSymbolResolutionReport(llvm::StringRef Filename) const;
+
 private:
   /// Assigns version nodes to symbols with GNU ld semantics:
   /// - Pass 1: Exact matches (forward order, first wins, warns on reassign)

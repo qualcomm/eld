@@ -8,15 +8,15 @@ RUN: %clang %clangopts -fcommon -o %t1.1.o %p/Inputs/1.c -c
 RUN: %clang %clangopts -fcommon -o %t1.2.o %p/Inputs/2.c -c
 RUN: %clang %clangopts -fcommon -o %t1.3.o %p/Inputs/3.c -c
 RUN: %clang %clangopts -fcommon -o %t1.4.o %p/Inputs/4.c -c
-RUN: %link -MapStyle txt %linkopts -o %t1.var.out %t1.1.o %t1.2.o %t1.3.o %t1.4.o -Map %t1.var.map.txt --MapDetail show-symbol-resolution
-RUN: %filecheck %s < %t1.var.map.txt
+RUN: %link %linkopts -o %t1.var.out %t1.1.o %t1.2.o %t1.3.o %t1.4.o --emit-symbol-resolution-report %t1.var.json
+RUN: %python %eld_src_tools_root/SymbolResolutionInspector/SymbolResolutionInspector.py %t1.var.json | %filecheck %s
 
-CHECK: # Symbol Resolution:
 CHECK: var
-CHECK-NEXT: var({{.*}}1.o) [Size={{.*}}, Common, Global, Object]
-CHECK-NEXT: var({{.*}}2.o) [Size={{.*}}, Common, Global, Object]
-CHECK-NEXT: var({{.*}}3.o) [Size={{.*}}, Common, Global, Object] [Selected]
-CHECK-NEXT: var({{.*}}4.o:{{.*}}) [Size={{.*}}, Def, Weak, Object]
+CHECK-NEXT: Selected: {{.*}}3.o(var)
+CHECK-NEXT: var({{.*}}1.o) [Size={{.*}}, Common, Global, Object, Default]
+CHECK-NEXT: var({{.*}}2.o) [Size={{.*}}, Common, Global, Object, Default]
+CHECK-NEXT: var({{.*}}3.o) [Size={{.*}}, Common, Global, Object, Default] [Selected]
+CHECK-NEXT: var({{.*}}4.o:{{.*}}) [Size={{.*}}, Def, Weak, Object, Default]
 
 
 

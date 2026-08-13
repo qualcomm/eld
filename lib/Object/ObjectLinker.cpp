@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 #include "eld/Object/ObjectLinker.h"
 #include "eld/BranchIsland/BranchIslandFactory.h"
+#include "eld/Config/GeneralOptions.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Core/LinkerScript.h"
 #include "eld/Core/Module.h"
@@ -52,6 +53,7 @@
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/OutputSectData.h"
 #include "eld/Script/OutputSectDesc.h"
+#include "eld/Script/Plugin.h"
 #include "eld/Script/ScriptFile.h"
 #include "eld/Script/ScriptReader.h"
 #include "eld/Script/ScriptSymbol.h"
@@ -62,7 +64,10 @@
 #include "eld/Support/StringRefUtils.h"
 #include "eld/Support/Utils.h"
 #include "eld/SymbolResolver/IRBuilder.h"
+#include "eld/SymbolResolver/LDSymbol.h"
+#include "eld/SymbolResolver/NamePool.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
+#include "eld/SymbolResolver/SymbolResolutionInfo.h"
 #include "eld/Target/GNULDBackend.h"
 #include "eld/Target/LDFileFormat.h"
 #include "eld/Target/Relocator.h"
@@ -85,6 +90,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include <chrono>
 #include <mutex>
+#include <optional>
 #include <sstream>
 #include <unordered_set>
 
@@ -158,6 +164,11 @@ bool ObjectLinker::initialize() {
 bool ObjectLinker::emitArchiveMemberReport(llvm::StringRef Filename) const {
   return eld::emitArchiveMemberReport(*this, Filename,
                                       ThisConfig.getDiagEngine());
+}
+
+bool ObjectLinker::emitSymbolResolutionReport(llvm::StringRef Filename) const {
+  return ThisModule->getNamePool().getSRI().emitSymbolResolutionReport(
+      *ThisModule, Filename);
 }
 
 /// initStdSections - initialize standard sections
