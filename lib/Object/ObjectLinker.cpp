@@ -369,17 +369,18 @@ bool ObjectLinker::parseVersionScript() {
     // Record the dynamic list script in the Map file.
     if (layoutInfo)
       layoutInfo->recordVersionScript(List);
-    // Warn if the version script will have no effect because no dynamic
-    // symbol table will be emitted.
-    if (ThisConfig.isLinkPartial()) {
-      // Relocatable output (-r) never emits .dynsym.
-      ThisConfig.raise(Diag::warn_version_script_no_effect_relocatable)
+    // Warn if the version script will have no effect
+    if (ThisConfig.showLinkerScriptWarnings()) {
+      bool IsPIE = ThisConfig.options().isPIE();
+      bool IsShared = ThisConfig.options().hasShared();
+      bool ForceDynamic = ThisConfig.options().forceDynamic();
+      bool ExportDynamic = ThisConfig.options().exportDynamic();
+      bool NoEffect = IsPIE ? !ExportDynamic
+                            : (!IsShared && !ForceDynamic);
+      if (NoEffect) {
+        ThisConfig.raise(Diag::warn_version_script_no_effect)
           << VersionScriptInput->decoratedPath();
-    } else if (ThisConfig.isCodeStatic() && !ThisConfig.options().isPIE() &&
-               !ThisConfig.options().forceDynamic()) {
-      // Static executable without PIE or --force-dynamic doesn't emit .dynsym.
-      ThisConfig.raise(Diag::warn_version_script_no_dynsym)
-          << VersionScriptInput->decoratedPath();
+      }
     }
     // Read the dynamic List file
     ScriptFile VersionScriptReader(
