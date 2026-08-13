@@ -263,8 +263,8 @@ eld::Expected<bool> ArchiveParser::computeSymInfoTableForMember(
     }
   } else if (auto IRObj =
                  llvm::dyn_cast<llvm::object::IRObjectFile>(binaryObj.get())) {
-    eld::Expected<bool> expComputeResult =
-        computeSymInfoTableForIRMember(*IRObj, member, symbolInfoTable);
+    eld::Expected<bool> expComputeResult = computeSymInfoTableForIRMember(
+        archiveFile, *IRObj, member, symbolInfoTable);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expComputeResult);
   } else {
     std::string message =
@@ -330,10 +330,25 @@ eld::Expected<bool> ArchiveParser::computeSymInfoTableForELFMember(
 }
 
 eld::Expected<bool> ArchiveParser::computeSymInfoTableForIRMember(
-    const llvm::object::IRObjectFile &IRObj,
+    const ArchiveFile &archiveFile, const llvm::object::IRObjectFile &IRObj,
     const llvm::object::Archive::Child &member,
     ArchiveSymbolInfoTable &symbolInfoTable) const {
   LinkerConfig &config = m_Module.getConfig();
+
+  if (!m_Module.isBackendInitialized()) {
+    llvm::Triple Triple(IRObj.getTargetTriple());
+    if (!Triple.isLittleEndian())
+      return std::make_unique<plugin::DiagnosticEntry>(
+          plugin::DiagnosticEntry(Diag::fatal_big_endian_target,
+                                  {archiveFile.getInput()->decoratedPath()}));
+
+    uint16_t machine =
+        llvm::ELF::convertTripleArchTypeToEMachine(Triple.getArch());
+    bool is64Bit = Triple.isArch64Bit();
+    if (!m_Module.getLinker()->initializeTarget(machine, is64Bit))
+      return false;
+  }
+
   for (const llvm::object::BasicSymbolRef &sym : IRObj.symbols()) {
     // FIXME: Should we use auto for LLVM APIs?
     // Because if an LLVM API changes, the return type from
