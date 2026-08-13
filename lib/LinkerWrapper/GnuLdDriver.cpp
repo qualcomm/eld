@@ -1864,7 +1864,14 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
           << Arg->getOption().getPrefixedName() << S;
       return false;
     }
+
+    // This pattern of setting optimization options is based on code in lld
+    // createConfig().
     Conf.OptLevel = Value;
+    Conf.CGOptLevel =
+        static_cast<CodeGenOptLevel>(std::min<uint64_t>(Value, 3));
+    Conf.PTO.LoopVectorization = Value > 1;
+    Conf.PTO.SLPVectorization = Value > 1;
   }
 
   return true;
