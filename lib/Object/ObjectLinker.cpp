@@ -358,25 +358,25 @@ bool ObjectLinker::parseVersionScript() {
        ThisConfig.isCodeIndep()))
     createDefaultSymverNode();
 
-  if (ThisConfig.options().hasVersionScript()) {
-    LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
-    for (const auto &List : ThisConfig.options().getVersionScripts()) {
-      Input *VersionScriptInput =
-          eld::make<Input>(List, ThisConfig.getDiagEngine(), Input::Script);
-      if (!VersionScriptInput->resolvePath(ThisConfig))
-        return false;
-      // Create an Input file and set the input file to be of kind DynamicList
-      InputFile *VersionScriptInputFile =
-          InputFile::create(VersionScriptInput, InputFile::GNULinkerScriptKind,
-                            ThisConfig.getDiagEngine());
-      addInputFileToTar(VersionScriptInputFile,
-                        eld::MappingFile::VersionScript);
-      VersionScriptInput->setInputFile(VersionScriptInputFile);
-      // Record the dynamic list script in the Map file.
-      if (layoutInfo)
-        layoutInfo->recordVersionScript(List);
-      if (layoutInfo)
-        layoutInfo->recordVersionScript(List);
+  if (!ThisConfig.options().hasVersionScript())
+    return true;
+  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
+  for (const auto &List : ThisConfig.options().getVersionScripts()) {
+    Input *VersionScriptInput =
+        eld::make<Input>(List, ThisConfig.getDiagEngine(), Input::Script);
+    if (!VersionScriptInput->resolvePath(ThisConfig))
+      return false;
+    // Create an Input file and set the input file to be of kind DynamicList
+    InputFile *VersionScriptInputFile =
+        InputFile::create(VersionScriptInput, InputFile::GNULinkerScriptKind,
+                          ThisConfig.getDiagEngine());
+    addInputFileToTar(VersionScriptInputFile, eld::MappingFile::VersionScript);
+    VersionScriptInput->setInputFile(VersionScriptInputFile);
+    // Record the dynamic list script in the Map file.
+    if (layoutInfo)
+      layoutInfo->recordVersionScript(List);
+    // Warn if the version script will have no effect
+    if (ThisConfig.showLinkerScriptWarnings()) {
       bool IsPIE = ThisConfig.options().isPIE();
       bool IsShared = ThisConfig.options().hasShared();
       bool ForceDynamic = ThisConfig.options().forceDynamic();
@@ -386,19 +386,6 @@ bool ObjectLinker::parseVersionScript() {
         ThisConfig.raise(Diag::warn_version_script_no_effect)
             << VersionScriptInput->decoratedPath();
       }
-      // Read the dynamic List file
-      ScriptFile VersionScriptReader(
-          ScriptFile::VersionScript, *ThisModule,
-          *(llvm::dyn_cast<eld::LinkerScriptFile>(VersionScriptInputFile)),
-          ThisModule->getIRBuilder()->getInputBuilder());
-      bool SuccessFullInParse =
-          getScriptReader()->readScript(ThisConfig, VersionScriptReader);
-      if (!SuccessFullInParse)
-        return false;
-      ThisModule->addVersionScript(VersionScriptReader.getVersionScript());
-      if (!registerVersionScriptNodes(VersionScriptReader.getVersionScript(),
-                                      VersionScriptInput->decoratedPath()))
-        return false;
     }
     // Read the dynamic List file
     ScriptFile VersionScriptReader(
