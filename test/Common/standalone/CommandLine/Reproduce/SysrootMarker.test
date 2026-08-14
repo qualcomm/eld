@@ -17,6 +17,6 @@ MAPPING-DAG: =/lib.so=SharedLibrary/
 
 # Replaying the response file must succeed.
 RUN: %rm -rf %t.rep && %mkdir %t.rep
-RUN: %tar %gnutaropts -xf %t.tar -C %t.rep --strip-components=1
 RUN: cd %t.rep
+RUN: %tar %gnutaropts -xf %t.tar --strip-components=1
 RUN: %link @response.txt
