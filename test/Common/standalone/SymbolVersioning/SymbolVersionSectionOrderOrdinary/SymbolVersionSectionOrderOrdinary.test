@@ -1,0 +1,29 @@
+REQUIRES: symbol_versioning
+#---SymbolVersionSectionOrderOrdinary.test------------ SymbolVersioning ------#
+#BEGIN_COMMENT
+# Same as SymbolVersionSectionOrder, but with .text/.data/.bss of ordinary
+# size and alignment, and linking against a versioned DSO so that all three
+# symbol-versioning sections (.gnu.version, .gnu.version_d, .gnu.version_r)
+# are emitted. They must all be laid out with the read-only dynamic name-pool
+# region, i.e. before .text/.data/.bss and never after them.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.prov.o %p/Inputs/prov.c -c -fPIC
+RUN: %link %linkopts -o %t1.libprov.so %t1.prov.o -shared --version-script %p/Inputs/prov.t
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %link %linkopts -o %t1.lib1.so %t1.1.o %t1.libprov.so -shared --version-script %p/Inputs/vs.t
+RUN: %readelf --sections %t1.lib1.so | %filecheck %s
+#END_TEST
+
+# All three .gnu.version* sections must come before .text/.data/.bss and not
+# reappear after them.
+CHECK-NOT: .text
+CHECK-NOT: .data
+CHECK-NOT: .bss
+CHECK: .gnu.version
+CHECK: .gnu.version_d
+CHECK: .gnu.version_r
+CHECK: .text
+CHECK: .data
+CHECK: .bss
+CHECK-NOT: .gnu.version

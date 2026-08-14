@@ -1,0 +1,24 @@
+REQUIRES: symbol_versioning
+#---SymbolVersionSectionOrder.test-------------------- SymbolVersioning ------#
+#BEGIN_COMMENT
+# Verify that the symbol-versioning sections (.gnu.version, .gnu.version_d,
+# .gnu.version_r) are laid out with the read-only dynamic name-pool region,
+# i.e. before the writable .data/.bss sections. If they are ranked after
+# .data/.bss they strand a read-only LOAD segment past the last writable
+# segment, which corrupts the program break and crashes at run time in older
+# qemu versions (qemu 5.0 in particular)
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %link %linkopts -o %t1.lib1.so %t1.1.o -shared --version-script %p/Inputs/vs.t
+RUN: %readelf -S %t1.lib1.so | %filecheck %s
+#END_TEST
+
+# .gnu.version* must come before .data and .bss in section (layout) order.
+CHECK-NOT: .data
+CHECK-NOT: .bss
+CHECK: .gnu.version
+CHECK: .gnu.version_d
+CHECK: .data
+CHECK: .bss
+CHECK-NOT: .gnu.version

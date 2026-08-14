@@ -1563,6 +1563,15 @@ unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
     return SHO_UNDEFINED;
 
   case LDFileFormat::NamePool:
+    // .gnu.version/.gnu.version_d/.gnu.version_r are ALLOC read-only sections
+    // that belong with the dynamic name-pool region next to .dynsym, matching
+    // GNU ld/lld. Without this case they fall through to SHO_UNDEFINED and get
+    // placed after .data/.bss, stranding a read-only LOAD segment past the last
+    // writable segment and corrupting the program break / load layout in the
+    // older qemu versions.
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  case LDFileFormat::SymbolVersion:
+#endif
     return SHO_NAMEPOOL;
   case LDFileFormat::Relocation:
   case LDFileFormat::DynamicRelocation:
