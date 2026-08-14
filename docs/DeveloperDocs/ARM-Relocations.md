@@ -265,6 +265,8 @@ The linker selects a veneer template based on link-time options and the target C
 
 For Thumb→Thumb veneers the stub body first switches to ARM mode (`bx pc; nop`) before executing the ABS or PIC template, because the ARM load/branch sequence is simpler. The MOV and THUMB1 templates operate entirely in Thumb-2 or Thumb-1 respectively and therefore do not need that prefix.
 
+Because the ABS/PIC Thumb→Thumb stub body switches ISA partway through, the fragment must carry correct ARM-ELF mapping symbols: `$t` at offset 0 (the `bx pc; nop` preamble, still Thumb) and `$a` at offset 4 (where the ARM-mode `ldr`/`add`/`bx` sequence actually begins). Getting these swapped doesn't corrupt the emitted code (the CPU executes the real bytes regardless) but it does corrupt mode-aware disassembly (`objdump -d`, debuggers) for the stub, since those tools trust the mapping symbols rather than re-deriving the mode.
+
 ---
 
 ## References

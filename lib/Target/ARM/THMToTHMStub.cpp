@@ -135,10 +135,10 @@ Stub *THMToTHMStub::clone(InputFile *F, Relocation *, eld::IRBuilder *pBuilder,
   uint32_t DataOffset = 0;
   if (m_Type == ARMGNULDBackend::VENEER_PIC) {
     pBuilder->addLinkerInternalLocalSymbol(
-        F, "$a.t2t." + std::to_string(m_NumStub), eld::make<FragmentRef>(*S, 0),
+        F, "$t.t2t." + std::to_string(m_NumStub), eld::make<FragmentRef>(*S, 0),
         0);
     pBuilder->addLinkerInternalLocalSymbol(
-        F, "$t.t2t." + std::to_string(m_NumStub), eld::make<FragmentRef>(*S, 4),
+        F, "$a.t2t." + std::to_string(m_NumStub), eld::make<FragmentRef>(*S, 4),
         0);
     DataOffset = 16;
   } else if (m_Type == ARMGNULDBackend::VENEER_MOV) {
@@ -153,10 +153,10 @@ Stub *THMToTHMStub::clone(InputFile *F, Relocation *, eld::IRBuilder *pBuilder,
     DataOffset = 8;
   } else {
     pBuilder->addLinkerInternalLocalSymbol(
-        F, "$a.t2t." + std::to_string(m_NumStub), eld::make<FragmentRef>(*S, 0),
+        F, "$t.t2t." + std::to_string(m_NumStub), eld::make<FragmentRef>(*S, 0),
         0);
     pBuilder->addLinkerInternalLocalSymbol(
-        F, "$t.t2t." + std::to_string(m_NumStub), eld::make<FragmentRef>(*S, 4),
+        F, "$a.t2t." + std::to_string(m_NumStub), eld::make<FragmentRef>(*S, 4),
         0);
     DataOffset = 12;
   }
