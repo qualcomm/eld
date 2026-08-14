@@ -23,6 +23,33 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Process.h"
 #include <optional>
+#include <vector>
+
+namespace {
+
+struct TargetInference {
+  DriverFlavor Flavor = DriverFlavor::Unknown;
+  std::string Arch;
+};
+
+std::optional<TargetInference> inferTargetFromCpu(llvm::StringRef Cpu) {
+  std::string Arch;
+#if defined(ELD_ENABLE_TARGET_HEXAGON)
+  if (HexagonLinkDriver::inferFromCpu(Cpu, Arch))
+    return TargetInference{DriverFlavor::Hexagon, Arch};
+#endif
+  return std::nullopt;
+}
+
+enum class TargetOptionKind { Emulation, Mcu };
+
+struct OptionTargetInference {
+  TargetInference Target;
+  unsigned Index = 0;
+  TargetOptionKind Kind;
+};
+
+} // namespace
 
 Driver::Driver(DriverFlavor F)
     : DiagEngine(new eld::DiagnosticEngine(shouldColorize())),
@@ -142,80 +169,78 @@ Driver::getDriverFlavorFromLinkCommand(llvm::ArrayRef<const char *> Args) {
   unsigned MissingCount;
   llvm::opt::InputArgList ArgList =
       Table.ParseArgs(Args.slice(1), MissingIndex, MissingCount);
-  DriverFlavor F = DriverFlavor::Unknown;
-  std::string InferredArch;
+  std::vector<OptionTargetInference> Inferences;
   if (llvm::opt::Arg *Arg = ArgList.getLastArg(OPT_GnuLdOptTable::emulation)) {
     std::string Emulation = Arg->getValue();
+    std::optional<TargetInference> Target;
 #if defined(ELD_ENABLE_TARGET_HEXAGON)
-    if (HexagonLinkDriver::isValidEmulation(Emulation)) {
-      F = DriverFlavor::Hexagon;
-      InferredArch = HexagonLinkDriver::getInferredArch(Emulation);
-    } else
+    if (HexagonLinkDriver::isValidEmulation(Emulation))
+      Target = TargetInference{DriverFlavor::Hexagon,
+                                 HexagonLinkDriver::getInferredArch(Emulation)};
 #endif
 #if defined(ELD_ENABLE_TARGET_RISCV)
-      // It is okay to consider RISCV64 emulation as RISCV32 flavor
-      // here because RISCVLinkDriver will properly set the emulation.
-      if (RISCVLinkDriver::isValidEmulation(Emulation)) {
-        F = DriverFlavor::RISCV32_RISCV64;
-        InferredArch = RISCVLinkDriver::getInferredArch(Emulation);
-      } else
+    if (!Target && RISCVLinkDriver::isValidEmulation(Emulation))
+      Target = TargetInference{DriverFlavor::RISCV32_RISCV64,
+                               RISCVLinkDriver::getInferredArch(Emulation)};
 #endif
 #if defined(ELD_ENABLE_TARGET_TEMPLATE)
-          if (TemplateLinkDriver::isValidEmulation(Emulation)) {
-        F = DriverFlavor::Template;
-        InferredArch = TemplateLinkDriver::getInferredArch(Emulation);
-      } else
+    if (!Target && TemplateLinkDriver::isValidEmulation(Emulation))
+      Target = TargetInference{DriverFlavor::Template,
+                               TemplateLinkDriver::getInferredArch(Emulation)};
 #endif
 #if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
-          if (ARMLinkDriver::isValidEmulation(Emulation)) {
-        F = DriverFlavor::ARM_AArch64;
-        InferredArch = ARMLinkDriver::getInferredArch(Emulation);
-      } else
+    if (!Target && ARMLinkDriver::isValidEmulation(Emulation))
+      Target = TargetInference{DriverFlavor::ARM_AArch64,
+                               ARMLinkDriver::getInferredArch(Emulation)};
 #endif
 #if defined(ELD_ENABLE_TARGET_X86)
-          if (x86_64LinkDriver::isValidEmulation(Emulation)) {
-        F = DriverFlavor::x86_64;
-        InferredArch = x86_64LinkDriver::getInferredArch(Emulation);
-      } else
+    if (!Target && x86_64LinkDriver::isValidEmulation(Emulation))
+      Target = TargetInference{DriverFlavor::x86_64,
+                               x86_64LinkDriver::getInferredArch(Emulation)};
 #endif
-        return std::make_unique<eld::DiagnosticEntry>(
-            eld::Diag::fatal_unsupported_emulation,
-            std::vector<std::string>{Emulation});
-    return std::pair<DriverFlavor, std::string>{F, InferredArch};
-  }
-  if (llvm::opt::Arg *Arg = ArgList.getLastArg(OPT_GnuLdOptTable::march)) {
-    std::string MachineArch = Arg->getValue();
-    InferredArch = MachineArch;
-#if defined(ELD_ENABLE_TARGET_HEXAGON)
-    if (HexagonLinkDriver::isMyArch(MachineArch))
-      F = DriverFlavor::Hexagon;
-#endif
-#if defined(ELD_ENABLE_TARGET_RISCV)
-    // It is okay to consider RISCV64 emulation as RISCV32 flavor
-    // here because RISCVLinkDriver will properly set the emulation.
-    if (RISCVLinkDriver::isMyArch(MachineArch))
-      F = DriverFlavor::RISCV32_RISCV64;
-#endif
-#if defined(ELD_ENABLE_TARGET_TEMPLATE)
-    // It is okay to consider RISCV64 emulation as RISCV32 flavor
-    // here because RISCVLinkDriver will properly set the emulation.
-    if (TemplateLinkDriver::isMyArch(MachineArch))
-      F = DriverFlavor::Template;
-#endif
-#if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
-    if (ARMLinkDriver::isMyArch(MachineArch))
-      F = DriverFlavor::ARM_AArch64;
-#endif
-#if defined(ELD_ENABLE_TARGET_X86)
-    if (x86_64LinkDriver::isMyArch(MachineArch))
-      F = DriverFlavor::x86_64;
-#endif
-    if (F == DriverFlavor::Invalid)
+    if (!Target)
       return std::make_unique<eld::DiagnosticEntry>(
           eld::Diag::fatal_unsupported_emulation,
-          std::vector<std::string>{MachineArch});
+          std::vector<std::string>{Emulation});
+    Inferences.push_back(
+        {*Target, Arg->getIndex(), TargetOptionKind::Emulation});
   }
-  return std::pair<DriverFlavor, std::string>{F, InferredArch};
+  if (llvm::opt::Arg *Arg = ArgList.getLastArg(OPT_GnuLdOptTable::mcpu)) {
+    if (auto Target = inferTargetFromCpu(Arg->getValue()))
+      Inferences.push_back({*Target, Arg->getIndex(), TargetOptionKind::Mcu});
+  }
+
+  if (Inferences.empty())
+    return std::pair<DriverFlavor, std::string>{DriverFlavor::Unknown, ""};
+
+  DriverFlavor AgreedFlavor = Inferences.front().Target.Flavor;
+  for (const auto &Inference : Inferences) {
+    if (Inference.Target.Flavor != AgreedFlavor)
+      return std::make_unique<eld::DiagnosticEntry>(
+          eld::Diag::fatal_unsupported_emulation,
+          std::vector<std::string>{"conflicting target options"});
+  }
+
+  const OptionTargetInference *Winner = nullptr;
+  for (const auto &Inference : Inferences) {
+    if (Inference.Kind == TargetOptionKind::Emulation) {
+      Winner = &Inference;
+      break;
+    }
+  }
+  if (!Winner) {
+    for (const auto &Inference : Inferences) {
+      if (Inference.Kind == TargetOptionKind::Mcu) {
+        Winner = &Inference;
+        break;
+      }
+    }
+  }
+  if (!Winner)
+    return std::pair<DriverFlavor, std::string>{DriverFlavor::Unknown, ""};
+
+  return std::pair<DriverFlavor, std::string>{Winner->Target.Flavor,
+                                                Winner->Target.Arch};
 }
 
 std::pair<DriverFlavor, std::string>
