@@ -1,0 +1,29 @@
+REQUIRES: hexagon
+#---ReassignSectionAddresses_Hexagon.test---------------- Executable,LS ----------------#
+#BEGIN_COMMENT
+# Hexagon-specific check that code taking one of these symbols' addresses (getSymNPtr,
+# returning sym1..sym6) has that address materialized in its own disassembled instructions
+# as the plugin's hash-derived value, not the linker layout pass's original address. Uses
+# non-PIC codegen so the address appears as an absolute immediate (`r0 = ##<addr>`) in the
+# `immext(...) ; r0 = ##...` two-instruction sequence Hexagon uses for 32-bit constants,
+# rather than a PC-relative `r0 = add(pc,##...)` displacement.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.nopic.o -fno-pic -fno-pie -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t.nopic.o -T %p/Inputs/script_load.t -o %t.out --plugin-config %p/Inputs/plugin.config -L %p/Inputs
+RUN: %objdump -d %t.out | %filecheck %s
+#END_TEST
+## llvm-objdump prints the 32-bit ##<addr> immediate as a signed value, so hashes with the
+## high bit set (sym2-sym5 below) show up as their two's-complement negation.
+#CHECK: <getSym1Ptr>:
+#CHECK: r0 = ##0x2d553012
+#CHECK: <getSym2Ptr>:
+#CHECK: r0 = ##-0x4e100e95
+#CHECK: <getSym3Ptr>:
+#CHECK: r0 = ##-0x7aab41b0
+#CHECK: <getSym4Ptr>:
+#CHECK: r0 = ##-0x7c6dbee0
+#CHECK: <getSym5Ptr>:
+#CHECK: r0 = ##-0x40dc99f1
+#CHECK: <getSym6Ptr>:
+#CHECK: r0 = ##0x2d553012

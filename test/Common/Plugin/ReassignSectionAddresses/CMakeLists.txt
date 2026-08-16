@@ -1,0 +1,1 @@
+add_common_plugin(ReassignSectionAddresses)
