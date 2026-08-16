@@ -1,0 +1,151 @@
+#---ReassignSectionAddresses.test---------------- Executable,LS ----------------#
+#BEGIN_COMMENT
+# Tests that the ReassignSectionAddresses example plugin can assign each
+# symbol in a NOBITS/PT_NULL output section an absolute address derived from
+# the lower 32 bits of a hash (MD5 by default, or SHA1 via plugin options) of
+# the symbol's own content, that byte-identical symbols (sym1 and sym6 both
+# contain "hi") receive the same address, that the section is excluded from
+# the linker's overlap check, that the plugin's explicit opt-in lets the
+# section's PROGBITS content persist in the output file while remaining in a
+# non-PT_LOAD (PT_NULL) segment, that the plugin can optionally dump the
+# address:string pairs it assigns to a text file with duplicate addresses
+# collapsed to a single line, that the same hash-derived address assignment
+# and overlap-check exclusion also work when the section is instead placed
+# under the ":NONE" segment modifier (which keeps the section out of the
+# program headers entirely, i.e. no PT_NULL entry), that address assignment
+# still updates the symbol table when the section is placed in an actual
+# PT_LOAD segment, that the plugin works identically when linking a
+# shared library (-shared) rather than an executable, and that the plugin
+# can alternatively assign sequential integer addresses (one per unique
+# symbol content, starting at a configurable constant) instead of a hash,
+# with byte-identical symbols reusing the address of their first occurrence
+# rather than consuming a new counter value, and that all of the above also
+# works when the plugin is registered directly from the linker script via
+# PLUGIN_OUTPUT_SECTION_ITER (passing the same Options string that
+# --plugin-config's YAML "Options:" field would carry) instead of via
+# --plugin-config. Also tests that a single plugin instance can target more
+# than one output section at once (comma-delimited in the required section=
+# option), that byte-identical symbols reuse the same address even when they
+# live in different target sections, that dump=, when given, must list
+# exactly one path per target section (comma-delimited in the same order as
+# the section list) with each section's dump written to its own file, that
+# omitting dump= entirely still works with multiple target sections, that
+# a mismatched section-count/dump-path-count is reported as a plugin
+# error that aborts the link, and that omitting the required section= option
+# entirely is likewise reported as a plugin error that aborts the link.
+# (Placing the section
+# in a PT_LOAD segment only exercises symbol-table/section-header
+# correctness here: code that takes one of these symbols' addresses and is
+# subject to link-time relocation relaxation, e.g. RISC-V's
+# R_RISCV_HI20/LO12_I with R_RISCV_RELAX, may see the assigned address
+# truncated at emission, because relaxation runs before this plugin's
+# AfterLayout hook -- see the caution note in ReassignSectionAddresses.cpp.)
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections -fdata-sections
+RUN: %clang %clangopts -fPIC -c %p/Inputs/1.c -o %t1.1.pic.o -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --plugin-config %p/Inputs/plugin.config -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=LINK
+RUN: %nm %t2.out | %filecheck %s --check-prefix=NM-MD5
+RUN: %readelf -S -W %t2.out | %filecheck %s --check-prefix=SECTION
+RUN: %readelf -l -W %t2.out | %filecheck %s --check-prefix=PHDR
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t3.out --plugin-config %p/Inputs/plugin_sha1.config -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=LINK
+RUN: %nm %t3.out | %filecheck %s --check-prefix=NM-SHA1
+RUN: rm -f randomized_addrs_dump.txt
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t4.out --plugin-config %p/Inputs/plugin_dump.config -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=LINK
+RUN: %filecheck <randomized_addrs_dump.txt %s --check-prefix=DUMP
+RUN: wc -l <randomized_addrs_dump.txt | %filecheck %s --check-prefix=DUMP-LINES
+RUN: rm -f randomized_addrs_dump.txt
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script_none.t -o %t5.out --plugin-config %p/Inputs/plugin.config -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=LINK-NONE
+RUN: %nm %t5.out | %filecheck %s --check-prefix=NM-MD5
+RUN: %readelf -l -W %t5.out | %filecheck %s --check-prefix=PHDR-NONE
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script_load.t -o %t6.out --plugin-config %p/Inputs/plugin.config -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=LINK-LOAD
+RUN: %nm %t6.out | %filecheck %s --check-prefix=NM-MD5
+RUN: %readelf -l -W %t6.out | %filecheck %s --check-prefix=PHDR-LOAD
+RUN: %link %linkopts -shared %t1.1.pic.o -T %p/Inputs/script_shared.t -o %t7.so --plugin-config %p/Inputs/plugin.config -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=LINK-SHARED
+RUN: %nm %t7.so | %filecheck %s --check-prefix=NM-MD5
+RUN: %readelf -h %t7.so | %filecheck %s --check-prefix=SHARED-TYPE
+RUN: %readelf -l -W %t7.so | %filecheck %s --check-prefix=PHDR
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t8.out --plugin-config %p/Inputs/plugin_sequential.config -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=LINK
+RUN: %nm %t8.out | %filecheck %s --check-prefix=NM-SEQ
+RUN: rm -f randomized_addrs_seq_dump.txt
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t8b.out --plugin-config %p/Inputs/plugin_sequential_dump.config -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=LINK
+RUN: %filecheck <randomized_addrs_seq_dump.txt %s --check-prefix=SEQ-DUMP
+RUN: rm -f randomized_addrs_seq_dump.txt
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script_lsplugin.t -o %t9.out -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=LINK
+RUN: %nm %t9.out | %filecheck %s --check-prefix=NM-MD5
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script_lsplugin_seq.t -o %t10.out -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=LINK
+RUN: %nm %t10.out | %filecheck %s --check-prefix=NM-SEQ
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.2.o -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.1.o %t2.2.o -T %p/Inputs/script_multi.t -o %t11.out --plugin-config %p/Inputs/plugin_multi.config -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=LINK-MULTI
+RUN: %nm %t11.out | %filecheck %s --check-prefix=NM-MULTI
+RUN: rm -f randomized_addrs_dump1.txt randomized_addrs_dump2.txt
+RUN: %link %linkopts %t1.1.o %t2.2.o -T %p/Inputs/script_multi.t -o %t12.out --plugin-config %p/Inputs/plugin_multi_dump.config -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=LINK-MULTI
+RUN: %filecheck <randomized_addrs_dump1.txt %s --check-prefix=DUMP
+RUN: %filecheck <randomized_addrs_dump2.txt %s --check-prefix=DUMP2
+RUN: rm -f randomized_addrs_dump1.txt randomized_addrs_dump2.txt
+RUN: %not %link %linkopts %t1.1.o %t2.2.o -T %p/Inputs/script_multi.t -o %t13.out --plugin-config %p/Inputs/plugin_multi_dump_mismatch.config -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=DUMP-MISMATCH
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t14.out --plugin-config %p/Inputs/plugin_missing_section.config -L %p/Inputs 2>&1 | %filecheck %s --check-prefix=MISSING-SECTION
+#LINK: Section .randomized_addrs placed in a non-PT_LOAD segment as explicitly allowed by a plugin
+#LINK-NOT: overlaps
+#LINK-NOT: not in any load segment
+#LINK-NONE: Section .randomized_addrs placed in a non-PT_LOAD segment as explicitly allowed by a plugin
+#LINK-NONE-NOT: overlaps
+#LINK-NONE-NOT: not in any load segment
+#LINK-LOAD-NOT: overlaps
+#LINK-LOAD-NOT: not in any load segment
+#LINK-LOAD-NOT: placed in a non-PT_LOAD segment
+#LINK-SHARED: Section .randomized_addrs placed in a non-PT_LOAD segment as explicitly allowed by a plugin
+#LINK-SHARED-NOT: overlaps
+#LINK-SHARED-NOT: not in any load segment
+#LINK-MULTI: Section .randomized_addrs placed in a non-PT_LOAD segment as explicitly allowed by a plugin
+#LINK-MULTI: Section .randomized_addrs2 placed in a non-PT_LOAD segment as explicitly allowed by a plugin
+#LINK-MULTI-NOT: overlaps
+#LINK-MULTI-NOT: not in any load segment
+#NM-MD5: {{0*}}2d553012 A sym1
+#NM-MD5: {{0*}}b1eff16b A sym2
+#NM-MD5: {{0*}}8554be50 A sym3
+#NM-MD5: {{0*}}83924120 A sym4
+#NM-MD5: {{0*}}bf23660f A sym5
+#NM-MD5: {{0*}}2d553012 A sym6
+#NM-SHA1: {{0*}}41c088a0 A sym1
+#NM-SHA1: {{0*}}bfca90fd A sym2
+#NM-SHA1: {{0*}}9a79384b A sym3
+#NM-SHA1: {{0*}}3cfde454 A sym4
+#NM-SHA1: {{0*}}2d9856e0 A sym5
+#NM-SHA1: {{0*}}41c088a0 A sym6
+#NM-SEQ: {{0*}}64 A sym1
+#NM-SEQ: {{0*}}65 A sym2
+#NM-SEQ: {{0*}}66 A sym3
+#NM-SEQ: {{0*}}67 A sym4
+#NM-SEQ: {{0*}}68 A sym5
+#NM-SEQ: {{0*}}64 A sym6
+#NM-MULTI: {{0*}}2d553012 A sym1
+#NM-MULTI: {{0*}}b1eff16b A sym2
+#NM-MULTI: {{0*}}8554be50 A sym3
+#NM-MULTI: {{0*}}83924120 A sym4
+#NM-MULTI: {{0*}}bf23660f A sym5
+#NM-MULTI: {{0*}}2d553012 A sym6
+#NM-MULTI: {{0*}}2c186071 A sym7
+#NM-MULTI: {{0*}}2d553012 A sym8
+#SECTION: .randomized_addrs PROGBITS {{[0-9a-fA-F]+}} {{[0-9a-fA-F]+}} {{[0-9a-fA-F]+}} 00   A
+#PHDR: NULL{{.*}}
+#PHDR-NONE-NOT: NULL{{.*}}
+#PHDR-LOAD: LOAD{{.*}}
+#SHARED-TYPE: Type: DYN (Shared object file)
+#DUMP: 2d553012:hi
+#DUMP: b1eff16b:a somewhat longer string constant
+#DUMP: 8554be50:x
+#DUMP: 83924120:another string, medium length
+#DUMP: bf23660f:yet another distinct string constant, this one considerably longer than the rest so the section has a real spread of content lengths
+#DUMP-LINES: 5
+#SEQ-DUMP: 00000064:hi
+#SEQ-DUMP: 00000065:a somewhat longer string constant
+#SEQ-DUMP: 00000066:x
+#SEQ-DUMP: 00000067:another string, medium length
+#SEQ-DUMP: 00000068:yet another distinct string constant, this one considerably longer than the rest so the section has a real spread of content lengths
+#DUMP2: 2c186071:second section only
+#DUMP2: 2d553012:hi
+#DUMP-MISMATCH: dump= must specify exactly one path per target section (2 section(s), 1 dump path(s) given)
+#MISSING-SECTION: section= is required and must specify at least one target output section
+#END_TEST
+
