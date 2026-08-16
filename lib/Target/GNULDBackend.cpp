@@ -3302,7 +3302,8 @@ bool GNULDBackend::postLayout() {
   // ranges in the file.
   std::vector<SectionOffset> vmas;
   for (ELFSection *sec : outputSections) {
-    if (sec->size() > 0 && (sec->isAlloc() && !sec->isTLS()))
+    if (sec->size() > 0 && (sec->isAlloc() && !sec->isTLS()) &&
+        !sec->isExcludedFromOverlapCheck())
       vmas.push_back({sec, sec->addr()});
   }
   checkOverlap("virtual address", vmas, true);
@@ -4843,6 +4844,11 @@ bool GNULDBackend::checkForLinkerScriptPhdrErrors() const {
       }
       if (seg->isNoneSegment() && cur->getSection()->size()) {
         config().raise(Diag::warn_loadable_section_in_none_segment)
+            << cur->name();
+        found = true;
+      }
+      if (cur->getSection()->isAllowedInNonLoadSegment()) {
+        config().raise(Diag::note_section_allowed_in_non_load_segment)
             << cur->name();
         found = true;
       }

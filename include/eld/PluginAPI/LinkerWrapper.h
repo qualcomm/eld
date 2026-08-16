@@ -523,6 +523,22 @@ public:
   /// be reset is a defined symbol with an initial value.
   eld::Expected<void> resetSymbol(plugin::Symbol S, Chunk C);
 
+  /// Detach symbol S from its current fragment (if any) and make it an
+  /// absolute symbol with value Addr. The symbol's output section index
+  /// becomes SHN_ABS, and its value is no longer derived from any chunk's
+  /// placement.
+  ///
+  /// Unlike resetSymbol(), this works on already-defined symbols.
+  ///
+  /// \param S Symbol whose address is to be set.
+  /// \param Addr Absolute value to assign to the symbol.
+  ///
+  /// \note This function must only be used in the \em AfterLayout link
+  /// state, i.e. after layout, garbage-collection, and relaxation have
+  /// converged, and before the symbol table and relocations are finalized
+  /// and emitted.
+  eld::Expected<void> setSymbolAddress(plugin::Symbol S, uint64_t Addr);
+
   /// Create and return a Use for a Chunk, and add it to the Chunk.
   eld::Expected<Use> createAndAddUse(Chunk C, off_t Offset,
                                      uint32_t RelocationType, plugin::Symbol S,

@@ -1011,6 +1011,20 @@ Expected<void> OutputSection::setPluginOverride(Plugin *P,
   return {};
 }
 
+Expected<void> OutputSection::setExcludeFromOverlapCheck(
+    const LinkerWrapper &LW) {
+  CHECK_LINK_STATE(LW, "CreatingSegments");
+  getOutputSection()->getSection()->setExcludedFromOverlapCheck();
+  return {};
+}
+
+Expected<void> OutputSection::setAllowedInNonLoadSegment(
+    const LinkerWrapper &LW) {
+  CHECK_LINK_STATE(LW, "CreatingSegments");
+  getOutputSection()->getSection()->setAllowedInNonLoadSegment();
+  return {};
+}
+
 //
 //--------------------------------------Symbol---------------------------------
 //
