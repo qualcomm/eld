@@ -3452,7 +3452,8 @@ bool GNULDBackend::postLayout() {
         config().raise(Diag::warn_address_not_aligned)
             << utility::toHex(static_cast<uint64_t>(sec->addr())) << sec->name()
             << sec->getAddrAlign();
-      vmas.push_back({sec, sec->addr()});
+      if (!sec->isExcludedFromOverlapCheck())
+        vmas.push_back({sec, sec->addr()});
     }
   }
   checkOverlap("virtual address", vmas, true);
@@ -5074,6 +5075,11 @@ bool GNULDBackend::checkForLinkerScriptPhdrErrors() const {
       }
       if (seg->isNoneSegment() && cur->getSection()->size()) {
         config().raise(Diag::warn_loadable_section_in_none_segment)
+            << cur->name();
+        found = true;
+      }
+      if (cur->getSection()->isAllowedInNonLoadSegment()) {
+        config().raise(Diag::note_section_allowed_in_non_load_segment)
             << cur->name();
         found = true;
       }

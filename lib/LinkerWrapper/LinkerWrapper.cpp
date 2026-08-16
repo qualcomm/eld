@@ -842,6 +842,16 @@ eld::Expected<void> LinkerWrapper::resetSymbol(plugin::Symbol S, Chunk C) {
   return {};
 }
 
+eld::Expected<void> LinkerWrapper::setSymbolAddress(plugin::Symbol S,
+                                                     uint64_t Addr) {
+  CHECK_LINK_STATE(*this, "AfterLayout");
+  bool b = m_Module.setSymbolAddress(S.getSymbol(), Addr);
+  if (!b)
+    return std::make_unique<DiagnosticEntry>(DiagnosticEntry(
+        Diag::error_failed_to_set_symbol_address, {S.getName()}));
+  return {};
+}
+
 eld::Expected<Use> LinkerWrapper::createAndAddUse(Chunk C, off_t Offset,
                                                   uint32_t RelocationType,
                                                   plugin::Symbol S,
