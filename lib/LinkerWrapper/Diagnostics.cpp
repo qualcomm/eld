@@ -35,6 +35,11 @@ plugin::Diagnostic::error_failed_to_reset_symbol() {
 }
 
 DLL_A_EXPORT plugin::DiagnosticEntry::DiagIDType
+plugin::Diagnostic::error_failed_to_set_symbol_address() {
+  return eld::Diag::error_failed_to_set_symbol_address;
+}
+
+DLL_A_EXPORT plugin::DiagnosticEntry::DiagIDType
 plugin::Diagnostic::error_failed_to_insert_rule() {
   return eld::Diag::error_failed_to_insert_rule;
 }

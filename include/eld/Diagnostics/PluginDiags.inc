@@ -22,6 +22,8 @@ DIAG(error_failed_to_add_sym_to_chunk, DiagnosticEngine::Error,
      "Failed to add symbol '%0' to chunk")
 DIAG(error_failed_to_reset_symbol, DiagnosticEngine::Error,
      "Failed to reset symbol '%0'")
+DIAG(error_failed_to_set_symbol_address, DiagnosticEngine::Error,
+     "Failed to set address of symbol '%0'")
 DIAG(error_failed_to_insert_rule, DiagnosticEngine::Error,
      "Failed to insert rule")
 DIAG(error_invalid_use, DiagnosticEngine::Error, "Invalid Use")

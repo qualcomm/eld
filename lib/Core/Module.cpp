@@ -783,6 +783,16 @@ bool Module::resetSymbol(ResolveInfo *R, Fragment *F) {
   return true;
 }
 
+bool Module::setSymbolAddress(ResolveInfo *R, uint64_t Addr) {
+  if (!R || !R->outSymbol())
+    return false;
+  R->outSymbol()->setFragmentRef(FragmentRef::null());
+  R->setDesc(ResolveInfo::Define);
+  R->setBinding(ResolveInfo::Absolute);
+  R->setValue(Addr, /*IsFinal=*/true);
+  return true;
+}
+
 uint64_t Module::getImageLayoutChecksum() const {
   uint64_t Hash = 0;
   if (!isLinkStateAfterLayout())
