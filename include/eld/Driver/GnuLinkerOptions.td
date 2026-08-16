@@ -866,6 +866,7 @@ defm trace
           "\t\t\t --trace=garbage-collection : trace linker garbage "
           "collection\n"
           "\t\t\t --trace=plugin : trace plugin\n"
+          "\t\t\t --trace=plugin=<plugin-name> : trace a single plugin\n"
           "\t\t\t --trace=threads : trace threads\n"
           "\t\t\t --trace=assignments : trace symbol assignments\n"
           "\t\t\t --trace=command-line : trace header info\n"
