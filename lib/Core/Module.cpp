@@ -459,18 +459,25 @@ bool Module::readOnePluginConfig(llvm::StringRef CfgFile,
   }
 
   for (auto &G : Config.GlobalPlugins) {
+    bool PrintTimingStats =
+        ThisConfig.options().printTimingStats("Plugin") ||
+        ThisConfig.options().printTimingStats(G.PluginName.c_str()) ||
+        ThisConfig.options().allUserPluginStatsRequested();
     getScript().addPlugin(G.PluginType, G.LibraryName, G.PluginName, G.Options,
-                          ThisConfig.options().printTimingStats("Plugin"),
-                          IsDefaultConfig, *this);
+                          PrintTimingStats, IsDefaultConfig, *this);
     if (getPrinter()->isVerbose())
       ThisConfig.raise(Diag::verbose_initializing_plugin) << G.PluginName;
   }
 
   for (auto &O : Config.OutputSectionPlugins) {
-    eld::Plugin *P = getScript().addPlugin(
-        O.PluginType, O.LibraryName, O.PluginName, O.Options,
-        ThisConfig.options().printTimingStats("Plugin"), IsDefaultConfig,
-        *this);
+    bool PrintTimingStats =
+        ThisConfig.options().printTimingStats("Plugin") ||
+        ThisConfig.options().printTimingStats(O.PluginName.c_str()) ||
+        ThisConfig.options().allUserPluginStatsRequested();
+    eld::Plugin *P = getScript().addPlugin(O.PluginType, O.LibraryName,
+                                           O.PluginName, O.Options,
+                                           PrintTimingStats, IsDefaultConfig,
+                                           *this);
     getScript().addPluginOutputSection(O.OutputSection, P);
     if (getPrinter()->isVerbose())
       ThisConfig.raise(Diag::adding_output_section_for_plugin)
