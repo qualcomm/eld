@@ -1,4 +1,6 @@
-.github/workflows/linux-kernel.yml  @steven6798
+.github/workflows/linux-kernel-nightly.yml  @steven6798
+.github/workflows/linux-kernel-pr.yml  @steven6798
+.github/workflows/linux-kernel-run.yml  @steven6798
 .github/workflows/busybox.yml  @steven6798
 .github/dependabot.yml  @steven6798
 lib/BranchIsland		@quic-seaswara

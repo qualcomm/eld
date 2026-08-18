@@ -163,7 +163,7 @@ jobs:
             qemu_cpu: cortex-a57
             qemu_bios: ""
             console_device: ttyAMA0
-            enabled: 0
+            enabled: 1
     uses: ./.github/workflows/linux-kernel-run.yml
     with:
       arch: ${{ matrix.arch }}

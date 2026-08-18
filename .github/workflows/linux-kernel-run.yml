@@ -158,16 +158,27 @@ jobs:
           cd linux
           make ARCH="${KBUILD_ARCH}" "${DEFCONFIG}"
           ./scripts/config \
-            --enable CONFIG_BLK_DEV_INITRD \
-            --enable CONFIG_DEVTMPFS \
-            --enable CONFIG_DEVTMPFS_MOUNT \
-            --disable CONFIG_DEBUG_INFO \
-            --disable CONFIG_GDB_SCRIPTS \
-            --enable CONFIG_EXPERT \
-            --enable CONFIG_VMLINUX_MAP
+            --enable BLK_DEV_INITRD \
+            --enable DEVTMPFS \
+            --enable DEVTMPFS_MOUNT \
+            --disable DEBUG_INFO \
+            --enable DEBUG_INFO_NONE \
+            --disable DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT \
+            --disable DEBUG_INFO_DWARF4 \
+            --disable DEBUG_INFO_DWARF5 \
+            --disable GDB_SCRIPTS \
+            --enable EXPERT \
+            --enable VMLINUX_MAP
           # CONFIG_SOC_VIRT is a RISC-V-specific Kconfig symbol.
           if [[ "${KBUILD_ARCH}" == riscv ]]; then
-            ./scripts/config --enable CONFIG_SOC_VIRT
+            ./scripts/config --enable SOC_VIRT
+          fi
+          # These configs rely on the '--no-apply-dynamic-relocs' and
+          # '--pack-dyn-relocs=relr' flags which are not implemented yet in ELD.
+          if [[ "${KBUILD_ARCH}" == arm64 ]]; then
+            ./scripts/config \
+            --disable RANDOMIZE_BASE \
+            --disable RELOCATABLE
           fi
           make ARCH="${KBUILD_ARCH}" olddefconfig
 
@@ -325,8 +336,10 @@ jobs:
       - name: Validate boot log with FileCheck
         if: inputs.enabled == 1
         shell: bash
+        env:
+          TEST_FAILURES: ${{ github.workspace }}/test/LinuxKernel/${{ inputs.arch }}/test-failures.txt
         run: |
-          FileCheck --input-file=/tmp/kernel-boot-output.txt "${{ github.workspace }}/test/LinuxKernel/${{ inputs.arch }}/test-failures.txt"
+          FileCheck --input-file=/tmp/kernel-boot-output.txt "${TEST_FAILURES}"
 
       - name: Update build entry
         if: inputs.enabled == 1 && success() && github.event_name == 'schedule'
