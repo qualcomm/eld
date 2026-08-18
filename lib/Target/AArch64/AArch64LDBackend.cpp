@@ -81,23 +81,8 @@ bool AArch64LDBackend::initStubFactory() {
 }
 
 void AArch64LDBackend::initDynamicSections(ELFObjectFile &InputFile) {
-  InputFile.setDynamicSections(
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got.plt",
-          llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
-          8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".plt", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 16),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.dyn",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC, 8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.plt",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC, 8));
+  GNULDBackend::initDynamicSections(InputFile,
+                                    {llvm::ELF::SHT_RELA, 8, 8, 8, 16});
 }
 
 void AArch64LDBackend::initTargetSections(ObjectBuilder &pBuilder) {
@@ -543,12 +528,12 @@ bool AArch64LDBackend::finalizeScanRelocations() {
         !symInfo->hasIFuncNeedsGOT())
       continue;
 
-    AArch64GOT *G = AArch64GOT::Create(Obj->getGOT(), symInfo);
+    AArch64GOT *G = AArch64GOT::Create(getGOT(), symInfo);
 
     FragmentRef *PLTFragRef = make<FragmentRef>(*plt, 0);
     Relocation *r = Relocation::Create(llvm::ELF::R_AARCH64_ABS64, 64,
                                        make<FragmentRef>(*G, 0), 0);
-    Obj->getGOT()->addRelocation(r);
+    getGOT()->addRelocation(r);
     r->modifyRelocationFragmentRef(PLTFragRef);
 
     recordGOT(symInfo, G);
@@ -686,7 +671,7 @@ AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
   bool GOT = true;
   switch (T) {
   case GOT::Regular:
-    G = AArch64GOT::Create(Obj->getGOT(), R);
+    G = AArch64GOT::Create(getGOT(), R);
     break;
   case GOT::GOTPLT0:
     G = llvm::dyn_cast<AArch64GOT>(*getGOTPLT()->getFragmentList().begin());
@@ -698,16 +683,16 @@ AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
     // TODO: PLT0 seems to get created even with -znow.
     Fragment *PLT0 =
         SkipPLTRef ? nullptr : *getPLT()->getFragmentList().begin();
-    G = AArch64GOTPLTN::Create(Obj->getGOTPLT(), R, PLT0);
+    G = AArch64GOTPLTN::Create(getGOTPLT(), R, PLT0);
     GOT = false;
     break;
   }
   // It seems, there are no global TLS GOT slots on aarch64.
   case GOT::TLS_DESC:
-    G = AArch64TLSDESCGOT::Create(Obj->getGOTPLT(), R);
+    G = AArch64TLSDESCGOT::Create(getGOTPLT(), R);
     break;
   case GOT::TLS_IE:
-    G = AArch64IEGOT::Create(Obj->getGOT(), R);
+    G = AArch64IEGOT::Create(getGOT(), R);
     break;
   default:
     assert(0);
@@ -758,7 +743,7 @@ AArch64PLT *AArch64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
   }
   AArch64PLT *P = AArch64PLTN::Create(
       *m_Module.getIRBuilder(), createGOT(GOT::GOTPLTN, Obj, R, isIRelative),
-      Obj->getPLT(), R);
+      getPLT(), R);
   // init the corresponding rel entry in .rela.plt
   Relocation &rela_entry = *Obj->getRelaPLT()->createOneReloc();
   rela_entry.setType(isIRelative ? llvm::ELF::R_AARCH64_IRELATIVE

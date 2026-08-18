@@ -63,23 +63,8 @@ x86_64LDBackend::getTargetSectionOrder(const ELFSection &pSectHdr) const {
 void x86_64LDBackend::initTargetSections(ObjectBuilder &pBuilder) {}
 
 void x86_64LDBackend::initDynamicSections(ELFObjectFile &InputFile) {
-  InputFile.setDynamicSections(
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got.plt",
-          llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
-          8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".plt", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 16),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.dyn",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC, 8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.plt",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC, 8));
+  GNULDBackend::initDynamicSections(InputFile,
+                                    {llvm::ELF::SHT_RELA, 8, 8, 8, 16});
 }
 
 void x86_64LDBackend::initTargetSymbols() {
@@ -346,24 +331,24 @@ x86_64GOT *x86_64LDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
   bool GOT = true;
   switch (T) {
   case GOT::Regular:
-    G = x86_64GOT::Create(Obj->getGOT(), R);
+    G = x86_64GOT::Create(getGOT(), R);
     break;
   case GOT::GOTPLT0:
     G = llvm::dyn_cast<x86_64GOT>(*getGOTPLT()->getFragmentList().begin());
     GOT = false;
     break;
   case GOT::GOTPLTN:
-    G = x86_64GOTPLTN::Create(Obj->getGOTPLT(), R);
+    G = x86_64GOTPLTN::Create(getGOTPLT(), R);
     GOT = false;
     break;
   case GOT::TLS_GD:
-    G = x86_64GDGOT::Create(Obj->getGOT(), R);
+    G = x86_64GDGOT::Create(getGOT(), R);
     break;
   case GOT::TLS_LD:
     G = x86_64LDGOT::Create(getGOT(), R);
     break;
   case GOT::TLS_IE:
-    G = x86_64IEGOT::Create(Obj->getGOT(), R);
+    G = x86_64IEGOT::Create(getGOT(), R);
     break;
   default:
     assert(0);

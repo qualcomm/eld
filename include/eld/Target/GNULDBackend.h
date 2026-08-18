@@ -473,6 +473,19 @@ public:
 
   virtual void initDynamicSections(ELFObjectFile &) {}
 
+  struct DynamicSectionLayout {
+    uint32_t RelType = 0;
+    uint32_t RelAlign = 0;
+    uint32_t GOTAlign = 0;
+    uint32_t GOTPLTAlign = 0;
+    uint32_t PLTAlign = 0;
+  };
+
+  /// Create this input file's dynamic relocation sections. On the first
+  /// call, create the shared .got/.got.plt/.plt too.
+  void initDynamicSections(ELFObjectFile &InputFile,
+                           const DynamicSectionLayout &Layout);
+
   virtual void initTargetSymbols() = 0;
 
   /// getRelEntrySize - the size in BYTE of rel type relocation
@@ -1281,6 +1294,9 @@ protected:
 
   // Dynamic linking
   ELFObjectFile *m_DynamicSectionHeadersInputFile = nullptr;
+  ELFSection *GOTSection = nullptr;
+  ELFSection *GOTPLTSection = nullptr;
+  ELFSection *PLTSection = nullptr;
   LDSymbol *m_pGOTSymbol = nullptr;
   llvm::DenseMap<const Relocation *, Relocation *> m_RelativeRelocMap;
 

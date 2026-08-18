@@ -1,0 +1,92 @@
+## Checks GOT/PLT invariants that must hold no matter how many input files
+## contribute slots:
+##  - Every slot lands in one .got and one .got.plt.
+##  - DT_PLTGOT points at GOTPLT0 at the start of .got.plt.
+##  - A symbol referenced from many files shares one slot.
+##  - .rela.plt is index-parallel with .plt, which lazy binding depends on.
+
+# RUN: split-file %s %t
+# RUN: %clang %clangopts -c -fPIC %t/a.c -o %t/a.o
+# RUN: %clang %clangopts -c -fPIC %t/b.c -o %t/b.o
+# RUN: %clang %clangopts -c -fPIC %t/c.c -o %t/c.o
+# RUN: %clang %clangopts -c -fPIC %t/defs.c -o %t/defs.o
+# RUN: %clang %clangopts -c -fPIC %t/lib.c -o %t/lib.o
+# RUN: %clang %clangopts -c -fPIC %t/callsa.c -o %t/callsa.o
+# RUN: %clang %clangopts -c -fPIC %t/callsb.c -o %t/callsb.o
+
+# RUN: %link %linkopts -shared %t/a.o %t/b.o %t/c.o %t/defs.o -o %t/out.so
+
+# RUN: %readelf -SW %t/out.so > %t/sect.txt
+# RUN: %filecheck %s --check-prefix=SECT --input-file=%t/sect.txt
+# SECT-COUNT-1: ] .got {{ *}}PROGBITS
+# SECT-NOT:     ] .got {{ *}}PROGBITS
+# SECT-COUNT-1: ] .got.plt {{ *}}PROGBITS
+# SECT-NOT:     ] .got.plt {{ *}}PROGBITS
+
+# RUN: %readelf -SW --dynamic %t/out.so > %t/dyn.txt
+# RUN: %filecheck %s --check-prefix=PLTGOT --input-file=%t/dyn.txt
+# PLTGOT-DAG: ] .got.plt {{ *}}PROGBITS {{0*}}[[GOTPLT:[0-9a-f]+]]
+# PLTGOT-DAG: (PLTGOT) {{ *}}0x[[GOTPLT]]
+
+## shared_g is referenced through the GOT from three files,
+## but it should get one slot and appear in exactly one dynamic relocation.
+# RUN: %readelf -rW %t/out.so > %t/rel.txt
+# RUN: %filecheck %s --check-prefix=SHARED --input-file=%t/rel.txt
+# SHARED-COUNT-1: {{ }}shared_g
+# SHARED-NOT:     {{ }}shared_g
+
+# RUN: %filecheck %s --check-prefix=PRIV --input-file=%t/rel.txt
+# PRIV-DAG: {{ }}only_a
+# PRIV-DAG: {{ }}only_b
+# PRIV-DAG: {{ }}only_c
+
+## The dynamic loader passes a PLT stub's index to the resolver, which uses it
+## to index .rela.plt. So the Nth jump-slot relocation has to name the same
+## symbol as the Nth stub, or every lazily bound call resolves to the wrong
+## function. Reference the callees in different orders from two files so a
+## permutation between the two lists is caught rather than passing by luck.
+# RUN: %link %linkopts -shared %t/lib.o -o %t/lib.so
+# RUN: %link %linkopts -shared %t/callsa.o %t/callsb.o %t/lib.so -o %t/plt.so
+# RUN: %readelf -rW %t/plt.so > %t/pltidx.txt
+# RUN: %objdump -d --section=.plt %t/plt.so >> %t/pltidx.txt
+# RUN: %filecheck %s --check-prefix=PLTIDX --input-file=%t/pltidx.txt
+# PLTIDX: JUMP_SLOT {{.*}} [[S1:fn[0-9]]]
+# PLTIDX: JUMP_SLOT {{.*}} [[S2:fn[0-9]]]
+# PLTIDX: JUMP_SLOT {{.*}} [[S3:fn[0-9]]]
+# PLTIDX: JUMP_SLOT {{.*}} [[S4:fn[0-9]]]
+# PLTIDX: JUMP_SLOT {{.*}} [[S5:fn[0-9]]]
+# PLTIDX: <[[S1]]@plt>:
+# PLTIDX: <[[S2]]@plt>:
+# PLTIDX: <[[S3]]@plt>:
+# PLTIDX: <[[S4]]@plt>:
+# PLTIDX: <[[S5]]@plt>:
+
+#--- a.c
+extern int shared_g, only_a;
+int fa(void) { return shared_g + only_a; }
+
+#--- b.c
+extern int shared_g, only_b;
+int fb(void) { return shared_g + only_b; }
+
+#--- c.c
+extern int shared_g, only_c;
+int fc(void) { return shared_g + only_c; }
+
+#--- defs.c
+int shared_g = 1, only_a = 2, only_b = 3, only_c = 4;
+
+#--- lib.c
+int fn1(void) { return 1; }
+int fn2(void) { return 2; }
+int fn3(void) { return 3; }
+int fn4(void) { return 4; }
+int fn5(void) { return 5; }
+
+#--- callsa.c
+int fn1(void), fn2(void), fn3(void), fn4(void), fn5(void);
+int ga(void) { return fn1() + fn3() + fn5(); }
+
+#--- callsb.c
+int fn1(void), fn2(void), fn3(void), fn4(void), fn5(void);
+int gb(void) { return fn2() + fn4() + fn1(); }
