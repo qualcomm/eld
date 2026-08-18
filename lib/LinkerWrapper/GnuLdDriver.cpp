@@ -1680,6 +1680,36 @@ bool GnuLdDriver::processReproduceOption(
   if (!Config.options().getDumpResponse())
     os << getProgramName() << " ";
   size_t lastNamespecId = -1;
+  size_t lastInputFileId = -1;
+  size_t lastScriptId = -1;
+  size_t lastJustSymbolsId = -1;
+
+  auto getRewrittenActionInputPath =
+      [&](eld::InputAction::InputActionKind kind, size_t &lastActionId,
+          llvm::StringRef fallback) -> std::optional<std::string> {
+    for (size_t i = lastActionId + 1; i < actions.size(); ++i) {
+      auto action = actions[i];
+      if (action->getInputActionKind() != kind)
+        continue;
+      lastActionId = i;
+      auto ipt = action->getInput();
+      if (!ipt)
+        return std::nullopt;
+      std::string key = fallback.str();
+      if (ipt->getInputFile() && ipt->getInputFile()->hasMappedPath())
+        key = ipt->getInputFile()->getMappedPath();
+      else if (!ipt->getName().empty())
+        key = ipt->getName();
+      return outputTar->rewritePath(key);
+    }
+    return outputTar->rewritePath(fallback);
+  };
+
+  auto getRewrittenRemappedPath = [&](llvm::StringRef path) -> std::string {
+    if (auto replacement = Config.options().findRemapInput(path))
+      return outputTar->rewritePath(*replacement);
+    return outputTar->rewritePath(path);
+  };
 
   auto zArgsRange = Args.filtered(T::dash_z);
   auto zArgIt = zArgsRange.begin();
@@ -1713,9 +1743,14 @@ bool GnuLdDriver::processReproduceOption(
       }
       break;
     }
-    case T::INPUT:
-      os << outputTar->rewritePath(arg->getValue()) << ' ';
+    case T::INPUT: {
+      auto path = getRewrittenActionInputPath(eld::InputAction::InputFile,
+                                              lastInputFileId, arg->getValue());
+      if (!path)
+        return false;
+      os << *path << ' ';
       break;
+    }
     case T::plugin_config: {
       const eld::sys::fs::Path *P = Config.directories().findFile(
           "plugin configuration file", arg->getValue(), "");
@@ -1727,21 +1762,45 @@ bool GnuLdDriver::processReproduceOption(
     }
     case T::output_file:
     case T::Map:
-    case T::T:
-    case T::R:
+      os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
+         << ' ';
+      break;
     case T::dynamic_list:
     case T::extern_list:
     case T::version_script:
-      os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
-         << ' ';
+    case T::copy_farcalls_from_file:
+    case T::no_reuse_trampolines_file:
+      os << arg->getSpelling() << ' '
+         << getRewrittenRemappedPath(arg->getValue()) << ' ';
       break;
+    case T::T: {
+      auto path = getRewrittenActionInputPath(eld::InputAction::Script,
+                                              lastScriptId, arg->getValue());
+      if (!path)
+        return false;
+      os << arg->getSpelling() << ' ' << *path << ' ';
+      break;
+    }
+    case T::R: {
+      auto path = getRewrittenActionInputPath(
+          eld::InputAction::JustSymbols, lastJustSymbolsId, arg->getValue());
+      if (!path)
+        return false;
+      os << arg->getSpelling() << ' ' << *path << ' ';
+      break;
+    }
     case T::remap_inputs:
       os << arg->getSpelling() << ' ' << arg->getValue() << ' ';
       break;
-    case T::remap_inputs_file:
+    case T::remap_inputs_file: {
+      const eld::sys::fs::Path *P = Config.directories().findFile(
+          "remap input file", arg->getValue(), "");
+      outputTar->createAndAddConfigFile(arg->getValue(),
+                                        P ? P->getFullPath() : "");
       os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
          << ' ';
       break;
+    }
     case T::dash_z: {
       ASSERT(zArgIt != zArgsRange.end(), "Expected valid z argument iterator!");
       os << arg->getSpelling() << ' ';
