@@ -1,0 +1,105 @@
+REQUIRES: riscv32 || riscv64
+#----------TP_RELAX.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# Test thread-pointer relaxation for local-exec TLS accesses.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/tp_relax.s -o %t.o
+
+## Check --no-relax and --no-relax-tp both suppress the relaxation.
+RUN: %link %linkopts -static --no-relax --verbose -MapStyle txt -Map %t.norelax.map \
+RUN:   %t.o -o %t.norelax.out 2>&1 | %filecheck %s --check-prefix=NO-RELAX-VERBOSE
+RUN: %link %linkopts -static --no-relax-tp --verbose -MapStyle txt -Map %t.norelaxtp.map \
+RUN:   %t.o -o %t.norelaxtp.out 2>&1 | %filecheck %s --check-prefix=NO-RELAX-VERBOSE
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.norelax.out | %filecheck %s --check-prefix=NO-RELAX-DUMP
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.norelaxtp.out | %filecheck %s --check-prefix=NO-RELAX-DUMP
+RUN: %filecheck %s --input-file=%t.norelax.map --check-prefix=NO-RELAX-MAP
+RUN: %filecheck %s --input-file=%t.norelaxtp.map --check-prefix=NO-RELAX-MAP
+
+## Check relaxable cases.
+RUN: %link %linkopts -static --verbose -MapStyle txt -Map %t.map \
+RUN: %t.o -o %t.out 2>&1 | %filecheck %s --check-prefix=RELAX-VERBOSE
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.out | %filecheck %s --check-prefix=RELAX-DUMP
+RUN: %filecheck %s --input-file=%t.map --check-prefix=RELAX-MAP
+
+NO-RELAX-VERBOSE: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_in'
+NO-RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_in'
+NO-RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_in_2047'
+NO-RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_in_2047'
+NO-RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_in'
+NO-RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_in'
+NO-RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_out_2048'
+NO-RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_out_2048'
+NO-RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_in'
+NO-RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_in'
+NO-RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_out'
+NO-RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_out'
+NO-RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_in'
+NO-RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_in'
+
+NO-RELAX-MAP: # RelaxationBytesMissed : 56
+
+NO-RELAX-DUMP-LABEL: <bounds_checks>:
+NO-RELAX-DUMP-NEXT: lui a0, 0
+NO-RELAX-DUMP-NEXT: add a0, a0, tp
+NO-RELAX-DUMP-NEXT: lw a0, 8(a0)
+NO-RELAX-DUMP-NEXT: lui a1, 0
+NO-RELAX-DUMP-NEXT: add a1, a1, tp
+NO-RELAX-DUMP-NEXT: lw a1, 2047(a1)
+NO-RELAX-DUMP-NEXT: lui a1, 0
+NO-RELAX-DUMP-NEXT: add a1, a1, tp
+NO-RELAX-DUMP-NEXT: lw a1, 2047(a1)
+NO-RELAX-DUMP-NEXT: lui a2, 1
+NO-RELAX-DUMP-NEXT: add a2, a2, tp
+NO-RELAX-DUMP-NEXT: lw a2, -2048(a2)
+NO-RELAX-DUMP-NEXT: lui a2, 1
+NO-RELAX-DUMP-NEXT: add a2, a2, tp
+NO-RELAX-DUMP-NEXT: lw a2, -2048(a2)
+NO-RELAX-DUMP-NEXT: lui a3, 1
+NO-RELAX-DUMP-NEXT: add a3, a3, tp
+NO-RELAX-DUMP-NEXT: lw a3, 0(a3)
+
+NO-RELAX-DUMP-LABEL: <shared_nonsequential_relax>:
+NO-RELAX-DUMP-NEXT: lui a0, 0
+NO-RELAX-DUMP-NEXT: add a1, a0, tp
+NO-RELAX-DUMP: lw a2, 8(a1)
+NO-RELAX-DUMP-NEXT: addi a3, a2, 1
+NO-RELAX-DUMP-NEXT: sw a3, 8(a1)
+
+RELAX-VERBOSE: RISCV_TPREL : Deleting 4 bytes for symbol 'sym_in'
+RELAX-VERBOSE-NEXT: RISCV_TPREL : Deleting 4 bytes for symbol 'sym_in'
+RELAX-VERBOSE-NEXT: RISCV_TPREL : Deleting 4 bytes for symbol 'sym_in_2047'
+RELAX-VERBOSE-NEXT: RISCV_TPREL : Deleting 4 bytes for symbol 'sym_in_2047'
+RELAX-VERBOSE-NEXT: RISCV_TPREL : Deleting 4 bytes for symbol 'sym_in'
+RELAX-VERBOSE-NEXT: RISCV_TPREL : Deleting 4 bytes for symbol 'sym_in'
+RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_out_2048'
+RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_out_2048'
+RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_in'
+RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_in'
+RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_out'
+RELAX-VERBOSE-NEXT: RISCV_TPREL : Cannot relax 4 bytes for symbol 'sym_out'
+RELAX-VERBOSE-NEXT: RISCV_TPREL : Deleting 4 bytes for symbol 'sym_in'
+RELAX-VERBOSE-NEXT: RISCV_TPREL : Deleting 4 bytes for symbol 'sym_in'
+
+RELAX-DUMP-LABEL: <bounds_checks>:
+RELAX-DUMP: lw a0, 8(tp)
+RELAX-DUMP-NEXT: lw a1, 2047(tp)
+RELAX-DUMP-NEXT: lw a1, 2047(tp)
+RELAX-DUMP-NEXT: lui a2, 1
+RELAX-DUMP-NEXT: add a2, a2, tp
+RELAX-DUMP-NEXT: lw a2, -2048(a2)
+RELAX-DUMP-NEXT: lui a2, 1
+RELAX-DUMP-NEXT: add a2, a2, tp
+RELAX-DUMP-NEXT: lw a2, -2048(a2)
+RELAX-DUMP-NEXT: lui a3, 1
+RELAX-DUMP-NEXT: add a3, a3, tp
+RELAX-DUMP-NEXT: lw a3, 0(a3)
+
+RELAX-DUMP-LABEL: <shared_nonsequential_relax>:
+RELAX-DUMP: lw a2, 8(tp)
+RELAX-DUMP-NEXT: addi a3, a2, 1
+RELAX-DUMP-NEXT: sw a3, 8(tp)
+
+RELAX-MAP: # RelaxationBytesDeleted : 32
+RELAX-MAP: # RelaxationBytesMissed : 24

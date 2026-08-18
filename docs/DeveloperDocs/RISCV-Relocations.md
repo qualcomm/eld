@@ -242,6 +242,7 @@ repeats until no further changes occur.
 | `--no-relax-gp` | off | Disable GP-relative relaxations (requires `__global_pointer$`, non-PIC only) |
 | `--no-relax-zero` | off | Disable zero-page relaxations (symbols with value in signed 12-bit range) |
 | `--no-relax-got` | off | Disable GOT load relaxations for non-preemptible symbols |
+| `--no-relax-tp` | off | Disable local-exec thread-pointer relaxations |
 | `--no-relax-tlsdesc` | off | Disable TLS descriptor relaxations |
 | `--relax-xqci` / `--no-relax-xqci` | **disabled** | Enable Xqci instruction relaxations (`qc.e.j`, `qc.e.jal`) |
 | `--relax-tbljal[=zcmt\|xqccmt]` / `--no-relax-tbljal` | **disabled** | Enable table-jump relaxations (`cm.jt`/`cm.jalt`) |
@@ -399,6 +400,24 @@ lw    a0, %pcrel_lo(1b)(a0)    # GOT load
 # After (8 bytes)
 auipc a0, %pcrel_hi(sym)       # R_RISCV_PCREL_HI20
 addi  a0, a0, %pcrel_lo(1b)    # R_RISCV_PCREL_LO12_I  (no GOT access)
+```
+
+### Thread-pointer Relaxation
+
+For local-exec TLS accesses, if the offset between the thread-pointer and the
+sybol is less than 2048, the instructions associated with `R_RISCV_TPREL_HI20`
+and `R_RISCV_TPREL_ADD` may be removed and the instruction associated with the
+`R_RISCV_TPREL_LO12_[IS]` relocation may be made thread-pointer-relative.
+Disabled by `--no-relax-tp`.
+
+```asm
+# Before
+lui a0, %tprel_hi(sym)             # R_RISCV_TPREL_HI20
+add a0, a0, tp, %tprel_add(sym)    # R_RISCV_TPREL_ADD
+lw a0, %tprel_lo(sym)(a0)          # R_RISCV_TPREL_LO12_I
+
+# After
+lw a0, <sym-tp-rel-offset>(tp)     # R_RISCV_TPREL_LO12_I
 ```
 
 ### TLSDESC Relaxation
