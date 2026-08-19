@@ -714,6 +714,11 @@ public:
   /// Returns true if user has requested verbose diagnostics.
   bool isVerbose() const;
 
+  /// Returns true if this plugin is being traced, i.e. --trace=plugin
+  /// was given without a scope, or with a scope (--trace=plugin=<name>)
+  /// that matches this plugin's name.
+  bool isTraced() const;
+
   eld::Expected<std::vector<plugin::OutputSection>>
   getAllOutputSections() const;
 
