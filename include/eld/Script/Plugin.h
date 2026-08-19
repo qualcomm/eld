@@ -61,6 +61,10 @@ public:
 
   std::string getPluginOptions() const { return PluginOptions; }
 
+  /// Returns true if diagnostics should be traced for this plugin, honoring
+  /// both bare --trace=plugin and scoped --trace=plugin=<name>.
+  bool isTraced() const;
+
   plugin::PluginBase *getLinkerPlugin() const { return UserPluginHandle; }
 
   void *getLibraryHandle() const { return PluginLibraryHandle; }

@@ -4572,7 +4572,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
         return false;
       }
 
-      if (m_Module.getPrinter()->tracePlugins())
+      if (O->prolog().getPlugin()->isTraced())
         config().raise(Diag::allocating_memory) << S->size() << S->name();
 
       MemoryRegion mr(reinterpret_cast<uint8_t *>(MB.base()),
@@ -4585,10 +4585,10 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
           return false;
         }
       }
-      if (m_Module.getPrinter()->tracePlugins())
+      if (O->prolog().getPlugin()->isTraced())
         config().raise(Diag::applying_relocations) << S->name();
       m_Module.getLinker()->getObjLinker()->relocation(false);
-      if (m_Module.getPrinter()->tracePlugins())
+      if (O->prolog().getPlugin()->isTraced())
         config().raise(Diag::syncing_relocations) << S->name();
       m_Module.getLinker()->getObjLinker()->syncRelocations(
           reinterpret_cast<uint8_t *>(MB.base()));
@@ -4614,7 +4614,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
       B.Name = std::string(S->name());
 
       // Add the Memory Block.
-      if (m_Module.getPrinter()->tracePlugins())
+      if (O->prolog().getPlugin()->isTraced())
         config().raise(Diag::adding_memory_blocks) << S->name();
 
       // Add Memory Blocks.
@@ -4623,7 +4623,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
       else
         FOP->AddBlocks(std::move(B));
 
-      if (m_Module.getPrinter()->tracePlugins())
+      if (O->prolog().getPlugin()->isTraced())
         config().raise(Diag::calling_handler) << S->name();
 
       // Run the algorithm.
@@ -4635,7 +4635,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
 
       auto RB = MatchSections ? VAP->GetBlocks() : FOP->GetBlocks();
 
-      if (m_Module.getPrinter()->tracePlugins())
+      if (O->prolog().getPlugin()->isTraced())
         config().raise(Diag::plugin_returned_blocks) << RB.size() << S->name();
 
       ELFSection *OutputSection = S;
