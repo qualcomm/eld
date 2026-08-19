@@ -1,0 +1,112 @@
+name: DeleteOldArtifacts
+description: Delete older artifacts after a replacement artifact is ready
+
+inputs:
+  artifact-names:
+    description: Newline-separated artifact names whose older versions should be deleted
+    required: true
+  pull-request-number:
+    description: Restrict deletion to artifacts produced by this pull request
+    required: false
+    default: ""
+  workflow-id:
+    description: Restrict deletion to artifacts from this workflow file
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Delete older artifacts
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+      with:
+        github-token: ${{ github.token }}
+        script: |
+          const names = `${{ inputs.artifact-names }}`
+            .split(/\r?\n/)
+            .map(name => name.trim())
+            .filter(Boolean);
+          const pullRequestNumber = `${{ inputs.pull-request-number }}`;
+          const workflowId = `${{ inputs.workflow-id }}`;
+          const currentRunId = context.runId;
+          const workflowRunCache = new Map();
+          let workflowFileId = null;
+
+          if (workflowId) {
+            const { data } = await github.rest.actions.getWorkflow({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: workflowId
+            });
+            workflowFileId = String(data.id);
+          }
+
+          async function workflowRun(runId) {
+            if (!runId) {
+              return null;
+            }
+            if (!workflowRunCache.has(runId)) {
+              const { data } = await github.rest.actions.getWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: runId
+              });
+              workflowRunCache.set(runId, data);
+            }
+            return workflowRunCache.get(runId);
+          }
+
+          async function belongsToScope(runId) {
+            const run = await workflowRun(runId);
+            if (!run) {
+              return false;
+            }
+            if (workflowFileId && String(run.workflow_id) !== workflowFileId) {
+              return false;
+            }
+            if (pullRequestNumber &&
+                !(run.pull_requests || []).some(pullRequest =>
+                  String(pullRequest.number) === pullRequestNumber)) {
+              return false;
+            }
+            return true;
+          }
+
+          for (const name of names) {
+            const artifacts = [];
+            let page = 1;
+            while (true) {
+              const response = await github.rest.actions.listArtifactsForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name,
+                per_page: 100,
+                page
+              });
+              artifacts.push(...(response.data.artifacts || []));
+
+              if ((response.data.artifacts || []).length < 100) {
+                break;
+              }
+              page += 1;
+            }
+
+            for (const artifact of artifacts) {
+              const artifactRunId = artifact.workflow_run?.id;
+              if (String(artifactRunId) === String(currentRunId) ||
+                  artifact.expired) {
+                continue;
+              }
+                if ((pullRequestNumber || workflowId) &&
+                    !(await belongsToScope(artifactRunId))) {
+                continue;
+              }
+
+              core.info(`Deleting ${name} artifact ${artifact.id}`);
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id
+              });
+            }
+          }

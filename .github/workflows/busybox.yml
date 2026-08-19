@@ -2,7 +2,7 @@ name: BusyBox
 
 on:
   workflow_dispatch:
-  # pull_request: {}
+  pull_request: {}
   schedule:
    # nightly-test.yml starts at 07:00 UTC and takes ~3.5h; start 30min after
    # its expected finish so FetchNightlyToolset picks up today's toolset
@@ -20,6 +20,7 @@ jobs:
     if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
     strategy:
       fail-fast: false
@@ -303,7 +304,15 @@ jobs:
         with:
           name: busybox-eld-${{ matrix.arch }}${{ matrix.libc == 'gnu' && '-gnu' || '' }}
           path: busybox/busybox
-          retention-days: 1
+          # Keep a fallback copy in case the workflow fails before cleanup.
+          retention-days: 7
+
+      - name: Delete older BusyBox binaries
+        if: matrix.enabled == 1
+        continue-on-error: true
+        uses: ./.github/workflows/DeleteOldArtifacts
+        with:
+          artifact-names: busybox-eld-${{ matrix.arch }}${{ matrix.libc == 'gnu' && '-gnu' || '' }}
 
       - name: Update build entry
         if: github.event_name == 'schedule' && matrix.enabled == 1
