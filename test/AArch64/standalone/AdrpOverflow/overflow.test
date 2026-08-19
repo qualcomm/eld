@@ -1,0 +1,19 @@
+#---overflow.test--------------------- Executable --------------------#
+#START_COMMENT
+# Check that R_AARCH64_ADR_PREL_PG_HI21 overflow is correctly detected.
+# The ADRP instruction encodes (PG(S+A) - PG(P)) >> 12 in a 21-bit signed
+# field, so the page-relative offset must be in [-2^32, 2^32 - 4096].
+#END_COMMENT
+#START_TEST
+RUN: %clangas %clangasopts -filetype obj -mrelocation-model static -o %t.o %p/Inputs/t.s
+
+# bar at 0xFFFFF000: page diff from ~0 is 0xFFFFF pages — within 21-bit signed range.
+RUN: %link %linkopts -march aarch64 %t.o --defsym bar=0xFFFFF000 -o %t.out
+RUN: %nm %t.out | %filecheck %s
+CHECK: foo
+
+# bar at 0x100000000: page diff >> 12 = 0x100000, one past the 21-bit max — overflow.
+RUN: %not %link %linkopts -march aarch64 %t.o --defsym bar=0x100000000 -o %t.out 2>&1 | %filecheck %s -check-prefix=OVER
+OVER: relocation R_AARCH64_ADR_PREL_PG_HI21 out of range: 4294967296 is not in [-4294967296, 4294967295]
+
+#END_TEST
