@@ -474,10 +474,9 @@ bool Module::readOnePluginConfig(llvm::StringRef CfgFile,
         ThisConfig.options().printTimingStats("Plugin") ||
         ThisConfig.options().printTimingStats(O.PluginName.c_str()) ||
         ThisConfig.options().allUserPluginStatsRequested();
-    eld::Plugin *P = getScript().addPlugin(O.PluginType, O.LibraryName,
-                                           O.PluginName, O.Options,
-                                           PrintTimingStats, IsDefaultConfig,
-                                           *this);
+    eld::Plugin *P = getScript().addPlugin(
+        O.PluginType, O.LibraryName, O.PluginName, O.Options, PrintTimingStats,
+        IsDefaultConfig, *this);
     getScript().addPluginOutputSection(O.OutputSection, P);
     if (getPrinter()->isVerbose())
       ThisConfig.raise(Diag::adding_output_section_for_plugin)
