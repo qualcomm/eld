@@ -100,9 +100,10 @@ public:
   bool registerPlugin(void *Handle);
 
   // -------------- Load/Unload/Reset Plugin ------------------------
-  static void *loadPlugin(std::string Name, Module *Module);
+  static void *loadPlugin(std::string Name, Module *Module, bool IsTraced);
 
-  static bool unload(std::string Name, void *LibraryHandle, Module *Module);
+  static bool unload(std::string Name, void *LibraryHandle, Module *Module,
+                      bool IsTraced);
 
   void reset();
 

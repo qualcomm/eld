@@ -89,7 +89,8 @@ std::string Plugin::resolvePath(const LinkerConfig &PConfig) {
   return PluginLibraryName;
 }
 
-void *Plugin::loadPlugin(std::string LibraryName, Module *Module) {
+void *Plugin::loadPlugin(std::string LibraryName, Module *Module,
+                         bool IsTraced) {
   void *LibraryHandle = DynamicLibrary::Load(LibraryName);
   DiagnosticEngine *DiagEngine = Module->getConfig().getDiagEngine();
   if (!LibraryHandle) {
@@ -98,7 +99,7 @@ void *Plugin::loadPlugin(std::string LibraryName, Module *Module) {
     return nullptr;
   }
 
-  if (Module->getPrinter()->tracePlugins())
+  if (IsTraced)
     DiagEngine->raise(Diag::loaded_library) << LibraryName;
 
   return LibraryHandle;
@@ -270,11 +271,12 @@ bool Plugin::cleanup() {
   return true;
 }
 
-bool Plugin::unload(std::string LibraryName, void *Handle, Module *Module) {
+bool Plugin::unload(std::string LibraryName, void *Handle, Module *Module,
+                    bool IsTraced) {
   if (Handle) {
     DynamicLibrary::Unload(Handle);
 
-    if (Module->getPrinter()->tracePlugins())
+    if (IsTraced)
       Module->getConfig().raise(Diag::unloaded_library) << LibraryName;
   }
 
