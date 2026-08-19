@@ -1,0 +1,47 @@
+#---OverlayArmKernelLayout.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This reproduces the ARM Linux kernel linker-script layout that places .stubs
+# at a separate VMA after an OVERLAY. Overlay members must share the overlay
+# VMA, while .stubs and .init.text must retain their explicitly assigned VMAs.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/inputs.s -o %t.o
+RUN: %link %linkopts -EL -m armelf_linux_eabi -T %p/Inputs/arm-overlay.lds %t.o -o %t.out
+RUN: %readelf -SW %t.out | %filecheck %s
+RUN: %readelf -l -W %t.out | %filecheck %s --check-prefix=PHDR
+RUN: %link %linkopts -EL -m armelf_linux_eabi -T %p/Inputs/overlay-edge-cases.lds %t.o -o %t.edge.out
+RUN: %readelf -SW %t.edge.out | %filecheck %s --check-prefix=EDGE
+RUN: %readelf -l -W %t.edge.out | %filecheck %s --check-prefix=EDGE-PHDR
+RUN: %link %linkopts -EL -m armelf_linux_eabi -T %p/Inputs/overlay-reversed.lds %t.o -o %t.reversed.out
+RUN: %readelf -SW %t.reversed.out | %filecheck %s --check-prefix=REVERSED
+RUN: %readelf -l -W %t.reversed.out | %filecheck %s --check-prefix=REVERSED-PHDR
+#END_TEST
+
+# CHECK:      .vectors PROGBITS ffff0000 {{.*}} 000020 {{.*}} AX
+# CHECK:      .vectors.bhb.loop8 PROGBITS ffff0000 {{.*}} 000040 {{.*}} AX
+# CHECK:      .vectors.bhb.bpiall PROGBITS ffff0000 {{.*}} 000060 {{.*}} AX
+# CHECK:      .stubs PROGBITS ffff1000 {{.*}} 000350 {{.*}} AX
+# CHECK:      .init.text PROGBITS c1c00410 {{.*}} 001000 {{.*}} AX
+
+# PHDR:      LOAD {{.*}} 0xffff0000 0xc1c00000 0x00020 0x00020 R E
+# PHDR-NEXT: LOAD {{.*}} 0xffff0000 0xc1c00020 0x00040 0x00040 R E
+# PHDR-NEXT: LOAD {{.*}} 0xffff0000 0xc1c00060 0x00060 0x00060 R E
+# PHDR-NEXT: LOAD {{.*}} 0xffff1000 0xc1c000c0 0x00350 0x00350 R E
+# PHDR-NEXT: LOAD {{.*}} 0xc1c00410 0xc1c00410 0x01000 0x01000 R E
+
+# The first member is empty and omitted from the ELF section table, but still
+# supplies the initial overlay LMA. With no explicit start, the overlay VMA is
+# the current location counter.
+# EDGE:      .vectors PROGBITS c1c00000 {{.*}} 000020 {{.*}} AX
+# EDGE-NEXT: .vectors.bhb.loop8 PROGBITS c1c00000 {{.*}} 000040 {{.*}} AX
+# EDGE-NEXT: .vectors.bhb.bpiall PROGBITS c1c00000 {{.*}} 000060 {{.*}} AX
+# EDGE-PHDR: LOAD {{.*}} 0xc1c00000 0xc1c01000 0x00020 0x00020 R E
+# EDGE-PHDR-NEXT: LOAD {{.*}} 0xc1c00000 0xc1c01020 0x00040 0x00040 R E
+# EDGE-PHDR-NEXT: LOAD {{.*}} 0xc1c00000 0xc1c01060 0x013b0 0x013b0 R E
+
+# REVERSED:      .vectors.bhb.bpiall PROGBITS ffff0000 {{.*}} 000060 {{.*}} AX
+# REVERSED-NEXT: .vectors.bhb.loop8 PROGBITS ffff0000 {{.*}} 000040 {{.*}} AX
+# REVERSED-NEXT: .vectors PROGBITS ffff0000 {{.*}} 000020 {{.*}} AX
+# REVERSED-PHDR: LOAD {{.*}} 0xffff0000 0xc1c00000 0x00060 0x00060 R E
+# REVERSED-PHDR-NEXT: LOAD {{.*}} 0xffff0000 0xc1c00060 0x00040 0x00040 R E
+# REVERSED-PHDR-NEXT: LOAD {{.*}} 0xffff0000 0xc1c000a0 {{.*}} R E

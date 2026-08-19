@@ -150,6 +150,12 @@ eld::Expected<void> ScriptFile::activate(Module &CurModule,
   // Resolve OVERLAY member names to OutputSectionEntry pointers so that layout
   // can discover overlay membership from the output-section entries.
   for (auto *O : OverlayDescs) {
+    // Overlay expressions are evaluated during layout; retain the script path
+    // for diagnostics produced at that point.
+    if (O->hasStart())
+      O->start()->setContext(getPath().str());
+    if (O->hasLMA())
+      O->lma()->setContext(getPath().str());
     for (const StrToken *NameTok : O->pendingMemberNames()) {
       if (!NameTok)
         continue;

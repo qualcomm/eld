@@ -64,6 +64,7 @@
 #include "eld/Readers/EhFrameHdrSection.h"
 #include "eld/Script/MemoryCmd.h"
 #include "eld/Script/OutputSectDesc.h"
+#include "eld/Script/OverlayDesc.h"
 #include "eld/Script/StrToken.h"
 #include "eld/Script/StringList.h"
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
@@ -3541,6 +3542,15 @@ void GNULDBackend::checkOverlap(llvm::StringRef name,
     SectionOffset b = sections[i];
     if (b.offset >= a.offset + a.sec->size())
       continue;
+
+    // OVERLAY members intentionally share a VMA; permit that overlap only for
+    // sections belonging to the same overlay.
+    OutputSectionEntry *A = a.sec->getOutputSection();
+    OutputSectionEntry *B = b.sec->getOutputSection();
+    if (isVirtualAddr && A && B && A->hasOverlayDesc() &&
+        A->getOverlayDesc() == B->getOverlayDesc())
+      continue;
+
     config().raise(Diag::error_section_overlap)
         << a.sec->name() << std::string(name) << b.sec->name() << a.sec->name()
         << rangeToString(a.offset, a.sec->size()) << b.sec->name()

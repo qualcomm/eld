@@ -278,8 +278,42 @@ bool GNULDBackend::createProgramHdrs() {
     // Linker script overriding below.
     std::optional<uint64_t> scriptvma;
     bool doAlign = true;
+    OverlayDesc *overlay = (*out)->getOverlayDesc();
+    bool isOverlayMember = overlay != nullptr;
+    bool isFirstOverlayMember = isOverlayMember &&
+                                !overlay->members().empty() &&
+                                overlay->members().front() == *out;
+    OutputSectionEntry *previousOverlayMember = nullptr;
+    if (isOverlayMember && !isFirstOverlayMember) {
+      for (auto *Member : overlay->members()) {
+        if (Member == *out)
+          break;
+        previousOverlayMember = Member;
+      }
+    }
+
+    // OVERLAY members share one VMA, while their LMAs are consecutive. The
+    // member output-section descriptors intentionally have no VMA/LMA
+    // prologue; those values belong to the enclosing OverlayDesc.
+    if (isOverlayMember) {
+      if (overlay->hasStart()) {
+        overlay->start()->evaluateAndRaiseError();
+        scriptvma = overlay->start()->result();
+      } else if (isFirstOverlayMember) {
+        // With no explicit start, the overlay begins at the current dot.
+        scriptvma = dotSymbol->value();
+      } else {
+        // All members use the first member's VMA, including when that member
+        // is empty and therefore does not become the global previous section.
+        scriptvma = overlay->members().front()->getSection()->addr();
+      }
+      if (isCurAlloc)
+        dotSymbol->setValue(*scriptvma);
+      doAlign = false;
+    }
+
     // If the output section specified a VMA value.
-    if ((*out)->prolog().hasVMA()) {
+    if (!isOverlayMember && (*out)->prolog().hasVMA()) {
       (*out)->prolog().vma().evaluateAndRaiseError();
       // If the output section descriptor has an alignment specified
       // honor the alignment specified, the alignment would have been
@@ -345,7 +379,9 @@ bool GNULDBackend::createProgramHdrs() {
     // if this is the first section and the VMA was forced then
     // set PMA = VMA. For all sections following the first section
     // PMA will be calculated separately below
-    if ((*out)->prolog().hasLMA()) {
+    if (isOverlayMember) {
+      disconnect_lma_vma = true;
+    } else if ((*out)->prolog().hasLMA()) {
       useSetLMA = true;
       disconnect_lma_vma = true;
     }
@@ -460,7 +496,21 @@ bool GNULDBackend::createProgramHdrs() {
       cur->setAddr(vma);
       // Handle setting LMA and alignment of LMA
       // Explicitly align LMA to make the code easy to read
-      if (useSetLMA) {
+      if (isOverlayMember) {
+        // Only the first member consumes OVERLAY AT(...); later members are
+        // consecutive in load memory.
+        if (isFirstOverlayMember) {
+          if (overlay->hasLMA()) {
+            overlay->lma()->evaluateAndRaiseError();
+            pma = overlay->lma()->result();
+          } else {
+            pma = vma;
+          }
+        } else {
+          pma = previousOverlayMember->getSection()->pAddr() +
+                previousOverlayMember->getSection()->size();
+        }
+      } else if (useSetLMA) {
         (*out)->prolog().lma().evaluateAndRaiseError();
         pma = (*out)->prolog().lma().result();
       } else if (hasVMARegion || hasLMARegion) {
@@ -572,7 +622,19 @@ bool GNULDBackend::createProgramHdrs() {
         alignAddress(vma, cur->getAddrAlign());
       cur->setAddr(vma);
       // FIXME : de-duplicate this case.
-      if (useSetLMA) {
+      if (isOverlayMember) {
+        if (isFirstOverlayMember) {
+          if (overlay->hasLMA()) {
+            overlay->lma()->evaluateAndRaiseError();
+            pma = overlay->lma()->result();
+          } else {
+            pma = vma;
+          }
+        } else {
+          pma = previousOverlayMember->getSection()->pAddr() +
+                previousOverlayMember->getSection()->size();
+        }
+      } else if (useSetLMA) {
         (*out)->prolog().lma().evaluateAndRaiseError();
         pma = (*out)->prolog().lma().result();
       } else if (hasVMARegion || hasLMARegion) {
