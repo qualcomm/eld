@@ -49,6 +49,10 @@ Plugin::Plugin(plugin::Plugin::Type T, std::string LibraryName,
       ThisModule(Module), ThisConfig(Module.getConfig()),
       IsDefaultPlugin(DefaultPlugin) {}
 
+bool Plugin::isTraced() const {
+  return ThisConfig.options().tracePlugin(getPluginType());
+}
+
 std::string Plugin::resolvePath(const LinkerConfig &PConfig) {
   // Library already loaded!
   if (PluginLibraryHandle)
@@ -79,7 +83,7 @@ std::string Plugin::resolvePath(const LinkerConfig &PConfig) {
 
   if (nullptr != NS) {
     PluginLibraryName = NS->getFullPath();
-    if (ThisModule.getPrinter()->tracePlugins())
+    if (isTraced())
       ThisConfig.raise(Diag::using_plugin) << PluginLibraryName << Name;
   }
   return PluginLibraryName;
@@ -135,7 +139,7 @@ bool Plugin::setFunctions() {
     return false;
   }
 
-  if (ThisModule.getPrinter()->tracePlugins()) {
+  if (isTraced()) {
     ThisConfig.raise(Diag::found_register_function) << Register << LibraryName;
     ThisConfig.raise(Diag::found_function_for_plugintype)
         << PluginFunc << LibraryName;
@@ -143,7 +147,7 @@ bool Plugin::setFunctions() {
 
   std::string PluginCleanupFunc = "Cleanup";
   void *C = DynamicLibrary::GetFunction(PluginLibraryHandle, PluginCleanupFunc);
-  if (C && ThisModule.getPrinter()->tracePlugins()) {
+  if (C && isTraced()) {
     ThisConfig.raise(Diag::found_cleanup_function)
         << PluginCleanupFunc << LibraryName;
   }
@@ -166,7 +170,7 @@ bool Plugin::setFunctions() {
 bool Plugin::getUserPlugin() {
   std::string LibraryName = DynamicLibrary::getLibraryName(Name);
 
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::registering_all_functions);
 
   UserPluginHandle = (*GetPluginFunction)(getPluginType().c_str());
@@ -176,7 +180,7 @@ bool Plugin::getUserPlugin() {
     return false;
   }
 
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::found_plugin_handler)
         << getPluginType() << LibraryName;
 
@@ -195,7 +199,7 @@ bool Plugin::init(eld::OutputTarWriter *OutputTar) {
     return false;
   eld::RegisterTimer T(
       "Init", ThisModule.saveString(UserPluginHandle->GetName()), Stats);
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::initializing_plugin)
         << getPluginType() << DynamicLibrary::getLibraryName(Name)
         << UserPluginHandle->GetName();
@@ -219,14 +223,14 @@ bool Plugin::run(std::vector<Plugin *> &Plugins) {
     return false;
   eld::RegisterTimer T(
       "Run", ThisModule.saveString(UserPluginHandle->GetName()), Stats);
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::running_plugin)
         << getPluginType() << DynamicLibrary::getLibraryName(Name)
         << UserPluginHandle->GetName();
   Plugins.push_back(this);
   Running R(this);
   plugin::Plugin *P = llvm::cast<plugin::Plugin>(UserPluginHandle);
-  plugin::Plugin::Status S = P->Run(ThisModule.getPrinter()->tracePlugins());
+  plugin::Plugin::Status S = P->Run(isTraced());
   if (S == plugin::Plugin::Status::ERROR || P->GetLastError()) {
     ThisConfig.raise(Diag::plugin_has_error)
         << getPluginType() << DynamicLibrary::getLibraryName(Name)
@@ -274,7 +278,7 @@ bool Plugin::destroy() {
     return false;
   eld::RegisterTimer T(
       "Destroy", ThisModule.saveString(UserPluginHandle->GetName()), Stats);
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::plugin_destroy) << getPluginType();
   plugin::Plugin *P = llvm::cast<plugin::Plugin>(UserPluginHandle);
   P->Destroy();
@@ -316,7 +320,7 @@ bool Plugin::check() {
     return false;
   }
 
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::note_plugin_version)
         << PluginMajor << PluginMinor << DynamicLibrary::getLibraryName(Name)
         << getPluginType();
@@ -506,7 +510,7 @@ void Plugin::callInitHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T("Init", ThisModule.saveString(UserPluginHandle->GetName()),
                   Stats);
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_init) << getPluginName();
   P->Init(PluginOptions);
 }
@@ -515,7 +519,7 @@ void Plugin::callDestroyHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T("Destroy", ThisModule.saveString(UserPluginHandle->GetName()),
                   Stats);
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_destroy) << getPluginName();
   P->Destroy();
 }
@@ -523,7 +527,7 @@ void Plugin::callDestroyHook() {
 void Plugin::registerCommandLineOption(
     const std::string &Option, bool HasValue,
     const CommandLineOptionSpec::OptionHandlerType &OptionHandler) {
-  if (ThisModule.getPrinter()->tracePlugins()) {
+  if (isTraced()) {
     if (HasValue)
       ThisConfig.raise(Diag::trace_plugin_register_opt_with_val)
           << getPluginName() << Option;
@@ -552,7 +556,7 @@ void Plugin::callVisitSectionsHook(InputFile &IF) {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T("VisitSections",
                   ThisModule.saveString(UserPluginHandle->GetName()), Stats);
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_visit_sections)
         << getPluginName() << IF.getInput()->decoratedPath();
   P->VisitSections(plugin::InputFile(&IF));
@@ -563,7 +567,7 @@ void Plugin::callVisitSymbolHook(LDSymbol *Sym, llvm::StringRef SymName,
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T("VisitSymbol",
                   ThisModule.saveString(UserPluginHandle->GetName()), Stats);
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_visit_symbol)
         << getPluginName() << SymName;
   std::unique_ptr<SymbolInfo> UpSymInfo = std::make_unique<SymbolInfo>(SymInfo);
@@ -577,7 +581,7 @@ void Plugin::callActBeforeRuleMatchingHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),
                   Stats);
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
   P->ActBeforeRuleMatching();
 }
@@ -587,7 +591,7 @@ void Plugin::callActBeforeSectionMergingHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),
                   Stats);
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
   P->ActBeforeSectionMerging();
 }
@@ -597,7 +601,7 @@ void Plugin::callActBeforePerformingLayoutHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),
                   Stats);
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
   P->ActBeforePerformingLayout();
 }
@@ -607,7 +611,7 @@ void Plugin::callActBeforeWritingOutputHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),
                   Stats);
-  if (ThisModule.getPrinter()->tracePlugins())
+  if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
   P->ActBeforeWritingOutput();
 }
