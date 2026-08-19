@@ -103,7 +103,7 @@ public:
   static void *loadPlugin(std::string Name, Module *Module, bool IsTraced);
 
   static bool unload(std::string Name, void *LibraryHandle, Module *Module,
-                      bool IsTraced);
+                     bool IsTraced);
 
   void reset();
 
