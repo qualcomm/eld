@@ -1,0 +1,35 @@
+#---PluginConfigTimingStats.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Tests that --time-region=all-user-plugins and --time-region=plugin=<name>
+# also enable timing stats for plugins registered via a --plugin-config YAML
+# GlobalPlugins entry (not just plugins registered from the linker script),
+# and that a --time-region scope naming a different plugin leaves timing
+# disabled for this one.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test \
+RUN:   --plugin-config %p/Inputs/PluginConfig.yaml \
+RUN:   > %t1.1.none.stats 2>&1
+RUN: %filecheck %s --check-prefix=NONE --allow-empty < %t1.1.none.stats
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test \
+RUN:   --plugin-config %p/Inputs/PluginConfig.yaml \
+RUN:   --print-timing-stats --time-region=all-user-plugins \
+RUN:   --emit-timing-stats %t1.1.all.stats
+RUN: %filecheck %s --check-prefix=STATS < %t1.1.all.stats
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test \
+RUN:   --plugin-config %p/Inputs/PluginConfig.yaml \
+RUN:   --print-timing-stats --time-region=plugin=PluginConfigTimingStatsPlugin \
+RUN:   --emit-timing-stats %t1.1.named.stats
+RUN: %filecheck %s --check-prefix=STATS < %t1.1.named.stats
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test \
+RUN:   --plugin-config %p/Inputs/PluginConfig.yaml \
+RUN:   --print-timing-stats --time-region=plugin=SomeOtherPlugin \
+RUN:   --emit-timing-stats %t1.1.othername.stats
+RUN: %filecheck %s --check-prefix=NONE --allow-empty < %t1.1.othername.stats
+#END_TEST
+
+NONE-NOT: PluginConfigTimingStatsPlugin
+
+STATS: PluginConfigTimingStatsPlugin
+STATS: Init
