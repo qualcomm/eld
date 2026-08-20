@@ -561,6 +561,8 @@ void ScriptParser::readSections() {
     } else if (readAssignment(Tok)) {
     } else if (Tok == "OVERLAY") {
       readOverlay();
+    } else if (Tok == "ENTRY") {
+      readEntry();
     } else {
       readOutputSectionDescription(Tok);
     }
