@@ -1,0 +1,6 @@
+AV {
+  global:
+    a*;
+  local:
+    *;
+};
