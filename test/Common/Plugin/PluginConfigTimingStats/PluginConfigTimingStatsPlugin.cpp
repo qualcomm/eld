@@ -1,9 +1,10 @@
 #include "Defines.h"
-#include "PluginVersion.h"
 #include "LinkerPlugin.h"
+#include "PluginVersion.h"
 #include <iostream>
 
-class DLL_A_EXPORT PluginConfigTimingStatsPlugin : public eld::plugin::LinkerPlugin {
+class DLL_A_EXPORT PluginConfigTimingStatsPlugin
+    : public eld::plugin::LinkerPlugin {
 public:
   PluginConfigTimingStatsPlugin()
       : eld::plugin::LinkerPlugin("PluginConfigTimingStatsPlugin") {}
