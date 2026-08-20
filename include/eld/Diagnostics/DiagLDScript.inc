@@ -65,6 +65,8 @@ DIAG(reading_dynamic_list, DiagnosticEngine::Verbose, "Dynamic List[%0] : %1")
 DIAG(reading_extern_list, DiagnosticEngine::Verbose, "Extern List[%0] : %1")
 DIAG(error_parsing_version_script, DiagnosticEngine::Error,
      "Error parsing version script %0")
+DIAG(warn_version_script_no_effect, DiagnosticEngine::Warning,
+     "%0: version script has no effect")
 DIAG(fatal_divide_by_zero, DiagnosticEngine::Fatal,
      "%0: division by zero in expression %1")
 DIAG(fatal_modulo_by_zero, DiagnosticEngine::Fatal,
