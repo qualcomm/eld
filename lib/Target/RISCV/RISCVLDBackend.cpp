@@ -2493,16 +2493,13 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                                     ResolveInfo *R) {
 
   traceGOTCreation(T, R);
-  // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->hasFragments()) {
-    LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
-    // TODO: This should be GOT0, not GOTPLT0.
-    RISCVGOT::CreateGOT0(getGOT(), Dynamic ? Dynamic->resolveInfo() : nullptr,
-                         config().targets().is32Bits());
-    RISCVGOT::CreateGOTPLT0(getGOTPLT(), nullptr,
-                            config().targets().is32Bits());
-  }
-
+  // Create GOT0 in .got when first GOT entry is needed.
+  if (auto *GOTSec = getGOT())
+    if (!GOTSec->hasFragments()) {
+      LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
+      RISCVGOT::CreateGOT0(GOTSec, Dynamic ? Dynamic->resolveInfo() : nullptr,
+                           config().targets().is32Bits());
+    }
   RISCVGOT *G = nullptr;
   bool GOT = true;
   switch (T) {
@@ -2510,6 +2507,10 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     G = RISCVGOT::Create(Obj->getGOT(), R, config().targets().is32Bits());
     break;
   case GOT::GOTPLT0:
+    // Create GOTPLT0 in .got.plt only when PLT is actually needed.
+    if (!getGOTPLT()->hasFragments())
+      RISCVGOT::CreateGOTPLT0(getGOTPLT(), nullptr,
+                              config().targets().is32Bits());
     G = llvm::dyn_cast<RISCVGOT>(*getGOTPLT()->getFragmentList().begin());
     GOT = false;
     break;
