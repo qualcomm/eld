@@ -830,7 +830,7 @@ bool GNULDBackend::canSkipSymbolFromExport(ResolveInfo *R, bool isEntry) const {
 bool GNULDBackend::applyVersionScriptScopes() {
   eld::RegisterTimer T("Apply Version Script Scopes", "Output Symbols",
                        m_Module.getConfig().options().printTimingStats());
-  if (!config().options().hasVersionScript())
+  if (m_Module.getVersionScriptNodes().empty())
     return true;
   for (auto &I : m_Module.getNamePool().getGlobals()) {
     ResolveInfo *R = I.getValue();

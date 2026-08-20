@@ -300,6 +300,8 @@ public:
   bool readAndActivateLinkerScript(InputFile *I,
                                    ScriptFile::ScriptActivationKind Kind);
 
+  bool readVersionScriptFile(InputFile *I);
+
   bool readInputs(const std::vector<Node *> &N);
 
   bool getInputs(std::vector<InputFile *> &Inputs);

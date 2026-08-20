@@ -599,9 +599,6 @@ public:
   const DynListType &getDynList() const { return DynList; }
   DynListType &getDynList() { return DynList; }
 
-  const DynListType &getVersionScripts() const { return VersionScripts; }
-  DynListType &getVersionScripts() { return VersionScripts; }
-
   // ---- remap input file names ---- //
   const RemapInputsType &getRemapInputs() const { return RemapInputs; }
   RemapInputsType &getRemapInputs() { return RemapInputs; }
@@ -1354,7 +1351,6 @@ private:
   UndefSymListType UndefSymList;     // -u
   UndefSymListType ExportDynSymList; // --export-dynamic-symbol
   DynListType DynList;               // --dynamic-list files
-  DynListType VersionScripts;        // --version-script files
   DynListType ExternList;            // --extern-list files
   RemapInputsType RemapInputs;       // --remap-inputs entries
   std::string Filter;

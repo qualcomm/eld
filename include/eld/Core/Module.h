@@ -607,19 +607,6 @@ public:
     return VersionScripts;
   }
 
-  // Tracks VersionScript objects parsed from a VERSION{} block embedded
-  // directly inside a -T linker script, as opposed to a standalone
-  // --version-script= file. These still need their nodes registered via
-  // ObjectLinker::parseVersionScript(), just not re-parsed from scratch.
-  void addLinkerScriptVersionScript(const VersionScript *VerScr) {
-    LinkerScriptVersionScripts.push_back(VerScr);
-  }
-
-  const llvm::SmallVectorImpl<const VersionScript *> &
-  getLinkerScriptVersionScripts() const {
-    return LinkerScriptVersionScripts;
-  }
-
   bool isLinkStateBeforeLayout() const {
     return getState() == LinkState::BeforeLayout;
   }
@@ -732,7 +719,6 @@ private:
       DynamicListFileToScriptSymbolsMap;
   llvm::StringSet<> OutputSectDescNameSet;
   llvm::SmallVector<const VersionScript *> VersionScripts;
-  llvm::SmallVector<const VersionScript *> LinkerScriptVersionScripts;
   llvm::DenseMap<Fragment *, uint64_t> FragmentPaddingValues;
   PluginManager PM;
   NamePool SymbolNamePool;

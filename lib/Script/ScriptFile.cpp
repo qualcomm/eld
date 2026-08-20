@@ -170,12 +170,6 @@ eld::Expected<void> ScriptFile::activate(Module &CurModule,
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(Sym->activate());
   }
 
-  // A -T script may embed its own VERSION{} block. Record it now so
-  // parseVersionScript() can register its nodes later, once the target
-  // backend is guaranteed to be initialized, which is not yet the case here.
-  if (getVersionScript())
-    CurModule.addLinkerScriptVersionScript(getVersionScript());
-
   return eld::Expected<void>();
 }
 

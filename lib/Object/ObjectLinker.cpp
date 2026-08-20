@@ -259,12 +259,38 @@ bool ObjectLinker::readAndActivateLinkerScript(
       return false;
   }
 
+  // Register an embedded VERSION{} block when the script is first activated
+  // so it remains ordered with standalone --version-script inputs.
+  if (S->getVersionScript() &&
+      (kind == ScriptFile::ScriptActivationKind::Early ||
+       !linkerScriptFile->isEarlyActivated()))
+    ThisModule->addVersionScript(S->getVersionScript());
+
   if (kind == ScriptFile::ScriptActivationKind::Early)
     linkerScriptFile->setEarlyActivated();
   else
     linkerScriptFile->setFullyActivated();
 
   input->setUsed(true);
+  return true;
+}
+
+bool ObjectLinker::readVersionScriptFile(InputFile *Input) {
+  LinkerScriptFile *LSFile = llvm::dyn_cast<eld::LinkerScriptFile>(Input);
+  if (LSFile->isParsed())
+    return true;
+  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
+  addInputFileToTar(Input, eld::MappingFile::VersionScript);
+  if (layoutInfo)
+    layoutInfo->recordVersionScript(Input->getInput()->decoratedPath());
+  ScriptFile VSReader(ScriptFile::VersionScript, *ThisModule, *LSFile,
+                      ThisModule->getIRBuilder()->getInputBuilder());
+  if (!getScriptReader()->readScript(ThisConfig, VSReader))
+    return false;
+  LSFile->setParsed();
+  Input->setToSkip();
+  if (VSReader.getVersionScript())
+    ThisModule->addVersionScript(VSReader.getVersionScript());
   return true;
 }
 
@@ -352,49 +378,11 @@ bool ObjectLinker::normalize() {
 // FIXME: We should maybe parse version script after reading LTO-generated
 // object files.
 bool ObjectLinker::parseVersionScript() {
-  if (ThisConfig.options().hasVersionScript()) {
-    LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
-    for (const auto &List : ThisConfig.options().getVersionScripts()) {
-      Input *VersionScriptInput =
-          eld::make<Input>(List, ThisConfig.getDiagEngine(), Input::Script);
-      if (!VersionScriptInput->resolvePath(ThisConfig))
-        return false;
-      // Create an Input file and set the input file to be of kind DynamicList
-      InputFile *VersionScriptInputFile =
-          InputFile::create(VersionScriptInput, InputFile::GNULinkerScriptKind,
-                            ThisConfig.getDiagEngine());
-      addInputFileToTar(VersionScriptInputFile,
-                        eld::MappingFile::VersionScript);
-      VersionScriptInput->setInputFile(VersionScriptInputFile);
-      // Record the dynamic list script in the Map file.
-      if (layoutInfo)
-        layoutInfo->recordVersionScript(List);
-      // Read the dynamic List file
-      ScriptFile VersionScriptReader(
-          ScriptFile::VersionScript, *ThisModule,
-          *(llvm::dyn_cast<eld::LinkerScriptFile>(VersionScriptInputFile)),
-          ThisModule->getIRBuilder()->getInputBuilder());
-      bool SuccessFullInParse =
-          getScriptReader()->readScript(ThisConfig, VersionScriptReader);
-      if (!SuccessFullInParse)
-        return false;
-      ThisModule->addVersionScript(VersionScriptReader.getVersionScript());
-      if (!registerVersionScriptNodes(VersionScriptReader.getVersionScript(),
-                                      VersionScriptInput->decoratedPath()))
-        return false;
-    }
-  }
-
-  // VersionScript objects parsed from a VERSION{} block embedded directly
-  // inside a -T linker script (recorded by readLinkerScript(), which runs
-  // before the target backend is guaranteed to exist). Process them here,
-  // where registerVersionScriptNodes() can safely touch the backend.
-  for (const VersionScript *VS : ThisModule->getLinkerScriptVersionScripts()) {
+  for (const VersionScript *VS : ThisModule->getVersionScripts()) {
     if (!registerVersionScriptNodes(
             VS, VS->getInputFile()->getInput()->decoratedPath()))
       return false;
   }
-
   assignVersionNodesToSymbols();
   return true;
 }

@@ -886,12 +886,6 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (Config.options().getDynList().size())
     Config.options().setDynamicList();
 
-  // --version-script
-  for (auto *Arg : Args.filtered(T::version_script))
-    Config.options().getVersionScripts().emplace(Arg->getValue());
-  if (Config.options().getVersionScripts().size())
-    Config.options().setVersionScript();
-
   // --extern-list
   for (auto *Arg : Args.filtered(T::extern_list))
     Config.options().getExternList().emplace(Arg->getValue());
@@ -1365,6 +1359,13 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
           arg->getValue(), eld::ScriptFile::LDScript, Config,
           Config.getPrinter()));
       ++input_num;
+    } break;
+
+    case T::version_script: {
+      actions.push_back(eld::make<eld::ScriptAction>(
+          arg->getValue(), eld::ScriptFile::VersionScript, Config,
+          Config.getPrinter()));
+      Config.options().setVersionScript();
     } break;
 
     case T::R: {
