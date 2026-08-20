@@ -20,10 +20,10 @@ RUN: %echo "%t1.original.extern=%p/Inputs/externlist" >> %t1.remap.txt
 RUN: %link %linkopts %t1.original.o %t1.2.o -o %t1.out --force-dynamic --version-script=%t1.original.version --dynamic-list=%t1.original.dynamic --extern-list=%t1.original.extern --remap-inputs-file=%t1.remap.txt --reproduce %t0.tar --dump-response-file %t1.response
 RUN: %filecheck %s --check-prefix=RESPONSE < %t1.response
 RUN: %mkdir %t1.extract
-RUN: %tar %gnutaropts -xf %t0.tar -C %t1.extract --strip-components=1
+RUN: cd %t1.extract
+RUN: %tar %gnutaropts -xf %t0.tar --strip-components=1
 RUN: %filecheck %s --check-prefix=MAPPING < %t1.extract/mapping.ini
 
-RUN: cd %t1.extract
 RUN: %link @%t1.extract/response.txt -o %t1.extract/rep.out
 RUN: %diff %t1.extract/rep.out %t1.out
 
