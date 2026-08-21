@@ -1,0 +1,19 @@
+#---SetExcludeFromOverlapCheck.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Tests OutputSection::setExcludeFromOverlapCheck: without it, two ALLOC
+# sections placed at the same virtual address by a linker script trigger a
+# hard "virtual address range overlaps" error. A plugin that excludes
+# ".sec2" from the overlap check during CreatingSegments suppresses that
+# error and the link succeeds.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s --check-prefix=NOPLUGIN
+RUN: %link %linkopts -o %t1.2.out %t1.1.o -T %p/Inputs/script.t -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s --check-prefix=PLUGIN --allow-empty
+#END_TEST
+
+NOPLUGIN: Error: section .sec1 virtual address range overlaps with .sec2
+NOPLUGIN-NEXT: >>> .sec1 range is [0x8000, 0x8003]
+NOPLUGIN-NEXT: >>> .sec2 range is [0x8000, 0x8003]
+
+PLUGIN-NOT: Error

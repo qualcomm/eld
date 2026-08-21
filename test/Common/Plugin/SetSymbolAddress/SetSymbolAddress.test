@@ -1,0 +1,17 @@
+#---SetSymbolAddress.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Tests LinkerWrapper::setSymbolAddress: a plugin can detach a defined
+# symbol from its fragment and make it an absolute symbol (SHN_ABS) with an
+# arbitrary value, when called in the AfterLayout link state. Calling it
+# from any other link state (e.g. CreatingSections) is an error.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml
+RUN: %readelf -s %t1.1.out | %filecheck %s
+RUN: %not %link %linkopts -o %t1.2.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfigInvalidState.yaml 2>&1 | %filecheck %s --check-prefix=INVALID_STATE
+#END_TEST
+
+CHECK: {{.*}}ABS{{.*}}foo
+
+INVALID_STATE: Error: Link state 'CreatingSections' is invalid for the API '{{.*}}setSymbolAddress{{.*}}'. Valid link states: [AfterLayout]
