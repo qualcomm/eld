@@ -462,6 +462,13 @@ void LayoutInfo::recordRemoveSymbol(plugin::LinkerWrapper *W,
   RemovedSymbols[O->getRemovedSymbol()] = O;
 }
 
+void LayoutInfo::recordSetSymbolAddress(plugin::LinkerWrapper *W,
+                                        SetSymbolAddressPluginOp *O) {
+  PluginOps[W].push_back(O);
+  Plugins.insert(W);
+  SetSymbolAddressOps[O->getSymbol()] = O;
+}
+
 LayoutInfo::ResolveInfoVectorT
 LayoutInfo::getAllocatedCommonSymbols(Module &Module) {
   GNULDBackend &Backend = Module.getBackend();

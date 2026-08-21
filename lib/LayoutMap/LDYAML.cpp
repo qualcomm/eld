@@ -70,6 +70,8 @@ void MappingTraits<eld::LDYAML::Symbol>::mapping(IO &IO,
   IO.mapRequired("Scope", Symbol.Scope);
   IO.mapRequired("Size", Symbol.Size);
   IO.mapOptional("Value", Symbol.Value);
+  if (!Symbol.SetAddressBy.empty())
+    IO.mapOptional("SetAddressBy", Symbol.SetAddressBy);
 }
 
 void MappingTraits<eld::LDYAML::SimpleSymbol>::mapping(

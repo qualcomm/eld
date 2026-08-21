@@ -1,0 +1,5 @@
+GlobalPlugins:
+  - Type: OutputSectionIterator
+    Name: SetSymbolAddress
+    Library: SetSymbolAddress
+    Options: invalid

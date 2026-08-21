@@ -1,0 +1,13 @@
+#---SetSymbolAddressOutOfRange.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Tests that LinkerWrapper::setSymbolAddress rejects an address that exceeds
+# the maximum address supported by the target's bit class, e.g. an address
+# beyond 0xFFFFFFFF on a 32-bit target.
+#END_COMMENT
+REQUIRES: 32BitsArch
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfigOutOfRange.yaml 2>&1 | %filecheck %s --check-prefix=OUT_OF_RANGE
+#END_TEST
+
+OUT_OF_RANGE: Error: Cannot set address of symbol 'data' defined in '{{.*}}1.1.o' to 0x100000000 because it exceeds the maximum address 0xffffffff supported by the target

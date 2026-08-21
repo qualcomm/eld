@@ -878,6 +878,9 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
   const LayoutInfo::RemoveSymbolOpsMapT RemovedSymbols =
       ThisLayoutInfo->getRemovedSymbols();
 
+  const LayoutInfo::SetSymbolAddressOpsMapT SetSymbolAddressOps =
+      ThisLayoutInfo->getSetSymbolAddressOps();
+
   bool HasFragOffsets =
       (CurModule.getState() >= LinkState::ActBeforePerformingLayout);
 
@@ -904,6 +907,8 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
 
     auto Removed = RemovedSymbols.find((*Syms)->resolveInfo());
 
+    auto SetAddress = SetSymbolAddressOps.find((*Syms)->resolveInfo());
+
     if (!IsGc) {
       outputStream() << "\t";
       printOffsetHelper(HasFragOffsets, [&, this]() {
@@ -921,6 +926,9 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
     if (Removed != RemovedSymbols.end())
       outputStream() << " {" << Removed->getSecond()->getPluginOpStr() << ", "
                      << Removed->getSecond()->getPluginName() << "}";
+    if (SetAddress != SetSymbolAddressOps.end())
+      outputStream() << " {" << SetAddress->getSecond()->getPluginOpStr()
+                     << ", " << SetAddress->getSecond()->getPluginName() << "}";
     if (IsBitcode) {
       outputStream() << "\t"
                      << "#(Bitcode origin:"

@@ -48,6 +48,9 @@ llvm::json::Object PluginActivityLog::toJSON(const PluginOp &Op) const {
   case PluginOp::RemoveSymbol:
     return PluginActivityLog::toJSON(
         static_cast<const RemoveSymbolPluginOp &>(Op));
+  case PluginOp::SetSymbolAddress:
+    return PluginActivityLog::toJSON(
+        static_cast<const SetSymbolAddressPluginOp &>(Op));
   case PluginOp::RelocationData:
     return PluginActivityLog::toJSON(
         static_cast<const RelocationDataPluginOp &>(Op));
@@ -104,6 +107,14 @@ llvm::json::Object
 PluginActivityLog::toJSON(const RemoveSymbolPluginOp &Op) const {
   auto JSONObj = getBaseActivityJSONObject(Op);
   JSONObj["Symbol"] = Op.getRemovedSymbol()->getName();
+  return JSONObj;
+}
+
+llvm::json::Object
+PluginActivityLog::toJSON(const SetSymbolAddressPluginOp &Op) const {
+  auto JSONObj = getBaseActivityJSONObject(Op);
+  JSONObj["Symbol"] = Op.getSymbol()->getName();
+  JSONObj["Address"] = Op.getAddress();
   return JSONObj;
 }
 

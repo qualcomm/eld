@@ -56,6 +56,8 @@ private:
 
   llvm::json::Object toJSON(const RemoveSymbolPluginOp &P) const;
 
+  llvm::json::Object toJSON(const SetSymbolAddressPluginOp &P) const;
+
   llvm::json::Object toJSON(const RelocationDataPluginOp &P) const;
 
   llvm::json::Object toJSON(const UpdateLinkStatsPluginOp &P) const;

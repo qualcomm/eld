@@ -273,6 +273,9 @@ public:
   void removeSymbolOp(plugin::LinkerWrapper *W, eld::Module *M,
                       const ResolveInfo *S);
 
+  void setSymbolAddressOp(plugin::LinkerWrapper *W, eld::Module *M,
+                          const ResolveInfo *S, uint64_t Addr);
+
   void updateRuleOp(plugin::LinkerWrapper *W, eld::Module *M, RuleContainer *R,
                     ELFSection *S, const std::string &Annotation = "");
   void updateLinkStatsOp(plugin::LinkerWrapper *W, eld::Module *M,

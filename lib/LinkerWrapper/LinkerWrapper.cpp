@@ -33,6 +33,7 @@
 #include "eld/Support/DynamicLibrary.h"
 #include "eld/Support/MappingFile.h"
 #include "eld/Support/MsgHandling.h"
+#include "eld/Support/Utils.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "llvm/DebugInfo/DWARF/DWARFContext.h"
@@ -44,6 +45,7 @@
 #include "llvm/Support/Process.h"
 #include "llvm/Support/raw_ostream.h"
 #include <algorithm>
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -839,6 +841,27 @@ eld::Expected<void> LinkerWrapper::resetSymbol(plugin::Symbol S, Chunk C) {
   if (!b)
     return std::make_unique<DiagnosticEntry>(
         DiagnosticEntry(Diag::error_failed_to_reset_symbol, {S.getName()}));
+  return {};
+}
+
+eld::Expected<void> LinkerWrapper::setSymbolAddress(plugin::Symbol S,
+                                                    uint64_t Addr) {
+  CHECK_LINK_STATE(*this, "AfterLayout");
+  if (S.isFunction())
+    return std::make_unique<DiagnosticEntry>(
+        DiagnosticEntry(Diag::error_set_symbol_address_on_function,
+                        {S.getName(), S.getResolvedPath()}));
+  if (is32Bits() && Addr > std::numeric_limits<uint32_t>::max())
+    return std::make_unique<DiagnosticEntry>(DiagnosticEntry(
+        Diag::error_set_symbol_address_out_of_range,
+        {S.getName(), S.getResolvedPath(), eld::utility::toHex(Addr),
+         eld::utility::toHex(std::numeric_limits<uint32_t>::max())}));
+  bool b = m_Module.setSymbolAddress(S.getSymbol(), Addr);
+  if (!b)
+    return std::make_unique<DiagnosticEntry>(
+        DiagnosticEntry(Diag::error_failed_to_set_symbol_address,
+                        {S.getName(), S.getResolvedPath()}));
+  m_Module.getScript().setSymbolAddressOp(this, &m_Module, S.getSymbol(), Addr);
   return {};
 }
 

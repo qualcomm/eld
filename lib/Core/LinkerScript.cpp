@@ -234,6 +234,17 @@ void LinkerScript::removeSymbolOp(plugin::LinkerWrapper *W, eld::Module *M,
   layoutInfo->recordRemoveSymbol(W, Op);
 }
 
+void LinkerScript::setSymbolAddressOp(plugin::LinkerWrapper *W, eld::Module *M,
+                                      const ResolveInfo *S, uint64_t Addr) {
+  SetSymbolAddressPluginOp *Op = make<SetSymbolAddressPluginOp>(W, S, Addr);
+  LayoutInfo *layoutInfo = M->getLayoutInfo();
+  if (auto &PluginActLog = M->getPluginActivityLog())
+    PluginActLog->addPluginOperation(*Op);
+  if (!layoutInfo)
+    return;
+  layoutInfo->recordSetSymbolAddress(W, Op);
+}
+
 void LinkerScript::clearAllSectionOverrides() { OverrideSectionMatch.clear(); }
 
 void LinkerScript::clearSectionOverrides(const plugin::LinkerWrapper *LW) {

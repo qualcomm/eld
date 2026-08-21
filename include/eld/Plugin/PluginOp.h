@@ -37,7 +37,8 @@ public:
     UpdateRule,
     RelocationData,
     UpdateLinkState,
-    SortInputSectionsForMerging
+    SortInputSectionsForMerging,
+    SetSymbolAddress
   };
 
   explicit PluginOp(plugin::LinkerWrapper *, PluginOpType T,
@@ -67,6 +68,7 @@ public:
       ADD_CASE(RelocationData)
       ADD_CASE(UpdateLinkState)
       ADD_CASE(SortInputSectionsForMerging)
+      ADD_CASE(SetSymbolAddress)
     }
 #undef ADD_CASE
     return "Unknown";
@@ -192,6 +194,26 @@ public:
 
 private:
   const ResolveInfo *RemovedSymbol;
+};
+
+class SetSymbolAddressPluginOp : public PluginOp {
+public:
+  SetSymbolAddressPluginOp(plugin::LinkerWrapper *W, const eld::ResolveInfo *S,
+                           uint64_t Addr);
+
+  static bool classof(const PluginOp *P) {
+    return P->getPluginOpType() == PluginOpType::SetSymbolAddress;
+  }
+
+  std::string getPluginOpStr() const override { return "SA"; }
+
+  const ResolveInfo *getSymbol() const { return Symbol; }
+
+  uint64_t getAddress() const { return Address; }
+
+private:
+  const ResolveInfo *Symbol;
+  uint64_t Address;
 };
 
 class RelocationDataPluginOp : public PluginOp {

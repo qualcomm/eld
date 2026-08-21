@@ -136,6 +136,15 @@ eld::LDYAML::LinkStats YamlLayoutPrinter::addStat(std::string S,
   return L;
 }
 
+std::string YamlLayoutPrinter::getSetAddressByStr(const ResolveInfo *R) const {
+  const LayoutInfo::SetSymbolAddressOpsMapT &SetSymbolAddressOps =
+      ThisLayoutInfo->getSetSymbolAddressOps();
+  auto SetAddress = SetSymbolAddressOps.find(R);
+  if (SetAddress == SetSymbolAddressOps.end())
+    return "";
+  return SetAddress->getSecond()->getPluginName();
+}
+
 void YamlLayoutPrinter::addStats(LayoutInfo::Stats &L,
                                  std::vector<eld::LDYAML::LinkStats> &S) {
   S.push_back(addStat("ObjectFiles", L.NumElfObjectFiles));
@@ -336,13 +345,15 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
                 BCInput.Symbols.push_back(
                     {K->name(), K->type(), K->binding(), K->size(),
                      (llvm::yaml::Hex64)ThisLayoutInfo->calculateSymbolValue(
-                         K, Module)});
+                         K, Module),
+                     getSetAddressByStr(K->resolveInfo())});
                 continue;
               }
               ELFInputSection->Symbols.push_back(
                   {K->name(), K->type(), K->binding(), K->size(),
                    (llvm::yaml::Hex64)ThisLayoutInfo->calculateSymbolValue(
-                       K, Module)});
+                       K, Module),
+                   getSetAddressByStr(K->resolveInfo())});
             }
             if (IsBitcode && !BCInput.Symbols.empty())
               Value.Inputs.emplace_back(
@@ -441,7 +452,7 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
         ThisLayoutInfo->sortFragmentSymbols(Info);
         for (auto *K : Info->Symbols)
           ELFDiscardedSection->Symbols.push_back(
-              {K->name(), K->type(), K->binding(), K->size(), 0});
+              {K->name(), K->type(), K->binding(), K->size(), 0, ""});
         Result.DiscardedSections.emplace_back(
             std::make_shared<eld::LDYAML::DiscardedSection>(std::move(DS)));
       }

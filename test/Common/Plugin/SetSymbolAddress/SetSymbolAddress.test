@@ -1,0 +1,61 @@
+#---SetSymbolAddress.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Tests LinkerWrapper::setSymbolAddress: a plugin can detach a defined
+# symbol from its fragment and make it an absolute symbol (SHN_ABS) with an
+# arbitrary value, when called in the AfterLayout link state. Calling it
+# from any other link state (e.g. CreatingSections) is an error. It is also
+# an error if the target symbol has no output symbol, e.g. a symbol that is
+# exported by a shared object but never referenced by any relocatable
+# object file. It is also an error if the target symbol is a function
+# symbol; setSymbolAddress is only allowed on data symbols.
+#
+# Also verifies that the operation is annotated in the text map, the YAML
+# map (via a SetAddressBy field), and the plugin activity log.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml \
+RUN:   -Map %t1.1.map.txt -MapStyle txt \
+RUN:   --plugin-activity-file=%t1.1.plugin.map.json
+RUN: %readelf -s %t1.1.out | %filecheck %s
+RUN: %filecheck %s --check-prefix=MAP_TXT < %t1.1.map.txt
+RUN: %filecheck %s --check-prefix=PLUGIN_ACT < %t1.1.plugin.map.json
+RUN: %link %linkopts -o %t1.2.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml \
+RUN:   -Map %t1.2.map.yaml -MapStyle yaml
+RUN: %filecheck %s --check-prefix=MAP_YAML < %t1.2.map.yaml
+RUN: %not %link %linkopts -o %t1.3.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfigInvalidState.yaml 2>&1 | %filecheck %s --check-prefix=INVALID_STATE
+RUN: %clang %clangopts -o %t1.4.o %p/Inputs/2.c -c -fpic
+RUN: %link %linkopts -shared -o %t1.4.so %t1.4.o
+RUN: %not %link %linkopts -o %t1.4.out %t1.1.o %t1.4.so -L%libsdir/test --plugin-config %p/Inputs/PluginConfigNotFound.yaml 2>&1 | %filecheck %s --check-prefix=NOT_FOUND
+RUN: %not %link %linkopts -o %t1.5.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfigFunction.yaml 2>&1 | %filecheck %s --check-prefix=FUNCTION_SYMBOL
+#END_TEST
+
+CHECK: {{.*}}ABS{{.*}}data
+
+MAP_TXT: data {SA, SetSymbolAddress}
+MAP_TXT: # Detailed Plugin information
+MAP_TXT: # Plugin #0	SetSymbolAddress
+MAP_TXT: #	Modification #1	{SA}
+
+MAP_YAML:      Symbol:          data
+MAP_YAML-NEXT: Type:            [ STT_OBJECT ]
+MAP_YAML-NEXT: Scope:           Global
+MAP_YAML-NEXT: Size:
+MAP_YAML-NEXT: Value:           0x12345678
+MAP_YAML-NEXT: SetAddressBy:    SetSymbolAddress
+
+PLUGIN_ACT: "PluginActivities": [
+PLUGIN_ACT: {
+PLUGIN_ACT-DAG:   "Address": 305419896,
+PLUGIN_ACT-DAG:   "Annotation": "",
+PLUGIN_ACT-DAG:   "Plugin": "SetSymbolAddress",
+PLUGIN_ACT-DAG:   "Symbol": "data",
+PLUGIN_ACT-DAG:   "Type": "SetSymbolAddress"
+PLUGIN_ACT: }
+
+INVALID_STATE: Error: Link state 'CreatingSections' is invalid for the API '{{.*}}setSymbolAddress{{.*}}'. Valid link states: [AfterLayout]
+
+NOT_FOUND: Error: Failed to set address of symbol 'bar' defined in '{{.*}}1.4.so'
+
+FUNCTION_SYMBOL: Error: Cannot set address of symbol 'foo' defined in '{{.*}}1.1.o' because it is a function symbol; setSymbolAddress is only allowed on data symbols
+
