@@ -89,27 +89,10 @@ Relocation::Type RISCVLDBackend::getCopyRelType() const {
 }
 
 void RISCVLDBackend::initDynamicSections(ELFObjectFile &InputFile) {
-  InputFile.setDynamicSections(
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
-          config().targets().is32Bits() ? 4 : 8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got.plt",
-          llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
-          config().targets().is32Bits() ? 4 : 8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".plt", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR,
-          config().targets().is32Bits() ? 4 : 16),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.dyn",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC,
-          config().targets().is32Bits() ? 4 : 8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.plt",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC,
-          config().targets().is32Bits() ? 4 : 8));
+  bool Is32 = config().targets().is32Bits();
+  uint32_t Align = Is32 ? 4 : 8;
+  GNULDBackend::initDynamicSections(
+      InputFile, {llvm::ELF::SHT_RELA, Align, Align, Align, Is32 ? 4u : 16u});
 }
 
 void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
@@ -2471,15 +2454,13 @@ bool RISCVLDBackend::finalizeScanRelocations() {
         !symInfo->hasIFuncNeedsGOT())
       continue;
 
-    ELFObjectFile *PLTSlotObjFile =
-        llvm::cast<ELFObjectFile>(plt->getOwningSection()->getInputFile());
-    RISCVGOT *G = createGOT(GOT::GOTType::Regular, PLTSlotObjFile, symInfo);
+    RISCVGOT *G = createGOT(GOT::GOTType::Regular, nullptr, symInfo);
 
     FragmentRef *PLTFragRef = make<FragmentRef>(*plt, 0);
     Relocation *r = Relocation::Create(
         is32Bits ? llvm::ELF::R_RISCV_32 : llvm::ELF::R_RISCV_64,
         is32Bits ? 32 : 64, make<FragmentRef>(*G, 0), 0);
-    PLTSlotObjFile->getGOT()->addRelocation(r);
+    getGOT()->addRelocation(r);
     r->modifyRelocationFragmentRef(PLTFragRef);
 
     recordGOT(symInfo, G);
@@ -2507,35 +2488,32 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
   bool GOT = true;
   switch (T) {
   case GOT::Regular:
-    G = RISCVGOT::Create(Obj->getGOT(), R, config().targets().is32Bits());
+    G = RISCVGOT::Create(getGOT(), R, config().targets().is32Bits());
     break;
   case GOT::GOTPLT0:
     G = llvm::dyn_cast<RISCVGOT>(*getGOTPLT()->getFragmentList().begin());
     GOT = false;
     break;
   case GOT::GOTPLTN: {
-    G = RISCVGOT::CreateGOTPLTN(Obj->getGOTPLT(), R,
-                                config().targets().is32Bits());
+    G = RISCVGOT::CreateGOTPLTN(getGOTPLT(), R, config().targets().is32Bits());
     GOT = false;
     break;
   }
   case GOT::TLS_GD: {
-    G = RISCVGOT::CreateGD(Obj->getGOT(), R, config().targets().is32Bits());
+    G = RISCVGOT::CreateGD(getGOT(), R, config().targets().is32Bits());
     break;
   }
   case GOT::TLS_LD:
     // TODO: Apparently, this case is called either from getTLSModuleID (for a
     // unique slot) or from R_RISCV_TLS_GD_HI20 relocation (per relocation).
     // Handle both cases for now, but this may need to be double checked.
-    G = RISCVGOT::CreateLD(Obj ? Obj->getGOT() : getGOT(), R,
-                           config().targets().is32Bits());
+    G = RISCVGOT::CreateLD(getGOT(), R, config().targets().is32Bits());
     break;
   case GOT::TLS_IE:
-    G = RISCVGOT::CreateIE(Obj->getGOT(), R, config().targets().is32Bits());
+    G = RISCVGOT::CreateIE(getGOT(), R, config().targets().is32Bits());
     break;
   case GOT::TLS_DESC:
-    G = RISCVGOT::CreateTLSDESC(Obj->getGOTPLT(), R,
-                                config().targets().is32Bits());
+    G = RISCVGOT::CreateTLSDESC(getGOTPLT(), R, config().targets().is32Bits());
     break;
   default:
     assert(0);
@@ -2577,30 +2555,34 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
 
   reportErrorIfPLTIsDiscarded(R);
 
+  // PLT0 must be created before the first PLTN since insertion order into the
+  // shared .plt is emission order.
+  bool NeedsLazy = !config().options().hasNow();
+  if (NeedsLazy && !getPLT()->hasFragments())
+    RISCVPLT::CreatePLT0(*this, createGOT(GOT::GOTPLT0, Obj, nullptr), getPLT(),
+                         is32Bits);
+
   RISCVGOT *G = createGOT(GOT::GOTPLTN, Obj, R);
-  RISCVPLT *P = RISCVPLT::CreatePLTN(G, Obj->getPLT(), R, is32Bits);
+  RISCVPLT *P = RISCVPLT::CreatePLTN(G, getPLT(), R, is32Bits);
   recordPLT(R, P);
-  if (!config().options().hasNow()) {
-    // For lazy binding, create GOTPLT0 and PLT0, if they don't exist.
-    if (!getPLT()->hasFragments())
-      RISCVPLT::CreatePLT0(*this, createGOT(GOT::GOTPLT0, Obj, nullptr),
-                           getPLT(), is32Bits);
+  if (NeedsLazy) {
     // Create a static relocation to the PLT0 fragment.
     Relocation *r0 = Relocation::Create(
         is32Bits ? llvm::ELF::R_RISCV_32 : llvm::ELF::R_RISCV_64,
         is32Bits ? 32 : 64, make<FragmentRef>(*G));
     r0->modifyRelocationFragmentRef(
         make<FragmentRef>(**getPLT()->getFragmentList().begin()));
-    Obj->getGOTPLT()->addRelocation(r0);
+    getGOTPLT()->addRelocation(r0);
   }
-    Relocation::Type relocType = (isIRelative ? llvm::ELF::R_RISCV_IRELATIVE
-                                              : llvm::ELF::R_RISCV_JUMP_SLOT);
-    // Create a dynamic relocation for the GOTPLT slot.
-    Relocation *dynRel = Relocation::Create(relocType, is32Bits ? 32 : 64,
-                                            make<FragmentRef>(*G));
-    dynRel->setSymInfo(R);
-    Obj->getRelaPLT()->addRelocation(dynRel);
-    return P;
+
+  Relocation::Type relocType = (isIRelative ? llvm::ELF::R_RISCV_IRELATIVE
+                                            : llvm::ELF::R_RISCV_JUMP_SLOT);
+  // Create a dynamic relocation for the GOTPLT slot.
+  Relocation *dynRel =
+      Relocation::Create(relocType, is32Bits ? 32 : 64, make<FragmentRef>(*G));
+  dynRel->setSymInfo(R);
+  Obj->getRelaPLT()->addRelocation(dynRel);
+  return P;
 }
 
 // Record PLT entry

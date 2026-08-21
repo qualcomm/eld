@@ -16,6 +16,9 @@
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticPrinter.h"
 #include "eld/Fragment/DynStrFragment.h"
+#include "eld/Fragment/GOT.h"
+#include "eld/Object/OutputSectionEntry.h"
+#include "eld/Object/RuleContainer.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/LDSymbol.h"
@@ -341,14 +344,32 @@ void ELFDynamic::applyEntries(GNULDBackend &pBackend,
     applyOne(llvm::ELF::DT_STRSZ, DynStrSize);  // DT_STRSZ
   }
 
-  if (const ELFSection *GOTPLT = pBackend.getGOTPLT())
-    if (GOTPLT->size() != 0)
-      // DT_PLTGOT always points to the GOTPLT section. Glad that the
-      // linker treats .got.plt section as internal. DT_PLTGOT is needed
-      // only by lazy binding. Note that both ld and lld create
-      // DT_PLTGOT even with lazy binding and the image crashes without
-      // it on riscv qemu.
-      applyOne(llvm::ELF::DT_PLTGOT, GOTPLT->addr());
+  if (ELFSection *GOTPLT = pBackend.getGOTPLT())
+    if (GOTPLT->size() != 0) {
+      // DT_PLTGOT points at the reserved GOTPLT0 slot. The section's own
+      // fragment list is empty after merge and its addr field is stale, so find
+      // the slot by walking the output section.
+      uint64_t PLTGOTAddr = GOTPLT->addr();
+      if (OutputSectionEntry *Out = GOTPLT->getOutputSection())
+        for (RuleContainer *Rule : *Out) {
+          ELFSection *RS = Rule->getSection();
+          if (!RS)
+            continue;
+          const GOT *GotFrag = nullptr;
+          for (Fragment *F : RS->getFragmentList()) {
+            auto *G = llvm::dyn_cast<GOT>(F);
+            if (G && G->getType() == GOT::GOTPLT0) {
+              GotFrag = G;
+              break;
+            }
+          }
+          if (GotFrag) {
+            PLTGOTAddr = GotFrag->getAddr(m_Config.getDiagEngine());
+            break;
+          }
+        }
+      applyOne(llvm::ELF::DT_PLTGOT, PLTGOTAddr);
+    }
 
   pBackend.applyTargetDynamicEntries();
 

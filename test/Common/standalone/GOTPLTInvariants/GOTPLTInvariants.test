@@ -1,0 +1,52 @@
+## Checks GOT/PLT invariants that must hold true no matter how many input files
+## contribute slots:
+##  - Every slot lands in one .got and one .got.plt.
+##  - DT_PLTGOT points at GOTPLT0 at the start of .got.plt.
+##  - A symbol referenced from many files shares one slot.
+
+# RUN: split-file %s %t
+# RUN: %clang %clangopts -c -fPIC %t/a.c -o %t/a.o
+# RUN: %clang %clangopts -c -fPIC %t/b.c -o %t/b.o
+# RUN: %clang %clangopts -c -fPIC %t/c.c -o %t/c.o
+# RUN: %clang %clangopts -c -fPIC %t/defs.c -o %t/defs.o
+
+# RUN: %link %linkopts -shared %t/a.o %t/b.o %t/c.o %t/defs.o -o %t/out.so
+
+# RUN: %readelf -SW %t/out.so > %t/sect.txt
+# RUN: %filecheck %s --check-prefix=SECT --input-file=%t/sect.txt
+# SECT-COUNT-1: ] .got {{ *}}PROGBITS
+# SECT-NOT:     ] .got {{ *}}PROGBITS
+# SECT-COUNT-1: ] .got.plt {{ *}}PROGBITS
+# SECT-NOT:     ] .got.plt {{ *}}PROGBITS
+
+# RUN: %readelf -SW --dynamic %t/out.so > %t/dyn.txt
+# RUN: %filecheck %s --check-prefix=PLTGOT --input-file=%t/dyn.txt
+# PLTGOT-DAG: ] .got.plt {{ *}}PROGBITS {{0*}}[[GOTPLT:[0-9a-f]+]]
+# PLTGOT-DAG: (PLTGOT) {{ *}}0x[[GOTPLT]]
+
+## shared_g is referenced through the GOT from three files,
+## but it should get one slot and appear in exactly one dynamic relocation.
+# RUN: %readelf -rW %t/out.so > %t/rel.txt
+# RUN: %filecheck %s --check-prefix=SHARED --input-file=%t/rel.txt
+# SHARED-COUNT-1: {{ }}shared_g
+# SHARED-NOT:     {{ }}shared_g
+
+# RUN: %filecheck %s --check-prefix=PRIV --input-file=%t/rel.txt
+# PRIV-DAG: {{ }}only_a
+# PRIV-DAG: {{ }}only_b
+# PRIV-DAG: {{ }}only_c
+
+#--- a.c
+extern int shared_g, only_a;
+int fa(void) { return shared_g + only_a; }
+
+#--- b.c
+extern int shared_g, only_b;
+int fb(void) { return shared_g + only_b; }
+
+#--- c.c
+extern int shared_g, only_c;
+int fc(void) { return shared_g + only_c; }
+
+#--- defs.c
+int shared_g = 1, only_a = 2, only_b = 3, only_c = 4;
