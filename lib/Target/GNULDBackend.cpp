@@ -1125,19 +1125,18 @@ void GNULDBackend::sizeDynamic() {
   }
 
   // add DT_NEEDED
-  std::unordered_set<MemoryArea *> addedLibs;
+  llvm::StringSet<> addedSONAMEs;
   for (auto &lib : m_Module.getDynLibraryList()) {
-    if (llvm::dyn_cast<ELFFileBase>(lib)->isELFNeeded()) {
-      const ELFDynObjectFile *dynObjFile = llvm::cast<ELFDynObjectFile>(lib);
-      if (addedLibs.count(dynObjFile->getInput()->getMemArea()))
-        continue;
-      addedLibs.insert(dynObjFile->getInput()->getMemArea());
-      std::size_t SONameOffset =
-          m_pDynStrFrag->addString(dynObjFile->getSOName());
-      auto DTEntry = dynamic()->reserveNeedEntry();
-      DTEntry->tag = llvm::ELF::DT_NEEDED;
-      DTEntry->value = SONameOffset;
-    }
+    if (!llvm::dyn_cast<ELFFileBase>(lib)->isELFNeeded())
+      continue;
+    const ELFDynObjectFile *dynObjFile = llvm::cast<ELFDynObjectFile>(lib);
+    std::string SOName = dynObjFile->getSOName();
+    if (!addedSONAMEs.insert(SOName).second)
+      continue;
+    std::size_t SONameOffset = m_pDynStrFrag->addString(SOName);
+    auto DTEntry = dynamic()->reserveNeedEntry();
+    DTEntry->tag = llvm::ELF::DT_NEEDED;
+    DTEntry->value = SONameOffset;
   }
 
   // add DT_RUNPATH

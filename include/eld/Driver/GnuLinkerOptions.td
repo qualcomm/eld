@@ -1018,6 +1018,8 @@ def W : Joined<["-"], "W">,
              "with different values for OS/ABI\n"
              "\t\t\t -W[no-]version-script : display warnings detected while "
              "processing version scripts\n"
+             "\t\t\t -W[no-]dynamic : display a warning when multiple shared "
+             "libraries with the same SONAME are linked\n"
             >,
         Group<grp_diagopts>;
 

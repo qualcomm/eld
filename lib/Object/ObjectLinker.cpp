@@ -3873,12 +3873,21 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
         ThisConfig.raiseDiagEntry(std::move(ExpRead.error()));
       return false;
     }
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
     ELFDynObjectFile *DynObjFile = llvm::cast<ELFDynObjectFile>(CurInput);
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
     if (DynObjFile->hasSymbolVersioningInfo())
       getTargetBackend().setShouldEmitVersioningSections(true);
 #endif
+    std::string SOName = DynObjFile->getSOName();
+    std::string FilePath = CurInput->getInput()->decoratedPath();
     ThisModule->getDynLibraryList().push_back(CurInput);
+    if (!MSonameToFile.count(SOName)) {
+      MSonameToFile[SOName] = FilePath;
+    } else if (MSonameToFile[SOName] != FilePath &&
+               ThisConfig.showDynamicWarnings()) {
+      ThisConfig.raise(Diag::warn_duplicate_soname)
+          << MSonameToFile[SOName] << FilePath << SOName;
+    }
   } else if (CurInput->getKind() == InputFile::GNUArchiveFileKind) {
     eld::RegisterTimer T("Read Archive Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
