@@ -152,6 +152,8 @@ public:
 
   bool traceReloc(std::string const &RelocName) const;
 
+  bool tracePlugin(std::string const &PluginName) const;
+
   bool traceLTO(void) const;
 
   bool codegenOpts(void) const;
@@ -1037,6 +1039,10 @@ public:
 
   bool isSectionTracingRequested() const { return SectionTracingRequested; }
 
+  void setPluginTracingRequested() { PluginTracingRequested = true; }
+
+  bool isPluginTracingRequested() const { return PluginTracingRequested; }
+
   // --------------Dynamic Linker-------------------------
   bool hasDynamicLinker() const { return BDynamicLinker; }
 
@@ -1371,9 +1377,11 @@ private:
   std::vector<llvm::Regex> SymbolTrace;
   std::vector<llvm::Regex> RelocTrace;
   std::vector<llvm::Regex> SectionTrace;
+  std::vector<llvm::Regex> PluginTrace;
   std::vector<std::string> SymbolsToTrace;
   std::vector<std::string> SectionsToTrace;
   std::vector<std::string> RelocsToTrace;
+  std::vector<std::string> PluginsToTrace;
   std::vector<llvm::Regex> MergeStrSectionsToTrace;
   MergeStrTraceType MergeStrTraceValue = MergeStrTraceType::NONE;
   std::set<std::string> RelocVerify;
@@ -1414,6 +1422,7 @@ private:
   llvm::StringRef TrampolineMapFile; // TrampolineMap
   bool SymbolTracingRequested = false;
   bool SectionTracingRequested = false;
+  bool PluginTracingRequested = false;
   std::vector<llvm::StringRef> RequestedTimeRegions;
   DiagnosticEngine *DiagEngine = nullptr;
   bool BDynamicLinker = true;
