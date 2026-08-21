@@ -12,6 +12,7 @@ on:
 
 
 permissions:
+  actions: write
   contents: write
 jobs:
   build-and-test:
@@ -244,7 +245,15 @@ jobs:
             picolibc/build-clang-${{ matrix.arch.name }}-picolibc-default-config/meson-logs/testlog.txt
             picolibc/build-clang-${{ matrix.arch.name }}-picolibc-no-tls/meson-logs/testlog.txt
           if-no-files-found: ignore
-          retention-days: 2
+          # Keep a fallback copy in case the workflow fails before cleanup.
+          retention-days: 7
+
+      - name: Delete older Picolibc test logs
+        if: success()
+        continue-on-error: true
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts
+        with:
+          artifact-names: test-results-${{ matrix.arch.name }}
 
       - name: Update build entry
         if: github.event_name == 'workflow_run'

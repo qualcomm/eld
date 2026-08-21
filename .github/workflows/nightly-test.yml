@@ -8,6 +8,7 @@ on:
 
 
 permissions:
+  actions: write
   contents: write
 jobs:
   build-and-runtest-nightly:
@@ -261,7 +262,8 @@ jobs:
         with:
           name: install-nightly-toolchain.tar.xz
           path: install-nightly-toolchain.tar.xz
-          retention-days: 2
+          # Keep a fallback copy in case the workflow fails before cleanup.
+          retention-days: 7
 
       - name: Check if biannual release day (Jan 1 or Jul 1)
         id: release_day
@@ -305,3 +307,9 @@ jobs:
           run-id: ${{github.run_id}}
           arch-name: "all"
           branch-name: "${{env.BUILD_BRANCH}}"
+
+      - name: Delete older nightly toolchains
+        continue-on-error: true
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts
+        with:
+          artifact-names: install-nightly-toolchain.tar.xz

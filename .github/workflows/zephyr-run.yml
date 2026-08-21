@@ -37,6 +37,15 @@ on:
         description: "Tar filename inside the artifact to extract (e.g. install-pr-toolset.tar.xz)"
         required: true
         type: string
+      artifact-workflow-id:
+        description: Workflow file whose Zephyr artifacts should be cleaned up
+        required: true
+        type: string
+      artifact-pull-request-number:
+        description: PR number used to scope cleanup for PR Zephyr artifacts
+        required: false
+        type: string
+        default: ""
 
 jobs:
   zephyr-build-and-test:
@@ -238,7 +247,8 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: zephyr-twister-results-${{ inputs.board }}
-          retention-days: 2
+          # Keep a fallback copy in case the workflow fails before cleanup.
+          retention-days: 7
           path: |
             zephyr/twister-out/twister.log
             zephyr/twister-out/twister.json
@@ -258,5 +268,14 @@ jobs:
           record-mode: "update"
           status: "pass"
           run-id: ${{github.run_id}}
+
+      - name: Delete older Zephyr results
+        if: success()
+        continue-on-error: true
+        uses: ./.github/workflows/DeleteOldArtifacts
+        with:
+          artifact-names: zephyr-twister-results-${{ inputs.board }}
+          workflow-id: ${{ inputs.artifact-workflow-id }}
+          pull-request-number: ${{ inputs.artifact-pull-request-number }}
           arch-name: ${{ inputs.arch }}
           branch-name: "main"
