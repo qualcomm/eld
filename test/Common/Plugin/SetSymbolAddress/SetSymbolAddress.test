@@ -7,7 +7,8 @@
 # an error if the target symbol has no output symbol, e.g. a symbol that is
 # exported by a shared object but never referenced by any relocatable
 # object file. It is also an error if the target symbol is a function
-# symbol; setSymbolAddress is only allowed on data symbols.
+# symbol or an STT_GNU_IFUNC symbol; setSymbolAddress is only allowed on
+# data symbols.
 #
 # Also verifies that the operation is annotated in the text map, the YAML
 # map (via a SetAddressBy field), and the plugin activity log.
@@ -28,6 +29,8 @@ RUN: %clang %clangopts -o %t1.4.o %p/Inputs/2.c -c -fpic
 RUN: %link %linkopts -shared -o %t1.4.so %t1.4.o
 RUN: %not %link %linkopts -o %t1.4.out %t1.1.o %t1.4.so -L%libsdir/test --plugin-config %p/Inputs/PluginConfigNotFound.yaml 2>&1 | %filecheck %s --check-prefix=NOT_FOUND
 RUN: %not %link %linkopts -o %t1.5.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfigFunction.yaml 2>&1 | %filecheck %s --check-prefix=FUNCTION_SYMBOL
+RUN: %llvm-mc -triple=%triple -filetype=obj -o %t1.6.o %p/Inputs/ifunc.s
+RUN: %not %link %linkopts -o %t1.6.out %t1.1.o %t1.6.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfigIFunc.yaml 2>&1 | %filecheck %s --check-prefix=IFUNC_SYMBOL
 #END_TEST
 
 CHECK: {{.*}}ABS{{.*}}data
@@ -58,4 +61,6 @@ INVALID_STATE: Error: Link state 'CreatingSections' is invalid for the API '{{.*
 NOT_FOUND: Error: Failed to set address of symbol 'bar' defined in '{{.*}}1.4.so'
 
 FUNCTION_SYMBOL: Error: Cannot set address of symbol 'foo' defined in '{{.*}}1.1.o' because it is a function symbol; setSymbolAddress is only allowed on data symbols
+
+IFUNC_SYMBOL: Error: Cannot set address of symbol 'ifunc' defined in '{{.*}}1.6.o' because it is a function symbol; setSymbolAddress is only allowed on data symbols
 

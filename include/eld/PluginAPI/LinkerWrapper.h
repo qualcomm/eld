@@ -592,10 +592,11 @@ public:
   /// address could fall inside another section's address range, declare
   /// the symbol's output section with the \c INFO, \c COPY, \c DSECT, or
   /// \c OVERLAY linker script section type. These types are equivalent in
-  /// ELD: each removes the section from the overlap check (and from
-  /// PT_LOAD segment placement) by clearing \c SHF_ALLOC on the section,
-  /// which is recommended whenever the section's addresses are bookkeeping
-  /// only and are not meant to be loaded at runtime.
+  /// ELD: each removes the section from PT_LOAD segment placement by
+  /// clearing \c SHF_ALLOC on the section, which is recommended whenever
+  /// the section content addresses are meant to be referenced by the code
+  /// at runtime (e.g. debug strings) but not actually dereferenced or
+  /// loaded into memory at runtime.
   eld::Expected<void> setSymbolAddress(plugin::Symbol S, uint64_t Addr);
 
   /// Create and return a Use for a Chunk, and add it to the Chunk.

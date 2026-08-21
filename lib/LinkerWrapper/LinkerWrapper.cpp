@@ -847,7 +847,7 @@ eld::Expected<void> LinkerWrapper::resetSymbol(plugin::Symbol S, Chunk C) {
 eld::Expected<void> LinkerWrapper::setSymbolAddress(plugin::Symbol S,
                                                     uint64_t Addr) {
   CHECK_LINK_STATE(*this, "AfterLayout");
-  if (S.isFunction())
+  if (S.isFunction() || S.getSymbol()->isIFunc())
     return std::make_unique<DiagnosticEntry>(
         DiagnosticEntry(Diag::error_set_symbol_address_on_function,
                         {S.getName(), S.getResolvedPath()}));

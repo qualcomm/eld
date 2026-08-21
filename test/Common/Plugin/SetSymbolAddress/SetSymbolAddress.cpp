@@ -17,8 +17,10 @@ using namespace eld::plugin;
 // ResolveInfo is findable but has no output symbol -- exercising the
 // "failed to set address" error path. In the "function" mode, it targets
 // "foo", a function symbol, to exercise the function-symbol rejection error
-// path. In the "outofrange" mode, it targets "data" with an address beyond
-// the maximum address supported by 32-bit targets, to exercise the
+// path. In the "ifunc" mode, it targets "ifunc", an STT_GNU_IFUNC symbol, to
+// exercise that ifunc symbols are rejected the same way as regular function
+// symbols. In the "outofrange" mode, it targets "data" with an address
+// beyond the maximum address supported by 32-bit targets, to exercise the
 // address-range rejection error path.
 class DLL_A_EXPORT SetSymbolAddress : public OutputSectionIteratorPlugin {
 public:
@@ -30,6 +32,8 @@ public:
       TargetSymbol = "bar";
     if (Options == "function")
       TargetSymbol = "foo";
+    if (Options == "ifunc")
+      TargetSymbol = "ifunc";
     if (Options == "outofrange")
       OutOfRange = true;
   }
