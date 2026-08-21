@@ -522,6 +522,9 @@ public:
   // ---------------------------resetSymbol support -------------------------
   bool resetSymbol(ResolveInfo *, Fragment *F);
 
+  // ---------------------------setSymbolAddress support ---------------------
+  bool setSymbolAddress(ResolveInfo *, uint64_t Addr);
+
   // ---------------------------ImageLayoutChecksum support------------------
   uint64_t getImageLayoutChecksum() const;
 

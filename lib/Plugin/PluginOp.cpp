@@ -47,6 +47,11 @@ RemoveSymbolPluginOp::RemoveSymbolPluginOp(plugin::LinkerWrapper *W,
                                            const ResolveInfo *S)
     : PluginOp(W, PluginOp::RemoveSymbol, Annotation), RemovedSymbol(S) {}
 
+SetSymbolAddressPluginOp::SetSymbolAddressPluginOp(plugin::LinkerWrapper *W,
+                                                   const ResolveInfo *S,
+                                                   uint64_t Addr)
+    : PluginOp(W, PluginOp::SetSymbolAddress, ""), Symbol(S), Address(Addr) {}
+
 RelocationDataPluginOp::RelocationDataPluginOp(plugin::LinkerWrapper *W,
                                                const eld::Relocation *R,
                                                const std::string &Annotation)
