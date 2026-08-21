@@ -1,0 +1,18 @@
+#---SetAllowedInNonLoadSegment.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Tests OutputSection::setAllowedInNonLoadSegment: without it, an ALLOC,
+# non-zero-size section (".overlay") placed by a linker script into a
+# non-PT_LOAD (PT_NULL) segment is a hard error. A plugin that calls
+# setAllowedInNonLoadSegment on that section during CreatingSegments
+# instead turns the error into a Note, and the link succeeds.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s --check-prefix=NOPLUGIN
+RUN: %link %linkopts -o %t1.2.out %t1.1.o -T %p/Inputs/script.t -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s --check-prefix=PLUGIN --allow-empty
+#END_TEST
+
+NOPLUGIN: Error: Loadable section .overlay not in any load segment
+
+PLUGIN-NOT: Error
+PLUGIN: Note: Section .overlay placed in a non-PT_LOAD segment as explicitly allowed by a plugin
