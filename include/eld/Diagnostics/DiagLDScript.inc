@@ -55,9 +55,6 @@ DIAG(more_sections, DiagnosticEngine::CriticalWarning,
      "Link time performance may affected by input file %0")
 DIAG(warn_loadable_section_in_none_segment, DiagnosticEngine::Warning,
      "Loadable section %0 defined in NONE segment")
-DIAG(note_section_allowed_in_non_load_segment, DiagnosticEngine::Note,
-     "Section %0 placed in a non-PT_LOAD segment as explicitly allowed by a "
-     "plugin")
 DIAG(no_pt_tls_segment, DiagnosticEngine::Error,
      "PT_TLS segment not found, required by the image")
 DIAG(linker_script_var_used_before_define, DiagnosticEngine::Warning,

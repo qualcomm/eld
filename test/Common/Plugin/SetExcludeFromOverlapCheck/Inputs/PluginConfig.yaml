@@ -1,4 +1,0 @@
-GlobalPlugins:
-  - Type: OutputSectionIterator
-    Name: SetExcludeFromOverlapCheck
-    Library: SetExcludeFromOverlapCheck

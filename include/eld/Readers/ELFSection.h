@@ -359,16 +359,6 @@ public:
   void setExcludedFromGC() { ShouldExcludeFromGC = true; }
   bool isExcludedFromGC() const { return ShouldExcludeFromGC; }
 
-  void setExcludedFromOverlapCheck() { ExcludeFromOverlapCheck = true; }
-  bool isExcludedFromOverlapCheck() const { return ExcludeFromOverlapCheck; }
-
-  /// Set by a plugin to explicitly allow this ALLOC, non-zero-size output
-  /// section to be placed in a non-PT_LOAD segment (e.g. PT_NULL), bypassing
-  /// GNULDBackend::checkForLinkerScriptPhdrErrors' GNU ld-compatible default
-  /// that requires such sections to live in a PT_LOAD segment.
-  void setAllowedInNonLoadSegment() { AllowInNonLoadSegment = true; }
-  bool isAllowedInNonLoadSegment() const { return AllowInNonLoadSegment; }
-
   std::optional<std::string> getRMSectName() const;
 
 protected:
@@ -389,16 +379,6 @@ protected:
   /// FIXME: We only use this for dynamic relocation sections. We can just check
   /// the section properties instead of storing this?
   bool ShouldExcludeFromGC = false;
-
-  /// Set by a plugin to opt this output section out of the linker's
-  /// virtual-address overlap check (see GNULDBackend::postLayout).
-  bool ExcludeFromOverlapCheck = false;
-
-  /// Set by a plugin to opt this output section out of the GNU
-  /// ld-compatible requirement that ALLOC, non-zero-size sections must
-  /// live in a PT_LOAD segment (see
-  /// GNULDBackend::checkForLinkerScriptPhdrErrors).
-  bool AllowInNonLoadSegment = false;
 
   llvm::SmallVector<Fragment *, 0> Fragments;
   llvm::SmallVector<Relocation *, 0> Relocations;

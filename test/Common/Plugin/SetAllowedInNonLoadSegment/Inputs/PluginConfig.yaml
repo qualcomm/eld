@@ -1,4 +1,0 @@
-GlobalPlugins:
-  - Type: OutputSectionIterator
-    Name: SetAllowedInNonLoadSegment
-    Library: SetAllowedInNonLoadSegment

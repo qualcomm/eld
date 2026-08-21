@@ -560,22 +560,6 @@ struct DLL_A_EXPORT OutputSection final {
   /// `CreatingSegments` state.
   Expected<void> setPluginOverride(Plugin *P, const LinkerWrapper &LW);
 
-  /// Exclude this output section from the linker's virtual-address overlap
-  /// check. Use with caution: the linker will no longer detect address
-  /// collisions between this section and any other section.
-  ///
-  /// \note This function may only be used in \em CreatingSegments state.
-  Expected<void> setExcludeFromOverlapCheck(const LinkerWrapper &LW);
-
-  /// Allow this ALLOC, non-zero-size output section to be placed in a
-  /// non-PT_LOAD segment (e.g. PT_NULL), bypassing the linker's GNU
-  /// ld-compatible default that would otherwise report "loadable section
-  /// `foo` not in any load segment". Use only for sections whose content
-  /// (if any) is never meant to be loaded at runtime.
-  ///
-  /// \note This function may only be used in \em CreatingSegments state.
-  Expected<void> setAllowedInNonLoadSegment(const LinkerWrapper &LW);
-
 private:
   // Internal Data structure.
   eld::OutputSectionEntry *m_OutputSection = nullptr;
