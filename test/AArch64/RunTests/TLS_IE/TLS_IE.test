@@ -1,0 +1,16 @@
+REQUIRES: run_test
+#---TLS_IE.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Verify IE->LE TLS relaxation works correctly at runtime for
+# both global and local TLS symbols in static executables.
+# Regression test for issue #1004.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc -o %t.o %p/Inputs/tls_ie.c -c -ftls-model=initial-exec -fPIC
+RUN: %run_cc -o %t.out %t.o -static
+RUN: %run %t.out | %filecheck %s
+#END_TEST
+
+CHECK: tls_global = 42
+CHECK: tls_local = 100
+CHECK: tls_global after write = 99

@@ -1,0 +1,7 @@
+RUN: %clangas %clangasopts -filetype obj -target-cpu generic -target-feature +neon -mrelax-all %p/Inputs/ie.s -o %t.o
+RUN: %link %linkopts -march aarch64 -static -z max-page-size=0x1000 %t.o -o %t.out
+RUN: llvm-objdump -d %t.out | %filecheck %s
+
+CHECK: _test_tls_ie_global
+CHECK: d2a00000       movz
+CHECK: f2800200       movk

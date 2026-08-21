@@ -543,7 +543,9 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
       return;
-
+   
+    if (config().isCodeStatic())
+      return;
     // set up the got and the corresponding rel entry
     AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
     if (config().isCodeStatic() || (config().isBuildingExecutable() &&
@@ -1185,7 +1187,8 @@ Relocator::Result tls_gottprel_page(Relocation &pReloc,
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   Relocator::DWord A = pReloc.addend();
 
-  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT) ||
+      pParent.config().isCodeStatic()) {
     Relocator::DWord X =
         pParent.getSymValue(&pReloc) + AArch64LDBackend::getStaticTCBSize();
     // Convert to movz
@@ -1210,7 +1213,8 @@ Relocator::Result tls_gottprel_lo(Relocation &pReloc,
                                   AArch64Relocator &pParent) {
   Relocator::DWord A = pReloc.addend();
 
-  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT) ||
+      pParent.config().isCodeStatic()) {
     Relocator::DWord X =
         pParent.getSymValue(&pReloc) + AArch64LDBackend::getStaticTCBSize();
     // Convert to movk
