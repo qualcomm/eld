@@ -1,1 +1,1 @@
-llvm-test-suite_build_states = [{"run_id": "32569379862", "state": "fail", "date": "2026-08-22", "time": "11:06", "arch": "x86_64", "branch": "main"}]
+llvm-test-suite_build_states = [{"run_id": "32569379862", "state": "pass", "date": "2026-08-22", "time": "11:06", "arch": "x86_64", "branch": "main"}]
