@@ -2,4 +2,5 @@
   .globl exit_func
 exit_func:
   call kobject_put
+  call kobject_put
   ret

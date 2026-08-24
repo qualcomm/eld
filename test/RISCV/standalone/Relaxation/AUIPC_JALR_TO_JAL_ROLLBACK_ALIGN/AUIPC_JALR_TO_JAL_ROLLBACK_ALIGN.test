@@ -9,8 +9,12 @@ RUN:   --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE
 RUN: %objdump -d %t.out 2>&1 | %filecheck %s --check-prefix=DUMP
 #END_TEST
 
-VERBOSE: RISCV_CALL : Rolled back JAL for symbol 'kobject_put' in section .exit.text+0x{{[[:xdigit:]]+}} file {{.*}}exit.o (out of range after ALIGN)
+VERBOSE: RISCV_CALL : Rolled back JAL for symbol 'kobject_put' in section .exit.text+0x0 file {{.*}}exit.o (out of range after ALIGN)
+VERBOSE: RISCV_CALL : Rolled back JAL for symbol 'kobject_put' in section .exit.text+0x8 file {{.*}}exit.o (out of range after ALIGN)
 
 DUMP-LABEL: <exit_func>:
 DUMP:        auipc
 DUMP-NEXT:   jalr
+DUMP-NEXT:   auipc
+DUMP-NEXT:   jalr
+DUMP-NEXT:   ret

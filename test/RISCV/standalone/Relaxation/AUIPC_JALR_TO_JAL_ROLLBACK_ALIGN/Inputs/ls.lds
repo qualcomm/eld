@@ -1,6 +1,6 @@
 SECTIONS {
   . = 0x0;
-  . += 0xFF800;
+  . += 0xFF808;
   .text : {
     *(.text.calls)
     *(.text.kobject)

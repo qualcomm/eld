@@ -316,6 +316,8 @@ void RISCVLDBackend::verifyAndRollbackCallRelaxations(bool &pFinished) {
     if (R.rolledBack)
       continue;
 
+    uint64_t relocOffset = R.reloc->targetRef()->offset();
+
     Relocator::DWord S = getSymbolValuePLT(*R.reloc);
     Relocator::DWord A = R.reloc->addend();
     Relocator::DWord P = R.reloc->place(m_Module);
@@ -331,9 +333,9 @@ void RISCVLDBackend::verifyAndRollbackCallRelaxations(bool &pFinished) {
       if (llvm::isInt<21>(X)) {
         // Out of C.J range but still within JAL range: expand C.J → JAL.
         // C.J is 2B; JAL is 4B. Insert 2 bytes then overwrite with JAL.
-        R.region->insertInstruction(R.relocOffset + 2, 2);
+        R.region->insertInstruction(relocOffset + 2, 2);
         uint32_t jal = 0x6fu | rd << 7;
-        R.region->replaceInstruction(R.relocOffset, R.reloc,
+        R.region->replaceInstruction(relocOffset, R.reloc,
                                      reinterpret_cast<uint8_t *>(&jal), 4);
         R.reloc->setTargetData(jal);
         R.reloc->setType(llvm::ELF::R_RISCV_JAL);
@@ -343,7 +345,7 @@ void RISCVLDBackend::verifyAndRollbackCallRelaxations(bool &pFinished) {
           config().raise(Diag::relax_cj_rolled_back_to_jal)
               << R.reloc->symInfo()->name()
               << R.region->getOwningSection()->name()
-              << llvm::utohexstr(R.relocOffset)
+              << llvm::utohexstr(relocOffset)
               << R.region->getOwningSection()
                      ->getInputFile()
                      ->getInput()
@@ -351,13 +353,13 @@ void RISCVLDBackend::verifyAndRollbackCallRelaxations(bool &pFinished) {
       } else {
         // Out of JAL range too: expand C.J → AUIPC+JALR.
         // C.J is 2B; AUIPC+JALR is 8B. Insert 6 bytes, then restore both.
-        R.region->insertInstruction(R.relocOffset + 2, 6);
+        R.region->insertInstruction(relocOffset + 2, 6);
         uint32_t auipcCopy = R.auipcBytes;
         R.region->replaceInstruction(
-            R.relocOffset, R.reloc, reinterpret_cast<uint8_t *>(&auipcCopy), 4);
+            relocOffset, R.reloc, reinterpret_cast<uint8_t *>(&auipcCopy), 4);
         uint32_t jalrCopy = R.jalrBytes;
         std::memcpy(const_cast<char *>(R.region->getRegion().data()) +
-                        R.relocOffset + 4,
+                        relocOffset + 4,
                     &jalrCopy, 4);
         R.reloc->setTargetData(R.auipcBytes);
         R.reloc->setType(llvm::ELF::R_RISCV_CALL_PLT);
@@ -367,7 +369,7 @@ void RISCVLDBackend::verifyAndRollbackCallRelaxations(bool &pFinished) {
           config().raise(Diag::relax_cj_rolled_back_to_call)
               << R.reloc->symInfo()->name()
               << R.region->getOwningSection()->name()
-              << llvm::utohexstr(R.relocOffset)
+              << llvm::utohexstr(relocOffset)
               << R.region->getOwningSection()
                      ->getInputFile()
                      ->getInput()
@@ -384,18 +386,18 @@ void RISCVLDBackend::verifyAndRollbackCallRelaxations(bool &pFinished) {
       continue; // still in range, keep the JAL relaxation
 
     // Out of range: undo the JAL relaxation.
-    // The JALR bytes were deleted (committed) at R.relocOffset + 4.
+    // The JALR bytes were deleted (committed) after the AUIPC.
     // Reinsert 4 bytes at that position and restore original instructions.
-    R.region->insertInstruction(R.relocOffset + 4, 4);
+    R.region->insertInstruction(relocOffset + 4, 4);
 
-    // Restore AUIPC at R.relocOffset.
+    // Restore AUIPC at its current offset.
     uint32_t auipcCopy = R.auipcBytes;
-    R.region->replaceInstruction(R.relocOffset, R.reloc,
+    R.region->replaceInstruction(relocOffset, R.reloc,
                                  reinterpret_cast<uint8_t *>(&auipcCopy), 4);
     // Write JALR bytes into the reinserted space.
     uint32_t jalrCopy = R.jalrBytes;
-    std::memcpy(const_cast<char *>(R.region->getRegion().data()) +
-                    R.relocOffset + 4,
+    std::memcpy(const_cast<char *>(R.region->getRegion().data()) + relocOffset +
+                    4,
                 &jalrCopy, 4);
 
     R.reloc->setTargetData(R.auipcBytes);
@@ -405,7 +407,7 @@ void RISCVLDBackend::verifyAndRollbackCallRelaxations(bool &pFinished) {
     if (m_Module.getPrinter()->isVerbose())
       config().raise(Diag::relax_call_rolled_back)
           << R.reloc->symInfo()->name() << R.region->getOwningSection()->name()
-          << llvm::utohexstr(R.relocOffset)
+          << llvm::utohexstr(relocOffset)
           << R.region->getOwningSection()
                  ->getInputFile()
                  ->getInput()
