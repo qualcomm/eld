@@ -28,14 +28,13 @@ RUN: %link @%t1.extract/response.txt -o %t1.extract/rep.out
 RUN: %diff %t1.extract/rep.out %t1.out
 
 RESPONSE: --thread-count
-RESPONSE-NOT: original
-RESPONSE: Object{{[^ ]*}}replacement.o{{[^ ]*}}
-RESPONSE: --version-script {{.*}}VersionScript{{.*}}versionscript{{[^ ]*}}
-RESPONSE: --dynamic-list {{.*}}DynamicList{{.*}}list1{{[^ ]*}}
-RESPONSE: --extern-list {{.*}}ExternList{{.*}}externlist{{[^ ]*}}
-RESPONSE-NOT: original
+RESPONSE-NOT: replacement
+RESPONSE: Object{{[^ ]*}}original.o{{[^ ]*}}
+RESPONSE: --version-script {{.*}}VersionScript{{.*}}original.version{{[^ ]*}}
+RESPONSE: --dynamic-list {{.*}}DynamicList{{.*}}original.dynamic{{[^ ]*}}
+RESPONSE: --extern-list {{.*}}ExternList{{.*}}original.extern{{[^ ]*}}
 RESPONSE: --remap-inputs-file {{.*}}Config{{.*}}remap.txt{{.*}}
-RESPONSE-NOT: original
+RESPONSE-NOT: replacement
 MAPPING: [Config Files]
 MAPPING-NEXT: {{.*}}remap.txt{{.*}}=Config{{.*}}remap.txt{{.*}}
 #END_TEST
