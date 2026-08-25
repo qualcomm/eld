@@ -49,13 +49,15 @@ llvm::StringRef Input::toString(Input::InputType Type) {
 //===----------------------------------------------------------------------===//
 Input::Input(std::string PName, DiagnosticEngine *DiagEngine,
              Input::InputType PType)
-    : FileName(PName), Attr(), InputOrdinal(Order++), ResolvedPathHash(0),
-      MemberNameHash(0), Type(PType), DiagEngine(DiagEngine) {}
+    : FileName(PName), OriginalFileName(PName), Attr(), InputOrdinal(Order++),
+      ResolvedPathHash(0), MemberNameHash(0), Type(PType),
+      DiagEngine(DiagEngine) {}
 
 Input::Input(std::string PName, const Attribute &Attr,
              DiagnosticEngine *DiagEngine, Input::InputType PType)
-    : FileName(PName), Attr(Attr), InputOrdinal(Order++), ResolvedPathHash(0),
-      MemberNameHash(0), Type(PType), DiagEngine(DiagEngine) {}
+    : FileName(PName), OriginalFileName(PName), Attr(Attr),
+      InputOrdinal(Order++), ResolvedPathHash(0), MemberNameHash(0),
+      Type(PType), DiagEngine(DiagEngine) {}
 
 bool Input::resolvePathMappingFile(const LinkerConfig &PConfig) {
   // FileName is normally the hashed path from the reproduce response. When
@@ -117,7 +119,7 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
   if (auto Replacement = PConfig.options().findRemapInput(FileName)) {
     if (PConfig.getPrinter()->isVerbose())
       PConfig.raise(Diag::verbose_remap_input) << FileName << *Replacement;
-    OriginalFileName = FileName;
+    WasRemapped = true;
     FileName = std::move(*Replacement);
   }
   if (PConfig.options().hasMappingFile() && !isInternal())

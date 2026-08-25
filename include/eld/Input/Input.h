@@ -75,12 +75,12 @@ public:
   /// getFileName returns the FileName passed to the driver otherwise.
   const std::string getFileName() const { return FileName; }
 
-  /// getName for the Input class returns the FileName
-  /// getOriginalFileName returns the name before any --remap-inputs was
-  /// applied.
+  /// Return the name through which the linker received this input.
   const std::string &getOriginalFileName() const { return OriginalFileName; }
 
-  bool wasRemapped() const { return !OriginalFileName.empty(); }
+  void setOriginalFileName(std::string Name) { OriginalFileName = Name; }
+
+  bool wasRemapped() const { return WasRemapped; }
 
   /// getName for the Input class returns the FileName
   const std::string getName() const { return Name; }
@@ -203,9 +203,8 @@ protected:
   MemoryArea *MemArea = nullptr;
   std::string FileName;                      // Filename as what is passed to
                                              //   the linker
-  std::string Name;                          // Resolved Name or
-  std::string OriginalFileName;              // FileName before --remap-inputs
-                                             // Member Name or the SONAME.
+  std::string Name;                          // Resolved name, member name, or SONAME.
+  std::string OriginalFileName;              // Linker-visible input name.
   std::optional<sys::fs::Path> ResolvedPath; // Resolved path.
   Attribute Attr;                            // Attribute
   uint32_t InputOrdinal = 0;
@@ -214,6 +213,7 @@ protected:
   InputType Type = Default; // The type of input file.
   bool TraceMe = false;
   bool IsDefSym = false;
+  bool WasRemapped = false;
   DiagnosticEngine *DiagEngine = nullptr;
   InputFile *ParentScriptFile = nullptr; // Parent script for INPUT/GROUP inputs.
 
