@@ -248,6 +248,10 @@ bool ObjectLinker::readAndActivateLinkerScript(
       return true;
   }
 
+  // Capture scripts during early activation so the response file can rewrite
+  // -T paths that were resolved through a -L search directory.
+  addInputFileToTar(input, eld::MappingFile::LinkerScript);
+
   if (!parseLinkerScript(input))
     return false;
 

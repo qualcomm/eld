@@ -1,0 +1,22 @@
+#---ReproduceLinkerScriptSearchPath.test----------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# Checks that --reproduce rewrites a linker script found through a -L directory.
+#END_COMMENT
+#START_TEST
+RUN: %rm -rf %t.lib %t.reproduce %t.tar %t.out %t.replay.out
+RUN: %mkdir %t.lib
+RUN: %cp %p/Inputs/script1.t %t.lib/script.t
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.main.o
+RUN: cd %t.lib
+RUN: %link --no-threads -L %t.lib -T script.t %t.main.o -o %t.out --reproduce %t.tar --dump-response-file %t.response
+RUN: %filecheck %s < %t.response
+RUN: %mkdir %t.reproduce
+RUN: %tar %gnutaropts -xf %t.tar -C %t.reproduce --strip-components=1
+RUN: cd %t.reproduce
+RUN: %link --no-threads @response.txt -o %t.replay.out
+RUN: %diff %t.out %t.replay.out
+#END_TEST
+
+CHECK: -T LinkerScript/script.t.{{[0-9]+}}
+CHECK-NOT: -T script.t

@@ -1680,6 +1680,7 @@ bool GnuLdDriver::processReproduceOption(
   if (!Config.options().getDumpResponse())
     os << getProgramName() << " ";
   size_t lastNamespecId = -1;
+  size_t lastScriptId = -1;
 
   auto zArgsRange = Args.filtered(T::dash_z);
   auto zArgIt = zArgsRange.begin();
@@ -1727,7 +1728,6 @@ bool GnuLdDriver::processReproduceOption(
     }
     case T::output_file:
     case T::Map:
-    case T::T:
     case T::R:
     case T::dynamic_list:
     case T::extern_list:
@@ -1735,6 +1735,28 @@ bool GnuLdDriver::processReproduceOption(
       os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
          << ' ';
       break;
+    case T::T: {
+      bool rewritten = false;
+      for (size_t i = lastScriptId + 1; i < actions.size(); ++i) {
+        auto action = actions[i];
+        if (action->getInputActionKind() == eld::InputAction::Script) {
+          lastScriptId = i;
+          auto ipt = action->getInput();
+          if (ipt) {
+            std::string key = ipt->getInputFile()
+                                  ? ipt->getInputFile()->getMappedPath()
+                                  : ipt->getName();
+            os << arg->getSpelling() << ' ' << outputTar->rewritePath(key)
+               << ' ';
+            rewritten = true;
+          }
+          break;
+        }
+      }
+      if (!rewritten)
+        os << arg->getSpelling() << ' ' << arg->getValue() << ' ';
+      break;
+    }
     case T::remap_inputs:
       os << arg->getSpelling() << ' ' << arg->getValue() << ' ';
       break;
