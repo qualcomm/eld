@@ -2,9 +2,6 @@
 ## identical output, even with multithreaded scanning.
 
 # UNSUPPORTED: x86
-# XFAIL: *
-## GOT slot order is still whatever order the scan threads happen to arrive in.
-## Drop the XFAIL once slots are allocated in reference order.
 
 # RUN: rm -rf %t && split-file %s %t
 # RUN: %clang %clangopts -c -fPIC -ffunction-sections -fdata-sections %t/a.c -o %t/a.o

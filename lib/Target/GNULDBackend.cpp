@@ -1717,20 +1717,18 @@ ELFSection *GNULDBackend::getPLT() const { return PLTSection; }
 
 void GNULDBackend::initDynamicSections(ELFObjectFile &InputFile,
                                        const DynamicSectionLayout &Layout) {
+  if (GOTSection)
+    return;
+
   bool IsRela = Layout.RelType == llvm::ELF::SHT_RELA;
-  ELFSection &RelDyn = *m_Module.createInternalSection(
+  RelDynSection = m_Module.createInternalSection(
       InputFile, LDFileFormat::DynamicRelocation,
       IsRela ? ".rela.dyn" : ".rel.dyn", Layout.RelType, llvm::ELF::SHF_ALLOC,
       Layout.RelAlign);
-  ELFSection &RelPLT = *m_Module.createInternalSection(
+  RelPLTSection = m_Module.createInternalSection(
       InputFile, LDFileFormat::DynamicRelocation,
       IsRela ? ".rela.plt" : ".rel.plt", Layout.RelType, llvm::ELF::SHF_ALLOC,
       Layout.RelAlign);
-
-  if (GOTSection) {
-    InputFile.setDynamicRelocSections(RelDyn, RelPLT);
-    return;
-  }
 
   auto Create = [&](std::string Name, uint32_t Flags, uint32_t Align) {
     return m_Module.createInternalSection(InputFile, LDFileFormat::Internal,
@@ -1744,17 +1742,13 @@ void GNULDBackend::initDynamicSections(ELFObjectFile &InputFile,
              Layout.GOTPLTAlign);
   PLTSection = Create(".plt", llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR,
                       Layout.PLTAlign);
-  InputFile.setDynamicSections(*GOTSection, *GOTPLTSection, *PLTSection, RelDyn,
-                               RelPLT);
+  InputFile.setDynamicSections(*GOTSection, *GOTPLTSection, *PLTSection,
+                               *RelDynSection, *RelPLTSection);
 }
 
-ELFSection *GNULDBackend::getRelaDyn() const {
-  return m_DynamicSectionHeadersInputFile->getRelaDyn();
-}
+ELFSection *GNULDBackend::getRelaDyn() const { return RelDynSection; }
 
-ELFSection *GNULDBackend::getRelaPLT() const {
-  return m_DynamicSectionHeadersInputFile->getRelaPLT();
-}
+ELFSection *GNULDBackend::getRelaPLT() const { return RelPLTSection; }
 
 void GNULDBackend::reportErrorIfGOTIsDiscarded(ResolveInfo *R) const {
   ELFSection *GOT = getGOT();

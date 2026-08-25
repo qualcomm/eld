@@ -56,9 +56,9 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
   Relocation *rela_entry = nullptr;
 
   if (pType == R_AARCH64_TLSDESC)
-    rela_entry = Obj->getRelaPLT()->createOneReloc();
+    rela_entry = B.getRelaPLT()->createOneReloc();
   else
-    rela_entry = Obj->getRelaDyn()->createOneReloc();
+    rela_entry = B.getRelaDyn()->createOneReloc();
 
   rela_entry->setType(pType);
   rela_entry->setTargetRef(make<FragmentRef>(*F, pOffset));

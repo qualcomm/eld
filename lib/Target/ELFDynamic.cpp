@@ -264,6 +264,18 @@ void ELFDynamic::reserveEntries(GNULDBackend &pBackend, DynStrFragment *DynStr,
     pBackend.getDynStrSection()->setSize(DynStr->size());
 }
 
+/// Find the reserved GOTPLT0 slot in an output section
+static const GOT *findGOTPLT0(OutputSectionEntry *Out) {
+  if (!Out)
+    return nullptr;
+  for (RuleContainer *Rule : *Out)
+    if (ELFSection *RS = Rule->getSection())
+      for (Fragment *F : RS->getFragmentList())
+        if (auto *G = llvm::dyn_cast<GOT>(F); G && G->getType() == GOT::GOTPLT0)
+          return G;
+  return nullptr;
+}
+
 /// applyEntries - apply entries
 void ELFDynamic::applyEntries(GNULDBackend &pBackend,
                               const ELFSection *DynStrSect,
@@ -350,24 +362,8 @@ void ELFDynamic::applyEntries(GNULDBackend &pBackend,
       // fragment list is empty after merge and its addr field is stale, so find
       // the slot by walking the output section.
       uint64_t PLTGOTAddr = GOTPLT->addr();
-      if (OutputSectionEntry *Out = GOTPLT->getOutputSection())
-        for (RuleContainer *Rule : *Out) {
-          ELFSection *RS = Rule->getSection();
-          if (!RS)
-            continue;
-          const GOT *GotFrag = nullptr;
-          for (Fragment *F : RS->getFragmentList()) {
-            auto *G = llvm::dyn_cast<GOT>(F);
-            if (G && G->getType() == GOT::GOTPLT0) {
-              GotFrag = G;
-              break;
-            }
-          }
-          if (GotFrag) {
-            PLTGOTAddr = GotFrag->getAddr(m_Config.getDiagEngine());
-            break;
-          }
-        }
+      if (const GOT *G = findGOTPLT0(GOTPLT->getOutputSection()))
+        PLTGOTAddr = G->getAddr(m_Config.getDiagEngine());
       applyOne(llvm::ELF::DT_PLTGOT, PLTGOTAddr);
     }
 

@@ -408,7 +408,7 @@ x86_64PLT *x86_64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
   x86_64PLTN *pltn = llvm::cast<x86_64PLTN>(P);
   pltn->setRelocIndex(m_RelaPLTIndex);
 
-  Relocation &rela_entry = *Obj->getRelaPLT()->createOneReloc();
+  Relocation &rela_entry = *getRelaPLT()->createOneReloc();
   rela_entry.setType(isIRelative ? llvm::ELF::R_X86_64_IRELATIVE
                                  : llvm::ELF::R_X86_64_JUMP_SLOT);
   rela_entry.setTargetRef(make<FragmentRef>(*P->getGOT(), 0));

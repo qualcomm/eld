@@ -81,7 +81,7 @@ static Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
                                       ResolveInfo *pSym, Fragment *F,
                                       uint32_t pOffset, Relocator::Type pType,
                                       ARMGNULDBackend &B) {
-  Relocation *rel_entry = Obj->getRelaDyn()->createOneReloc();
+  Relocation *rel_entry = B.getRelaDyn()->createOneReloc();
   rel_entry->setType(pType);
   rel_entry->setTargetRef(make<FragmentRef>(*F, pOffset));
   rel_entry->setSymInfo(pSym);

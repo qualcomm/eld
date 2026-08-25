@@ -637,8 +637,15 @@ bool ARMGNULDBackend::finalizeScanRelocations() {
   // holds the address of PLT[ifunc]. GOT references then resolve to this slot
   // rather than the GOTPLT slot, so that the GOT-loaded pointer equals the
   // direct-reference pointer (pointer equality).
-  for (auto &[symInfo, plt] : m_PLTMap) {
-    if (!symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
+  if (!getPLT())
+    return true;
+
+  for (Fragment *F : getPLT()->getFragmentList()) {
+    auto *plt = llvm::dyn_cast<ARMPLT>(F);
+    if (!plt)
+      continue;
+    ResolveInfo *symInfo = plt->symInfo();
+    if (!symInfo || !symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
         !symInfo->hasIFuncNeedsGOT())
       continue;
     ARMGOT *G = createGOT(GOT::Regular, nullptr, symInfo);
@@ -1121,7 +1128,7 @@ ARMPLT *ARMGNULDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
       *m_Module.getIRBuilder(),
       createGOT(GOT::GOTPLTN, Obj, R, hasNow || isIRelative), getPLT(), R);
   // init the corresponding rel entry in .rel.plt
-  Relocation *rel_entry = Obj->getRelaPLT()->createOneReloc();
+  Relocation *rel_entry = getRelaPLT()->createOneReloc();
   rel_entry->setType(isIRelative ? llvm::ELF::R_ARM_IRELATIVE
                                  : llvm::ELF::R_ARM_JUMP_SLOT);
   rel_entry->setTargetRef(make<FragmentRef>(*P->getGOT(), 0));
@@ -1189,7 +1196,6 @@ void ARMGNULDBackend::setDefaultConfigs() {
   if (config().options().threadsEnabled() &&
       !config().isGlobalThreadingEnabled()) {
     config().disableThreadOptions(
-        LinkerConfig::EnableThreadsOpt::ScanRelocations |
         LinkerConfig::EnableThreadsOpt::ApplyRelocations |
         LinkerConfig::EnableThreadsOpt::LinkerRelaxation);
   }

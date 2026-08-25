@@ -1018,7 +1018,7 @@ HexagonPLT *HexagonLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
   HexagonPLT *P = HexagonPLTN::Create(
       *m_Module.getIRBuilder(), createGOT(GOT::GOTPLTN, Obj, R), getPLT(), R);
   // init the corresponding rel entry in .rela.plt
-  Relocation &rela_entry = *Obj->getRelaPLT()->createOneReloc();
+  Relocation &rela_entry = *getRelaPLT()->createOneReloc();
   rela_entry.setType(llvm::ELF::R_HEX_JMP_SLOT);
   Fragment *F = P->getGOT();
   rela_entry.setTargetRef(make<FragmentRef>(*F, 0));

@@ -48,8 +48,6 @@ public:
   void setDynamicSections(ELFSection &GOT, ELFSection &GOTPLT, ELFSection &PLT,
                           ELFSection &RelDyn, ELFSection &RelPLT);
 
-  void setDynamicRelocSections(ELFSection &RelDyn, ELFSection &RelPLT);
-
   ELFSection *getRelaDyn() const { return RelaDyn; }
   ELFSection *getRelaPLT() const { return RelaPLT; }
 

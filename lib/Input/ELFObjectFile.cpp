@@ -44,14 +44,6 @@ void ELFObjectFile::setDynamicSections(ELFSection &PGOT, ELFSection &PGOTPLT,
   RelaPLT->setExcludedFromGC();
 }
 
-void ELFObjectFile::setDynamicRelocSections(ELFSection &PRelDyn,
-                                            ELFSection &PRelPLT) {
-  RelaDyn = &PRelDyn;
-  RelaPLT = &PRelPLT;
-  RelaDyn->setExcludedFromGC();
-  RelaPLT->setExcludedFromGC();
-}
-
 void ELFObjectFile::createDWARFContext(bool Is32) {
   if (DebugSections.empty())
     return;
