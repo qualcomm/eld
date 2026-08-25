@@ -1,0 +1,53 @@
+## Checks DT_PLTGOT when a linker script merges .got and .got.plt into one
+## output section. The GOTPLT0 slot is no longer at the start of the merged
+## section, so DT_PLTGOT must point at the slot rather than the section base.
+
+# RUN: split-file %s %t
+# RUN: %clang %clangopts -c -fPIC %t/lib.c -o %t/lib.o
+# RUN: %clang %clangopts -c -fPIC %t/main.c -o %t/main.o
+# RUN: %link %linkopts -shared %t/lib.o -o %t/lib.so
+
+## .got holds the slot for gv and precedes .got.plt in the merged section, so
+## the GOTPLT0 slot sits at a non-zero offset from the section base.
+# RUN: %link %linkopts -shared -T %t/merge.t %t/main.o %t/lib.so -o %t/merge.so
+# RUN: %readelf -SW --dynamic %t/merge.so > %t/merge.txt
+# RUN: %filecheck %s --check-prefix=MERGE --input-file=%t/merge.txt
+
+# MERGE-DAG: ] .gotall {{ *}}PROGBITS {{0*}}[[BASE:[0-9a-f]+]]
+# MERGE-DAG: (PLTGOT) {{ *}}0x[[PLTGOT:[0-9a-f]+]]
+# MERGE-NOT: (PLTGOT) {{ *}}0x[[BASE]]{{$}}
+
+## With .got.plt first, GOTPLT0 is at the section base and DT_PLTGOT matches it.
+# RUN: %link %linkopts -shared -T %t/pltfirst.t %t/main.o %t/lib.so -o %t/pltfirst.so
+# RUN: %readelf -SW --dynamic %t/pltfirst.so > %t/pltfirst.txt
+# RUN: %filecheck %s --check-prefix=PLTFIRST --input-file=%t/pltfirst.txt
+
+# PLTFIRST-DAG: ] .gotall {{ *}}PROGBITS {{0*}}[[GBASE:[0-9a-f]+]]
+# PLTFIRST-DAG: (PLTGOT) {{ *}}0x[[GBASE]]
+
+#--- merge.t
+SECTIONS {
+  . = 0x1000;
+  .text : { *(.text*) }
+  .plt : { *(.plt) }
+  .gotall : { *(.got) *(.got.plt) }
+  .dynamic : { *(.dynamic) }
+}
+
+#--- pltfirst.t
+SECTIONS {
+  . = 0x1000;
+  .text : { *(.text*) }
+  .plt : { *(.plt) }
+  .gotall : { *(.got.plt) *(.got) }
+  .dynamic : { *(.dynamic) }
+}
+
+#--- lib.c
+int gv = 1;
+int fn(void) { return 2; }
+
+#--- main.c
+extern int gv;
+int fn(void);
+int g(void) { return gv + fn(); }

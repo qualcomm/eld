@@ -2422,8 +2422,15 @@ bool RISCVLDBackend::finalizeScanRelocations() {
 
   bool is32Bits = config().targets().is32Bits();
 
-  for (auto &[symInfo, plt] : m_PLTMap) {
-    if (!symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
+  if (!getPLT())
+    return true;
+
+  for (Fragment *F : getPLT()->getFragmentList()) {
+    auto *plt = llvm::dyn_cast<RISCVPLT>(F);
+    if (!plt)
+      continue;
+    ResolveInfo *symInfo = plt->symInfo();
+    if (!symInfo || !symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
         !symInfo->hasIFuncNeedsGOT())
       continue;
 
@@ -2554,7 +2561,7 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
   Relocation *dynRel =
       Relocation::Create(relocType, is32Bits ? 32 : 64, make<FragmentRef>(*G));
   dynRel->setSymInfo(R);
-  Obj->getRelaPLT()->addRelocation(dynRel);
+  getRelaPLT()->addRelocation(dynRel);
   return P;
 }
 
@@ -2690,7 +2697,6 @@ void RISCVLDBackend::setDefaultConfigs() {
   if (config().options().threadsEnabled() &&
       !config().isGlobalThreadingEnabled()) {
     config().disableThreadOptions(
-        LinkerConfig::EnableThreadsOpt::ScanRelocations |
         LinkerConfig::EnableThreadsOpt::ApplyRelocations |
         LinkerConfig::EnableThreadsOpt::LinkerRelaxation);
   }

@@ -523,8 +523,15 @@ bool AArch64LDBackend::finalizeScanRelocations() {
   if (!Obj)
     return true;
 
-  for (auto &[symInfo, plt] : m_PLTMap) {
-    if (!symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
+  if (!getPLT())
+    return true;
+
+  for (Fragment *F : getPLT()->getFragmentList()) {
+    auto *plt = llvm::dyn_cast<AArch64PLT>(F);
+    if (!plt)
+      continue;
+    ResolveInfo *symInfo = plt->symInfo();
+    if (!symInfo || !symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
         !symInfo->hasIFuncNeedsGOT())
       continue;
 
@@ -745,7 +752,7 @@ AArch64PLT *AArch64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
       *m_Module.getIRBuilder(), createGOT(GOT::GOTPLTN, Obj, R, isIRelative),
       getPLT(), R);
   // init the corresponding rel entry in .rela.plt
-  Relocation &rela_entry = *Obj->getRelaPLT()->createOneReloc();
+  Relocation &rela_entry = *getRelaPLT()->createOneReloc();
   rela_entry.setType(isIRelative ? llvm::ELF::R_AARCH64_IRELATIVE
                                  : llvm::ELF::R_AARCH64_JUMP_SLOT);
   rela_entry.setTargetRef(make<FragmentRef>(*P->getGOT(), 0));

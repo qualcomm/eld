@@ -1297,6 +1297,8 @@ protected:
   ELFSection *GOTSection = nullptr;
   ELFSection *GOTPLTSection = nullptr;
   ELFSection *PLTSection = nullptr;
+  ELFSection *RelDynSection = nullptr;
+  ELFSection *RelPLTSection = nullptr;
   LDSymbol *m_pGOTSymbol = nullptr;
   llvm::DenseMap<const Relocation *, Relocation *> m_RelativeRelocMap;
 
