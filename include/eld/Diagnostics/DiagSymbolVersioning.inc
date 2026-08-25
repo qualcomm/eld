@@ -36,8 +36,5 @@ DIAG(error_default_versioned_undef_ref, DiagnosticEngine::Error,
      "%0: '%1' uses '@@' but is an undefined reference; "
      "'@@' is only valid on definitions")
 
-DIAG(error_local_versioned_symbol_unsupported, DiagnosticEngine::Error,
-     "%0: local versioned symbol '%1' is not supported")
-
 DIAG(trace_object_versioned_symbol, DiagnosticEngine::Trace,
      "Inserted versioned symbol '%0' from '%1'")

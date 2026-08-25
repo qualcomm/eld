@@ -6,8 +6,6 @@ REQUIRES: symbol_versioning
 #   MalformedLeadingAt - literal `@V1` (no base before `@`).
 #   UndefDoubleAt      - UND reference named `foo@@V1` (`@@` is for
 #                        definitions only).
-#   LocalVersioned     - STB_LOCAL binding on `bar@V1` (local versioned
-#                        symbols are unsupported in this work).
 #
 # Inputs are target-agnostic hand-written .s files under Inputs/ that use
 # only .data / .globl / .byte / .long / quoted symbol names.
@@ -16,7 +14,6 @@ REQUIRES: symbol_versioning
 RUN: %clang %clangopts -o %t.malformed_doubleat.o    -c %p/Inputs/malformed_doubleat_no_version.s
 RUN: %clang %clangopts -o %t.malformed_leading_at.o  -c %p/Inputs/malformed_leading_at.s
 RUN: %clang %clangopts -o %t.undef_doubleat.o        -c %p/Inputs/undef_doubleat.s
-RUN: %clang %clangopts -o %t.local_versioned.o       -c %p/Inputs/local_versioned.s
 
 ## Case 1: literal `foo@@` (no version after `@@`) is malformed.
 RUN: %not %link %linkopts -o %t.malformed_doubleat.so %t.malformed_doubleat.o \
@@ -36,9 +33,4 @@ RUN:     -shared --version-script %p/Inputs/vs_v1.t 2>&1 \
 RUN:   | %filecheck %s --check-prefix=UndefDoubleAt
 UndefDoubleAt: {{.*}}undef_doubleat.o: 'foo@@V1' uses '@@' but is an undefined reference
 
-## Case 4: STB_LOCAL binding on `bar@V1` (local versioned unsupported).
-RUN: %not %link %linkopts -o %t.local_versioned.so %t.local_versioned.o \
-RUN:     -shared --version-script %p/Inputs/vs_v1.t 2>&1 \
-RUN:   | %filecheck %s --check-prefix=LocalVersioned
-LocalVersioned: {{.*local_versioned.o}}: local versioned symbol 'bar@V1' is not supported
 #END_TEST
