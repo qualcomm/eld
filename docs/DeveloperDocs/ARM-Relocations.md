@@ -70,6 +70,7 @@ movt r0, #:upper16:symbol   @ R_ARM_THM_MOVT_ABS
 | `R_ARM_THM_MOVW_BREL_NC` | `((S + A) \| T) - B(S)` | `[15:0]` | none |
 | `R_ARM_THM_MOVW_BREL` | `((S + A) \| T) - B(S)` | `[15:0]` | none |
 | `R_ARM_ALU_PC_G0` | `((S + A) \| T) - P` | top 8 bits, 4-bit rotation | none |
+| `R_ARM_LDR_PC_G2` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
 
 `R_ARM_SBREL32` uses the same handler as `R_ARM_REL32` but produces a segment-base-relative offset. `R_ARM_PREL31` is used in ARM exception table entries.
 
@@ -164,7 +165,6 @@ The table below lists every relocation that ELD's ARM backend maps to the `unsup
 | 60 | `R_ARM_ALU_PC_G1` | Group reloc — ALU PC-relative G1 | Implement ALU_PC_G group |
 | 61 | `R_ARM_ALU_PC_G2` | Group reloc — ALU PC-relative G2 | Implement ALU_PC_G group |
 | 62 | `R_ARM_LDR_PC_G1` | Group reloc — LDR PC-relative G1 | Implement LDR PC-group |
-| 63 | `R_ARM_LDR_PC_G2` | Group reloc — LDR PC-relative G2 | Implement LDR PC-group |
 | 64 | `R_ARM_LDRS_PC_G0` | Group reloc — LDRD/STRD PC-relative G0 | Implement LDRS PC-group |
 | 65 | `R_ARM_LDRS_PC_G1` | Group reloc — LDRD/STRD PC-relative G1 | Implement LDRS PC-group |
 | 66 | `R_ARM_LDRS_PC_G2` | Group reloc — LDRD/STRD PC-relative G2 | Implement LDRS PC-group |

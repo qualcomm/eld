@@ -49,6 +49,7 @@
   DECL_ARM_APPLY_RELOC_FUNC(thm_jump11)                                        \
   DECL_ARM_APPLY_RELOC_FUNC(thm_jump19)                                        \
   DECL_ARM_APPLY_RELOC_FUNC(alu_pc)                                            \
+  DECL_ARM_APPLY_RELOC_FUNC(ldr_pc_g2)                                         \
   DECL_ARM_APPLY_RELOC_FUNC(relocAddPREL1)                                     \
   DECL_ARM_APPLY_RELOC_FUNC(relocAddPREL2)                                     \
   DECL_ARM_APPLY_RELOC_FUNC(relocLDR12)                                        \
@@ -100,7 +101,7 @@
       {&unsupport, 60, "R_ARM_ALU_PC_G1"},                                     \
       {&unsupport, 61, "R_ARM_ALU_PC_G2"},                                     \
       {&unsupport, 62, "R_ARM_LDR_PC_G1"},                                     \
-      {&unsupport, 63, "R_ARM_LDR_PC_G2"},                                     \
+      {&ldr_pc_g2, 63, "R_ARM_LDR_PC_G2"},                                     \
       {&unsupport, 64, "R_ARM_LDRS_PC_G0"},                                    \
       {&unsupport, 65, "R_ARM_LDRS_PC_G1"},                                    \
       {&unsupport, 66, "R_ARM_LDRS_PC_G2"},                                    \

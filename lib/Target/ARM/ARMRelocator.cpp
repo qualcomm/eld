@@ -61,6 +61,18 @@ static inline void helper_clear_thumb_bit(Relocator::Address &pValue) {
   pValue &= (~0x1);
 }
 
+static uint32_t helper_get_rem_for_group(unsigned pGroup, uint32_t pValue) {
+  uint32_t Rem;
+  do {
+    uint32_t LZ = llvm::countl_zero(pValue) & ~1;
+    Rem = pValue;
+    if (LZ == 32)
+      break;
+    pValue &= 0xffffff >> LZ;
+  } while (pGroup--);
+  return Rem;
+}
+
 // Get an relocation entry in .rel.dyn and set its type to pType,
 // its FragmentRef to pReloc->targetFrag() and its ResolveInfo to
 // pReloc->symInfo()
@@ -946,6 +958,43 @@ void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
 // R_ARM_NONE
 Relocator::Result none(Relocation &pReloc, ARMRelocator &pParent) {
   return Relocator::OK;
+}
+
+static Relocator::Result ldr_pc_group(Relocation &pReloc, ARMRelocator &pParent,
+                                      unsigned pGroup) {
+  Relocator::Address S = pParent.getSymValue(&pReloc);
+  Relocator::Address P = pReloc.place(pParent.module());
+  if (getThumbBit(pParent, pReloc, /*IsJump*/ false))
+    helper_clear_thumb_bit(S);
+
+  // Extract the signed addend encoded by the LDR literal immediate.
+  // Bit 23 is the U bit: set means +imm12, clear means -imm12.
+  Relocator::DWord I = pReloc.target();
+  Relocator::DWord U = 0x00800000;
+  Relocator::DWord A = (I & U) ? (I & 0xfff) : -static_cast<int64_t>(I & 0xfff);
+  A += pReloc.addend();
+
+  // Compute the PC-relative displacement, then choose the output U bit from
+  // its sign while encoding the absolute magnitude.
+  Relocator::DWord X = S + A - P;
+  if (static_cast<int64_t>(X) < 0) {
+    U = 0x0;
+    X = -static_cast<int64_t>(X);
+  }
+
+  // R_ARM_LDR_PC_Gn encodes the group residual in the imm12 field.
+  uint32_t Imm = helper_get_rem_for_group(pGroup, X);
+  if (!llvm::isUInt<12>(Imm))
+    return checkUnsignedRange(pReloc, pParent, Imm, 12);
+
+  // Preserve the instruction opcode/register fields and replace only U+imm12.
+  pReloc.target() = (I & 0xff7ff000) | U | Imm;
+  return Relocator::OK;
+}
+
+// R_ARM_LDR_PC_G2: S + A - P
+Relocator::Result ldr_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldr_pc_group(pReloc, pParent, 2);
 }
 
 // R_ARM_ABS32: (S + A) | T
