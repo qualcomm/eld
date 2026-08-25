@@ -5490,6 +5490,9 @@ void GNULDBackend::initSymbolVersioningSections() {
 
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 std::string GNULDBackend::getSymbolTableName(const ResolveInfo &R) const {
+  if (R.isLocal())
+    return std::string(R.getName());
+
   if (!R.hasVersionInName())
     return std::string(R.getName());
 
