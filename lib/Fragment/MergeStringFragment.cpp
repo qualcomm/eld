@@ -69,9 +69,7 @@ size_t MergeStringFragment::size() const {
 }
 
 const MergeableString *MergeStringFragment::findString(uint64_t Offset) const {
-  /// FIXME: This case should ideally assert or error rather than return nullptr
-  if (Offset >= getOwningSection()->size())
-    return nullptr;
+  assert(Offset < getOwningSection()->size());
   return &llvm::partition_point(Strings, [Offset](const MergeableString &S) {
             return S.InputOffset <= Offset;
           })[-1];

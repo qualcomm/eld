@@ -194,3 +194,6 @@ DIAG(err_remap_inputs_bad_format, DiagnosticEngine::Error,
      "invalid --remap-inputs value %0: expected pattern=filename")
 DIAG(err_remap_inputs_file_not_found, DiagnosticEngine::Error,
      "cannot open --remap-inputs-file %0: %1")
+DIAG(warn_merge_string_offset_beyond_end, DiagnosticEngine::Warning,
+     "Offset %0 is past the %1 section size (%2); clamped the value to the "
+     "output section '%3' end")
