@@ -1,0 +1,24 @@
+#---R_ARM_ALU_PC_G1_NC.test--------------------- Executable -------------------#
+#BEGIN_COMMENT
+# This tests that R_ARM_ALU_PC_G1_NC patches the ADD immediate (rotate + imm8)
+# field with the group-1 residual and silently truncates a group-1 residual
+# that does not fit the modified-immediate field instead of reporting an
+# unencodable-immediate error.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts -march arm -T %p/Inputs/valid.t %t1.1.o -o %t2.out
+RUN: %objdump -d --triple=armv7a-none-eabi %t2.out | %filecheck %s --check-prefix=VALID
+
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t3.1.o
+RUN: %link %linkopts -march arm -T %p/Inputs/overflow.t %t3.1.o -o %t4.out 2>&1 | %filecheck %s --check-prefix=NOERROR --allow-empty
+RUN: %objdump -d --triple=armv7a-none-eabi %t4.out | %filecheck %s --check-prefix=TRUNC
+
+#VALID:      00800028 <_start>:
+#VALID-NEXT:   800028: e2800cf0 add r0, r0, #240, #24
+
+#NOERROR-NOT: unencodable immediate
+
+#TRUNC:      00800028 <_start>:
+#TRUNC-NEXT:   800028: e2800cf0 add r0, r0, #240, #24
+#END_TEST

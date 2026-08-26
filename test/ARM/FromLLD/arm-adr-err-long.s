@@ -3,7 +3,7 @@
 // RUN: llvm-mc --triple=armv7a-none-eabi --arm-add-build-attributes -filetype=obj -o %t.o %t/asm
 // RUN: not %link --script %t/lds %t.o -o /dev/null 2>&1 | %filecheck %s
 
-// FIXME: Only R_ARM_ALU_PC_G0 is enabled.
+// FIXME: R_ARM_LDRS_PC_G2 is unsupported
 
 //--- lds
 SECTIONS {
@@ -28,29 +28,29 @@ _start:
  .inst 0xe2400004 // sub r0, r0, #4
  .reloc 0, R_ARM_ALU_PC_G0, dat1
 // CHECK: Error: {{.*}}.o:(.text.1): unencodable immediate 7340040 for relocation 'R_ARM_ALU_PC_G0' referencing 'dat1
-// FIXME .reloc 4, R_ARM_ALU_PC_G1, dat1
+ .reloc 4, R_ARM_ALU_PC_G1, dat1
 
  .inst 0xe24f1008 // sub r1, pc, #8
  .inst 0xe2411004 // sub r1, r1, #4
  .inst 0xe2411000 // sub r1, r1, #0
-// FIXME .reloc 8, R_ARM_ALU_PC_G0_NC, dat2
-// FIXME .reloc 12, R_ARM_ALU_PC_G1, dat2
-// FIXME: {{.*}}.s.tmp.o:(.text.1+0xc): unencodeable immediate 244252656 for relocation R_ARM_ALU_PC_G1
-// FIXME .reloc 16, R_ARM_ALU_PC_G2, dat2
+ .reloc 8, R_ARM_ALU_PC_G0_NC, dat2
+ .reloc 12, R_ARM_ALU_PC_G1, dat2
+// CHECK: Error: {{.*}}.o:(.text.1+0xc): unencodable immediate 244252656 for relocation 'R_ARM_ALU_PC_G1' referencing 'dat2'
+ .reloc 16, R_ARM_ALU_PC_G2, dat2
 
  .inst 0xe24f0008 // sub r0, pc, #8
  .inst 0xe2400004 // sub r0, r0, #4
  .inst 0xe2400000 // sub r0, r0, #0
  .reloc 20, R_ARM_ALU_PC_G0, dat1
 // CHECK: Error: {{.*}}.o:(.text.1+0x14): unencodable immediate 7340060 for relocation 'R_ARM_ALU_PC_G0'
-// FIXME .reloc 24, R_ARM_ALU_PC_G1, dat1
-// FIXME .reloc 28, R_ARM_ALU_PC_G2, dat1
+ .reloc 24, R_ARM_ALU_PC_G1, dat1
+ .reloc 28, R_ARM_ALU_PC_G2, dat1
 
  .inst 0xe24f0008 // sub r0, pc, #8
  .inst 0xe2400004 // sub r0, r0, #4
  .inst 0xe1c000d0 // ldrd r0, r1, [r0, #0]
-// FIXME .reloc 32, R_ARM_ALU_PC_G0_NC, dat2
-// FIXME .reloc 36, R_ARM_ALU_PC_G1_NC, dat2
+ .reloc 32, R_ARM_ALU_PC_G0_NC, dat2
+ .reloc 36, R_ARM_ALU_PC_G1_NC, dat2
 // FIXME: {{.*}}.s.tmp.o:(.text.1+0x28): relocation R_ARM_LDRS_PC_G2 out of range: 4056 is not in [0, 255]; references dat2
 // FIXME .reloc 40, R_ARM_LDRS_PC_G2, dat2
 
