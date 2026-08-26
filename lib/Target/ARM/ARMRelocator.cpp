@@ -1287,9 +1287,12 @@ Relocator::Result thm_jump19(Relocation &pReloc, ARMRelocator &pParent) {
   return Relocator::OK;
 }
 
-// R_ARM_ALU_PC_G0: ((S + A) | T) - P
-Relocator::Result alu_pc(Relocation &pReloc, ARMRelocator &pParent) {
-  // perform static relocation
+// R_ARM_ALU_PC_Gn / R_ARM_ALU_PC_Gn_NC: ((S + A) | T) - P
+// Shared worker for the whole ALU_PC group family. pGroup selects which
+// group's residual to encode and pCheck selects whether encoding failure is
+// reported (false for the _NC variants, which silently truncate instead).
+static Relocator::Result alu_pc_group(Relocation &pReloc, ARMRelocator &pParent,
+                                      unsigned pGroup, bool pCheck) {
   Relocator::Address S = pParent.getSymValue(&pReloc);
   Relocator::DWord T = getThumbBit(pParent, pReloc, /*IsJump*/ false);
   Relocator::Address P = pReloc.place(pParent.module());
@@ -1318,25 +1321,45 @@ Relocator::Result alu_pc(Relocation &pReloc, ARMRelocator &pParent) {
     Imm = -Imm;
   }
 
-  if (X) {
-    // Find the current value bit length and the value K_n.
-    unsigned L = llvm::bit_width<uint32_t>(X);
-    unsigned K = (L < 8 ? 0 : L - 7) >> 1;
-    // Encode the shifted immediate.
-    I |= ((X >> (K * 2)) & 0xff) | ((16 - K) & 0xf) << 8;
-    // Mask off used bits, the residual will be needed for other groups.
-    X &= llvm::maskTrailingOnes<uint32_t>(K * 2);
-    // For higher groups, the above is repeated.
-    // If there is still residual, the value cannot be represented.
-    if (X) {
-      pReloc.issueUnencodableImmediate(pParent, Imm);
-      return Relocator::BadImm;
-    }
+  // R_ARM_ALU_PC_Gn encodes the group residual as a modified immediate
+  // (4-bit even rotate + 8-bit constant).
+  uint32_t Rem = helper_get_rem_for_group(pGroup, X);
+  unsigned LZ = llvm::countl_zero(Rem) & ~1u;
+  uint32_t RotImm = Rem;
+  uint32_t Rot = 0;
+  if (LZ < 24) {
+    RotImm = llvm::rotr<uint32_t>(Rem, 24 - LZ);
+    Rot = (LZ + 8) << 7;
   }
 
-  pReloc.target() = I;
+  if (pCheck && RotImm > 0xff) {
+    pReloc.issueUnencodableImmediate(pParent, Imm);
+    return Relocator::BadImm;
+  }
+
+  pReloc.target() = I | Rot | (RotImm & 0xff);
 
   return Relocator::OK;
+}
+
+Relocator::Result alu_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
+  return alu_pc_group(pReloc, pParent, /*pGroup=*/0, /*pCheck=*/true);
+}
+
+Relocator::Result alu_pc_g0_nc(Relocation &pReloc, ARMRelocator &pParent) {
+  return alu_pc_group(pReloc, pParent, /*pGroup=*/0, /*pCheck=*/false);
+}
+
+Relocator::Result alu_pc_g1(Relocation &pReloc, ARMRelocator &pParent) {
+  return alu_pc_group(pReloc, pParent, /*pGroup=*/1, /*pCheck=*/true);
+}
+
+Relocator::Result alu_pc_g1_nc(Relocation &pReloc, ARMRelocator &pParent) {
+  return alu_pc_group(pReloc, pParent, /*pGroup=*/1, /*pCheck=*/false);
+}
+
+Relocator::Result alu_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
+  return alu_pc_group(pReloc, pParent, /*pGroup=*/2, /*pCheck=*/true);
 }
 
 // R_ARM_PC24: ((S + A) | T) - P
