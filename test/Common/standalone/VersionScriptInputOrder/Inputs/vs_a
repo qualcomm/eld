@@ -1,0 +1,4 @@
+VER_A {
+  global:
+    alpha*;
+};

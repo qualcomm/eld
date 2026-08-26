@@ -52,13 +52,25 @@ bool GroupReader::readGroup(InputBuilder::InputIteratorT &CurNode,
     if (!Input->resolvePath(PConfig))
       return false;
 
+    if (Input->getInputFile() &&
+        Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
+      auto *LSFile =
+          llvm::dyn_cast<eld::LinkerScriptFile>(Input->getInputFile());
+      if (LSFile->isVersionScript()) {
+        if (!MObjLinker->readVersionScriptFile(LSFile))
+          return false;
+        ++CurNode;
+        continue;
+      }
+    }
     if (!MObjLinker->readAndProcessInput(Input, IsPostLtoPhase))
       return false;
-
-    if (Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
-      if (!MObjLinker->readInputs(
-              llvm::dyn_cast<eld::LinkerScriptFile>(Input->getInputFile())
-                  ->getNodes()))
+    if (Input->getInputFile() &&
+        Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
+      auto *LSFile =
+          llvm::dyn_cast<eld::LinkerScriptFile>(Input->getInputFile());
+      if (!LSFile->isVersionScript() &&
+          !MObjLinker->readInputs(LSFile->getNodes()))
         return false;
     }
 

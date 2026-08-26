@@ -15,6 +15,7 @@
 //===----------------------------------------------------------------------===//
 #include "eld/Script/ScriptAction.h"
 #include "eld/Config/LinkerConfig.h"
+#include "eld/Input/InputBuilder.h"
 #include "eld/Input/LinkerScriptFile.h"
 #include "eld/Input/SearchDirs.h"
 #include "eld/Support/MsgHandling.h"
@@ -59,7 +60,7 @@ bool ScriptAction::activate(InputBuilder &PBuilder) {
     Path = Res->native();
   }
   setFileName(Path);
-  InputFileAction::activate(PBuilder);
+  I = PBuilder.createInputNode(Name);
 
   // Resolve the path so that the appropriate file has been read and the memory
   // area created for it.
@@ -68,7 +69,8 @@ bool ScriptAction::activate(InputBuilder &PBuilder) {
 
   // Create an InputFile and set the Input back.
   LinkerScriptFile *LSFile =
-      make<eld::LinkerScriptFile>(I, ThisConfig.getDiagEngine());
+      make<eld::LinkerScriptFile>(I, ThisConfig.getDiagEngine(),
+                                  ScriptFileKind);
   I->setInputFile(LSFile);
 
   return true;

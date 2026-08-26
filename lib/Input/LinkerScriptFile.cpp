@@ -9,8 +9,10 @@
 
 using namespace eld;
 
-LinkerScriptFile::LinkerScriptFile(Input *I, DiagnosticEngine *DiagEngine)
-    : InputFile(I, DiagEngine, InputFile::GNULinkerScriptKind) {
+LinkerScriptFile::LinkerScriptFile(Input *I, DiagnosticEngine *DiagEngine,
+                                   ScriptFile::Kind ScriptKind)
+    : InputFile(I, DiagEngine, InputFile::GNULinkerScriptKind),
+      ScriptKind(ScriptKind) {
   if (I->getSize())
     Contents = I->getFileContents();
 }

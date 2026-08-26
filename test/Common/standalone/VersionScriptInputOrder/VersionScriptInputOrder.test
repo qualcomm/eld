@@ -1,0 +1,63 @@
+REQUIRES: symbol_versioning
+#---VersionScriptInputOrder.test-----------------------------------------------#
+#BEGIN_COMMENT
+# Verify that version nodes from --version-script files and VERSION{} blocks
+# embedded in -T linker scripts are ordered by command-line position.
+# Overlapping wildcards use last-wins; the winning node name reveals order.
+# Also verify --version-script is not added as a --start-lib/--end-lib member.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fpic -O2 %p/Inputs/symbols.c -o %t.o
+
+RUN: %link %linkopts -shared -o %t.vsfirst.so %t.o \
+RUN:   --version-script=%p/Inputs/vs_a -T %p/Inputs/script_b.lds
+RUN: %readelf --dyn-syms %t.vsfirst.so | %filecheck --check-prefix=VSFIRST %s
+
+RUN: %link %linkopts -shared -o %t.tfirst.so %t.o \
+RUN:   -T %p/Inputs/script_b.lds --version-script=%p/Inputs/vs_a
+RUN: %readelf --dyn-syms %t.tfirst.so | %filecheck --check-prefix=TFIRST %s
+
+RUN: %link %linkopts -shared -o %t.multivs.so %t.o \
+RUN:   --version-script=%p/Inputs/z_first \
+RUN:   --version-script=%p/Inputs/a_second
+RUN: %readelf --dyn-syms %t.multivs.so | %filecheck --check-prefix=MULTIVS %s
+
+RUN: %link %linkopts -shared -o %t.multivs2.so %t.o \
+RUN:   --version-script=%p/Inputs/a_second \
+RUN:   --version-script=%p/Inputs/z_first
+RUN: %readelf --dyn-syms %t.multivs2.so | %filecheck --check-prefix=MULTIVS2 %s
+
+RUN: %link %linkopts -shared -o %t.embedonly.so %t.o \
+RUN:   -T %p/Inputs/script_local.lds
+RUN: %readelf --dyn-syms %t.embedonly.so | %filecheck --check-prefix=EMBEDONLY %s
+
+RUN: %link %linkopts -shared --whole-archive --start-lib %t.o \
+RUN:   --version-script=%p/Inputs/vs_a --end-lib --no-whole-archive \
+RUN:   -o %t.startlib.so
+RUN: %readelf --dyn-syms %t.startlib.so | %filecheck --check-prefix=STARTLIB %s
+
+RUN: %link %linkopts -shared --start-group %t.o \
+RUN:   --version-script=%p/Inputs/vs_a --end-group -o %t.startgroup.so
+RUN: %readelf --dyn-syms %t.startgroup.so | %filecheck --check-prefix=STARTGROUP %s
+#END_TEST
+
+VSFIRST-DAG: alpha_one@@VER_B
+VSFIRST-DAG: alpha_two@@VER_B
+
+TFIRST-DAG: alpha_one@@VER_A
+TFIRST-DAG: alpha_two@@VER_A
+
+MULTIVS-DAG: alpha_one@@AV
+MULTIVS-DAG: alpha_two@@AV
+
+MULTIVS2-DAG: alpha_one@@ZV
+MULTIVS2-DAG: alpha_two@@ZV
+
+EMBEDONLY: alpha_one
+EMBEDONLY-NOT: beta_one
+
+STARTLIB-DAG: alpha_one@@VER_A
+STARTLIB-DAG: alpha_two@@VER_A
+
+STARTGROUP-DAG: alpha_one@@VER_A
+STARTGROUP-DAG: alpha_two@@VER_A

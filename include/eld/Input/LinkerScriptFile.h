@@ -24,7 +24,8 @@ class ScriptFile;
 
 class LinkerScriptFile : public InputFile {
 public:
-  LinkerScriptFile(Input *I, DiagnosticEngine *DiagEngine);
+  LinkerScriptFile(Input *I, DiagnosticEngine *DiagEngine,
+                   ScriptFile::Kind ScriptKind = ScriptFile::LDScript);
 
   /// Casting support.
   static bool classof(const InputFile *I) {
@@ -58,9 +59,16 @@ public:
 
   ScriptFile *getScript() const { return Script; }
 
+  ScriptFile::Kind getScriptKind() const { return ScriptKind; }
+
+  bool isVersionScript() const {
+    return ScriptKind == ScriptFile::VersionScript;
+  }
+
 private:
   ScriptFile *Script = nullptr;
   std::vector<Node *> Nodes;
+  ScriptFile::Kind ScriptKind = ScriptFile::LDScript;
   bool Parsed = false;
   bool EarlyActivated = false;
   bool FullyActivated = false;
