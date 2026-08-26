@@ -416,6 +416,8 @@ private:
   bool registerVersionScriptNodes(const VersionScript *VS,
                                   llvm::StringRef DecoratedPath);
 
+  void createDefaultSymverNode();
+
   std::unique_ptr<llvm::lto::LTO> ltoInit(llvm::lto::Config Conf,
                                           bool CompileToAssembly);
 

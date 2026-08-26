@@ -55,6 +55,7 @@
 #include "eld/Script/ScriptFile.h"
 #include "eld/Script/ScriptReader.h"
 #include "eld/Script/ScriptSymbol.h"
+#include "eld/Script/StrToken.h"
 #include "eld/Script/VersionScript.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
@@ -352,6 +353,11 @@ bool ObjectLinker::normalize() {
 // FIXME: We should maybe parse version script after reading LTO-generated
 // object files.
 bool ObjectLinker::parseVersionScript() {
+  if (ThisConfig.options().hasDefaultSymver() &&
+      (ThisConfig.isCodeDynamic() || ThisConfig.options().forceDynamic() ||
+       ThisConfig.isCodeIndep()))
+    createDefaultSymverNode();
+
   if (ThisConfig.options().hasVersionScript()) {
     LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
     for (const auto &List : ThisConfig.options().getVersionScripts()) {
@@ -397,6 +403,28 @@ bool ObjectLinker::parseVersionScript() {
 
   assignVersionNodesToSymbols();
   return true;
+}
+
+void ObjectLinker::createDefaultSymverNode() {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  InputFile *Input =
+      ThisModule->getInternalInput(Module::InternalInputType::SymbolVersioning);
+  VersionScript *VS = eld::make<VersionScript>(Input);
+  VersionScriptNode *VSN = VS->createVersionScriptNode();
+  const GeneralOptions &Options = ThisConfig.options();
+  std::string VersionName = Options.soname();
+  if (VersionName.empty())
+    VersionName =
+        std::string(llvm::sys::path::filename(Options.outputFileName()));
+
+  VSN->setName(eld::make<StrToken>(VersionName));
+  VSN->switchToGlobal();
+  VSN->addSymbol(eld::make<ScriptSymbol>("*"));
+  ThisModule->addVersionScript(VS);
+  registerVersionScriptNodes(VS, Input->getInput()->decoratedPath());
+#else
+  ThisConfig.raise(Diag::warn_unsupported_option) << "--default-symver";
+#endif
 }
 
 bool ObjectLinker::registerVersionScriptNodes(const VersionScript *VS,

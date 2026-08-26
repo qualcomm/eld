@@ -3,6 +3,38 @@
 All symbol versioning related functionality is guarded by the `ELD_ENABLE_SYMBOL_VERSIONING`
 build macro.
 
+## `--default-symver`
+
+`--default-symver` assigns the output's default version to any exported dynamic
+symbol that does not already have an explicit version. The default version name
+is the output `DT_SONAME` for shared libraries when `-soname` is used;
+otherwise it is the basename of the output file.
+
+When `--default-symver` is active for a supported link mode, eld always creates
+the synthetic default version node. This is true even when no regular dynamic
+symbol is assigned to that version, such as a hidden-only shared library, a
+dynamic executable without `-E`, or a static PIE without `-E`.
+
+The ordinary base version definition is emitted by the existing version
+definition machinery whenever named version definitions are present. This option
+additionally adds the synthetic default version node.
+
+eld models this option as an internal version script node named after the
+default version name with `global: *;`. The node is registered before user
+version scripts so explicit user version-script rules take precedence.
+
+eld creates the default symbol version node for link modes that can produce
+dynamic symbol/version information. These include:
+
+- shared libraries;
+- dynamic executables, including links forced dynamic with `--force-dynamic`;
+- code-independent executables, including PIE and static PIE.
+
+Regular static non-PIE executables do not create the node.
+
+If `ELD_ENABLE_SYMBOL_VERSIONING` is disabled, eld warns that `--default-symver`
+is unsupported and does not synthesize the node.
+
 ## Symbol resolution of versioned symbols
 
 A versioned symbol is of two types:

@@ -892,6 +892,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (Config.options().getVersionScripts().size())
     Config.options().setVersionScript();
 
+  // --default-symver
+  if (Args.hasArg(T::default_symver))
+    Config.options().setDefaultSymver();
+
   // --extern-list
   for (auto *Arg : Args.filtered(T::extern_list))
     Config.options().getExternList().emplace(Arg->getValue());

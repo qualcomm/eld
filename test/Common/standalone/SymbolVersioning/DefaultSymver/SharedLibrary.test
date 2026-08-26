@@ -1,0 +1,51 @@
+REQUIRES: symbol_versioning
+#---SharedLibrary.test---------------------------------------- SymbolVersioning ------#
+#BEGIN_COMMENT
+# This test verifies --default-symver for shared libraries. The default version
+# name is the DT_SONAME when present and the output filename basename otherwise.
+# It also verifies that an explicit version script overrides the synthetic
+# default-symver node and that the synthetic node is shown in map output.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.a.o %p/Inputs/default-symver.c -c -fPIC
+
+RUN: %link %linkopts -o %t1.libdefault.so %t1.a.o -shared --default-symver -soname libx.so.1
+RUN: %readelf --dyn-syms --version-info %t1.libdefault.so | %filecheck %s --check-prefix=SONAME
+
+RUN: %link %linkopts -o %t1.nosoname.so %t1.a.o -shared --default-symver
+RUN: %readelf --dyn-syms --version-info %t1.nosoname.so | %filecheck %s --check-prefix=OUTPUT
+
+RUN: %link %linkopts -o %t1.libscript.so %t1.a.o -shared --default-symver -soname libx.so.1 --version-script %p/Inputs/version.t
+RUN: %readelf --dyn-syms --version-info %t1.libscript.so | %filecheck %s --check-prefix=SCRIPT
+
+RUN: %link -MapStyle txt %linkopts -o %t1.map.so %t1.a.o -shared --default-symver -soname libmap.so.1 -Map %t1.map.txt
+RUN: %filecheck %s --check-prefix=MAP < %t1.map.txt
+#END_TEST
+
+SONAME: foo@@libx.so.1
+SONAME: bar@@libx.so.1
+SONAME: '.gnu.version_d' contains 2 entries:
+SONAME: Name: libx.so.1
+SONAME: Name: libx.so.1
+
+OUTPUT: foo@@{{.*}}nosoname.so
+OUTPUT: bar@@{{.*}}nosoname.so
+OUTPUT: '.gnu.version_d' contains 2 entries:
+OUTPUT: Name: {{.*}}nosoname.so
+OUTPUT: Name: {{.*}}nosoname.so
+
+SCRIPT-NOT: bar@@
+SCRIPT: foo@@VERS_1
+SCRIPT-NOT: bar@@
+SCRIPT: '.gnu.version_d' contains 3 entries:
+SCRIPT: Name: libx.so.1
+SCRIPT: Name: libx.so.1
+SCRIPT: Name: VERS_1
+
+MAP: Version Script Information
+MAP: Version Script file
+MAP: Symbol Versioning
+MAP: Global:
+MAP: #<Pattern: *>
+MAP: # bar {{.*}}a.o
+MAP: # foo {{.*}}a.o

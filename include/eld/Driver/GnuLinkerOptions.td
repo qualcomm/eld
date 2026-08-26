@@ -626,6 +626,10 @@ defm no_dynamic_linker
                        "The program does not need a dynamic linker when "
                        "creating static PIE executables">,
       Group<grp_dynlibexec>;
+def default_symver : FF<"default-symver">,
+                      HelpText<"Create a default symbol version node, that is "
+                               "used for unversioned exported symbols">,
+                      Group<grp_dynlibexec>;
 
 //===----------------------------------------------------------------------===//
 /// Dynamic Library Options
