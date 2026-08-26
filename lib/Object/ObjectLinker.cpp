@@ -259,12 +259,42 @@ bool ObjectLinker::readAndActivateLinkerScript(
       return false;
   }
 
+  if (S->getVersionScript() && kind == ScriptFile::ScriptActivationKind::Full)
+    ThisModule->addVersionScript(S->getVersionScript());
+
   if (kind == ScriptFile::ScriptActivationKind::Early)
     linkerScriptFile->setEarlyActivated();
   else
     linkerScriptFile->setFullyActivated();
 
   input->setUsed(true);
+  return true;
+}
+
+bool ObjectLinker::readVersionScriptFile(InputFile *Input) {
+  auto *LSFile = llvm::cast<eld::LinkerScriptFile>(Input);
+  assert(LSFile->isVersionScript() && "Expected version script input");
+
+  if (LSFile->isParsed())
+    return true;
+
+  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
+  addInputFileToTar(Input, eld::MappingFile::VersionScript);
+  if (layoutInfo) {
+    const eld::Input *I = Input->getInput();
+    layoutInfo->recordVersionScript(I->wasRemapped() ? I->getOriginalFileName()
+                                                     : I->getFileName());
+  }
+
+  ScriptFile VSReader(ScriptFile::VersionScript, *ThisModule, *LSFile,
+                      ThisModule->getIRBuilder()->getInputBuilder());
+  if (!getScriptReader()->readScript(ThisConfig, VSReader))
+    return false;
+
+  LSFile->setParsed();
+  Input->setToSkip();
+  if (VSReader.getVersionScript())
+    ThisModule->addVersionScript(VSReader.getVersionScript());
   return true;
 }
 
@@ -278,18 +308,20 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
       eld::RegisterTimer T("Read Start Group and End Group",
                            "Read all Input files",
                            ThisConfig.options().printTimingStats());
-      getGroupReader()->readGroup(Begin,
-                                  ThisModule->getIRBuilder()->getInputBuilder(),
-                                  ThisConfig, MPostLtoPhase);
+      if (!getGroupReader()->readGroup(
+              Begin, ThisModule->getIRBuilder()->getInputBuilder(), ThisConfig,
+              MPostLtoPhase))
+        return false;
       continue;
     }
 
     if ((*Begin)->kind() == Node::LibStart) {
       eld::RegisterTimer T("Read Start Lib and End Lib", "Read all Input files",
                            ThisConfig.options().printTimingStats());
-      getLibReader()->readLib(Begin,
-                              ThisModule->getIRBuilder()->getInputBuilder(),
-                              ThisConfig, MPostLtoPhase);
+      if (!getLibReader()->readLib(
+              Begin, ThisModule->getIRBuilder()->getInputBuilder(), ThisConfig,
+              MPostLtoPhase))
+        return false;
       continue;
     }
 
@@ -304,13 +336,23 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
       ThisModule->setFailure(true);
       return false;
     }
+    if (Input->getInputFile() &&
+        Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
+      auto *LSFile =
+          llvm::dyn_cast<eld::LinkerScriptFile>(Input->getInputFile());
+      if (LSFile->isVersionScript()) {
+        if (!readVersionScriptFile(LSFile))
+          return false;
+        continue;
+      }
+    }
     if (!readAndProcessInput(Input, MPostLtoPhase))
       return false;
-    if (Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
-      // Read inputs that the script contains.
-      if (!readInputs(
-              llvm::dyn_cast<eld::LinkerScriptFile>(Input->getInputFile())
-                  ->getNodes()))
+    if (Input->getInputFile() &&
+        Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
+      auto *LSFile =
+          llvm::dyn_cast<eld::LinkerScriptFile>(Input->getInputFile());
+      if (!LSFile->isVersionScript() && !readInputs(LSFile->getNodes()))
         return false;
     }
   } // end of for
@@ -352,49 +394,11 @@ bool ObjectLinker::normalize() {
 // FIXME: We should maybe parse version script after reading LTO-generated
 // object files.
 bool ObjectLinker::parseVersionScript() {
-  if (ThisConfig.options().hasVersionScript()) {
-    LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
-    for (const auto &List : ThisConfig.options().getVersionScripts()) {
-      Input *VersionScriptInput =
-          eld::make<Input>(List, ThisConfig.getDiagEngine(), Input::Script);
-      if (!VersionScriptInput->resolvePath(ThisConfig))
-        return false;
-      // Create an Input file and set the input file to be of kind DynamicList
-      InputFile *VersionScriptInputFile =
-          InputFile::create(VersionScriptInput, InputFile::GNULinkerScriptKind,
-                            ThisConfig.getDiagEngine());
-      addInputFileToTar(VersionScriptInputFile,
-                        eld::MappingFile::VersionScript);
-      VersionScriptInput->setInputFile(VersionScriptInputFile);
-      // Record the dynamic list script in the Map file.
-      if (layoutInfo)
-        layoutInfo->recordVersionScript(List);
-      // Read the dynamic List file
-      ScriptFile VersionScriptReader(
-          ScriptFile::VersionScript, *ThisModule,
-          *(llvm::dyn_cast<eld::LinkerScriptFile>(VersionScriptInputFile)),
-          ThisModule->getIRBuilder()->getInputBuilder());
-      bool SuccessFullInParse =
-          getScriptReader()->readScript(ThisConfig, VersionScriptReader);
-      if (!SuccessFullInParse)
-        return false;
-      ThisModule->addVersionScript(VersionScriptReader.getVersionScript());
-      if (!registerVersionScriptNodes(VersionScriptReader.getVersionScript(),
-                                      VersionScriptInput->decoratedPath()))
-        return false;
-    }
-  }
-
-  // VersionScript objects parsed from a VERSION{} block embedded directly
-  // inside a -T linker script (recorded by readLinkerScript(), which runs
-  // before the target backend is guaranteed to exist). Process them here,
-  // where registerVersionScriptNodes() can safely touch the backend.
-  for (const VersionScript *VS : ThisModule->getLinkerScriptVersionScripts()) {
+  for (const VersionScript *VS : ThisModule->getVersionScripts()) {
     if (!registerVersionScriptNodes(
             VS, VS->getInputFile()->getInput()->decoratedPath()))
       return false;
   }
-
   assignVersionNodesToSymbols();
   return true;
 }

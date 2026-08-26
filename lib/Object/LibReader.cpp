@@ -15,6 +15,7 @@
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Input/Input.h"
 #include "eld/Input/InputTree.h"
+#include "eld/Input/LinkerScriptFile.h"
 #include "eld/Object/ObjectLinker.h"
 #include "eld/Support/MemoryArea.h"
 #include "eld/Support/RegisterTimer.h"
@@ -82,6 +83,29 @@ bool LibReader::readLib(InputBuilder::InputIteratorT &CurNode,
     Input *Input = Node->getInput();
     if (!Input->resolvePath(Config))
       return false;
+
+    if (Input->getInputFile() &&
+        Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
+      auto *LSFile = llvm::cast<eld::LinkerScriptFile>(Input->getInputFile());
+      if (LSFile->isVersionScript()) {
+        if (!MObjLinker->readVersionScriptFile(LSFile))
+          return false;
+        ++CurNode;
+        continue;
+      }
+    }
+
+    if (Input->getInputFile() &&
+        Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
+      auto *LSFile = llvm::cast<eld::LinkerScriptFile>(Input->getInputFile());
+      if (!MObjLinker->readAndProcessInput(Input, IsPostLtoPhase))
+        return false;
+      if (!LSFile->isVersionScript() &&
+          !MObjLinker->readInputs(LSFile->getNodes()))
+        return false;
+      ++CurNode;
+      continue;
+    }
 
     if (IsThin)
       MemberNames.push_back(Input->getResolvedPath().getFullPath());

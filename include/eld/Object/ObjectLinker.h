@@ -98,6 +98,8 @@ public:
 
   bool parseVersionScript();
 
+  bool readVersionScriptFile(InputFile *I);
+
   /// linkable - check the linkability of current LinkerConfig
   ///  Check list:
   ///  - check the Attributes are not violate the constaint
