@@ -23,6 +23,7 @@
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/MathExtras.h"
+#include <array>
 
 // ApplyReloc Mutex.
 namespace {
@@ -250,16 +251,36 @@ DECL_ARM_APPLY_RELOC_FUNCS
 typedef Relocator::Result (*ApplyFunctionType)(Relocation &pReloc,
                                                ARMRelocator &pParent);
 
-// the table entry of applying functions
-struct ApplyFunctionTriple {
+// The table entry of applying functions.
+struct ApplyFunctionEntry {
+  ApplyFunctionEntry() : func(nullptr), name(nullptr) {}
+  ApplyFunctionEntry(ApplyFunctionType pFunc, const char *pName)
+      : func(pFunc), name(pName) {}
   ApplyFunctionType func;
-  unsigned int type;
   const char *name;
 };
 
-// declare the table of applying functions
-static const ApplyFunctionTriple ApplyFunctions[] = {
-    DECL_ARM_APPLY_RELOC_FUNC_PTRS};
+static constexpr size_t ARM_MAXRELOCS = llvm::ELF::R_ARM_TLS_IE32_FDPIC + 1;
+
+static std::array<ApplyFunctionEntry, ARM_MAXRELOCS> createApplyFunctions() {
+  std::array<ApplyFunctionEntry, ARM_MAXRELOCS> Functions{};
+
+  // ARM.def is the source of truth for public relocation names and values.
+#define ELF_RELOC(Name, Value)                                                 \
+  Functions[Value] = ApplyFunctionEntry(&unsupport, #Name);
+#include "llvm/BinaryFormat/ELFRelocs/ARM.def"
+#undef ELF_RELOC
+
+  // Replace the default handler for relocations implemented by ELD.
+#define ADD_ARM_RELOC_OVERRIDE(Type, Func, Name)                               \
+  Functions[Type] = ApplyFunctionEntry(&Func, Name);
+  DECL_ARM_APPLY_RELOC_FUNC_OVERRIDES(ADD_ARM_RELOC_OVERRIDE)
+#undef ADD_ARM_RELOC_OVERRIDE
+
+  return Functions;
+}
+
+static const auto ApplyFunctions = createApplyFunctions();
 
 //===--------------------------------------------------------------------===//
 // ARMRelocator
@@ -291,7 +312,7 @@ bool ARMRelocator::isPICRelocTypeSupported(const Relocation &reloc) const {
 
 Relocator::Result ARMRelocator::applyRelocation(Relocation &pRelocation) {
   Relocation::Type type = pRelocation.type();
-  if (type > 133) { // 131-255 doesn't noted in ARM spec
+  if (type >= ApplyFunctions.size() || !ApplyFunctions[type].func) {
     return Relocator::Unknown;
   }
 
@@ -314,10 +335,12 @@ Relocator::Result ARMRelocator::applyRelocation(Relocation &pRelocation) {
 }
 
 const char *ARMRelocator::getName(Relocator::Type pType) const {
-  return ApplyFunctions[pType].name;
+  return pType >= ApplyFunctions.size() || !ApplyFunctions[pType].name
+             ? "INVALID_RELOC"
+             : ApplyFunctions[pType].name;
 }
 
-uint32_t ARMRelocator::getNumRelocs() const { return ARM_MAXRELOCS; }
+uint32_t ARMRelocator::getNumRelocs() const { return ApplyFunctions.size(); }
 
 Relocator::Size ARMRelocator::getSize(Relocation::Type pType) const {
   return 32;
