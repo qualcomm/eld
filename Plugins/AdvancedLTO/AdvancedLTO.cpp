@@ -22,9 +22,9 @@
 #include <string>
 #include <unordered_map>
 
-namespace {
-
 using namespace eld::plugin;
+
+namespace {
 
 struct ModuleData {
   explicit ModuleData(BitcodeFile BCF) : BCFile(BCF) {}
@@ -33,7 +33,7 @@ struct ModuleData {
   std::unordered_map<std::string, Section> SectionsByName;
 };
 
-class DLL_A_EXPORT AdvancedLTO : public LinkerPlugin {
+class AdvancedLTO : public LinkerPlugin {
 public:
   AdvancedLTO() : LinkerPlugin("AdvancedLTO") {}
 
