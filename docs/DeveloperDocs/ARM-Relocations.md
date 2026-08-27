@@ -72,6 +72,7 @@ movt r0, #:upper16:symbol   @ R_ARM_THM_MOVT_ABS
 | `R_ARM_ALU_PC_G0` | `((S + A) \| T) - P` | top 8 bits, 4-bit rotation | none |
 | `R_ARM_LDR_PC_G2` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
 | `R_ARM_LDR_PC_G0` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
+| `R_ARM_THM_PC8` | `S + A - P` | imm8:00 (bits 7:0) | [0, 1023], 4-byte aligned |
 
 `R_ARM_SBREL32` uses the same handler as `R_ARM_REL32` but produces a segment-base-relative offset. `R_ARM_PREL31` is used in ARM exception table entries.
 
@@ -134,7 +135,6 @@ The table below lists every relocation that ELD's ARM backend maps to the `unsup
 | 6 | `R_ARM_ABS12` | 12-bit absolute (LDR/STR immediate) | Implement ABS12 |
 | 7 | `R_ARM_THM_ABS5` | Thumb 5-bit absolute (LDR/STR) | |
 | 8 | `R_ARM_ABS8` | 8-bit absolute | |
-| 11 | `R_ARM_THM_PC8` | Thumb 8-bit PC-relative (LDR literal) | |
 | 12 | `R_ARM_BREL_ADJ` | Dynamic — adjustment for R_ARM_TLS_DESC | Dynamic only |
 | 13 | `R_ARM_TLS_DESC` | Dynamic TLS descriptor | Dynamic only |
 | 14 | `R_ARM_THM_SWI8` | Obsolete | |

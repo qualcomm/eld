@@ -1,0 +1,14 @@
+#---R_ARM_THM_PC8.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify R_ARM_THM_PC8 relocation is supported and correctly applied.
+# Formula: S + A - P encoded in 16-bit Thumb LDR literal instruction.
+# imm8 = (S + A - P) >> 2, positive offset only.
+# thm_pc8_slot at 0x08048054, target at 0x08048058
+# val = 0x08048058 - 0x08048054 = 4, imm8 = 4 >> 2 = 1
+#END_COMMENT
+#START_TEST
+RUN: %clangas -c %p/Inputs/main.s -o %t.o
+RUN: %link %linkopts -march arm -static %t.o -o %t.out
+RUN: %readelf -x .text %t.out | %filecheck %s
+CHECK: 01000000 00000000
+#END_TEST
