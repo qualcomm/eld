@@ -556,6 +556,10 @@ public:
 
   bool hasVersionScript() const { return BVersionScript; }
 
+  void setDefaultSymver() { BDefaultSymver = true; }
+
+  bool hasDefaultSymver() const { return BDefaultSymver; }
+
   unsigned int getHashStyle() const { return HashStyle; }
 
   void setHashStyle(std::string HashStyleOption);
@@ -1270,6 +1274,7 @@ private:
   bool BForceDynamic = false;        // --force-dynamic
   bool BDynamicList = false;         // --dynamic-list flag
   bool BVersionScript = false;       // --version-script
+  bool BDefaultSymver = false;       // --default-symver
   bool BHasDyld = false;             // user set dynamic linker ?
   bool NoInhibitExec = false;        //--noinhibit-exec
   bool NoGnuStack = false;           //--nognustack

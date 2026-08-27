@@ -140,6 +140,19 @@ FragmentRef::Offset FragmentRef::getOutputOffset(Module &M) const {
   if (ThisFragment->isMergeStr()) {
     auto *MSF = llvm::cast<MergeStringFragment>(ThisFragment);
     OutputSectionEntry *O = getOutputSection();
+    /// A symbol defined in a merge string section may have a value at or beyond
+    /// the end of the section (e.g. an end-of-section marker). Match GNU ld:
+    /// clamp the offset to the end of the output section and warn if it points
+    /// to more than 1-byte past the input merge section.
+    uint64_t SectionSize = MSF->getOwningSection()->size();
+    if (ThisOffset >= SectionSize) {
+      if (ThisOffset > SectionSize)
+        M.getConfig().raise(Diag::warn_merge_string_offset_beyond_end)
+            << ThisOffset
+            << MSF->getOwningSection()->getLocation(0, M.getConfig().options())
+            << SectionSize << O->getSection()->name();
+      return O->getSection()->size();
+    }
     const MergeableString *S = MSF->findString(ThisOffset);
     assert(S);
     /// The target string could be a suffix
