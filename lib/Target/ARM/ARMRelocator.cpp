@@ -1025,6 +1025,25 @@ Relocator::Result ldr_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
   return ldr_pc_group(pReloc, pParent, 2);
 }
 
+Relocator::Result thm_pc8(Relocation &pReloc, ARMRelocator &pParent) {
+  Relocator::Address S = pParent.getSymValue(&pReloc);
+  Relocator::Address P = pReloc.place(pParent.module());
+  // Pa = (PC + 4) & ~3 per ARM ABI for Thumb PC8 relocation
+  Relocator::Address Pa = (P + 4) & ~3;
+  Relocator::DWord A = pReloc.addend();
+  if (getThumbBit(pParent, pReloc, /*IsJump*/ false))
+    helper_clear_thumb_bit(S);
+  int64_t val = (int64_t)(S + A) - (int64_t)Pa;
+  if (val < 0 || val > 0x3ff) {
+    pReloc.issueUnsignedOverflow(pParent, val, 0, 0x3ff);
+    return ARMRelocator::Overflow;
+  }
+  if (val & 0x3)
+    return ARMRelocator::BadReloc;
+  pReloc.target() = (pReloc.target() & 0xff00) | ((val & 0x3fc) >> 2);
+  return Relocator::OK;
+}
+
 // R_ARM_ABS32: (S + A) | T
 Relocator::Result abs32(Relocation &pReloc, ARMRelocator &pParent) {
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
