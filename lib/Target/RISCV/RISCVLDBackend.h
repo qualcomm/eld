@@ -281,6 +281,7 @@ private:
   bool doRelaxationPC(Relocation *R, Relocation::DWord G);
   bool doRelaxationGOT(Relocation &R);
 
+  bool doRelaxationTP(Relocation &R);
   bool doRelaxationTLSDESC(Relocation &R, bool Relax);
 
   // Records a call relaxation (AUIPC+JALR → C.J/JAL) so it can be reversed
