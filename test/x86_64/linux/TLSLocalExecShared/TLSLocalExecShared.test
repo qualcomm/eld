@@ -1,0 +1,19 @@
+#--TLSLocalExecShared.test---------------------- Shared Library --------------#
+#BEGIN_COMMENT
+# Verify that direct x86-64 local-exec TLS relocations are rejected when
+# creating a shared library.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/tpoff32.s -o %t.tpoff32.o
+RUN: %not %link %linkopts -shared %t.tpoff32.o -o %t.tpoff32.so 2>&1 \
+RUN:   | %filecheck %s --check-prefix=TPOFF32
+
+RUN: %clang %clangopts -c %p/Inputs/tpoff64.s -o %t.tpoff64.o
+RUN: %not %link %linkopts -shared %t.tpoff64.o -o %t.tpoff64.so 2>&1 \
+RUN:   | %filecheck %s --check-prefix=TPOFF64
+
+#END_TEST
+
+TPOFF32: Fatal: relocation R_X86_64_TPOFF32 against {{.*}} referred from {{.*}}tpoff32.o{{.*}} cannot be used with -shared
+TPOFF64: Fatal: relocation R_X86_64_TPOFF64 against {{.*}} referred from {{.*}}tpoff64.o{{.*}} cannot be used with -shared

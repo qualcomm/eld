@@ -17,6 +17,6 @@ RUN: %link %linkopts -shared %t2pic.o  -o %tlib.so.3 2>&1
 RUN: %link %linkopts -Bdynamic %t1.o %tlib.so.3 --noinhibit-exec -o %t.out 2>&1
 RUN: %readelf -r %t.out
 
-#IEERR:  recompile with -fPIC
-#LEERR:  recompile with -fPIC
+#IEERR: Fatal: relocation R_ARM_TLS_LE32 against baz referred from {{.*}}2IE.o{{.*}} cannot be used with -shared
+#LEERR: Fatal: relocation R_ARM_TLS_LE32 against baz referred from {{.*}}2LE.o{{.*}} cannot be used with -shared
 #CHECK: TPREL

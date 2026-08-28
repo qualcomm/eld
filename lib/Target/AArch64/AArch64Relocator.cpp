@@ -179,6 +179,33 @@ bool AArch64Relocator::isPICRelocTypeSupported(const Relocation &reloc) const {
   return true;
 }
 
+bool AArch64Relocator::isTLSLocalExecReloc(
+    const Relocation &reloc) const {
+  switch (reloc.type()) {
+  case llvm::ELF::R_AARCH64_TLSLE_MOVW_TPREL_G2:
+  case llvm::ELF::R_AARCH64_TLSLE_MOVW_TPREL_G1:
+  case llvm::ELF::R_AARCH64_TLSLE_MOVW_TPREL_G1_NC:
+  case llvm::ELF::R_AARCH64_TLSLE_MOVW_TPREL_G0:
+  case llvm::ELF::R_AARCH64_TLSLE_MOVW_TPREL_G0_NC:
+  case llvm::ELF::R_AARCH64_TLSLE_ADD_TPREL_HI12:
+  case llvm::ELF::R_AARCH64_TLSLE_ADD_TPREL_LO12:
+  case llvm::ELF::R_AARCH64_TLSLE_ADD_TPREL_LO12_NC:
+  case llvm::ELF::R_AARCH64_TLSLE_LDST8_TPREL_LO12:
+  case llvm::ELF::R_AARCH64_TLSLE_LDST8_TPREL_LO12_NC:
+  case llvm::ELF::R_AARCH64_TLSLE_LDST16_TPREL_LO12:
+  case llvm::ELF::R_AARCH64_TLSLE_LDST16_TPREL_LO12_NC:
+  case llvm::ELF::R_AARCH64_TLSLE_LDST32_TPREL_LO12:
+  case llvm::ELF::R_AARCH64_TLSLE_LDST32_TPREL_LO12_NC:
+  case llvm::ELF::R_AARCH64_TLSLE_LDST64_TPREL_LO12:
+  case llvm::ELF::R_AARCH64_TLSLE_LDST64_TPREL_LO12_NC:
+  case llvm::ELF::R_AARCH64_TLSLE_LDST128_TPREL_LO12:
+  case llvm::ELF::R_AARCH64_TLSLE_LDST128_TPREL_LO12_NC:
+    return true;
+  default:
+    return false;
+  }
+}
+
 bool AArch64Relocator::relocNeedsDynRel(Relocation &pReloc) const {
   ResolveInfo *rsym = pReloc.symInfo();
   // Need dynamic relocations to sign pointers at runtime

@@ -277,6 +277,16 @@ bool ARMRelocator::isPICRelocTypeSupported(const Relocation &reloc) const {
   }
 }
 
+bool ARMRelocator::isTLSLocalExecReloc(const Relocation &reloc) const {
+  switch (reloc.type()) {
+  case llvm::ELF::R_ARM_TLS_LE12:
+  case llvm::ELF::R_ARM_TLS_LE32:
+    return true;
+  default:
+    return false;
+  }
+}
+
 Relocator::Result ARMRelocator::applyRelocation(Relocation &pRelocation) {
   Relocation::Type type = pRelocation.type();
   if (type > 133) { // 131-255 doesn't noted in ARM spec

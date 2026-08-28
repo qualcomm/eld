@@ -1,0 +1,21 @@
+#---TLSLocalExecShared.test---------------------- Shared Library --------------#
+#BEGIN_COMMENT
+# Verify that AArch64 TLS local-exec relocations are rejected when creating a
+# shared library.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -target aarch64 -ftls-model=local-exec -c \
+RUN:   %p/Inputs/tls.c -o %t.tls.o
+RUN: %not %link %linkopts -march aarch64 -shared %t.tls.o -o %t.tls.so 2>&1 \
+RUN:   | %filecheck %s --check-prefix=TLS
+
+RUN: %clang %clangopts -target aarch64 -ftls-model=local-exec -c \
+RUN:   %p/Inputs/tls_hidden.c -o %t.hidden.o
+RUN: %not %link %linkopts -march aarch64 -shared %t.hidden.o -o %t.hidden.so 2>&1 \
+RUN:   | %filecheck %s --check-prefix=HIDDEN
+
+#END_TEST
+
+TLS: Fatal: relocation R_AARCH64_TLSLE_ADD_TPREL_HI12 against tls_var referred from {{.*}}tls.o{{.*}} cannot be used with -shared
+HIDDEN: Fatal: relocation R_AARCH64_TLSLE_ADD_TPREL_HI12 against hidden_tls_var referred from {{.*}}hidden.o{{.*}} cannot be used with -shared

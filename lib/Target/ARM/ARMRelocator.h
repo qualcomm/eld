@@ -72,6 +72,7 @@ public:
   }
 
 private:
+  bool isTLSLocalExecReloc(const Relocation &reloc) const override;
   bool isPICRelocTypeSupported(const Relocation &reloc) const override;
   void scanLocalReloc(InputFile &pInput, Relocation::Type, Relocation &pReloc,
                       const ELFSection &pSection);

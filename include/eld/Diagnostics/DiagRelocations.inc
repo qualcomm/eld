@@ -38,6 +38,8 @@ DIAG(reloc_trace, DiagnosticEngine::Note,
      "Found relocation %0 for symbol %1 in file %2")
 DIAG(tls_non_tls_mix, DiagnosticEngine::Error,
      "Relocation %0 is TLS type but symbol %1 is non-TLS type")
+DIAG(tls_le_relocation_in_shared, DiagnosticEngine::Fatal,
+     "relocation %0 against %1 referred from %2 cannot be used with -shared")
 DIAG(result_overflow_moreinfo, DiagnosticEngine::Error,
      "%0: relocation %1 out of range: %2 is not in [%3, %4]; references '%5'")
 DIAG(result_badreloc_moreinfo, DiagnosticEngine::Error,
