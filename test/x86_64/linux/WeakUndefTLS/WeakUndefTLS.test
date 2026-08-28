@@ -1,0 +1,90 @@
+#--WeakUndefTLS.test----------Executable--------#
+BEGIN_COMMENT
+# Test R_X86_64_TPOFF32/64 and R_X86_64_DTPOFF32/64 relocations against
+# weak undefined TLS symbols. A weak undefined TLS symbol has no TLS slot,
+# so the tpoff formula must not run; the result is the addend only (= 0
+# for the common case). Mirrors lld's R_TPREL guard:
+#   if (sym.isUndefined()) return a;
+# Verify this for static and PIE executables, and ensure defined TLS symbols
+# still use the normal TPOFF calculation.
+#END_COMMENT
+
+#START_TEST
+
+# Case 1: TPOFF32 + weak-undef -> 0x00000000
+RUN: %clang %clangopts -c %p/Inputs/weak_tls_le.s -o %t.le.o
+RUN: %link %linkopts -static %t.le.o -o %t.le.exe
+RUN: %objdump -s -j .data %t.le.exe | %filecheck %s --check-prefix=LE32
+
+# Case 2: TPOFF64 + weak-undef -> 0x0000000000000000
+RUN: %clang %clangopts -c %p/Inputs/weak_tls_le64.s -o %t.le64.o
+RUN: %link %linkopts -static %t.le64.o -o %t.le64.exe
+RUN: %objdump -s -j .data %t.le64.exe | %filecheck %s --check-prefix=LE64
+
+# Case 3: DTPOFF32 + weak-undef -> 0x00000000
+RUN: %clang %clangopts -c %p/Inputs/weak_tls_ld.s -o %t.ld.o
+RUN: %link %linkopts -static %t.ld.o -o %t.ld.exe
+RUN: %objdump -s -j .data %t.ld.exe | %filecheck %s --check-prefix=LD32
+
+# Case 4: DTPOFF64 + weak-undef -> 0x0000000000000000
+RUN: %clang %clangopts -c %p/Inputs/weak_tls_ld64.s -o %t.ld64.o
+RUN: %link %linkopts -static %t.ld64.o -o %t.ld64.exe
+RUN: %objdump -s -j .data %t.ld64.exe | %filecheck %s --check-prefix=LD64
+
+# Case 5: TPOFF32 + defined symbol -> -4 = 0xfffffffc (regression guard)
+RUN: %clang %clangopts -c %p/Inputs/weak_tls_defined.s -o %t.def.o
+RUN: %link %linkopts -static %t.def.o -o %t.def.exe
+RUN: %objdump -s -j .data %t.def.exe | %filecheck %s --check-prefix=DEFINED
+
+# Case 6: TPOFF32 + weak-undef + addend=2 -> 0x00000002
+RUN: %clang %clangopts -c %p/Inputs/weak_tls_le_addend.s -o %t.addend.o
+RUN: %link %linkopts -static %t.addend.o -o %t.addend.exe
+RUN: %objdump -s -j .data %t.addend.exe | %filecheck %s --check-prefix=ADDEND
+
+# Case 7: PIE + TPOFF32 + weak-undef -> 0x00000000
+RUN: %link %linkopts -pie %t.le.o -o %t.le.pie
+RUN: %objdump -s -j .data %t.le.pie | %filecheck %s --check-prefix=PIE-LE32
+
+# Case 8: PIE + TPOFF64 + weak-undef -> 0x0000000000000000
+RUN: %link %linkopts -pie %t.le64.o -o %t.le64.pie
+RUN: %objdump -s -j .data %t.le64.pie | %filecheck %s --check-prefix=PIE-LE64
+
+# Case 9: PIE + weak-undef + non-zero addend -> 0x00000002
+RUN: %link %linkopts -pie %t.addend.o -o %t.addend.pie
+RUN: %objdump -s -j .data %t.addend.pie | %filecheck %s --check-prefix=PIE-ADDEND
+
+# Case 10: PIE + defined TLS symbol -> -4 = 0xfffffffc
+RUN: %link %linkopts -pie %t.def.o -o %t.def.pie
+RUN: %objdump -s -j .data %t.def.pie | %filecheck %s --check-prefix=PIE-DEFINED
+
+LE32:      Contents of section .data:
+LE32-NEXT: {{[0-9a-f]+}} 00000000
+
+LE64:      Contents of section .data:
+LE64-NEXT: {{[0-9a-f]+}} 00000000 00000000
+
+LD32:      Contents of section .data:
+LD32-NEXT: {{[0-9a-f]+}} 00000000
+
+LD64:      Contents of section .data:
+LD64-NEXT: {{[0-9a-f]+}} 00000000 00000000
+
+DEFINED:      Contents of section .data:
+DEFINED-NEXT: {{[0-9a-f]+}} fcffffff
+
+ADDEND:      Contents of section .data:
+ADDEND-NEXT: {{[0-9a-f]+}} 02000000
+
+PIE-LE32:      Contents of section .data:
+PIE-LE32-NEXT: {{[0-9a-f]+}} 00000000
+
+PIE-LE64:      Contents of section .data:
+PIE-LE64-NEXT: {{[0-9a-f]+}} 00000000 00000000
+
+PIE-ADDEND:      Contents of section .data:
+PIE-ADDEND-NEXT: {{[0-9a-f]+}} 02000000
+
+PIE-DEFINED:      Contents of section .data:
+PIE-DEFINED-NEXT: {{[0-9a-f]+}} fcffffff
+
+#END_TEST
