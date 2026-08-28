@@ -57,6 +57,15 @@ jobs:
           ref: release/23.x
           path: pr-${{ env.PR_NUMBER }}/llvm-project
 
+      - name: Apply CPULLVM LTO linker script patch
+        working-directory: pr-${{ env.PR_NUMBER }}/llvm-project
+        run: |
+          curl -fsSL \
+            https://raw.githubusercontent.com/qualcomm/cpullvm-toolchain/release/qualcomm-software/23.x/qualcomm-software/patches/llvm-project/0004-LTO-with-linker-scripts.patch \
+            -o /tmp/lto-with-linker-scripts.patch
+          git apply --check /tmp/lto-with-linker-scripts.patch
+          git apply /tmp/lto-with-linker-scripts.patch
+
       - name: Checkout qualcomm/eld PR branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
