@@ -110,10 +110,12 @@ jobs:
           - { board: qemu_riscv64,     arch: riscv64,  extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y }
           - { board: qemu_cortex_m3,   arch: arm,      extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y }
           - { board: qemu_cortex_a53,  arch: aarch64,  extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y }
+          - { board: qemu_x86_64,      arch: x86_64,   toolchain: zephyr-sdk, extra_args: "" }
     uses: ./.github/workflows/zephyr-run.yml
     with:
       board: ${{ matrix.target.board }}
       arch: ${{ matrix.target.arch }}
+      toolchain: ${{ matrix.target.toolchain || 'cpullvm' }}
       extra_args: ${{ matrix.target.extra_args }}
       test_scope: tests/kernel
       toolset_run_id: ${{ needs.resolve.outputs.run_id }}

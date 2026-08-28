@@ -15,6 +15,11 @@ on:
         description: "Arch label, used for ccache keys and build-status records"
         required: true
         type: string
+      toolchain:
+        description: cpullvm or zephyr-sdk
+        required: false
+        type: string
+        default: "cpullvm"
       extra_args:
         description: "Extra Kconfig passed to west build (-D) and twister (-x); may be empty"
         required: false
@@ -69,9 +74,9 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-${{ inputs.arch }}-cpullvm${{ env.CPULLVM_VERSION }}-${{ github.run_id }}
+          key: ccache-${{ inputs.arch }}-${{ inputs.toolchain }}-${{ github.run_id }}
           restore-keys: |
-            ccache-${{ inputs.arch }}-cpullvm${{ env.CPULLVM_VERSION }}-
+            ccache-${{ inputs.arch }}-${{ inputs.toolchain }}-
 
       - name: ccache stats (before build)
         run: ccache -s -v || ccache -s
@@ -98,6 +103,7 @@ jobs:
           tarball: ${{ inputs.toolset_tarball }}
 
       - name: Install cpullvm toolchain and splice ELD
+        if: inputs.toolchain == 'cpullvm'
         run: |
           # Download cpullvm release
           wget -q --tries=3 --retry-on-http-error=429,500,502,503,504 --waitretry=5 https://github.com/qualcomm/cpullvm-toolchain/releases/download/cpullvm-${CPULLVM_VERSION}/cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
@@ -120,6 +126,23 @@ jobs:
           echo "cpullvm clang version:"
           ${CPULLVM_DIR}/bin/clang --version | head -1
 
+          {
+            echo "TOOLCHAIN_VARIANT=host/llvm"
+            echo "ELD_SELECT_ARGS=-DCONFIG_LLVM_USE_ELD=y -DCONFIG_COMPILER_RT_RTLIB=y"
+            echo "ELD_SELECT_TWISTER_ARGS=-x=CONFIG_LLVM_USE_ELD=y -x=CONFIG_COMPILER_RT_RTLIB=y"
+          } >> "$GITHUB_ENV"
+
+      - name: Select ELD for the Zephyr SDK GCC
+        if: inputs.toolchain == 'zephyr-sdk'
+        shell: bash
+        run: |
+          ln -sf "$PWD/inst/bin/ld.eld" "$PWD/inst/bin/ld"
+          {
+            echo "TOOLCHAIN_VARIANT=zephyr"
+            echo "ELD_SELECT_ARGS=-DEXTRA_LDFLAGS=-B$PWD/inst/bin -DGNULD_LINKER=$PWD/inst/bin/ld -DGNULD_LINKER_IS_BFD=OFF"
+            echo "ELD_SELECT_TWISTER_ARGS=-x=EXTRA_LDFLAGS=-B$PWD/inst/bin -x=GNULD_LINKER=$PWD/inst/bin/ld -x=GNULD_LINKER_IS_BFD=OFF"
+          } >> "$GITHUB_ENV"
+
       - name: Clone Zephyr
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -128,6 +151,27 @@ jobs:
 
       - name: Set safe.directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE/zephyr"
+
+      # When a linker script is present, retention is the script's responsibility. 
+      # KEEP is the mechanism for sections that must survive garbage collection.
+      # Will be dropped once the change is merged in Zephyr upstream.
+      - name: Add linker-script KEEP rules for C++ exception tables
+        if: inputs.arch == 'x86_64'
+        shell: bash
+        working-directory: zephyr
+        run: |
+          set -euo pipefail
+          rom=include/zephyr/linker/cplusplus-rom.ld
+          ram=include/zephyr/linker/cplusplus-ram.ld
+          arch=include/zephyr/arch/x86/intel64/linker.ld
+
+          for f in "$rom" "$ram"; do
+            sed -i 's#^\t\*(\.gcc_except_table \.gcc_except_table\.\*)$#\tKEEP (*(.gcc_except_table .gcc_except_table.*))#' "$f"
+            grep -q 'KEEP (\*(\.gcc_except_table' "$f" || { echo "::error::KEEP not applied to $f"; exit 1; }
+          done
+          grep -q 'KEEP (\*(\.text\*personality\*))' "$arch" || \
+            sed -i 's#^\t\*(\.text)$#\t*(.text)\n\tKEEP (*(.text*personality*))#' "$arch"
+          grep -q 'KEEP (\*(\.text\*personality\*))' "$arch" || { echo "::error::KEEP not applied to $arch"; exit 1; }
 
       - name: West setup
         shell: bash
@@ -143,13 +187,21 @@ jobs:
           west update --narrow --fetch-opt=--depth=1 "${projects[@]}"
 
       - name: Install Zephyr SDK hosttools
+        shell: bash
         run: |
-          west sdk install --no-gnu-toolchains --install-base /opt/toolchains
+          if [ "${{ inputs.toolchain }}" = "zephyr-sdk" ]; then
+            gnu_toolchains=(-t "${{ inputs.arch }}-zephyr-elf")
+          else
+            gnu_toolchains=(--no-gnu-toolchains)
+          fi
+          west sdk install "${gnu_toolchains[@]}" \
+            --install-base /opt/toolchains \
+            --personal-access-token "${{ github.token }}"
 
       # cpullvm's armv7m soft-float picolibc is PIC. Borrow the SDK's non-PIC one via
       # SYSROOT_DIR so ARM can use PICOLIBC_USE_TOOLCHAIN=y like the other boards.
       - name: Install SDK LLVM ARM picolibc (non-PIC, for ${{ inputs.arch }})
-        if: inputs.arch == 'arm'
+        if: inputs.toolchain == 'cpullvm' && inputs.arch == 'arm'
         shell: bash
         env:
           ARM_SYSROOT: /opt/arm-picolibc
@@ -178,11 +230,10 @@ jobs:
           cd zephyr
           source zephyr-env.sh
           export ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/
-          export ZEPHYR_TOOLCHAIN_VARIANT=host/llvm
+          export ZEPHYR_TOOLCHAIN_VARIANT=${TOOLCHAIN_VARIANT}
           export LLVM_TOOLCHAIN_PATH=${CPULLVM_DIR}
           west build -p always -b "$BOARD" samples/hello_world -- \
-            -DCONFIG_LLVM_USE_ELD=y \
-            -DCONFIG_COMPILER_RT_RTLIB=y \
+            $ELD_SELECT_ARGS \
             ${ARM_SYSROOT:+-DSYSROOT_DIR=$ARM_SYSROOT} \
             ${ARM_SYSROOT:+-DCMAKE_C_FLAGS=$ARM_CFLAGS} \
             ${ARM_SYSROOT:+-DCMAKE_CXX_FLAGS=$ARM_CFLAGS} \
@@ -225,9 +276,10 @@ jobs:
             --timestamps \
             -j 3 \
             -v \
-            -x=ZEPHYR_TOOLCHAIN_VARIANT=host/llvm \
-            -x=CONFIG_LLVM_USE_ELD=y \
-            -x=CONFIG_COMPILER_RT_RTLIB=y \
+            --retry-failed 2 \
+            --retry-interval 10 \
+            -x=ZEPHYR_TOOLCHAIN_VARIANT=${TOOLCHAIN_VARIANT} \
+            $ELD_SELECT_TWISTER_ARGS \
             ${ARM_SYSROOT:+-x=SYSROOT_DIR=$ARM_SYSROOT} \
             ${ARM_SYSROOT:+-x=CMAKE_C_FLAGS=$ARM_CFLAGS} \
             ${ARM_SYSROOT:+-x=CMAKE_CXX_FLAGS=$ARM_CFLAGS} \
