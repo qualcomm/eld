@@ -52,6 +52,7 @@ protected:
                               CopyRelocs &CopyRelocSet) override;
 
 private:
+  bool isTLSLocalExecReloc(const Relocation &reloc) const override;
   bool isPICRelocTypeSupported(const Relocation &reloc) const override;
 
   virtual void scanLocalReloc(InputFile &pInput, Relocation &pReloc,

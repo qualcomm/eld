@@ -66,6 +66,9 @@ private:
                                eld::IRBuilder &pBuilder, ELFSection &pSection,
                                CopyRelocs &);
 
+  bool isRelocSupported(const Relocation &pReloc) const;
+  bool isTLSLocalExecReloc(const Relocation &reloc) const override;
+
   x86_64GOT *getTLSModuleID(ResolveInfo *R, bool isStatic = false);
 
   x86_64LDBackend &m_Target;
