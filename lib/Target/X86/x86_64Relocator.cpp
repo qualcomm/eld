@@ -754,7 +754,7 @@ Relocator::Result eld::relocTPOFF(Relocation &pReloc, x86_64Relocator &pParent,
 
   ResolveInfo *rsym = pReloc.symInfo();
   if (rsym && rsym->isWeakUndef() &&
-      (pParent.config().codeGenType() == LinkerConfig::Exec)) {
+      pParent.config().isBuildingExecutable()) {
     Relocator::DWord A = pReloc.addend();
     return ApplyReloc(pReloc, A, pRelocDesc, DiagEngine, options, pParent);
   }
