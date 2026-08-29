@@ -1,0 +1,6 @@
+#--TLSLDRelax_BadInput.test----------Executable--------#
+# TLSLD at offset < 3: record-time guard rejects it, link must not crash.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ld_badinput.s -o %t.o
+RUN: %link %linkopts -static -e bad_fn -o %t.eld %t.o
+#END_TEST
