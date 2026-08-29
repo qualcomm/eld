@@ -71,6 +71,15 @@ on:
         required: false
         type: string
         default: ""
+      artifact-workflow-id:
+        description: Workflow file whose kernel artifacts should be cleaned up
+        required: true
+        type: string
+      artifact-pull-request-number:
+        description: PR number used to scope cleanup for PR kernel artifacts
+        required: false
+        type: string
+        default: ""
 
 env:
   KERNEL_TAG: v7.1
@@ -80,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # BuildStatusDataRecorder pushes to the dashboard branch
-      actions: read # list/download artifacts from busybox.yml and the toolset run
+      actions: write # list/download artifacts and remove superseded kernel artifacts
     env:
       KERNEL_IMAGE: ${{ inputs.kernel_image }}
     steps:
@@ -236,7 +245,8 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: kernel-boot-${{ inputs.arch }}-vmlinux
-          retention-days: 1
+          # Keep a fallback copy in case the workflow fails before cleanup.
+          retention-days: 7
           path: |
             linux/vmlinux
             linux/vmlinux.map
@@ -330,7 +340,8 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: kernel-boot-${{ inputs.arch }}-log
-          retention-days: 1
+          # Keep a fallback copy in case the workflow fails before cleanup.
+          retention-days: 7
           path: /tmp/kernel-boot-output.txt
 
       - name: Validate boot log with FileCheck
@@ -354,3 +365,14 @@ jobs:
           run-id: ${{github.run_id}}
           arch-name: "${{ inputs.arch }}"
           branch-name: "${{env.BUILD_BRANCH}}"
+
+      - name: Delete older kernel artifacts
+        if: inputs.enabled == 1 && success()
+        continue-on-error: true
+        uses: ./.github/workflows/DeleteOldArtifacts
+        with:
+          artifact-names: |
+            kernel-boot-${{ inputs.arch }}-vmlinux
+            kernel-boot-${{ inputs.arch }}-log
+          workflow-id: ${{ inputs.artifact-workflow-id }}
+          pull-request-number: ${{ inputs.artifact-pull-request-number }}
