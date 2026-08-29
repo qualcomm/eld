@@ -12,6 +12,7 @@
 #include "eld/Core/Module.h"
 #include "eld/Driver/GnuLdDriver.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/TargetParser/Triple.h"
 
 // Create OptTable class for parsing actual command line arguments
 class OPT_RISCVLinkOptTable : public llvm::opt::GenericOptTable {
@@ -86,8 +87,39 @@ public:
     return "unknown";
   }
 
+  static bool inferFromMarch(llvm::StringRef MArch, std::string &InferredArch) {
+    if (MArch == "riscv32" || MArch.starts_with("rv32")) {
+      InferredArch = "riscv32";
+      return true;
+    }
+    if (MArch == "riscv64" || MArch.starts_with("rv64")) {
+      InferredArch = "riscv64";
+      return true;
+    }
+    return false;
+  }
+
+  static bool inferFromTriple(const llvm::Triple &T, std::string &InferredArch) {
+    if (T.getArch() == llvm::Triple::riscv32) {
+      InferredArch = "riscv32";
+      return true;
+    }
+    if (T.getArch() == llvm::Triple::riscv64) {
+      InferredArch = "riscv64";
+      return true;
+    }
+    return false;
+  }
+
+  static bool inferFromCpu(llvm::StringRef Cpu, std::string &InferredArch) {
+    (void)Cpu;
+    (void)InferredArch;
+    return false;
+  }
+
   static bool isMyArch(llvm::StringRef MArch) {
-    return MArch == "riscv32" || MArch == "riscv64";
+    std::string Arch;
+    return inferFromMarch(MArch, Arch);
   }
 };
 
