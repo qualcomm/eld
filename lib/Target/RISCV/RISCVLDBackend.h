@@ -16,9 +16,7 @@
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"
 #include "llvm/ADT/DenseSet.h"
-#include <cstdint>
 #include <unordered_set>
-#include <vector>
 
 namespace eld {
 
@@ -283,33 +281,6 @@ private:
 
   bool doRelaxationTLSDESC(Relocation &R, bool Relax);
 
-  // Records a call relaxation (AUIPC+JALR → C.J/JAL) so it can be reversed
-  // post-ALIGN if the final distance no longer fits the relaxed form.
-  struct CallRelaxRecord {
-    RegionFragmentEx *region;
-    Relocation *reloc;
-    uint64_t relocOffset; // fragment-relative offset of the AUIPC instruction
-    uint32_t auipcBytes;  // original AUIPC instruction bytes
-    uint32_t jalrBytes;   // original JALR instruction bytes (at relocOffset+4)
-    uint32_t
-        relaxedSize; // size in bytes of the relaxed instruction (2=C.J, 4=JAL)
-    bool rolledBack = false;
-  };
-
-  void recordCallRelaxation(RegionFragmentEx &Region, Relocation *Reloc,
-                            uint64_t Offset, uint32_t AuipcBytes,
-                            uint32_t JalrBytes, uint32_t RelaxedSize);
-
-  void verifyAndRollbackCallRelaxations(bool &pFinished);
-
-  struct AlignRelaxRecord {
-    Relocation *alignReloc;
-    RegionFragmentEx *region;
-    uint32_t nopsAdded;
-    uint32_t bytesDeleted;
-  };
-
-  void undoAlignRelaxations();
   /// getRelEntrySize - the size in BYTE of rela type relocation
   size_t getRelEntrySize() override { return 0; }
 
@@ -414,12 +385,6 @@ private:
       m_BaseRelocRefs;
 
   llvm::DenseSet<const Relocation *> m_RelaxedGOTLoadRelocs;
-
-  // JAL-relaxed call records for post-ALIGN range reverification.
-  std::vector<CallRelaxRecord> m_CallRelaxRecords;
-
-  std::vector<AlignRelaxRecord> m_AlignRelaxRecords;
-  bool m_NeedsAlignRerun = false;
 };
 } // namespace eld
 
