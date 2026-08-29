@@ -10,12 +10,13 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-
 #include "AArch64.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Core/LinkerScript.h"
+#include "eld/Input/ELDDirectory.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/Target/ELFEmulation.h"
+#include "llvm/Support/FileSystem.h"
 
 namespace eld {
 
@@ -24,7 +25,28 @@ static bool ELDEmulateAArch64ELF(LinkerScript &pScript, LinkerConfig &pConfig) {
   pConfig.targets().setEndian(TargetOptions::Little);
   pConfig.targets().setBitClass(64);
 
-  return (ELDEmulateELF(pScript, pConfig));
+  if (!ELDEmulateELF(pScript, pConfig))
+    return false;
+
+  if (pConfig.options().nostdlib())
+    return true;
+
+  auto Sysroot = pConfig.directories().hasSysRoot()
+                     ? pConfig.directories().sysroot().native()
+                     : "";
+
+  static const char *AArch64Dirs[] = {
+      "=/usr/local/lib/aarch64-linux-gnu",
+      "=/lib/aarch64-linux-gnu",
+      "=/usr/lib/aarch64-linux-gnu",
+      "=/usr/aarch64-linux-gnu/lib",
+  };
+  for (const char *Dir : AArch64Dirs) {
+    auto EldDir = ELDDirectory(Dir, Sysroot);
+    if (llvm::sys::fs::is_directory(EldDir.name()))
+      pConfig.directories().insert(Dir);
+  }
+  return true;
 }
 
 //===----------------------------------------------------------------------===//
