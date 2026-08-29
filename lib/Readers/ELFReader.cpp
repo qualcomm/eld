@@ -121,6 +121,7 @@ void ELFReader<ELFT>::setSectionInInputFile(ELFSection *S,
     break;
   case llvm::ELF::SHT_SYMTAB_SHNDX:
     EFileBase->setExtendedSymbolTable(S);
+    EFileBase->setHasHighSectionCount();
     break;
   case llvm::ELF::SHT_STRTAB:
     EFileBase->setStringTable(S);
@@ -239,12 +240,8 @@ ELFReader<ELFT>::createSymbol(llvm::StringRef stringTable, Elf_Sym rawSym,
   ELFFileBase *EFileBase = llvm::cast<ELFFileBase>(&m_InputFile);
 
   bool is_ordinary = true;
-  // FIXME: Instead of checking this when creating each symbol (which can be
-  // relatively expensive as there can be too many symbols), can we instead set
-  // this using 'e_shnum'? Or perhaps, by seeing if there is any entry in
-  // section of type SHT_SYMTAB_SHNDX?
+
   if (rawSym.st_shndx == llvm::ELF::SHN_XINDEX) {
-    EFileBase->setHasHighSectionCount();
     is_ordinary = false;
   }
 
