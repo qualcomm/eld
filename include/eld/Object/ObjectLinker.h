@@ -258,8 +258,6 @@ public:
   bool mergeInputSections(ObjectBuilder &Builder,
                           std::vector<Section *> &Sections);
 
-  bool mayBeSortSections(std::vector<Section *> &Sections);
-
   bool createOutputSection(ObjectBuilder &Builder, OutputSectionEntry *Output,
                            bool PostLayout = false);
 
@@ -319,6 +317,9 @@ public:
   const std::vector<Section *> &getAllInputSections() const {
     return AllInputSections;
   }
+
+  void sortAllInputSections(
+      std::function<bool(const Section *, const Section *)> cmp);
 
   void addInputSection(Section *InputSection) {
     AllInputSections.push_back(InputSection);

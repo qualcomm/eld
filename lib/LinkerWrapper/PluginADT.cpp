@@ -710,6 +710,17 @@ bool plugin::Section::hasOldInputFile() const {
   return (ELFSect->hasOldInputFile());
 }
 
+plugin::InputFile plugin::Section::getRuleMatchingInput() const {
+  if (!m_Section)
+    return plugin::InputFile(nullptr);
+  if (m_Section->hasOldInputFile())
+    return plugin::InputFile(m_Section->originalInput());
+  if (CommonELFSection *commonSect =
+          llvm::dyn_cast<CommonELFSection>(m_Section))
+    return plugin::InputFile(commonSect->getOrigin());
+  return plugin::InputFile(m_Section->originalInput());
+}
+
 bool plugin::Section::isELFSection() const {
   ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(m_Section);
   return (ELFSect != nullptr);
@@ -1374,6 +1385,15 @@ bool plugin::InputFile::isBitcode() const {
   if (!m_InputFile)
     return false;
   return m_InputFile->isBitcode();
+}
+
+bool plugin::InputFile::isLTOGeneratedObject() const {
+  if (!m_InputFile)
+    return false;
+  eld::ELFObjectFile *ObjFile = llvm::dyn_cast<eld::ELFObjectFile>(m_InputFile);
+  if (!ObjFile)
+    return false;
+  return ObjFile->isLTOObject();
 }
 
 std::string plugin::InputFile::getMemberName() const {

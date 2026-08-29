@@ -1,0 +1,18 @@
+#---GetRuleMatchingInput.test----------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This test verifies the behavior of the LinkerWrapper::getRuleMatchingInput API.
+# A section whose rule-matching input was overridden via setRuleMatchingInput
+# returns the overridden input; a section without an override falls back to its
+# current input file; and an empty section returns a null input file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fcommon
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections -fcommon
+RUN: %link %linkopts -o %t1.1.out %t1.1.o %t1.2.o \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml | %filecheck %s
+#END_TEST
+
+CHECK: BarSect rule-matching input: {{.*}}1.2.o
+CHECK: FooSect rule-matching input: {{.*}}1.1.o
+CHECK: Empty section rule-matching input: ''
+CHECK: Empty section rule-matching input: {{.*}}1.o

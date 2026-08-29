@@ -248,6 +248,52 @@ public:
   /// \note This function must only be used in \em BeforeLayout link state.
   eld::Expected<void> finishAssignOutputSections();
 
+  /// Comparator used by \ref sortInputSectionsForSectionMerging to order the
+  /// input section vector that is used by the section-merging step.
+  using InputSectionComparator =
+      std::function<bool(const plugin::Section &, const plugin::Section &)>;
+
+  /// Returns the input sections vector that the linker will consume for
+  /// the section-merging step.
+  ///
+  /// For each linker script rule, the section-merging step
+  /// merges the matched input sections and place them into the
+  /// rule. The order of the input sections in the rule, and consequently,
+  /// the output image, depends upon this input sections vector.
+  ///
+  /// By default, the order of input sections in this vector is
+  /// the input order, that is,
+  /// [Input[0].sections..., Input[1].sections..., Input[2].sections..., ...].
+  ///
+  /// \note This function must only be used in the
+  /// \em ActBeforeSectionMerging link state.
+  eld::Expected<std::vector<plugin::Section>>
+  getInputSectionsForSectionMerging() const;
+
+  /// Stable sort the input sections vector that will be used for the
+  /// section-merging step. The order of equivalent elements as per the
+  /// comparator is guaranteed to be preserved.
+  ///
+  /// By default, the order of input sections in this vector is
+  /// the input order, that is,
+  /// [Input[0].sections..., Input[1].sections..., Input[2].sections..., ...].
+  ///
+  /// The sort is performed with \c std::stable_sort, so input sections that
+  /// compare equivalent under \p Cmp retain their relative order from the
+  /// pre-sort list. \p Cmp must define a strict weak ordering.
+  ///
+  /// \param cmp A comparator returning \c true when the first argument is
+  /// less than (is ordered before) the second argument.
+  ///
+  /// \param annotation Optional human-readable note recorded in the plugin
+  /// activity log alongside this call.
+  ///
+  /// \note This function must only be used in the
+  /// \em ActBeforeSectionMerging link state.
+  eld::Expected<void>
+  sortInputSectionsForSectionMerging(InputSectionComparator cmp,
+                                     std::string_view annotation = "");
+
   /// This function may be called to reassign section addresses to reflect
   /// newly added output sections that have not yet been assigned an address.
   /// \note This function may only be used in \em CreatingSegments state.
