@@ -19,6 +19,7 @@ llvm_add_library(
   PLT.cpp
   RegionFragment.cpp
   RegionFragmentEx.cpp
+  RelaxPlan.cpp
   SFrameFragment.cpp
   StringFragment.cpp
   Stub.cpp
