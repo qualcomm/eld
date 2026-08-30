@@ -31,6 +31,15 @@ DIAG(add_nops, DiagnosticEngine::Verbose,
      "%0 : Need only %1 bytes in section %2+0x%3 file %4")
 DIAG(not_relaxed, DiagnosticEngine::Verbose,
      "%0 : Cannot relax %1 bytes for symbol '%2' in section %3+0x%4 file %5")
+DIAG(relax_call_rolled_back, DiagnosticEngine::Verbose,
+     "%0 : Rolled back JAL for symbol '%1' in section %2+0x%3 file %4 "
+     "(out of range after ALIGN)")
+DIAG(relax_align_undone, DiagnosticEngine::Verbose,
+     "%0 : Undoing %1 nops / restoring %2 bytes in section %3+0x%4 file %5 "
+     "(re-run after rollback)")
+DIAG(relax_gp_rolled_back, DiagnosticEngine::Verbose,
+     "%0 : Rolled back GP-relative relaxation for symbol '%1' in section "
+     "%2+0x%3 file %4 (out of range after ALIGN)")
 DIAG(relax_to_compress, DiagnosticEngine::Verbose,
      "%0 : relaxing instruction 0x%1 to compressed instruction 0x%2 for symbol "
      "%3 in section %4+0x%5 file %6")
