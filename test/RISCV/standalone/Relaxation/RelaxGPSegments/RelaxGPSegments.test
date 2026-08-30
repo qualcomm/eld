@@ -1,15 +1,31 @@
 #----------RelaxGPSegments.test----------------- Executable------------------#
 # BEGIN_COMMENT
-# Test that --no-relax-gp disables gp relaxation
+# GP-relative relaxation is decided before the script's ALIGN(4K) on 'datas'
+# is resolved, using __global_pointer$'s address at that point. Once ALIGN
+# moves 'datas' (and __global_pointer$ with it), 'a' -- accessed via
+# %pcrel_hi/%pcrel_lo -- is no longer within +/-2KB of __global_pointer$.
+# The relaxation must be rolled back rather than emitting a relocation that's
+# out of range; 'b', which stays in range, keeps its relaxation.
 # END_COMMENT
 # START_TEST
 #RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.o
-#RUN: %not %link %linkopts  %t.o -T %p/Inputs/script.t -o %t1.out --verbose  2>&1 | %filecheck %s -check-prefix=RELAXBYTESERR
+#RUN: %link %linkopts %t.o -T %p/Inputs/script.t -o %t1.out --verbose 2>&1 | %filecheck %s -check-prefix=VERBOSE
+#RUN: %objdump -d %t1.out 2>&1 | %filecheck %s -check-prefix=DUMP
 # END_TEST
-#RELAXBYTESERR: Verbose: RISCV_PC_GP : Deleting 4 bytes for symbol 'a' in section .text+0x8 file {{.*}}tmp.o
-#RELAXBYTESERR: Verbose: RISCV_PC_GP : Deleting 4 bytes for symbol 'a' in section .text+0xc file {{.*}}tmp.o
-#RELAXBYTESERR: Verbose: RISCV_PC_GP : Deleting 4 bytes for symbol 'a' in section .text+0x10 file {{.*}}tmp.o
-#RELAXBYTESERR: Verbose: RISCV_LUI_GP : Deleting 4 bytes for symbol 'b' in section .text+0x14 file {{.*}}tmp.o
-#RELAXBYTESERR: Error: {{.*}}.o:(.text+0x8):  relocation R_RISCV_GPREL_I out of range: 4352 is not in [-2048, 2047]; references {{.*}}('a')
-#RELAXBYTESERR: Error: {{.*}}.o:(.text+0xc):  relocation R_RISCV_GPREL_I out of range: 4352 is not in [-2048, 2047]; references {{.*}}('a')
-#RELAXBYTESERR: Error: {{.*}}.o:(.text+0x10): relocation R_RISCV_GPREL_I out of range: 4352 is not in [-2048, 2047]; references {{.*}}('a')
+#VERBOSE: Verbose: RISCV_PC_GP : Deleting 4 bytes for symbol 'a' in section .text+0x8 file {{.*}}tmp.o
+#VERBOSE: Verbose: RISCV_PC_GP : Deleting 4 bytes for symbol 'a' in section .text+0xc file {{.*}}tmp.o
+#VERBOSE: Verbose: RISCV_PC_GP : Deleting 4 bytes for symbol 'a' in section .text+0x10 file {{.*}}tmp.o
+#VERBOSE: Verbose: RISCV_LUI_GP : Deleting 4 bytes for symbol 'b' in section .text+0x14 file {{.*}}tmp.o
+#VERBOSE: Verbose: RISCV_PC_GP : Rolled back GP-relative relaxation for symbol 'a' in section .text+0x8 file {{.*}}tmp.o (out of range after ALIGN)
+#VERBOSE: Verbose: RISCV_PC_GP : Rolled back GP-relative relaxation for symbol 'a' in section .text+0xc file {{.*}}tmp.o (out of range after ALIGN)
+#VERBOSE: Verbose: RISCV_PC_GP : Rolled back GP-relative relaxation for symbol 'a' in section .text+0x10 file {{.*}}tmp.o (out of range after ALIGN)
+#
+#DUMP-LABEL: <foo>:
+#DUMP:      auipc a5, 0x1
+#DUMP-NEXT: lw a0, {{.*}}(a5)
+#DUMP:      auipc a5, 0x1
+#DUMP-NEXT: lw a0, {{.*}}(a5)
+#DUMP:      auipc a5, 0x1
+#DUMP-NEXT: lw a0, {{.*}}(a5)
+#DUMP-LABEL: <bar>:
+#DUMP-NEXT: lw a0, 0x0(gp)
