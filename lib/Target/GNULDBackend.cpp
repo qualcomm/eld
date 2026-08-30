@@ -4263,6 +4263,19 @@ bool GNULDBackend::relax() {
     iteration++;
   }
 
+  // Commit any relaxation edits a backend deferred instead of applying
+  // eagerly; layout above already accounted for their effect. A backend
+  // that rolls an edit back mid-settle asks for another round by leaving
+  // pFinished false, and we recompute program headers before calling it
+  // again.
+  bool postRelaxFinished = false;
+  while (!postRelaxFinished) {
+    postRelaxFinished = true;
+    postRelax(postRelaxFinished);
+    if (!postRelaxFinished)
+      createProgramHdrs();
+  }
+
   // Print memory regions
   printMemoryRegionsUsage();
 
