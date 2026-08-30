@@ -62,6 +62,10 @@ public:
 
   void mayBeRelax(int pass, bool &pFinished) override;
 
+  // Commits deferred relaxation edits once relax()'s fixed-point loop
+  // finishes.
+  void postRelax(bool &pFinished) override;
+
   /// getTargetSectionOrder - compute the layout order of RISCV target section
   unsigned int getTargetSectionOrder(const ELFSection &pSectHdr) const override;
 
@@ -233,12 +237,62 @@ private:
                               uint32_t pOffset, Relocation::Address pAddend);
 
   void relaxDeleteBytes(llvm::StringRef Name, RegionFragmentEx &Region,
-                        uint64_t Offset, unsigned NumBytes,
-                        llvm::StringRef SymbolName);
+                        Relocation *Reloc, uint64_t Offset, unsigned NumBytes,
+                        uint32_t NopBytes = 0);
 
   void reportMissedRelaxation(llvm::StringRef Name, RegionFragmentEx &Region,
                               uint64_t Offset, unsigned NumBytes,
-                              llvm::StringRef SymbolName);
+                              const ResolveInfo *Sym);
+
+  /// Which range check a deferred relaxation needs re-verified against.
+  enum class RelaxKind {
+    CallToJal,
+    CallToCJ,
+    LuiGp,
+    PcGp,
+    ZeroPage,
+  };
+
+  // An AUIPC+JALR -> JAL/C.J relaxation candidate, re-verified once every
+  // pass has run.
+  struct CallRelaxRecord {
+    Relocation *Reloc;
+    RegionFragmentEx *Region;
+    RelaxKind Kind; // CallToJal or CallToCJ -> which range to check
+    bool Dropped = false;
+  };
+  std::vector<CallRelaxRecord> m_CallRelaxRecords;
+
+  // One relocation's half of a GP-relative or zero-page relaxation
+  // candidate (the HI whose instruction gets deleted, or the LO rewritten
+  // in place).
+  // HIReloc is whichever relocation's symbol/addend the range check should
+  // use: itself for the HI entry, for LuiGp's/ZeroPage's LO entry, and for
+  // ZeroPage's own HI entry; the real HI (via getBaseReloc()) for PcGp's LO
+  // entry.
+  struct GPRelaxRecord {
+    Relocation *EditReloc;
+    Relocation *HIReloc;
+    RegionFragmentEx *Region;
+    RelaxKind Kind; // LuiGp, PcGp, or ZeroPage
+    bool Dropped = false;
+  };
+  std::vector<GPRelaxRecord> m_GPRelaxRecords;
+
+  // R_RISCV_ALIGN relocations with a deferred deletion from the most
+  // recent ALIGN pass, undone and re-decided if a rollback invalidates them.
+  llvm::DenseSet<Relocation *> m_AppliedAlignRelocs;
+
+  // Re-verifies call relaxation candidates; drops (nothing to restore) any
+  // that no longer fit. Returns whether anything was dropped.
+  bool verifyAndRollbackCallRelaxations();
+
+  // Same as above, for GP-relative relaxation candidates.
+  bool verifyAndRollbackGPRelaxations();
+
+  // Undoes every ALIGN edit in m_AppliedAlignRelocs so mayBeRelax() can
+  // re-decide them, then clears the set.
+  void undoAlignRelaxations();
 
   bool isGOTReloc(const Relocation &reloc) const;
 
@@ -384,6 +438,15 @@ private:
       m_BaseRelocRefs;
 
   llvm::DenseSet<const Relocation *> m_RelaxedGOTLoadRelocs;
+
+  // Fragments with a pending (uncommitted) RelaxPlan, recorded by
+  // relaxDeleteBytes() and applied once by postRelax().
+  llvm::DenseSet<RegionFragmentEx *> m_FragmentsWithPendingRelaxEdits;
+
+  // postRelax() settle-loop state, carried across its pFinished-driven calls.
+  bool m_PostRelaxNeedsAlignRedecision = false;
+  bool m_PostRelaxLayoutChanged = false;
+  int m_PostRelaxRounds = 0;
 };
 } // namespace eld
 

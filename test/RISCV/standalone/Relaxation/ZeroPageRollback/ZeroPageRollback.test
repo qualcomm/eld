@@ -1,0 +1,26 @@
+#REQUIRES: riscv32
+#----------ZeroPageRollback.test------------------ Executable------------------#
+# BEGIN_COMMENT
+# Zero-page LUI deletion (x0 +/- 2KB) is decided early, while the call below
+# is still provisionally compressed to C.JAL. Once the call no longer fits
+# as C.JAL and gets rolled back, 'B' shifts out of zero-page range too, so
+# the LUI deletion must be re-verified and rolled back in the same settle
+# loop -- not just left as whatever was decided on the first pass.
+# END_COMMENT
+# START_TEST
+#RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.o
+#RUN: %link %linkopts %t.o -T %p/Inputs/script.t -o %t1.out --verbose 2>&1 | %filecheck %s -check-prefix=VERBOSE
+#RUN: %objdump -d %t1.out | %filecheck %s -check-prefix=DUMP
+# END_TEST
+#VERBOSE: Verbose: RISCV_LUI_ZERO : Deleting 4 bytes for symbol 'B' in section .text+0x0 file {{.*}}tmp.o
+#VERBOSE: Verbose: RISCV_CALL_C : Rolled back JAL for symbol 'target' in section .text+0x4 file {{.*}}tmp.o
+#VERBOSE: Verbose: RISCV_LUI_ZERO : Rolled back GP-relative relaxation for symbol 'B' in section .text+0x0 file {{.*}}tmp.o
+#VERBOSE: Verbose: RISCV_LUI_ZERO : Rolled back GP-relative relaxation for symbol 'B' in section .text+0x4 file {{.*}}tmp.o
+#
+#DUMP-LABEL: <_start>:
+#DUMP-NEXT: lui a1, 0x1
+#DUMP-NEXT: lw a1, {{.*}}(a1)
+#DUMP-NEXT: auipc ra, 0x0
+#DUMP-NEXT: jalr {{.*}}(ra)
+#DUMP-NEXT: lw a2, 0x4(gp)
+#DUMP-NEXT: ret
