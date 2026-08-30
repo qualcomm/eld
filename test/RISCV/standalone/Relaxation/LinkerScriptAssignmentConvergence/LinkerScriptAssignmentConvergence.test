@@ -1,0 +1,9 @@
+#--------LinkerScriptAssignmentConvergence.test-------- Executable ----------#
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/relax.s -o %t.o
+RUN: %link %linkopts %t.o -T %p/Inputs/script.t -o %t.out
+RUN: %readelf -s %t.out | %filecheck %s
+#END_TEST
+
+CHECK: {{[0-9]+}}: {{[0-9]+}}1010 0 NOTYPE GLOBAL DEFAULT ABS u
+CHECK: {{[0-9]+}}: {{[0-9]+}}1010 0 NOTYPE GLOBAL DEFAULT ABS v
