@@ -285,14 +285,7 @@ LDSymbol *IRBuilder::addSymbolFromObject(
   assert(!P.IsMalformed &&
          "malformed versioned symbol names must be rejected before IRBuilder");
 
-  if (!P.Version.empty()) {
-    // Versioned input. Reject the unsupported sub-cases up front; full
-    // support for these will be added in follow-up patches.
-    if (Binding == ResolveInfo::Binding::Local) {
-      ThisConfig.raise(Diag::error_local_versioned_symbol_unsupported)
-          << Input.getInput()->decoratedPath() << SymbolName;
-      return nullptr;
-    }
+  if (!P.Version.empty() && Binding != ResolveInfo::Binding::Local) {
     if (P.IsDefault && Desc == ResolveInfo::Undefined) {
       ThisConfig.raise(Diag::error_default_versioned_undef_ref)
           << Input.getInput()->decoratedPath() << SymbolName;
@@ -341,9 +334,8 @@ LDSymbol *IRBuilder::addSymbolFromObject(
     return CanonicalSym;
   }
 #endif
-  // Unversioned: original path. Also reached when symbol versioning is
-  // enabled but the symbol carries no version (falls through the versioned
-  // block above, which returns for the versioned case).
+  // Unversioned/local: original path. Local versioned symbols are opaque local
+  // names, not GNU-versioned dynamic symbols.
   ResolveInfo InputSymbolResolveInfo =
       NP.createInputSymbolRI(SymbolName, Input, /*isDyn=*/false, Type, Desc,
                              Binding, Size, Visibility, Value);

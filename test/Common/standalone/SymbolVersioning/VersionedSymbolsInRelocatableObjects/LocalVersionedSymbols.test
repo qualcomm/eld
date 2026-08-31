@@ -1,0 +1,20 @@
+REQUIRES: symbol_versioning
+#---LocalVersionedSymbols.test--------------------------------------------#
+#BEGIN_COMMENT
+# Local versioned symbols must be treated as plain local names. They must not
+# be exported or assigned GNU symbol-version entries.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.o %p/Inputs/local_versioned.c -c -fPIC
+RUN: %link %linkopts -o %t.so %t.o -shared
+RUN: %readelf --dyn-syms --version-info %t.so \
+RUN:   | %filecheck %s --check-prefix=DYNSYM
+RUN: %readelf -sW %t.so \
+RUN:   | %filecheck %s --check-prefix=SYMTAB
+
+DYNSYM:     Symbol table '.dynsym'
+DYNSYM-NOT: bar@V1
+DYNSYM-NOT: baz@@V1
+SYMTAB-DAG: LOCAL {{.*}} bar@V1
+SYMTAB-DAG: LOCAL {{.*}} baz@@V1
+#END_TEST
