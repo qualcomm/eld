@@ -6,9 +6,16 @@
 RUN: %link --help 2>&1 | %filecheck %s
 
 #CHECK:   --add-needed
+#CHECK:   --allow-shlib-undefined
+#CHECK:   -allow-shlib-undefined
 #CHECK:   --copy-dt-needed-entries
 #CHECK:   -EL
+#CHECK:   -g
+#CHECK:   --hash-size=<size>
+#CHECK:   --hash-size <size>
 #CHECK:   --ignore-unknown-opts
+#CHECK:   --map-section=<section>
+#CHECK:   --map-section <section>
 #CHECK:   --nmagic
 #CHECK:   --no-add-needed
 #CHECK:   --no-allow-shlib-undefined
@@ -23,7 +30,16 @@ RUN: %link --help 2>&1 | %filecheck %s
 #CHECK:   --plugin <pluginfile>
 #CHECK:   -plugin <pluginfile>
 #CHECK:   -Qy
+#CHECK:   --rpath-link=<path>
+#CHECK:   -rpath-link=<path>
+#CHECK:   --rpath-link <path>
+#CHECK:   -rpath-link <path>
 #CHECK:   -thin-archive-rule-matching-compatibility
+#CHECK:   --Ttext-segment=<address>
+#CHECK:   -Ttext-segment=<address>
+#CHECK:   --Ttext-segment <address>
+#CHECK:   -Ttext-segment <address>
+#CHECK:   --use-shlib-undefines
 #CHECK:   --color=<never/always/auto>
 #CHECK:   -color=<never/always/auto>
 #CHECK:   --color <never/always/auto>
@@ -104,9 +120,6 @@ RUN: %link --help 2>&1 | %filecheck %s
 #CHECK:   --Bsymbolic
 #CHECK:   -Bsymbolic
 #CHECK:   -fPIC
-#CHECK:   -g
-#CHECK:   --hash-size=<size>
-#CHECK:   --hash-size <size>
 #CHECK:   --hash-style=<hashstyle>
 #CHECK:   -hash-style=<hashstyle>
 #CHECK:   --hash-style <hashstyle>
@@ -133,10 +146,6 @@ RUN: %link --help 2>&1 | %filecheck %s
 #CHECK:   -force-dynamic
 #CHECK:   --no-dynamic-linker
 #CHECK:   -no-dynamic-linker
-#CHECK:   --rpath-link=<path>
-#CHECK:   -rpath-link=<path>
-#CHECK:   --rpath-link <path>
-#CHECK:   -rpath-link <path>
 #CHECK:   --rpath=<path>
 #CHECK:   -rpath=<path>
 #CHECK:   --rpath <path>
@@ -440,8 +449,6 @@ RUN: %link --help 2>&1 | %filecheck %s
 #CHECK:   --extern-list <list-of-symbols>
 #CHECK:   -extern-list <list-of-symbols>
 #CHECK:   --global-merge-non-alloc-strings
-#CHECK:   --map-section=<section>
-#CHECK:   --map-section <section>
 #CHECK:   --no-check-sections
 #CHECK:   --orphan-handling=<mode>
 #CHECK:   -orphan-handling=<mode>
@@ -467,10 +474,6 @@ RUN: %link --help 2>&1 | %filecheck %s
 #CHECK:   -Tdata=<address>
 #CHECK:   --Tdata <address>
 #CHECK:   -Tdata <address>
-#CHECK:   --Ttext-segment=<address>
-#CHECK:   -Ttext-segment=<address>
-#CHECK:   --Ttext-segment <address>
-#CHECK:   -Ttext-segment <address>
 #CHECK:   --Ttext=<address>
 #CHECK:   -Ttext=<address>
 #CHECK:   --Ttext <address>
@@ -515,8 +518,6 @@ RUN: %link --help 2>&1 | %filecheck %s
 #CHECK:   -(
 #CHECK:   -)
 #CHECK:   --allow-multiple-definition
-#CHECK:   --allow-shlib-undefined
-#CHECK:   -allow-shlib-undefined
 #CHECK:   --as-needed
 #CHECK:   --defsym=symbol=<expression>
 #CHECK:   -defsym=symbol=<expression>
@@ -536,7 +537,6 @@ RUN: %link --help 2>&1 | %filecheck %s
 #CHECK:   --start-lib-thin
 #CHECK:   --start-lib
 #CHECK:   --undefined=<symbol>
-#CHECK:   --use-shlib-undefines
 #CHECK:   -u <symbol>
 #CHECK:   --warn-once
 #END_TEST
