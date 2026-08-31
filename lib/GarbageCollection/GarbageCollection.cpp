@@ -301,6 +301,13 @@ void GarbageCollection::setUpReachedSectionsAndSymbols() {
         *stream << "\n" << name;
       }
 
+      // Reached symbols from section.
+      SymbolListTy *ReachedSyms =
+          &MSectionReachedListMap.getReachedSymbolList(*ApplySect);
+      // Reached sections from section.
+      SectionListTy *ReachedSects =
+          &MSectionReachedListMap.getReachedList(*ApplySect);
+
       for (auto &Reloc : ApplySect->getRelocations()) {
         auto RecordOneRef = [&](Relocation *Reloc) -> void {
           ResolveInfo *Sym = Reloc->symInfo();
@@ -309,13 +316,6 @@ void GarbageCollection::setUpReachedSectionsAndSymbols() {
           // reference
           if (nullptr == Sym)
             return;
-
-          // Reached symbols from section.
-          SymbolListTy *ReachedSyms =
-              &MSectionReachedListMap.getReachedSymbolList(*ApplySect);
-          // Reached sections from section.
-          SectionListTy *ReachedSects =
-              &MSectionReachedListMap.getReachedList(*ApplySect);
 
           if (Sym->isBitCode()) {
             InputFile *Input = Sym->resolvedOrigin();
