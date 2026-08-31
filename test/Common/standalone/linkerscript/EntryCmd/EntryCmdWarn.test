@@ -1,0 +1,53 @@
+#---EntryCmdWarn.test-------------------- Executable,LS ----------------------#
+#BEGIN_COMMENT
+# Tests that -Wlinker-script emits a warning when multiple entry points are
+# specified, and that the warning is suppressed without -Wlinker-script.
+#
+# Warning cases:
+#   Case 1: Two ENTRY() in one script  -- warns once with -Wlinker-script.
+#   Case 2: -e combined with a single script ENTRY() -- warns with -Wlinker-script.
+#   Case 3: Multiple -e on command line -- warns once with -Wlinker-script.
+#   Case 4: Cross-script two ENTRY()   -- warns with -Wlinker-script.
+#   Case 5: Single ENTRY(), no -e      -- no warning even with -Wlinker-script.
+#   Case 6: Two ENTRY() without -Wlinker-script -- no warning.
+#   Case 7: Three ENTRY() in one script -- warns once per overriding ENTRY().
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+
+# Case 1: Two ENTRY() in one script -- exactly one warning.
+RUN: %link %linkopts %t1.o -T %p/Inputs/two_entries.t -Wlinker-script -o %t.warn1.out 2>&1 | \
+RUN:   %filecheck %s --check-prefix=WARN1
+#WARN1-COUNT-1: Warning: multiple entry points specified; the last one takes effect
+#WARN1-NOT: Warning: multiple entry points specified; the last one takes effect
+
+# Case 2: -e combined with a single script ENTRY() -- warn.
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -e bar -Wlinker-script -o %t.warn2.out 2>&1 | \
+RUN:   %filecheck %s --check-prefix=WARN
+#WARN: Warning: multiple entry points specified; the last one takes effect
+
+# Case 3: Multiple -e on command line -- exactly one warning.
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -e foo -e bar -Wlinker-script -o %t.warn3.out 2>&1 | \
+RUN:   %filecheck %s --check-prefix=WARN3
+#WARN3-COUNT-1: Warning: multiple entry points specified; the last one takes effect
+#WARN3-NOT: Warning: multiple entry points specified; the last one takes effect
+
+# Case 4: Two ENTRY() across two scripts -- warn.
+RUN: %link %linkopts %t1.o -T %p/Inputs/entry_bar.t -T %p/Inputs/entry_foo.t -Wlinker-script -o %t.warn4.out 2>&1 | \
+RUN:   %filecheck %s --check-prefix=WARN
+
+# Case 5: Single ENTRY(), no -e -- no warning even with -Wlinker-script.
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -Wlinker-script -o %t.nowarn1.out 2>&1 | \
+RUN:   %filecheck %s --allow-empty --check-prefix=NOWARN
+#NOWARN-NOT: multiple entry points
+
+# Case 6: Two ENTRY() without -Wlinker-script -- no warning.
+RUN: %link %linkopts %t1.o -T %p/Inputs/two_entries.t -o %t.nowarn2.out 2>&1 | \
+RUN:   %filecheck %s --allow-empty --check-prefix=NOWARN
+
+# Case 7: Three ENTRY() in one script -- one warning per overriding ENTRY() (two total).
+RUN: %link %linkopts %t1.o -T %p/Inputs/three_entries.t -Wlinker-script -o %t.warn7.out 2>&1 | \
+RUN:   %filecheck %s --check-prefix=WARN7
+#WARN7-COUNT-2: Warning: multiple entry points specified; the last one takes effect
+#WARN7-NOT: Warning: multiple entry points specified; the last one takes effect
+#END_TEST
