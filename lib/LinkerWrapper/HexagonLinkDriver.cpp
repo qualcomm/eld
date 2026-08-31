@@ -115,17 +115,6 @@ HexagonLinkDriver::parseOptions(ArrayRef<const char *> Args,
   if (ArgList.hasArg(OPT_HexagonLinkOptTable::disable_guard_for_weak_undef))
     Config.options().setDisableGuardForWeakUndefs();
 
-  // --relax
-  if (ArgList.hasArg(OPT_HexagonLinkOptTable::relax))
-    Config.options().enableRelaxation();
-
-  // --relax=<regex>
-  for (auto *arg : ArgList.filtered(OPT_HexagonLinkOptTable::relax_value)) {
-    // Enable relaxation when a pattern is provided.
-    Config.options().enableRelaxation();
-    Config.options().addRelaxSection(arg->getValue());
-  }
-
   Config.options().setUnknownOptions(
       ArgList.getAllArgValues(OPT_HexagonLinkOptTable::UNKNOWN));
   return {};
