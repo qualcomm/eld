@@ -8,9 +8,10 @@ macro(add_eld_symlink name dest)
   llvm_install_symlink(ELD ${name} ${dest} ALWAYS_GENERATE)
 endmacro()
 
-set(LLVM_LINK_COMPONENTS ${LLVM_TARGETS_TO_BUILD} irreader Support)
-
-add_llvm_executable(ld.eld eld.cpp)
+# No LLVM_LINK_COMPONENTS: eld.cpp only forwards to Driver::main
+# in the LinkerWrapper library. Linking any LLVM component here gives the
+# executable a second copy of LLVM's globals which we don't want.
+add_llvm_executable(ld.eld eld.cpp DISABLE_LLVM_LINK_LLVM_DYLIB)
 add_dependencies(ld.eld update-eld-verinfo)
 
 set(LINKER_WRAPPER_LIB "LW")
