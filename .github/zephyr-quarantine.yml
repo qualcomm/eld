@@ -47,9 +47,18 @@
 - scenarios:
   - cpp.libcxx.libcxx.picolibc
   - libraries.hash_map.cxx.djb2
+  platforms:
+  - qemu_riscv32/.*
+  - qemu_riscv32_xip/.*
+  - qemu_riscv64/.*
+  - qemu_cortex_m3/.*
+  - qemu_cortex_a53/.*
   comment: >-
     Link fails on undefined `__cxa_throw` / `__cxa_begin_catch`. cpullvm does
-    ship libc++abi, but it is built with exceptions disabled.
+    ship libc++abi, but it is built with exceptions disabled. Scoped to the
+    cpullvm boards: qemu_x86_64 uses the Zephyr SDK's GCC, where
+    libraries.hash_map.cxx.djb2 passes and cpp.libcxx.libcxx.picolibc is
+    filtered by its own TOOLCHAIN_HAS_LIBCXX requirement.
 - scenarios:
   - arch.arm64.pacbti
   - arch.arm64.pacbti.user
