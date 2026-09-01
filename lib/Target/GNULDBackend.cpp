@@ -1191,12 +1191,15 @@ void GNULDBackend::sizeSymTab() {
     return;
 
   bool isStripLocal = (S == GeneralOptions::StripLocals);
+  bool isStripTemporaries = (S == GeneralOptions::StripTemporaries);
 
   size_t strtab = 1;
   std::vector<ResolveInfo *> &RVect = m_Module.getSymbols();
   uint64_t NumSymbols = 0;
   for (auto &Sym : RVect) {
     if ((isStripLocal && NumSymbols && Sym->isLocal()) ||
+        (isStripTemporaries && Sym->isLocal() &&
+         llvm::StringRef(Sym->name()).starts_with(".L")) ||
         m_SymbolsToRemove.count(Sym)) {
       continue;
     }
@@ -1365,6 +1368,7 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
     return {};
 
   bool isStripLocal = (S == GeneralOptions::StripLocals);
+  bool isStripTemporaries = (S == GeneralOptions::StripTemporaries);
 
   // Check if we have symbol tables
   if (!getSymTab())
@@ -1409,7 +1413,10 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
   for (auto &S : symbols) {
     m_pSymIndexMap[S->outSymbol()] = symIdx;
     // Null symbol is already emitted.
-    if ((isStripLocal && S->isLocal()) || m_SymbolsToRemove.count(S)) {
+    if ((isStripLocal && S->isLocal()) ||
+        (isStripTemporaries && S->isLocal() &&
+         llvm::StringRef(S->name()).starts_with(".L")) ||
+        m_SymbolsToRemove.count(S)) {
       config().raise(Diag::stripping_symbol) << S->name();
       continue;
     }
