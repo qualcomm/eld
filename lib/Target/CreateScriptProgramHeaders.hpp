@@ -87,6 +87,17 @@ bool GNULDBackend::createScriptProgramHdrs() {
 
   reset_state();
 
+  // OVERLAY member placement (see CreateProgramHeaders.hpp) is not
+  // implemented in this PHDRS-driven layout path. Rather than silently
+  // laying out overlay members incorrectly, diagnose it as unsupported.
+  for (out = outBegin; out != outEnd; ++out) {
+    if ((*out)->getOverlayDesc()) {
+      config().raise(Diag::error_overlay_not_supported_with_phdrs);
+      return true;
+    }
+  }
+  out = outBegin;
+
   while (out != outEnd) {
     bool useSetLMA = false;
 

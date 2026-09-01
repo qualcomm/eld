@@ -56,6 +56,29 @@ public:
 
   llvm::ArrayRef<OutputSectionEntry *> members() const { return Members; }
 
+  OutputSectionEntry *getFirstOverLayMember() {
+    return !Members.empty() ? Members.front() : nullptr;
+  }
+
+  OutputSectionEntry *getLastOverLayMember() {
+    return !Members.empty() ? Members.back() : nullptr;
+  }
+
+  OutputSectionEntry *getPreviousMember(OutputSectionEntry *Member) {
+    OutputSectionEntry *previousMember = nullptr;
+    for (auto *currentMember : Members) {
+      if (currentMember == Member)
+        break;
+      previousMember = currentMember;
+    }
+
+    return previousMember;
+  }
+
+  ELFSection *getFirstSection() {
+    return !Members.empty() ? Members.front()->getSection() : nullptr;
+  }
+
   void dump(llvm::raw_ostream &Outs) const {
     Outs << "OVERLAY";
     if (hasStart()) {

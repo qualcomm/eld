@@ -1,0 +1,18 @@
+#---OverlayWithTLS.test------------------- Executable,LS-----------------------#
+# OVERLAY followed by TLS sections
+
+RUN: %clang %clangopts -c %p/Inputs/overlay_tls.s -o %t.o
+RUN: %link %linkopts %t.o -o %t.elf -T %p/Inputs/overlay_tls.lds -z relro
+RUN: %readelf -S -l %t.elf | %filecheck %s
+
+# Verify overlay sections are placed correctly
+#CHECK: .small            PROGBITS        {{0*}}2000 {{0*[0-9a-f]+}} {{0*}}20
+#CHECK: .large            PROGBITS        {{0*}}2000 {{0*[0-9a-f]+}} {{0*}}100
+#CHECK: .tdata            PROGBITS        {{0*}}2200 {{0*[0-9a-f]+}} {{0*}}10
+#CHECK: .tbss             NOBITS          {{0*}}2210 {{0*[0-9a-f]+}} {{0*}}08
+
+# Verify PT_TLS segment exists
+#CHECK: TLS {{.*}} 0x{{0*}}2200
+
+# Verify PT_GNU_RELRO includes .tdata
+#CHECK: GNU_RELRO {{.*}} 0x{{0*}}2200

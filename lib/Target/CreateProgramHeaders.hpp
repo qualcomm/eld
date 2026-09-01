@@ -210,6 +210,7 @@ bool GNULDBackend::createProgramHdrs() {
   if (wantPhdr)
     setNeedPhdr();
 
+  uint64_t maxSize = 0;
   while (out != outEnd) {
     bool createPT_LOAD = false;
     bool createNOTE_segment = false;
@@ -278,6 +279,53 @@ bool GNULDBackend::createProgramHdrs() {
     // Linker script overriding below.
     std::optional<uint64_t> scriptvma;
     bool doAlign = true;
+
+    OverlayDesc *overlay = (*out)->getOverlayDesc();
+    bool isOverlayMember = overlay != nullptr;
+    bool isFirstOverlayMember =
+        isOverlayMember && overlay->getFirstOverLayMember() == *out;
+    bool isLastOverlayMember =
+        isOverlayMember && overlay->getLastOverLayMember() == *out;
+    OutputSectionEntry *previousOverlayMember =
+        isOverlayMember ? overlay->getPreviousMember(*out) : nullptr;
+
+    // Each OVERLAY block tracks its own largest member independently, so
+    // reset when starting a new overlay to support multiple OVERLAY blocks
+    // in the same linker script.
+    if (isFirstOverlayMember)
+      maxSize = 0;
+
+    // The first member of a new OVERLAY starts a new load-address range.
+    // Otherwise it could be merged with the preceding load segment.
+    if (isFirstOverlayMember && prevOut && prevOut->getOverlayDesc() != overlay)
+      createPT_LOAD = true;
+
+    // OVERLAY members share one VMA, while their LMAs are consecutive. The
+    // member output-section descriptors intentionally have no VMA/LMA
+    // prologue; those values belong to the enclosing OverlayDesc.
+    if (isOverlayMember) {
+      if (overlay->hasStart()) {
+        // Evaluate only for the first member
+        if (isFirstOverlayMember)
+          overlay->start()->evaluateAndRaiseError();
+
+        scriptvma = overlay->start()->result();
+      } else if (isFirstOverlayMember) {
+        // With no explicit start, the overlay begins at the current dot.
+        scriptvma = dotSymbol->value();
+      } else {
+        // With no explicit start, all members use the first member's VMA,
+        // including when that member is empty and therefore does not become
+        // the global previous section.
+        scriptvma = overlay->getFirstSection()->addr();
+      }
+      if (isCurAlloc) {
+        dotSymbol->setValue(*scriptvma);
+        maxSize = std::max(maxSize, cur->size());
+      }
+      doAlign = false;
+    }
+
     // If the output section specified a VMA value.
     if ((*out)->prolog().hasVMA()) {
       (*out)->prolog().vma().evaluateAndRaiseError();
@@ -345,7 +393,9 @@ bool GNULDBackend::createProgramHdrs() {
     // if this is the first section and the VMA was forced then
     // set PMA = VMA. For all sections following the first section
     // PMA will be calculated separately below
-    if ((*out)->prolog().hasLMA()) {
+    if (isOverlayMember) {
+      disconnect_lma_vma = true;
+    } else if ((*out)->prolog().hasLMA()) {
       useSetLMA = true;
       disconnect_lma_vma = true;
     }
@@ -460,7 +510,22 @@ bool GNULDBackend::createProgramHdrs() {
       cur->setAddr(vma);
       // Handle setting LMA and alignment of LMA
       // Explicitly align LMA to make the code easy to read
-      if (useSetLMA) {
+      if (isOverlayMember) {
+        // Only the first member consumes OVERLAY AT(...); later members are
+        // consecutive in load memory.
+        if (isFirstOverlayMember) {
+          if (overlay->hasLMA()) {
+            overlay->lma()->evaluateAndRaiseError();
+            pma = overlay->lma()->result();
+          } else {
+            // No explicit AT(): LMA defaults to VMA.
+            pma = vma;
+          }
+        } else {
+          pma = previousOverlayMember->getSection()->pAddr() +
+                previousOverlayMember->getSection()->size();
+        }
+      } else if (useSetLMA) {
         (*out)->prolog().lma().evaluateAndRaiseError();
         pma = (*out)->prolog().lma().result();
       } else if (hasVMARegion || hasLMARegion) {
@@ -572,7 +637,20 @@ bool GNULDBackend::createProgramHdrs() {
         alignAddress(vma, cur->getAddrAlign());
       cur->setAddr(vma);
       // FIXME : de-duplicate this case.
-      if (useSetLMA) {
+      if (isOverlayMember) {
+        if (isFirstOverlayMember) {
+          if (overlay->hasLMA()) {
+            overlay->lma()->evaluateAndRaiseError();
+            pma = overlay->lma()->result();
+          } else {
+            // No explicit AT(): LMA defaults to VMA.
+            pma = vma;
+          }
+        } else {
+          pma = previousOverlayMember->getSection()->pAddr() +
+                previousOverlayMember->getSection()->size();
+        }
+      } else if (useSetLMA) {
         (*out)->prolog().lma().evaluateAndRaiseError();
         pma = (*out)->prolog().lma().result();
       } else if (hasVMARegion || hasLMARegion) {
@@ -604,8 +682,20 @@ bool GNULDBackend::createProgramHdrs() {
     }
 
     // Evaluate Assignments at end of output section.
+    uint64_t dotBeforeAssignments = dotSymbol->value();
     evaluatePostOutputSectionAssignments(*out);
     cur->setWanted(cur->wantedInOutput() || cur->size());
+
+    // According to the specification, at the end of the overlay, the
+    // location counter should be equal to the overlay base address plus
+    // the size of the largest member seen in the overlay. Apply this right
+    // after the last member is laid out, using that overlay's own base
+    // (scriptvma), not whatever dot happens to be by the end of the whole
+    // section list. However, respect explicit linker script assignments that
+    // come after the overlay.
+    if (isLastOverlayMember && isCurAlloc && scriptvma &&
+        dotSymbol->value() == dotBeforeAssignments)
+      dotSymbol->setValue(*scriptvma + maxSize);
 
     if (!config().getDiagEngine()->diagnose()) {
       return false;
