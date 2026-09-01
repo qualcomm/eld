@@ -152,7 +152,7 @@ jobs:
             qemu_cpu: ""
             qemu_bios: ""
             console_device: ttyAMA0
-            enabled: 0
+            enabled: 1
           - arch: aarch64
             target_triple: aarch64-unknown-linux-musl
             kbuild_arch: arm64
