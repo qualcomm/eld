@@ -5,13 +5,17 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
-RUN: %link -MapStyle txt %linkopts -o %t.out %t.o -T %p/Inputs/script.t -Map %t.map
-RUN: %filecheck %s < %t.map
+RUN: %not %link -MapStyle txt %linkopts -o %t.out %t.o -T %p/Inputs/script.t -Map %t.map
+FIXME: %filecheck %s < %t.map
 #END_TEST
 
-CHECK: # OVERLAY 0x{{[0-9A-Fa-f]+}} : NOCROSSREFS AT(0x{{[0-9A-Fa-f]+}})
-CHECK: # {
-CHECK: #{{.*}}.ov1
-CHECK: #{{.*}}.ov2
-CHECK: # } >ROM AT>RAM:PHDR1
+#CHECK: Error: OVERLAY is not supported in linker scripts that also specify PHDRS
+#CHECK: Linking had errors
+
+FIXME: Re-enable once OVERLAY works with PHDRS
+FIXME: # OVERLAY 0x{{[0-9A-Fa-f]+}} : NOCROSSREFS AT(0x{{[0-9A-Fa-f]+}})
+FIXME: # {
+FIXME: #{{.*}}.ov1
+FIXME: #{{.*}}.ov2
+FIXME: # } >ROM AT>RAM:PHDR1
 

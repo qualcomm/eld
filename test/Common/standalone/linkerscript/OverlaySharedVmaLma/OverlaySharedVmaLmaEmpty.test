@@ -1,0 +1,11 @@
+#---OverlaySharedVmaLmaEmpty.test----------- Executable,LS------------------#
+# Empty OVERLAY
+
+RUN: %clang %clangopts -c %p/Inputs/input.s -o %t.o
+RUN: %link %linkopts %t.o -o %t.elf -T %p/Inputs/overlay_empty.lds
+RUN: %readelf -S %t.elf | %filecheck %s
+
+#CHECK: .after            PROGBITS        {{0*}}1000 {{0*[0-9a-f]+}} {{0*}}10
+#CHECK: .small            PROGBITS        {{0*}}1010 {{0*[0-9a-f]+}} {{0*}}20
+#CHECK: .large            PROGBITS        {{0*}}1030 {{0*[0-9a-f]+}} {{0*}}100
+#CHECK: .tiny             PROGBITS        {{0*}}1130 {{0*[0-9a-f]+}} {{0*}}10

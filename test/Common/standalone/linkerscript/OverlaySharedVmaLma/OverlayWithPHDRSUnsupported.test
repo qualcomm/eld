@@ -1,0 +1,12 @@
+#---OverlayWithPHDRSUnsupported.test--------- Executable,LS------------------#
+#BEGIN_COMMENT
+# OVERLAY member layout (VMA/LMA sharing) is only implemented in the
+# PHDRS-less program-header path. A script that specifies both PHDRS and
+# OVERLAY must be rejected with a diagnostic instead of silently laying out
+# the overlay members incorrectly.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/input.s -o %t.o
+RUN: %not %link %linkopts %t.o -o %t.elf -T %p/Inputs/overlay_with_phdrs.lds 2>&1 | %filecheck %s
+
+#CHECK: Error: OVERLAY is not supported in linker scripts that also specify PHDRS
+#CHECK: Linking had errors
