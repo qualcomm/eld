@@ -40,13 +40,7 @@ RuleContainer::RuleContainer(SectionMap *Parent,
                              const InputSectDesc &PInputDesc)
     : MPolicy(PInputDesc.policy()), MDirty(false), MFrag(nullptr),
       MDesc(&PInputDesc), MMatchCount(0), MMatchTime(0), MNextRule(nullptr) {
-  // FIXME: We can use an overloaded assignment operator of InputSectDesc::Spec
-  // instead of explicitly setting each value.
-  MSpec.WildcardFilePattern = PInputDesc.spec().WildcardFilePattern;
-  MSpec.WildcardSectionPattern = PInputDesc.spec().WildcardSectionPattern;
-  MSpec.InputArchiveMember = PInputDesc.spec().InputArchiveMember;
-  MSpec.InputIsArchive = PInputDesc.spec().InputIsArchive;
-  MSpec.ExcludeFilesRule = PInputDesc.spec().getExcludeFiles();
+  MSpec = PInputDesc.spec();
   MPSection = Parent->createELFSection("", LDFileFormat::Regular, /*Type=*/0,
                                        /*Flags=*/0, /*EntSize=*/0);
   MPSection->setMatchedLinkerScriptRule(this);
