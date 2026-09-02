@@ -71,6 +71,11 @@ on:
         required: false
         type: string
         default: ""
+      linker_flags:
+        description: "Additional linker flags to pass to ld.eld (e.g. --verbose)"
+        required: false
+        type: string
+        default: ""
 
 env:
   KERNEL_TAG: v7.1
@@ -198,6 +203,7 @@ jobs:
           CCACHE_DIR: ${{ github.workspace }}/ccache-linux
           KBUILD_ARCH: ${{ inputs.kbuild_arch }}
           TARGET_TRIPLE: ${{ inputs.target_triple }}
+          LINKER_FLAGS: ${{ inputs.linker_flags }}
         run: |
           set -euo pipefail
           command -v clang
@@ -213,7 +219,7 @@ jobs:
             LLVM=1 \
             KBUILD_BUILD_TIMESTAMP='' \
             CC="ccache clang" \
-            LD=ld.eld \
+            LD="ld.eld ${LINKER_FLAGS}" \
             "$(basename "${KERNEL_IMAGE}")"
 
           ccache -s

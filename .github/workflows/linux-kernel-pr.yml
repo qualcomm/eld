@@ -14,6 +14,9 @@ on:
       pr_number:
         description: "PR number (discovers the latest ci.yml run whose pr-eld-toolset artifact is still available)"
         required: true
+      linker_flags:
+        description: "Additional linker flags to pass to ld.eld (e.g. --verbose)"
+        required: false
 
 # A newer run for the same PR supersedes the previous one.
 concurrency:
@@ -180,6 +183,7 @@ jobs:
       toolset_run_id: ${{ needs.resolve.outputs.run_id }}
       toolset_artifact: pr-eld-toolset
       toolset_tarball: install-pr-toolset.tar.xz
+      linker_flags: ${{ github.event.inputs.linker_flags }}
 
   # Post the aggregate matrix result on the PR.
   status:
