@@ -74,10 +74,16 @@ void OutputTarWriter::addInputFile(const InputFile *File, bool IsLTOObject) {
 }
 
 std::string OutputTarWriter::getHashAndExtension(const Input *Ipt) const {
+  uint64_t InputHash = Ipt->getResolvedPathHash();
+  if (const auto *ArchiveMember = llvm::dyn_cast<ArchiveMemberInput>(Ipt))
+    // Thin archive members share the parent archive's resolved path. Include
+    // the member identity so members with the same basename cannot collide.
+    InputHash = llvm::hash_combine(InputHash, ArchiveMember->getMemberName());
+
   // Returns filename passed to the linker along with the file hash.
   return std::string(
              llvm::sys::path::filename(Ipt->getInputFile()->getMappedPath())) +
-         "." + std::to_string(Ipt->getResolvedPathHash());
+         "." + std::to_string(InputHash);
 }
 
 /// Create mapping.ini file of input filepath to its sha2 hash + file extension
