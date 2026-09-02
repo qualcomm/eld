@@ -6,7 +6,7 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
-RUN: %ar cr %t1.lib.a
+RUN: %ar --format=gnu cr %t1.lib.a
 RUN: %link %linkopts -o %t1.1.out %t1.1.o %t1.lib.a -MapStyle yaml \
 RUN:   -Map %t1.1.map.yaml 2>&1 | %filecheck %s
 RUN: %filecheck %s --check-prefix=MAP < %t1.1.map.yaml

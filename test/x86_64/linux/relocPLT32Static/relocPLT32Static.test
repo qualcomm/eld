@@ -1,4 +1,4 @@
-#UNSUPPORTED: windows
+#UNSUPPORTED: windows, darwin
 #--PLT32Static.test----------Executable--------#
 
 BEGIN_COMMENT
