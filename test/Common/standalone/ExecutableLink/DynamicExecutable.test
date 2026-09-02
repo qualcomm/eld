@@ -1,4 +1,4 @@
-UNSUPPORTED: riscv, x86
+UNSUPPORTED: riscv, x86_64
 #---DynamicExecutable.test--------------------------- Executable -----------------#
 
 #BEGIN_COMMENT

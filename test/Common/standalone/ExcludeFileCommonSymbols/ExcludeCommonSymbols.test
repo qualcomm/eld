@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---ExcludeCommonSymbols.test--------------------------- Executable -----------------#
 #BEGIN_COMMENT
 # This test checks that EXCLUDE_FILE directive works with COMMON input section description.

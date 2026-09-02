@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---NonLTOSectionsOrderWithLTO.test------------- Executable,LTO,LS ----------------#
 #BEGIN_COMMENT
 # When a linker script rule matches input sections without explicit ordering,

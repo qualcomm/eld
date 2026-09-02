@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---RelocationTargetEmptyWithPadding.test--------------------------- Executable --------------------#
 #BEGIN_COMMENT
 # This checks that the text map file has the empty section recorded if its used in as

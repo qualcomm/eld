@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 # Tests that common symbols are preserved.
 RUN: %clang %clangopts -fcommon -c -flto %p/Inputs/1.c -o %t1.o
 RUN: %clang %clangopts -fcommon -c %p/Inputs/2.c -o %t2.o

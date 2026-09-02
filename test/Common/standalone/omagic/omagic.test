@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #--omagic.test------------------ Executable,LS----------------#
 #BEGIN_COMMENT
 #Verify that the linker is able to produce output that supports omagic

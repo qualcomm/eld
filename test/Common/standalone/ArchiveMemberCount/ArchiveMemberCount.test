@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---ArchiveMemberCount.test---Executable --------------------#
 #BEGIN_COMMENT
 # This test shows processed archive member count against total member count in text map file.

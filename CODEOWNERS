@@ -25,5 +25,5 @@ lib/Target/Hexagon   		@quic-seaswara
 lib/Target/ARM      		@quic-areg
 lib/Target/AArch64		@parth-07
 lib/Target/RISCV		@quic-seaswara
-lib/Target/X86 		@parth-07
+lib/Target/X86_64 		@parth-07
 lib/Writers     		@quic-areg

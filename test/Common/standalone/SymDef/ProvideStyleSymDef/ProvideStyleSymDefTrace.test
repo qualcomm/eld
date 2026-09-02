@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---ProvideStyleSymDefTrace.test--------------------------- Executable --------------------#
 #BEGIN_COMMENT
 # This checks the trace info when linker reads the symdef file properly with provide symdef style.

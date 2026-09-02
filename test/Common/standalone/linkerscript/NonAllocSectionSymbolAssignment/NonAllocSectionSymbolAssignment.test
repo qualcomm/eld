@@ -1,4 +1,4 @@
-#UNSUPPORTED: windows, x86
+#UNSUPPORTED:windows, x86_64
 #---NonAllocSectionSymbolAssignment.test--------------------------- Executable,LS --------------------#
 #BEGIN_COMMENT
 # This test checks that the linker properly evaluates symbol assignments in

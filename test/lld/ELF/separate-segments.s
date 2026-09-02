@@ -1,4 +1,4 @@
-# REQUIRES: x86
+# REQUIRES: x86_64
 # RUN: llvm-mc -filetype=obj -triple=x86_64 %s -o %t.o
 
 ## -z noseparate-code. All PT_LOAD can have overlapping p_offset

@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---ImageStartAddress.test--------------------- Executable---------------------#
 #BEGIN_COMMENT
 # This test checks that the text map file contains image start address information.

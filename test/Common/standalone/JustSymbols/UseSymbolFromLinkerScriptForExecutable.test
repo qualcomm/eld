@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---UseSymbolFromLinkerScriptForExecutable.test--------------------------- Executable --------------------#
 #BEGIN_COMMENT
 # This checks that the linker is has higher precedence for linker script provide

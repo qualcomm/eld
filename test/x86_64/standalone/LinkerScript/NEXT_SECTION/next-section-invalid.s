@@ -1,5 +1,5 @@
 # UNSUPPORTED: windows
-# REQUIRES: x86
+# REQUIRES: x86_64
 
 ## NEXT_SECTION is only supported as argument to ALIGNOF/SIZEOF.
 

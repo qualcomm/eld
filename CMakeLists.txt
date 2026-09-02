@@ -138,15 +138,25 @@ set(ELD_DEFAULT_TARGET_TRIPLE
 set(ELD_EMULATOR "")
 set(ELD_EMULATOR64 "")
 
-set(ELD_ALL_TARGETS Hexagon AArch64 ARM RISCV X86)
+set(ELD_ALL_TARGETS Hexagon AArch64 ARM RISCV X86_64)
 
 if(ELD_TARGETS_TO_BUILD STREQUAL "all")
   set(ELD_TARGETS_TO_BUILD ${ELD_ALL_TARGETS})
 endif()
 
 if(NOT ELD_TARGETS_TO_BUILD)
+  set(_eld_targets "")
+
+  foreach(_target IN LISTS LLVM_TARGETS_TO_BUILD)
+    if(_target STREQUAL "X86")
+      list(APPEND _eld_targets "X86_64")
+    else()
+      list(APPEND _eld_targets "${_target}")
+    endif()
+  endforeach()
+
   set(ELD_TARGETS_TO_BUILD
-      ${LLVM_TARGETS_TO_BUILD}
+      "${_eld_targets}"
       CACHE STRING "ELD Target(Targets) to build")
 endif()
 

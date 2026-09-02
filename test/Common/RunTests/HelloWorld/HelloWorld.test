@@ -1,5 +1,5 @@
 REQUIRES: run_test
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---HelloWorld.test--------------------- Executable------------------#
 #BEGIN_COMMENT
 # Test that we can build and run a simple executable using the run test infrastructure.

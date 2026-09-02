@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---WeakVsCommonVsGlobal.test--------------------- Executable------------------#
 #BEGIN_COMMENT
 # This test checks the symbol resolution report when there are multiple common

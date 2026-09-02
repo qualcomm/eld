@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 
 # This test, checks that LTO is able to handle a .o within a group and create a
 # proper preserve list

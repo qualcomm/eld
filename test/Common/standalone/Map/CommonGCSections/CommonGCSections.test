@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---KeepCommonsymbols.test----------------------- Executable --------------------#
 #BEGIN_COMMENT
 # This test checks the garbage collection of common symbols and the
