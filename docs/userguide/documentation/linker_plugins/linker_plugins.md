@@ -224,8 +224,8 @@ Only one output section plugin can be attached to an output section.
   >   load.
   > - Finds the library in the same search paths as if the library was passed
   >   as an input to the linker.
-  > - Uses the name of the library without the lib prefix on Linux and without
-  >   the .so/.dll suffix on Linux/Windows, respectively
+  > - Uses the name of the library without the lib prefix on Linux/macOS and
+  >   without the .so/.dll/.dylib suffix on Linux/Windows/macOS, respectively
 
 - **PluginName**
 
@@ -266,8 +266,8 @@ OutputSectionPlugins:
 {code}`GlobalPlugins` list can specify any number of elements.
 {code}`Options` member is optional.
 
-{code}`Library` name should be specified without the lib prefix on Linux
-and without the .so/.dll suffix on Linux/Windows
+{code}`Library` name should be specified without the lib prefix on Linux/macOS
+and without the .so/.dll/.dylib suffix on Linux/Windows/macOS
 
 {code}`ControlMemorySizePlugin` and {code}`ControlFileSizePlugin` are output
 section plugins. Therefore, in the plugin configuration file, they need to be
@@ -327,6 +327,7 @@ The following steps describe how to develop a plugin:
 > clang++ -c -I${HEXAGON_TOOLCHAIN_ROOT}/Tools/include ${SOURCE_BASENAME}.cpp -fPIC -stdlib=libc++
 >
 > # Link the plugin library with linker wrapper library, LW.
+> # Linux: lib${SOURCE_BASENAME}.so   macOS: lib${SOURCE_BASENAME}.dylib
 > clang++ -shared ./${SOURCE_BASENAME}.o -L${HEXAGON_TOOLCHAIN_ROOT}/Tools/lib -lLW -stdlib=libc++ -o lib${SOURCE_BASENAME}.so
 > ```
 
@@ -390,7 +391,9 @@ Linker performs the following operations to load, run and unload plugins.
 
 2. Loads all the specified plugin libraries.
 
-   1. To find plugin libraries, {code}`LD_LIBRARY_PATH` environment variable is used on unix environment.
+   1. To find plugin libraries, {code}`LD_LIBRARY_PATH` is used on Linux.
+      On macOS, {code}`DYLD_LIBRARY_PATH` is searched first, then
+      {code}`LD_LIBRARY_PATH`.
    2. Standard method for searching dynamic libraries is used in Windows.
 
 3. Calls {code}`RegisterAll` function from each plugin library. This function
