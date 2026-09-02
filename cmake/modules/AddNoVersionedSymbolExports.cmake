@@ -1,28 +1,32 @@
 # Handy function to export symbols without versioning
 function(add_no_version_symbol_exports target_name export_file)
-  if(LLVM_HAVE_LINK_VERSION_SCRIPT)
-    # Gold and BFD ld require a version script rather than a plain list.
-    set(native_export_file "${target_name}.exports")
-    add_custom_command(
-      OUTPUT ${native_export_file}
-      COMMAND echo "{" > ${native_export_file}
-      COMMAND grep -q "[[:alnum:]]" ${export_file} && echo "  global:" >>
-              ${native_export_file} || :
-      COMMAND sed -e "s/$/;/" -e "s/^/    /" < ${export_file} >>
-              ${native_export_file}
-      COMMAND echo "  local: *;" >> ${native_export_file}
-      COMMAND echo "};" >> ${native_export_file}
-      DEPENDS ${export_file}
-      VERBATIM
-      COMMENT "Creating export file for ${target_name}")
-    set_property(
+  # GNU version scripts are not supported by Apple ld64 (or linkers that
+  # do not set LLVM_HAVE_LINK_VERSION_SCRIPT).
+  if(NOT LLVM_HAVE_LINK_VERSION_SCRIPT)
+    return()
+  endif()
+
+  # Gold and BFD ld require a version script rather than a plain list.
+  set(native_export_file "${target_name}.exports")
+  add_custom_command(
+    OUTPUT ${native_export_file}
+    COMMAND echo "{" > ${native_export_file}
+    COMMAND grep -q "[[:alnum:]]" ${export_file} && echo "  global:" >>
+            ${native_export_file} || :
+    COMMAND sed -e "s/$/;/" -e "s/^/    /" < ${export_file} >>
+            ${native_export_file}
+    COMMAND echo "  local: *;" >> ${native_export_file}
+    COMMAND echo "};" >> ${native_export_file}
+    DEPENDS ${export_file}
+    VERBATIM
+    COMMENT "Creating export file for ${target_name}")
+  set_property(
     TARGET ${target_name}
     APPEND_STRING
     PROPERTY
         LINK_FLAGS
         "  -Wl,--version-script,\"${CMAKE_CURRENT_BINARY_DIR}/${native_export_file}\""
-    )
-  endif()
+  )
 
   add_custom_target(${target_name}_exports DEPENDS ${native_export_file})
   set_target_properties(${target_name}_exports PROPERTIES FOLDER "Misc")
