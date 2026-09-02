@@ -35,6 +35,11 @@ class LinkerWrapper;
 
 #ifdef _WIN32
 #pragma comment(user, "Plugin built with tools @LLVM_VENDOR_VERSION@")
+#elif defined(__APPLE__)
+__attribute__((
+    used,
+    section("__DATA,__eld_plugin"))) static const char eld_plugin_built_with[] =
+    "Plugin built with tools @LLVM_VENDOR_VERSION@";
 #else
 __asm__(".section .comment, \"MS\",@progbits,1\n\t"
         ".string \"Plugin built with tools @LLVM_VENDOR_VERSION@\"");

@@ -765,7 +765,8 @@ public:
   /// Return a handle to the library `LibraryName` or an error.
   /// `LibraryName` will be searched using the linker search path
   /// including -L directories. First the file called `LibraryName` will be
-  /// searched. If it is not found, `libLibraryName.so` or `libraryName.dll` on
+  /// searched. If it is not found, `libLibraryName.so` (Linux),
+  /// `libLibraryName.dylib` (macOS), or `libraryName.dll` on
   /// windows will be searched. If neither are found an error is returned.
   eld::Expected<DynamicLibrary> loadLibrary(const std::string &LibraryName);
 
