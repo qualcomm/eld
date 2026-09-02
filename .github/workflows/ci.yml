@@ -11,6 +11,7 @@ on:
       - '.github/workflows/docs.yaml'
       - '.github/workflows/docs-multiversion.yaml'
       - '.github/workflows/ci-win.yml'
+      - '.github/workflows/ci-macos.yml'
       - '.github/workflows/clang-cross-schedule.yml'
       - '.github/workflows/DownloadClangCrossToolchain/action.yaml'
       - '.github/workflows/DownloadLatestBusybox/action.yaml'
