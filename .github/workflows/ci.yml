@@ -81,7 +81,9 @@ jobs:
           # We need to use base branch from qualcomm/eld
           git remote add QC https://github.com/qualcomm/eld.git
           git fetch QC ${{ env.BASE_BRANCH_NAME }} --depth=1
+          echo "Finding merge-base"
           MERGE_BASE=$(git merge-base QC/${{ env.BASE_BRANCH_NAME }} HEAD)
+          echo "merge-base: ${MERGE_BASE}"
           CHANGED_FILES=$(git diff --name-only "$MERGE_BASE" HEAD)
           echo "Changed files: $CHANGED_FILES"
           for file in $CHANGED_FILES; do
