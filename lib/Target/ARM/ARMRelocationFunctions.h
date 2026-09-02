@@ -55,8 +55,9 @@
   DECL_ARM_APPLY_RELOC_FUNC(alu_pc_g1)                                         \
   DECL_ARM_APPLY_RELOC_FUNC(alu_pc_g1_nc)                                      \
   DECL_ARM_APPLY_RELOC_FUNC(alu_pc_g2)                                         \
-  DECL_ARM_APPLY_RELOC_FUNC(ldr_pc_g2)                                         \
   DECL_ARM_APPLY_RELOC_FUNC(ldr_pc_g0)                                         \
+  DECL_ARM_APPLY_RELOC_FUNC(ldr_pc_g1)                                         \
+  DECL_ARM_APPLY_RELOC_FUNC(ldr_pc_g2)                                         \
   DECL_ARM_APPLY_RELOC_FUNC(relocAddPREL1)                                     \
   DECL_ARM_APPLY_RELOC_FUNC(relocAddPREL2)                                     \
   DECL_ARM_APPLY_RELOC_FUNC(relocLDR12)                                        \
@@ -99,8 +100,9 @@
   Func(llvm::ELF::R_ARM_ALU_PC_G1, alu_pc_g1, "R_ARM_ALU_PC_G1")               \
   Func(llvm::ELF::R_ARM_ALU_PC_G1_NC, alu_pc_g1_nc, "R_ARM_ALU_PC_G1_NC")      \
   Func(llvm::ELF::R_ARM_ALU_PC_G2, alu_pc_g2, "R_ARM_ALU_PC_G2")               \
-  Func(llvm::ELF::R_ARM_LDR_PC_G2, ldr_pc_g2, "R_ARM_LDR_PC_G2")               \
   Func(llvm::ELF::R_ARM_LDR_PC_G0, ldr_pc_g0, "R_ARM_LDR_PC_G0")               \
+  Func(llvm::ELF::R_ARM_LDR_PC_G1, ldr_pc_g1, "R_ARM_LDR_PC_G1")               \
+  Func(llvm::ELF::R_ARM_LDR_PC_G2, ldr_pc_g2, "R_ARM_LDR_PC_G2")               \
   Func(llvm::ELF::R_ARM_THM_MOVW_BREL_NC, thm_movw_brel,                       \
        "R_ARM_THM_MOVW_BREL_NC")                                               \
   Func(llvm::ELF::R_ARM_THM_MOVT_BREL, thm_movt_prel, "R_ARM_THM_MOVT_BREL")   \
