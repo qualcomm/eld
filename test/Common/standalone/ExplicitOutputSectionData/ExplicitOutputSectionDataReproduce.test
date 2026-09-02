@@ -28,7 +28,7 @@ RUN: %link %linkopts -o %t1.1.2.elf %t1.1.o -T %p/Inputs/script2.t --reproduce %
 RUN: %mkdir %t1.1.2.reproduce
 RUN: %tar %gnutaropts -xf %t1.1.2.reproduce.tar -C %t1.1.2.reproduce --strip-components=1
 RUN: cd %t1.1.2.reproduce
-RUN: sed -i '$s|$|'" -o %t1.1.rep.elf"'|' %t1.1.2.reproduce/response.txt
+RUN: sed -i.bak '$s|$|'" -o %t1.1.rep.elf"'|' %t1.1.2.reproduce/response.txt
 RUN: %link @%t1.1.2.reproduce/response.txt -o %t1.1.2.rep.elf
 RUN: %readelf -S %t1.1.2.rep.elf 2>&1 | %filecheck %s --check-prefix=MULTIPLE_OSD
 RUN: %objdump -d %t1.1.2.rep.elf --section .five | %filecheck %s --check-prefix=FIVE_MULTIPLE_OSD

@@ -1,4 +1,4 @@
-#UNSUPPORTED: windows
+#UNSUPPORTED: windows, darwin
 #------TlsLDModel.test-------Shared Object------#
 #BEGIN_COMMENT
 # Verifies TLS Local Dynamic (LD) model for static thread-local variables.

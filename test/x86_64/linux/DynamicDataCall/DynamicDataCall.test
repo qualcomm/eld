@@ -1,4 +1,4 @@
-#UNSUPPORTED: windows
+#UNSUPPORTED: windows, darwin
 #--DynamicDataCall.test-------Executable--#
 #BEGIN_COMMENT
 #Verifies data accesses are handled correctly for dynamic linking scenarios.

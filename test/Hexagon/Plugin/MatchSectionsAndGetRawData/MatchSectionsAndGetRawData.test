@@ -8,10 +8,10 @@
 RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o -ffunction-sections %clangg0opts
 RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t --trace=plugin -o %t2.out 2>&1 | %filecheck %s -check-prefix=PLUGINTRACE
 
-#PLUGINTRACE-DAG: Note: Registration function found RegisterAll in Library {{.*}}{{[.sodll]}}
-#PLUGINTRACE-DAG: Note: Plugin handler getPlugin found in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE-DAG: Note: Registration function found RegisterAll in Library {{.*}}{{(so|dll|dylib)}}
+#PLUGINTRACE-DAG: Note: Plugin handler getPlugin found in Library {{.*}}{{(so|dll|dylib)}}
 #PLUGINTRACE-DAG: Note: Registering all plugin handlers for plugin types
-#PLUGINTRACE-DAG: Note: Found plugin handler for plugin type MATCHSECTIONSANDGETRAWDATA in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE-DAG: Note: Found plugin handler for plugin type MATCHSECTIONSANDGETRAWDATA in Library {{.*}}{{(so|dll|dylib)}}
 #PLUGINTRACE-DAG: HelloWorld
 
 #END_TEST
