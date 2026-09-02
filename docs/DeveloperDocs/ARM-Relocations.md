@@ -74,8 +74,9 @@ movt r0, #:upper16:symbol   @ R_ARM_THM_MOVT_ABS
 | `R_ARM_ALU_PC_G1` | `((S + A) \| T) - P` | top 8 bits, 4-bit rotation | overflow checked |
 | `R_ARM_ALU_PC_G1_NC` | `((S + A) \| T) - P` | top 8 bits, 4-bit rotation | none (truncates) |
 | `R_ARM_ALU_PC_G2` | `((S + A) \| T) - P` | top 8 bits, 4-bit rotation | overflow checked |
-| `R_ARM_LDR_PC_G2` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
 | `R_ARM_LDR_PC_G0` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
+| `R_ARM_LDR_PC_G1` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
+| `R_ARM_LDR_PC_G2` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
 
 `R_ARM_SBREL32` uses the same handler as `R_ARM_REL32` but produces a segment-base-relative offset. `R_ARM_PREL31` is used in ARM exception table entries.
 
@@ -164,7 +165,6 @@ The table below lists every relocation that ELD's ARM backend maps to the `unsup
 | 54 | `R_ARM_THM_PC12` | Thumb-2 LDR/STR 12-bit PC-relative | |
 | 55 | `R_ARM_ABS32_NOI` | 32-bit absolute, no interworking bit | |
 | 56 | `R_ARM_REL32_NOI` | 32-bit PC-relative, no interworking bit | |
-| 62 | `R_ARM_LDR_PC_G1` | Group reloc — LDR PC-relative G1 | Implement LDR PC-group |
 | 64 | `R_ARM_LDRS_PC_G0` | Group reloc — LDRD/STRD PC-relative G0 | Implement LDRS PC-group |
 | 65 | `R_ARM_LDRS_PC_G1` | Group reloc — LDRD/STRD PC-relative G1 | Implement LDRS PC-group |
 | 66 | `R_ARM_LDRS_PC_G2` | Group reloc — LDRD/STRD PC-relative G2 | Implement LDRS PC-group |

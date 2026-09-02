@@ -16,7 +16,7 @@
 RUN: %clang %clangopts -target %linuxtarget -fPIC -c %p/Inputs/1.c -o %t.1.o
 
 RUN: %clang %clangopts -target %linuxtarget -c %p/Inputs/ldrpcg1.s -o %tldrpcg1.o
-RUN: %not %link %linkopts %t.1.o %tldrpcg1.o -o %t.ldrpcg1.out \
+RUN: %link %linkopts %t.1.o %tldrpcg1.o -o %t.ldrpcg1.out \
 RUN:   2>&1 | %filecheck %s --check-prefix=INVALID
 
 RUN: %clang %clangopts -target %linuxtarget -c %p/Inputs/thmjump8.s -o %tthmjump8.o

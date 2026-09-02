@@ -1020,6 +1020,11 @@ Relocator::Result ldr_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
   return ldr_pc_group(pReloc, pParent, 0);
 }
 
+// R_ARM_LDR_PC_G1: S + A - P
+Relocator::Result ldr_pc_g1(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldr_pc_group(pReloc, pParent, 1);
+}
+
 // R_ARM_LDR_PC_G2: S + A - P
 Relocator::Result ldr_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
   return ldr_pc_group(pReloc, pParent, 2);
