@@ -1,5 +1,5 @@
 /*
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---PaddingWithRemainder.test--------------------- Executable,LS -----------------#
 RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.o
 RUN: %link %linkopts -T %s %t.o -o %t.out

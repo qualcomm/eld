@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 
 # Test that map file is properly produced when the link %linkopts involves archive files.
 RUN: %clang %clangopts -fcommon -c %p/Inputs/main.c -o %t1.main.o

@@ -129,7 +129,8 @@ public:
       return DynRelocType::GLOB_DAT;
     if (X->type() == llvm::ELF::R_X86_64_JUMP_SLOT)
       return DynRelocType::JMP_SLOT;
-    if (X->type() == llvm::ELF::R_X86_64_RELATIVE || X->type()==llvm::ELF::R_X86_64_IRELATIVE)
+    if (X->type() == llvm::ELF::R_X86_64_RELATIVE ||
+        X->type() == llvm::ELF::R_X86_64_IRELATIVE)
       return DynRelocType::RELATIVE;
     if (X->type() == llvm::ELF::R_X86_64_DTPMOD64) {
       if (X->symInfo() && X->symInfo()->binding() == ResolveInfo::Local)

@@ -76,7 +76,6 @@ public:
 
   virtual ~x86_64PLTN() {}
 
-
   // The relocation index must match the position in .rela.plt so the
   // dynamic linker can find the correct relocation entry when resolving
   // this function on first call.

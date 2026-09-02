@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---YamlMapParserScript.test--------------------- Executable ------------------#
 #BEGIN_COMMENT
 # Allow Read only data separation.

@@ -1,4 +1,4 @@
-UNSUPPORTED: 64BitsArch, x86
+UNSUPPORTED: 64BitsArch, x86_64
 #---OutputFileTooLarge.test--------------------- Executable,LS------------------#
 
 #BEGIN_COMMENT

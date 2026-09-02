@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---LTOSymDef.test--------------------- Executable,LTO,LS------------------#
 
 #BEGIN_COMMENT

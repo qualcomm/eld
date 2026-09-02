@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---InputFileSelection.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This tests that linker is able to use linkerscripts that take input from specific files

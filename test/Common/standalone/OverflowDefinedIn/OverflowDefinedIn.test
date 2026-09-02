@@ -1,5 +1,5 @@
 ## Does not overflows on these targets so no link would run at all.
-UNSUPPORTED: riscv32, x86
+UNSUPPORTED: riscv32, x86_64
 
 ## NOTE: The overflow diagnostic currently names the input file only for
 ## symbols defined in an object, bitcode, or shared file. Linker-script

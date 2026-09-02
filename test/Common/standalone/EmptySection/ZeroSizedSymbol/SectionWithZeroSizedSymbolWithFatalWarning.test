@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---SectionWithZeroSizedSymbolWithFatalWarning.test--------------------------- Executable --------------------#
 #BEGIN_COMMENT
 # This checks that when a zero sized symbol in a zero sized fragment makes the link

@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #---AllocAfterNonAllocSections.test--------------------- Executable------------------#
 #BEGIN_COMMENT
 # This tests that the linker is able to load sections seen after non loadable

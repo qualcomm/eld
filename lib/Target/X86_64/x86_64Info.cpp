@@ -31,8 +31,7 @@ bool x86_64Info::isABIFlagSet(uint64_t inputFlag, uint32_t ABIFlag) const {
   return (inputFlag & ABIFlag) == ABIFlag;
 }
 
-bool x86_64Info::checkFlags(uint64_t pFlag, const InputFile *pInputFile,
-                            bool) {
+bool x86_64Info::checkFlags(uint64_t pFlag, const InputFile *pInputFile, bool) {
   // Choose the default architecture from the input files, only if mcpu option
   // is not specified on the command line.
   if (!m_OutputFlag) {

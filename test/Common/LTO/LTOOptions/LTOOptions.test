@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 # TODO: Calling assembler from LTO is not implemented for RISC-V.
 UNSUPPORTED: riscv32, riscv64
 # Check that input assembler files are not deleted.

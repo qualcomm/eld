@@ -1,4 +1,4 @@
-// UNSUPPORTED: riscv32, riscv64, x86
+// UNSUPPORTED: riscv32, riscv64, x86_64
 //---StringOffsets.test----------------------- Executable -----------------#
 
 // BEGIN_COMMENT

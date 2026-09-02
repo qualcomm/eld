@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 # Check that LTO passes on assembler options
 RUN: %clang %clangopts -fcommon -c   %p/Inputs/main.c -o %t1.main.o %clangg0opts
 RUN: %clang %clangopts -fcommon -c  -flto %p/Inputs/foo.c -o %t1.foo.o %clangg0opts

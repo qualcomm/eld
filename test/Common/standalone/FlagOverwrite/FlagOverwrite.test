@@ -1,5 +1,5 @@
 #---FlagOverwrite.test--------------------- Executable --------------------#
-UNSUPPORTED: x86
+UNSUPPORTED: x86_64
 #BEGIN_COMMENT
 # Check that the last option is the one being used for mutually exclusive flags.
 #END_COMMENT
