@@ -99,6 +99,17 @@ bool x86_64Relocator::isRelocSupported(const Relocation &pReloc) const {
   }
 }
 
+bool x86_64Relocator::isTLSLocalExecReloc(
+    const Relocation &reloc) const {
+  switch (reloc.type()) {
+  case llvm::ELF::R_X86_64_TPOFF32:
+  case llvm::ELF::R_X86_64_TPOFF64:
+    return true;
+  default:
+    return false;
+  }
+}
+
 void x86_64Relocator::scanRelocation(Relocation &pReloc,
                                      eld::IRBuilder &pLinker,
                                      ELFSection &pSection,

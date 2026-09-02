@@ -77,6 +77,7 @@ public:
                              const ELFSection &pSection) override;
 
 private:
+  bool isTLSLocalExecReloc(const Relocation &reloc) const override;
   bool isPICRelocTypeSupported(const Relocation &reloc) const override;
   bool isRelocSupported(Relocation &pReloc) const;
   bool relocNeedsDynRel(Relocation &pReloc) const;

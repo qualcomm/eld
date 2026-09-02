@@ -1,0 +1,21 @@
+#---TLSLocalExecShared.test---------------------- Shared Library --------------#
+#BEGIN_COMMENT
+# Verify that Hexagon TLS local-exec relocations are rejected when creating a
+# shared library.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -ftls-model=local-exec -c %p/Inputs/tls.c \
+RUN:   -o %t.tls.o
+RUN: %not %link %linkopts -G0 -shared %t.tls.o -o %t.tls.so 2>&1 \
+RUN:   | %filecheck %s --check-prefix=TLS
+
+RUN: %clang %clangopts -ftls-model=local-exec -c %p/Inputs/tls_hidden.c \
+RUN:   -o %t.hidden.o
+RUN: %not %link %linkopts -G0 -shared %t.hidden.o -o %t.hidden.so 2>&1 \
+RUN:   | %filecheck %s --check-prefix=HIDDEN
+
+#END_TEST
+
+TLS: Fatal: relocation R_HEX_TPREL_32_6_X against tls_var referred from {{.*}}tls.o{{.*}} cannot be used with -shared
+HIDDEN: Fatal: relocation R_HEX_TPREL_32_6_X against hidden_tls_var referred from {{.*}}hidden.o{{.*}} cannot be used with -shared

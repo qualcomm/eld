@@ -402,6 +402,19 @@ bool RISCVRelocator::isPICRelocTypeSupported(const Relocation &reloc) const {
   }
 }
 
+bool RISCVRelocator::isTLSLocalExecReloc(
+    const Relocation &reloc) const {
+  switch (reloc.type()) {
+  case llvm::ELF::R_RISCV_TPREL_HI20:
+  case llvm::ELF::R_RISCV_TPREL_LO12_I:
+  case llvm::ELF::R_RISCV_TPREL_LO12_S:
+  case llvm::ELF::R_RISCV_TPREL_ADD:
+    return true;
+  default:
+    return false;
+  }
+}
+
 void RISCVRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pLinker,
                                     ELFSection &pSection, InputFile &pInputFile,
                                     CopyRelocs &CopyRelocs) {

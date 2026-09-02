@@ -292,6 +292,8 @@ bool Relocator::reportNonPICRelocation(const Relocation &reloc) const {
 }
 
 bool Relocator::checkPICRelocSupported(const Relocation &reloc) const {
+  if (!checkTLSLocalExecReloc(reloc))
+    return false;
   if (!config().isCodeIndep())
     return true;
   if (isPICRelocTypeSupported(reloc))
@@ -320,6 +322,22 @@ bool Relocator::checkDynamicRelocAllowed(const Relocation &reloc,
   return true;
 }
 
+bool Relocator::checkTLSLocalExecReloc(const Relocation &reloc) const {
+  if (!config().options().hasShared())
+    return true;
+
+  if (!isTLSLocalExecReloc(reloc))
+    return true;
+
+  ResolveInfo *sym = reloc.symInfo();
+  config().raise(Diag::tls_le_relocation_in_shared)
+      << getName(reloc.type())
+      << (sym ? getSymbolName(sym) : "<unknown>")
+      << reloc.getSourcePath(config().options());
+
+  m_Module.setFailure(true);
+  return false;
+}
 bool Relocator::doDeMangle() const {
   return m_Config.options().shouldDemangle();
 }

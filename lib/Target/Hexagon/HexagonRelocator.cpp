@@ -268,6 +268,22 @@ bool HexagonRelocator::isPICRelocTypeSupported(const Relocation &reloc) const {
   }
 }
 
+bool HexagonRelocator::isTLSLocalExecReloc(
+    const Relocation &reloc) const {
+  switch (reloc.type()) {
+  case llvm::ELF::R_HEX_TPREL_LO16:
+  case llvm::ELF::R_HEX_TPREL_HI16:
+  case llvm::ELF::R_HEX_TPREL_32:
+  case llvm::ELF::R_HEX_TPREL_16:
+  case llvm::ELF::R_HEX_TPREL_32_6_X:
+  case llvm::ELF::R_HEX_TPREL_16_X:
+  case llvm::ELF::R_HEX_TPREL_11_X:
+    return true;
+  default:
+    return false;
+  }
+}
+
 bool HexagonRelocator::isRelocSupported(Relocation &pReloc) const {
   return pReloc.type() < HEXAGON_MAXRELOCS;
 }

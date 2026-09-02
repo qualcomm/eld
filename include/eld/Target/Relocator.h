@@ -138,6 +138,12 @@ public:
   bool checkDynamicRelocAllowed(const Relocation &reloc,
                                 const ELFSection &section, bool isAbs) const;
 
+  bool checkTLSLocalExecReloc(const Relocation &reloc) const;
+
+  virtual bool isTLSLocalExecReloc(const Relocation &reloc) const {
+    return false;
+  }
+
   /// Get Symbol Name
   std::string getSymbolName(const ResolveInfo *R) const;
 
