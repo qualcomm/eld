@@ -255,6 +255,18 @@ else()
   link_directories("${PATH_TO_LLVM_BUILD}/lib")
 endif()
 
+# Apple ld does not search Homebrew's prefix for short -l names. LLVMSupport
+# records zstd as LLVM_SYSTEM_LIBS ("zstd" → -lzstd). In-tree Darwin builds
+# then fail linking libLW with "ld: library 'zstd' not found" even when
+# /opt/homebrew/lib/libzstd.dylib is already on the same link line.
+if(APPLE)
+  foreach(_eld_brew_lib IN ITEMS /opt/homebrew/lib /usr/local/lib)
+    if(EXISTS "${_eld_brew_lib}")
+      link_directories("${_eld_brew_lib}")
+    endif()
+  endforeach()
+endif()
+
 add_subdirectory(include)
 
 # After the driver option TableGen targets are created

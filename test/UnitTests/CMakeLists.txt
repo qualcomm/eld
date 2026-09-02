@@ -13,6 +13,16 @@ set(LLVM_LINK_COMPONENTS
     Target
     TargetParser)
 
+# libLW.dylib already contains a static copy of LLVM. On Darwin there is no
+# version script to hide those symbols (see LW.exports), so also linking
+# LLVM_LINK_COMPONENTS into unit tests that load LW registers cl::opt twice
+# ("Option 'basic' already exists"). Restrict the extra LLVM .a files; tests
+# that link LW resolve LLVM from the dylib. SampleTests / INIWriterTests do
+# not load LW and only need Support via llvm_gtest.
+if(APPLE)
+  set(LLVM_LINK_COMPONENTS Support)
+endif()
+
 add_custom_target(ELDUnitTests)
 set_target_properties(ELDUnitTests PROPERTIES FOLDER "eld unit tests")
 get_property(
