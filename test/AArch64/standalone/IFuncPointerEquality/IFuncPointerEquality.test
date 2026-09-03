@@ -52,13 +52,13 @@ NO_GOT_REF-NOT: .got PROGBITS
 
 GOT_AND_DIRECT_REF: <main>:
 GOT_AND_DIRECT_REF: adrp x8, 0x3000
-GOT_AND_DIRECT_REF: ldr x8, [x8]
+GOT_AND_DIRECT_REF: ldr x8, [x8, #0x8]
 GOT_AND_DIRECT_REF: bl {{.*}} <get_foo_from_outside>
 GOT_AND_DIRECT_REF: <get_foo_from_outside>:
 GOT_AND_DIRECT_REF: adrp	x0, 0x4000
 GOT_AND_DIRECT_REF: add	x0, x0, #0x20
 GOT_AND_DIRECT_REF: Hex dump of section '.got':
-GOT_AND_DIRECT_REF: {{.*}}3000 2040{{0+}}
+GOT_AND_DIRECT_REF: {{.*}}3000 00100000 00000000 2040{{0+}}
 
 DIRECT_AND_GOT_REF: <main>:
 DIRECT_AND_GOT_REF: adrp x8, 0x4000
@@ -91,9 +91,9 @@ NO_GOT_REF_ADR-NOT: .got PROGBITS
 
 GOT_AND_DIRECT_REF_ADR: <main>:
 GOT_AND_DIRECT_REF_ADR: adrp x8, 0x3000
-GOT_AND_DIRECT_REF_ADR: ldr x8, [x8]
+GOT_AND_DIRECT_REF_ADR: ldr x8, [x8, #0x8]
 GOT_AND_DIRECT_REF_ADR: bl {{.*}} <get_foo_from_outside>
 GOT_AND_DIRECT_REF_ADR: <get_foo_from_outside>:
 GOT_AND_DIRECT_REF_ADR: adr	x0, 0x4020
 GOT_AND_DIRECT_REF_ADR: Hex dump of section '.got':
-GOT_AND_DIRECT_REF_ADR: {{.*}}3000 2040{{0+}}
+GOT_AND_DIRECT_REF_ADR: {{.*}}3000 00100000 00000000 2040{{0+}}
