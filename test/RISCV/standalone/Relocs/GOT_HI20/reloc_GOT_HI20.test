@@ -11,5 +11,5 @@ RUN: %readelf -S -W %t1.out | %filecheck %s -check-prefix=GOT
 #CHECK: auipc   a{{.*}}, 1
 #CHECK-DAG: lw  a{{.*}}, {{.*}}(a{{.*}})
 #GOT: .got
-#GOT: .got.plt
+#GOT-NOT: .got.plt
 

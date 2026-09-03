@@ -1,0 +1,12 @@
+REQUIRES: run_test
+XFAIL: riscv32
+#---UnnecessaryGOTPLTRun.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Runtime test - verify static executable with GOT runs correctly.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc -o %t1.run.o %p/Inputs/got-only.c -c -fPIC
+RUN: %run_cc -o %t1.main.o %p/Inputs/main.c -c
+RUN: %run_cc -o %t1.run.out %t1.run.o %t1.main.o -static
+RUN: %run %t1.run.out
+#END_TEST
