@@ -1,0 +1,8 @@
+Hexagon Options
+^^^^^^^^^^^^^^^^
+.. option:: --gpsize=<maxsize>
+
+   Set the maximum size of objects to be optimized using GP
+
+
+

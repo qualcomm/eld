@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>8. Symbol versioning &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="9. x86-64 Relocation Reference" href="X86_64-Relocations.html" />
+    <link rel="prev" title="7. RISC-V Relocation Reference" href="RISCV-Relocations.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_diagnostics.html">5. Linker Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/eld_debugging_guide.html">6. ELD  (debugging guide)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html">7. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">8. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/image_structure_and_generation.html">9. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/elf_tools.html">13. ELF TOOLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/lto_support.html">14. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/getting_image_details.html">15. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/options/options.html">16. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/target_specific_features.html">17. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/sframe_support.html">18. SFrame Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/editor_support.html">19. Editor Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_faq.html">20. Linker support and frequently asked questions!!!</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Docs</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="AArch64-Relocations.html">1. AArch64 Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ARM-Relocations.html">2. ARM Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AddingABackend.html">3. Adding a New Backend to ELD</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EldCodeCoverage.html">4. ELD Code Coverage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Hexagon-Relocations.html">5. Hexagon Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="IFunc.html">6. GNU IFunc support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RISCV-Relocations.html">7. RISC-V Relocation Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">8. Symbol versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="X86_64-Relocations.html">9. x86-64 Relocation Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">8. </span>Symbol versioning</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/DeveloperDocs/SymbolVersioning.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="symbol-versioning">
+<h1><span class="section-number">8. </span>Symbol versioning<a class="headerlink" href="#symbol-versioning" title="Permalink to this heading"></a></h1>
+<p>All symbol versioning related functionality is guarded by the <code class="docutils literal notranslate"><span class="pre">ELD_ENABLE_SYMBOL_VERSIONING</span></code>
+build macro.</p>
+<div class="section" id="default-symver">
+<h2><span class="section-number">8.1. </span><code class="docutils literal notranslate"><span class="pre">--default-symver</span></code><a class="headerlink" href="#default-symver" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">--default-symver</span></code> assigns the output’s default version to any exported dynamic
+symbol that does not already have an explicit version. The default version name
+is the output <code class="docutils literal notranslate"><span class="pre">DT_SONAME</span></code> for shared libraries when <code class="docutils literal notranslate"><span class="pre">-soname</span></code> is used;
+otherwise it is the basename of the output file.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">--default-symver</span></code> is active for a supported link mode, eld always creates
+the synthetic default version node. This is true even when no regular dynamic
+symbol is assigned to that version, such as a hidden-only shared library, a
+dynamic executable without <code class="docutils literal notranslate"><span class="pre">-E</span></code>, or a static PIE without <code class="docutils literal notranslate"><span class="pre">-E</span></code>.</p>
+<p>The ordinary base version definition is emitted by the existing version
+definition machinery whenever named version definitions are present. This option
+additionally adds the synthetic default version node.</p>
+<p>eld models this option as an internal version script node named after the
+default version name with <code class="docutils literal notranslate"><span class="pre">global:</span> <span class="pre">*;</span></code>. The node is registered before user
+version scripts so explicit user version-script rules take precedence.</p>
+<p>eld creates the default symbol version node for link modes that can produce
+dynamic symbol/version information. These include:</p>
+<ul class="simple">
+<li><p>shared libraries;</p></li>
+<li><p>dynamic executables, including links forced dynamic with <code class="docutils literal notranslate"><span class="pre">--force-dynamic</span></code>;</p></li>
+<li><p>code-independent executables, including PIE and static PIE.</p></li>
+</ul>
+<p>Regular static non-PIE executables do not create the node.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">ELD_ENABLE_SYMBOL_VERSIONING</span></code> is disabled, eld warns that <code class="docutils literal notranslate"><span class="pre">--default-symver</span></code>
+is unsupported and does not synthesize the node.</p>
+</div>
+<div class="section" id="symbol-resolution-of-versioned-symbols">
+<h2><span class="section-number">8.2. </span>Symbol resolution of versioned symbols<a class="headerlink" href="#symbol-resolution-of-versioned-symbols" title="Permalink to this heading"></a></h2>
+<p>A versioned symbol is of two types:</p>
+<ul class="simple">
+<li><p><strong>default</strong> versioned symbol (<code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>): a default versioned symbol
+satisfies undefined references of both the versioned and
+unversioned references of the symbol. <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code> definition can satisfy
+undefined references of both <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> and plain <code class="docutils literal notranslate"><span class="pre">bar</span></code>.</p></li>
+<li><p><strong>non-default</strong> versioned symbol (<code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code>): a non-default versioned
+symbol only satisfies undefined references of the versioned references
+of the symbol. <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> definition can only satisfy undefined references
+of <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code>.</p></li>
+</ul>
+<p>eld supports symbol resolution of versioned symbols by inserting two
+symbols for default-versioned symbols into the already-existing symbol resolution
+machinery and adding a symbol normalization phase that runs after symbol resolution
+to combine the two symbol nodes for the default-versioned symbols into one, if required.</p>
+<p>Whenever eld sees a non-default-versioned symbol defintion <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code>, then eld
+inserts <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> to the symbol resolution machinery, and it automatically
+gets used to resolve <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> undefined references.</p>
+<p>Here is the interesting part, whenever eld sees a default-versioned symbol
+definition <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, then eld inserts two symbols to the symbol resolution
+machinery: a canonical symbol <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> and a non-canonical symbol <code class="docutils literal notranslate"><span class="pre">bar</span></code>.
+With this, <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code> definition resolves undefined references to both
+<code class="docutils literal notranslate"><span class="pre">bar</span></code> and <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code>, as it should.</p>
+<p>One fundamental rule of versioned-symbol resolution is that, for a default
+versioned symbol, both the canonical symbol (<code class="docutils literal notranslate"><span class="pre">foo&#64;V1</span></code>) and the non-canonical
+(unversioned symbol <code class="docutils literal notranslate"><span class="pre">foo</span></code>) must resolve to the same definition. Allowing them
+to resolve to different symbols is incorrect because, the unversioned
+symbol is simply an alias for the versioned symbol (<code class="docutils literal notranslate"><span class="pre">foo&#64;V1</span></code>), and both are
+originally the same symbol (<code class="docutils literal notranslate"><span class="pre">foo&#64;&#64;V1</span></code>).</p>
+<div class="section" id="why-is-symbol-normalization-required">
+<h3><span class="section-number">8.2.1. </span>Why is symbol normalization required?<a class="headerlink" href="#why-is-symbol-normalization-required" title="Permalink to this heading"></a></h3>
+<p>As we saw above, for a default-versioned symbol definition <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>,
+eld creates two symbols <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> and <code class="docutils literal notranslate"><span class="pre">bar</span></code>. Some undefined symbol references
+may have resolved to <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> definition and some may have resolved to <code class="docutils literal notranslate"><span class="pre">bar</span></code>
+definition. This is a problem because in reality there is only one symbol
+<code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>. If we keep two symbol nodes per default-versioned symbol definition,
+then we will need to also emit both these symbols into the symbol table and
+create duplicate GOT/PLT slots for these symbols.</p>
+<p>Symbol normalization resolves this duplicate symbol issue by rewriting
+all the references to non-canonical symbols (<code class="docutils literal notranslate"><span class="pre">bar</span></code>) into the canonical symbols
+(<code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code>). A key thing to note here is that we only require the non-canonical
+aliases during symbol resolution phase.</p>
+<p>LLD does not always normalize the symbols and thus creates duplicate GOT/PLT slots for the same
+symbol when a default versioned symbol is accessed as both plain unversioned reference
+and versioned reference.</p>
+<p>Reproducer:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+
+cat<span class="w"> </span>&gt;1.c<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">__asm__(&quot;.symver foo1,foo@@V1&quot;);</span>
+<span class="s">int foo1() {</span>
+<span class="s">  return 1;</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+cat<span class="w"> </span>&gt;vs.t<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">V1 {</span>
+<span class="s">  global:</span>
+<span class="s">    foo;</span>
+<span class="s">};</span>
+<span class="s">EOF</span>
+
+cat<span class="w"> </span>&gt;main.c<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">#include &lt;stdio.h&gt;</span>
+
+<span class="s">int foo();</span>
+
+<span class="s">__asm__(&quot;.symver foov1, foo@V1&quot;);</span>
+<span class="s">int foov1();</span>
+
+<span class="s">int main() {</span>
+<span class="s">  int u = foo() + foov1();</span>
+<span class="s">  printf(&quot;u: %d\n&quot;,u);</span>
+<span class="s">  return 0;</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+clang-20<span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-c<span class="w"> </span>-fPIC
+clang-20<span class="w"> </span>-o<span class="w"> </span>main.o<span class="w"> </span>main.c<span class="w"> </span>-c<span class="w"> </span>-fPIC
+
+<span class="nv">LDs</span><span class="o">=(</span>ld.eld<span class="w"> </span>ld.lld<span class="w"> </span>ld.bfd<span class="o">)</span>
+<span class="nv">SFs</span><span class="o">=(</span>eld<span class="w"> </span>lld<span class="w"> </span>bfd<span class="o">)</span>
+
+<span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="p">!SFs[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="si">${</span><span class="nv">LDs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span><span class="w"> </span>-o<span class="w"> </span>lib1.<span class="si">${</span><span class="nv">SFs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span>.so<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span>-shared<span class="w"> </span>--version-script<span class="w"> </span>vs.t
+<span class="w">  </span>clang-20<span class="w"> </span>-o<span class="w"> </span>main.<span class="si">${</span><span class="nv">SFs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span>.out<span class="w"> </span>main.o<span class="w"> </span>lib1.<span class="si">${</span><span class="nv">SFs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span>.so<span class="w"> </span>--ld-path<span class="o">=</span><span class="k">$(</span>which<span class="w"> </span><span class="si">${</span><span class="nv">LDs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span><span class="k">)</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">SFs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span><span class="s2">:&quot;</span>
+<span class="w">  </span>llvm-readelf<span class="w"> </span>-r<span class="w"> </span>main.<span class="si">${</span><span class="nv">SFs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span>.out<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>foo
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+<span class="k">done</span>
+</pre></div>
+</div>
+<p>Output:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>eld:
+<span class="m">0000000000002230</span><span class="w">  </span><span class="m">0000000700000007</span><span class="w"> </span>R_X86_64_JUMP_SLOT<span class="w">     </span><span class="m">0000000000000000</span><span class="w"> </span>foo@V1<span class="w"> </span>+<span class="w"> </span><span class="m">0</span>
+
+lld:
+0000000000003a58<span class="w">  </span><span class="m">0000000600000007</span><span class="w"> </span>R_X86_64_JUMP_SLOT<span class="w">     </span><span class="m">0000000000000000</span><span class="w"> </span>foo@V1<span class="w"> </span>+<span class="w"> </span><span class="m">0</span>
+0000000000003a68<span class="w">  </span><span class="m">0000000800000007</span><span class="w"> </span>R_X86_64_JUMP_SLOT<span class="w">     </span><span class="m">0000000000000000</span><span class="w"> </span>foo@V1<span class="w"> </span>+<span class="w"> </span><span class="m">0</span>
+
+bfd:
+<span class="m">0000000000004008</span><span class="w">  </span><span class="m">0000000500000007</span><span class="w"> </span>R_X86_64_JUMP_SLOT<span class="w">     </span><span class="m">0000000000000000</span><span class="w"> </span>foo@V1<span class="w"> </span>+<span class="w"> </span><span class="m">0</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="versioned-symbols-symbol-resolution-examples">
+<h3><span class="section-number">8.2.2. </span>Versioned symbols symbol-resolution examples<a class="headerlink" href="#versioned-symbols-symbol-resolution-examples" title="Permalink to this heading"></a></h3>
+<p>Symbol resolution of versioned-symbols is largely the same as
+non-versioned symbols. However, there are (corner) cases that
+may seem surprising. Here we will see some examples of symbol resolution
+of versioned symbols. We will also note differences from GNU ld (2.46.50)
+and lld (22.0) wherever relevant.</p>
+<p>In these examples (A) and (B) are simply used to differentiate symbols and
+to avoid any confusion when referring to them. Please note that (A) and (B)
+does not mean that the symbols come from different input files.</p>
+<p>The order matters in these examples, (A) <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, (B) <code class="docutils literal notranslate"><span class="pre">bar&#64;V2</span></code>, means
+that the linker first sees <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code> and then sees <code class="docutils literal notranslate"><span class="pre">bar&#64;V2</span></code>.</p>
+<p>The symbols originates from regular object files unstated otherwise.</p>
+<ol class="arabic simple">
+<li><p>(A) <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, (B) <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code></p></li>
+</ol>
+<p>multiple definition error.</p>
+<ol class="arabic simple" start="2">
+<li><p>(A) <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, (B) weak <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code></p></li>
+</ol>
+<p>(A) <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code> is used to resolve undefined references to <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> and <code class="docutils literal notranslate"><span class="pre">bar</span></code>.</p>
+<ol class="arabic simple" start="3">
+<li><p>(A) weak <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, (B) <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code></p></li>
+</ol>
+<p>(B) <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> is used to resolve undefined references to <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> and <code class="docutils literal notranslate"><span class="pre">bar</span></code>.</p>
+<p>(B) <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> becomes a default-versioned symbol, and appears as <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code> in
+the dynamic symbol table.</p>
+<ol class="arabic simple" start="4">
+<li><p>(A) weak <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, (B) <code class="docutils literal notranslate"><span class="pre">bar</span></code></p></li>
+</ol>
+<p>(B) <code class="docutils literal notranslate"><span class="pre">bar</span></code> is used to resolve undefined references to <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> and <code class="docutils literal notranslate"><span class="pre">bar</span></code>.</p>
+<p>(B) <code class="docutils literal notranslate"><span class="pre">bar</span></code> becomes a default-versioned symbol, and appears as <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code> in the
+dynamic symbol table.</p>
+<ol class="arabic simple" start="5">
+<li><p>(A) weak <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, (B) <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code></p></li>
+</ol>
+<p>(B) <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code> is used to resolve undefined references to <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> and <code class="docutils literal notranslate"><span class="pre">bar</span></code>.</p>
+<ol class="arabic simple" start="6">
+<li><p>(A) <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, (B) <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V2</span></code></p></li>
+</ol>
+<p>eld and bfd errors out with multiple definition error.</p>
+<p>lld incorrectly links correctly. Reproducer:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+
+cat<span class="w"> </span>&gt;1.c<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">__asm__(&quot;.symver foo1,foo@@V1&quot;);</span>
+<span class="s">int foo1() {</span>
+<span class="s">  return 1;</span>
+<span class="s">}</span>
+
+<span class="s">__asm__(&quot;.symver foo2,foo@@V2&quot;);</span>
+<span class="s">int foo2() {</span>
+<span class="s">  return 3;</span>
+<span class="s">}</span>
+
+<span class="s">__asm__(&quot;.symver bar,bar@V2&quot;);</span>
+<span class="s">int bar() {</span>
+<span class="s">  return 5;</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+cat<span class="w"> </span>&gt;main.c<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">#include &lt;stdio.h&gt;</span>
+
+<span class="s">int foo();</span>
+<span class="s">int bar();</span>
+
+<span class="s">int main() {</span>
+<span class="s">  int u = foo() + bar();</span>
+<span class="s">  printf(&quot;u: %d\n&quot;,u);</span>
+<span class="s">  return 0;</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+cat<span class="w"> </span>&gt;vs.t<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">V1 {</span>
+<span class="s">  global:</span>
+<span class="s">    foo;</span>
+<span class="s">};</span>
+
+<span class="s">V2 {</span>
+<span class="s">  global:</span>
+<span class="s">    foo;</span>
+<span class="s">};</span>
+<span class="s">EOF</span>
+
+clang-20<span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-c<span class="w"> </span>-fPIC
+clang-20<span class="w"> </span>-o<span class="w"> </span>main.o<span class="w"> </span>main.c<span class="w"> </span>-c
+
+<span class="nv">LDs</span><span class="o">=(</span>ld.eld<span class="w"> </span>ld.lld<span class="w"> </span>ld.bfd<span class="o">)</span>
+<span class="nv">SFs</span><span class="o">=(</span>eld<span class="w"> </span>lld<span class="w"> </span>bfd<span class="o">)</span>
+
+<span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="p">!SFs[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>clang-20<span class="w"> </span>-o<span class="w"> </span>lib.<span class="si">${</span><span class="nv">SFs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span>.so<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span>--ld-path<span class="o">=</span><span class="k">$(</span>which<span class="w"> </span><span class="si">${</span><span class="nv">LDs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span><span class="k">)</span><span class="w"> </span>-shared<span class="w"> </span>-fPIC<span class="w"> </span>-Wl,--version-script,vs.t
+<span class="k">done</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="7">
+<li><p>(A) weak <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, (B) <code class="docutils literal notranslate"><span class="pre">bar</span></code>, (C) <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code></p></li>
+</ol>
+<p>multiple definition error.</p>
+<ol class="arabic simple" start="8">
+<li><p>(A) weak <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, (B) weak <code class="docutils literal notranslate"><span class="pre">bar</span></code>, (C) <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code></p></li>
+</ol>
+<p>(C) <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> is used to resolve undefined references to both <code class="docutils literal notranslate"><span class="pre">bar</span></code> and <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code>.</p>
+<ol class="arabic simple" start="9">
+<li><p>(A) weak <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, (B) <code class="docutils literal notranslate"><span class="pre">bar</span></code>, and version script that assigns
+<code class="docutils literal notranslate"><span class="pre">V2</span></code> to <code class="docutils literal notranslate"><span class="pre">bar</span></code>.</p></li>
+</ol>
+<p>(B) <code class="docutils literal notranslate"><span class="pre">bar</span></code> becomes a default versioned symbol and appears as <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>
+in the dynamic symbol table. <strong>There will be no <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V2</span></code> in the symbol table!</strong></p>
+<p>reproducer:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+
+cat<span class="w"> </span>&gt;1.c<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">__asm__(&quot;.symver bar1, bar@@V1&quot;);</span>
+<span class="s">__attribute__((weak))</span>
+<span class="s">int bar1() {</span>
+<span class="s">  return 1;</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+cat<span class="w"> </span>&gt;2.c<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">int bar() {</span>
+<span class="s">  return 3;</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+cat<span class="w"> </span>&gt;3.c<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">int bar();</span>
+
+<span class="s">__asm__(&quot;.symver bar3v1, bar@V1&quot;);</span>
+<span class="s">int bar3v1();</span>
+
+<span class="s">int b() {</span>
+<span class="s">  return bar() + bar3v1();</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+cat<span class="w"> </span>&gt;vs.t<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">V2 {</span>
+<span class="s">  global:</span>
+<span class="s">    bar;</span>
+<span class="s">};</span>
+
+<span class="s">V1 {</span>
+<span class="s">  global:</span>
+<span class="s">    bar;</span>
+<span class="s">};</span>
+<span class="s">EOF</span>
+
+cat<span class="w"> </span>&gt;main.c<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">#include &lt;stdio.h&gt;</span>
+<span class="s">#define show(x) printf(&quot;%s: %d\n&quot;, #x, x);</span>
+
+<span class="s">int b();</span>
+<span class="s">int bar();</span>
+
+<span class="s">__asm__(&quot;.symver bar1, bar@V1&quot;);</span>
+<span class="s">int bar1();</span>
+
+<span class="s">int b_main() {</span>
+<span class="s">  return bar() + bar1();</span>
+<span class="s">}</span>
+
+<span class="s">int main() {</span>
+<span class="s"> show(b());</span>
+<span class="s"> show(b_main());</span>
+<span class="s"> return 0;</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+<span class="nv">TARGET</span><span class="o">=</span><span class="s2">&quot;x86_64-linux-gnu&quot;</span>
+
+clang<span class="w"> </span>-target<span class="w"> </span><span class="si">${</span><span class="nv">TARGET</span><span class="si">}</span><span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-c<span class="w"> </span>-fPIC
+clang<span class="w"> </span>-target<span class="w"> </span><span class="si">${</span><span class="nv">TARGET</span><span class="si">}</span><span class="w"> </span>-o<span class="w"> </span><span class="m">2</span>.o<span class="w"> </span><span class="m">2</span>.c<span class="w"> </span>-c<span class="w"> </span>-fPIC
+clang<span class="w"> </span>-target<span class="w"> </span><span class="si">${</span><span class="nv">TARGET</span><span class="si">}</span><span class="w"> </span>-o<span class="w"> </span><span class="m">3</span>.o<span class="w"> </span><span class="m">3</span>.c<span class="w"> </span>-c<span class="w"> </span>-fPIC
+clang<span class="w"> </span>-target<span class="w"> </span><span class="si">${</span><span class="nv">TARGET</span><span class="si">}</span><span class="w"> </span>-o<span class="w"> </span>main.o<span class="w"> </span>main.c<span class="w"> </span>-c
+
+<span class="nv">LDs</span><span class="o">=(</span>ld.eld<span class="w"> </span>ld.lld<span class="w"> </span>ld.bfd<span class="o">)</span>
+<span class="nv">SFs</span><span class="o">=(</span>eld<span class="w"> </span>lld<span class="w"> </span>bfd<span class="o">)</span>
+
+<span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="p">!SFs[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="si">${</span><span class="nv">LDs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span><span class="w"> </span>-o<span class="w"> </span>lib12.<span class="si">${</span><span class="nv">SFs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span>.so<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">2</span>.o<span class="w"> </span><span class="m">3</span>.o<span class="w"> </span>--version-script<span class="w"> </span>vs.t<span class="w"> </span>-shared
+<span class="w">  </span>clang<span class="w"> </span>-target<span class="w"> </span><span class="si">${</span><span class="nv">TARGET</span><span class="si">}</span><span class="w"> </span>--ld-path<span class="o">=</span><span class="k">$(</span>which<span class="w"> </span><span class="si">${</span><span class="nv">LDs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span><span class="k">)</span><span class="w"> </span>-o<span class="w"> </span>main.<span class="si">${</span><span class="nv">SFs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span>.out<span class="w"> </span>main.o<span class="w"> </span>lib12.<span class="si">${</span><span class="nv">SFs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span>.so
+<span class="k">done</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="10">
+<li><p>(A) <code class="docutils literal notranslate"><span class="pre">bar</span></code>, (B) weak <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, and version script that assigns
+<code class="docutils literal notranslate"><span class="pre">V2</span></code> to <code class="docutils literal notranslate"><span class="pre">bar</span></code>.</p></li>
+</ol>
+<p>With GNU ld, the dynamic symbol table contains both <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code> and <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V2</span></code>, and
+with lld and eld, the dynamic symbol table only contains <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>.</p>
+<p>Additionally, GNU seems to incorrectly resolves <code class="docutils literal notranslate"><span class="pre">bar&#64;V1</span></code> undefined references to
+weak <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, instead of the plain <code class="docutils literal notranslate"><span class="pre">bar</span></code>. LLD and eld correctly behaves here.</p>
+<p>Reproducer:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+
+cat<span class="w"> </span>&gt;1.c<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">__asm__(&quot;.symver bar1, bar@@V1&quot;);</span>
+<span class="s">__attribute__((weak))</span>
+<span class="s">int bar1() {</span>
+<span class="s">  return 1;</span>
+<span class="s">}</span>
+
+<span class="s">int bar() {</span>
+<span class="s">  return 5;</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+cat<span class="w"> </span>&gt;2.c<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">int baz() {</span>
+<span class="s">  return 3;</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+cat<span class="w"> </span>&gt;3.c<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">int bar();</span>
+
+<span class="s">__asm__(&quot;.symver bar3v1, bar@V1&quot;);</span>
+<span class="s">int bar3v1();</span>
+
+<span class="s">int b() {</span>
+<span class="s">  return bar() + bar3v1();</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+cat<span class="w"> </span>&gt;vs.t<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">V2 {</span>
+<span class="s">  global:</span>
+<span class="s">    bar;</span>
+<span class="s">};</span>
+
+<span class="s">V1 {</span>
+<span class="s">  global:</span>
+<span class="s">    bar;</span>
+<span class="s">};</span>
+<span class="s">EOF</span>
+
+cat<span class="w"> </span>&gt;main.c<span class="w"> </span><span class="s">&lt;&lt;\EOF</span>
+<span class="s">#include &lt;stdio.h&gt;</span>
+<span class="s">#define show(x) printf(&quot;%s: %d\n&quot;, #x, x);</span>
+
+<span class="s">int b();</span>
+<span class="s">int bar();</span>
+
+<span class="s">__asm__(&quot;.symver bar1, bar@V1&quot;);</span>
+<span class="s">int bar1();</span>
+
+<span class="s">int b_main() {</span>
+<span class="s">  return bar() + bar1();</span>
+<span class="s">}</span>
+
+<span class="s">int main() {</span>
+<span class="s"> show(b());</span>
+<span class="s"> show(b_main());</span>
+<span class="s"> return 0;</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+<span class="nv">TARGET</span><span class="o">=</span><span class="s2">&quot;x86_64-linux-gnu&quot;</span>
+
+clang<span class="w"> </span>-target<span class="w"> </span><span class="si">${</span><span class="nv">TARGET</span><span class="si">}</span><span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-c<span class="w"> </span>-fPIC
+clang<span class="w"> </span>-target<span class="w"> </span><span class="si">${</span><span class="nv">TARGET</span><span class="si">}</span><span class="w"> </span>-o<span class="w"> </span><span class="m">2</span>.o<span class="w"> </span><span class="m">2</span>.c<span class="w"> </span>-c<span class="w"> </span>-fPIC
+clang<span class="w"> </span>-target<span class="w"> </span><span class="si">${</span><span class="nv">TARGET</span><span class="si">}</span><span class="w"> </span>-o<span class="w"> </span><span class="m">3</span>.o<span class="w"> </span><span class="m">3</span>.c<span class="w"> </span>-c<span class="w"> </span>-fPIC
+clang<span class="w"> </span>-target<span class="w"> </span><span class="si">${</span><span class="nv">TARGET</span><span class="si">}</span><span class="w"> </span>-o<span class="w"> </span>main.o<span class="w"> </span>main.c<span class="w"> </span>-c
+
+<span class="nv">LDs</span><span class="o">=(</span>ld.eld<span class="w"> </span>ld.lld<span class="w"> </span>ld.bfd<span class="o">)</span>
+<span class="nv">SFs</span><span class="o">=(</span>eld<span class="w"> </span>lld<span class="w"> </span>bfd<span class="o">)</span>
+
+<span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="p">!SFs[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span><span class="si">${</span><span class="nv">LDs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span><span class="w"> </span>-o<span class="w"> </span>lib12.<span class="si">${</span><span class="nv">SFs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span>.so<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">2</span>.o<span class="w"> </span><span class="m">3</span>.o<span class="w"> </span>--version-script<span class="w"> </span>vs.t<span class="w"> </span>-shared
+<span class="w">  </span>clang<span class="w"> </span>-target<span class="w"> </span><span class="si">${</span><span class="nv">TARGET</span><span class="si">}</span><span class="w"> </span>--ld-path<span class="o">=</span><span class="k">$(</span>which<span class="w"> </span><span class="si">${</span><span class="nv">LDs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span><span class="k">)</span><span class="w"> </span>-o<span class="w"> </span>main.<span class="si">${</span><span class="nv">SFs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span>.out<span class="w"> </span>main.o<span class="w"> </span>lib12.<span class="si">${</span><span class="nv">SFs</span><span class="p">[</span><span class="nv">$i</span><span class="p">]</span><span class="si">}</span>.so
+<span class="k">done</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="11">
+<li><p>(A) bar, (B) <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, and version script that assigns
+<code class="docutils literal notranslate"><span class="pre">bar</span></code> to the version node <code class="docutils literal notranslate"><span class="pre">V2</span></code>.</p></li>
+</ol>
+<p>With GNU ld, the dynamic symbol table contains both <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code> and <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V2</span></code>, and
+with lld, the dynamic symbol table only contains <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>.</p>
+<blockquote>
+<div><p>[!IMPORTANT]
+eld currently reports multiple definition error.</p>
+</div></blockquote>
+<ol class="arabic simple" start="12">
+<li><p>(A) <code class="docutils literal notranslate"><span class="pre">bar&#64;&#64;V1</span></code>, (B) <code class="docutils literal notranslate"><span class="pre">bar</span></code>, and version script that assigns
+<code class="docutils literal notranslate"><span class="pre">bar</span></code> to the version node <code class="docutils literal notranslate"><span class="pre">V2</span></code>.</p></li>
+</ol>
+<p>Multiple definition error.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="RISCV-Relocations.html" class="btn btn-neutral float-left" title="7. RISC-V Relocation Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="X86_64-Relocations.html" class="btn btn-neutral float-right" title="9. x86-64 Relocation Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
