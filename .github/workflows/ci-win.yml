@@ -65,6 +65,14 @@ jobs:
           path: nightly/llvm-project/llvm/tools/eld
           fetch-depth: 0
 
+      - name: Check for non-doc changes
+        id: file-check
+        if: github.event_name == 'pull_request'
+        uses: ./nightly/llvm-project/llvm/tools/eld/.github/workflows/CheckNonDocChanges
+        with:
+          base-branch: ${{ env.BASE_BRANCH_NAME }}
+          base-sha: ${{ github.event.pull_request.base.sha }}
+
       - name: Record pre-build entry
         if: github.event_name == 'schedule'
         uses: ./nightly/llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
@@ -80,6 +88,7 @@ jobs:
           branch-name: "${{ env.ELD_REF }}"
 
       - name: Configure CMake
+        if: github.event_name != 'pull_request' || steps.file-check.outputs.skip_build == 'false'
         working-directory: nightly
         shell: bash
         run: |
@@ -95,22 +104,26 @@ jobs:
             ../llvm-project/llvm
 
       - name: Build
+        if: github.event_name != 'pull_request' || steps.file-check.outputs.skip_build == 'false'
         working-directory: nightly/obj
         shell: bash
         run: cmake --build . --config Release
 
       - name: Install PyYAML
+        if: github.event_name != 'pull_request' || steps.file-check.outputs.skip_build == 'false'
         shell: bash
         run: |
           echo "Installing dependencies using $(python --version) at $(which python)"
           python -m pip install pyyaml psutil
 
       - name: Run tests
+        if: github.event_name != 'pull_request' || steps.file-check.outputs.skip_build == 'false'
         working-directory: nightly/obj
         shell: bash
         run: cmake --build . --config Release --target check-eld
 
       - name: Summarize test results
+        if: github.event_name != 'pull_request' || steps.file-check.outputs.skip_build == 'false'
         working-directory: nightly/obj
         shell: bash
         run: cmake --build . --config Release --target check-eld-summary

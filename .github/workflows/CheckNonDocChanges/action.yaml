@@ -1,0 +1,60 @@
+name: Check for non-doc changes
+description: >
+  Compare the ELD checkout to qualcomm/eld's PR base and set skip_build when
+  the PR only touches docs/. Shared by ci.yml, ci-macos.yml, and ci-win.yml.
+
+inputs:
+  base-branch:
+    description: "Base branch on qualcomm/eld (e.g. main)"
+    required: true
+  base-sha:
+    description: "github.event.pull_request.base.sha — the base commit GitHub already resolved"
+    required: true
+
+outputs:
+  skip_build:
+    description: "true if only docs changed; false otherwise"
+    value: ${{ steps.file-check.outputs.skip_build }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check for non-doc changes
+      id: file-check
+      shell: bash
+      env:
+        BASE_BRANCH_NAME: ${{ inputs.base-branch }}
+        BASE_SHA: ${{ inputs.base-sha }}
+      # Action lives at <eld>/.github/workflows/CheckNonDocChanges.
+      working-directory: ${{ github.action_path }}/../../..
+      run: |
+        set -euo pipefail
+        # We need the base commit from qualcomm/eld, not from the fork.
+        git remote add QC https://github.com/qualcomm/eld.git
+        # Prefer the event SHA (one commit, no history walk). Fall back to the
+        # branch tip if the remote will not serve a raw SHA.
+        git fetch --no-tags --depth=1 QC "${BASE_SHA}" || \
+          git fetch --no-tags --depth=1 QC "${BASE_BRANCH_NAME}"
+        if git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+          BASE="${BASE_SHA}"
+        elif git rev-parse --verify "QC/${BASE_BRANCH_NAME}^{commit}" >/dev/null 2>&1; then
+          BASE="QC/${BASE_BRANCH_NAME}"
+        else
+          echo "::error::Could not resolve base ${BASE_SHA} or QC/${BASE_BRANCH_NAME}"
+          git rev-parse HEAD
+          git remote -v
+          exit 1
+        fi
+        # Two-dot tree diff: both objects exist after the fetch, so this does
+        # not need merge-base (which fails on a depth-1 QC/main vs a fork HEAD).
+        CHANGED_FILES=$(git diff --name-only "${BASE}" HEAD)
+        echo "diff-base: ${BASE}"
+        echo "Changed files: ${CHANGED_FILES}"
+        for file in $CHANGED_FILES; do
+          if [[ ! "$file" =~ ^docs/ && ! "$file" =~ \.md$ ]]; then
+            echo "skip_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+        done
+        echo "Only docs changed. Skipping build."
+        echo "skip_build=true" >> "$GITHUB_OUTPUT"
