@@ -151,3 +151,10 @@
   comment: >-
     Stack overflow. Both toolchains allocate the same 4256-byte stack.
     GCC+ELD passes.
+
+- scenarios:
+  - bluetooth.init.test_20
+  platforms:
+  - qemu_cortex_m3/.*
+  comment: >-
+    https://github.com/qualcomm/eld/issues/225
