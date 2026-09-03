@@ -835,7 +835,7 @@ VerifyRelocAsNeededHelper(Relocation &pReloc, T Result,
         getEncodingBitWidth(RelocInfo.EncType) + RelocInfo.Shift;
     if (RelocInfo.IsSigned)
       return checkSignedRange(pReloc, Parent, Result, EffectiveBits);
-    return checkUnsignedRange(pReloc, Parent, Result, EffectiveBits);
+    return reportUnsignedOverflow(pReloc, Parent, Result, EffectiveBits);
   }
 
   if ((pRelocDesc.forceVerify) && (isTruncatedRISCV(RelocInfo, Result))) {
