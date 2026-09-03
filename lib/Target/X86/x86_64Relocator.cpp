@@ -556,7 +556,7 @@ Relocator::Result VerifyRelocAsNeededHelper(
         getNumberOfBits(RelocInfo.EncType) + RelocInfo.Shift;
     if (RelocInfo.IsSigned)
       return checkSignedRange(pReloc, Parent, PreShift, EffectiveBits);
-    return checkUnsignedRange(pReloc, Parent, PreShift, EffectiveBits);
+    return reportUnsignedOverflow(pReloc, Parent, PreShift, EffectiveBits);
   }
 
   if ((pRelocDesc.forceVerify) && (isTruncatedX86_64(RelocInfo, Result))) {

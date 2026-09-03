@@ -1008,7 +1008,7 @@ static Relocator::Result ldr_pc_group(Relocation &pReloc, ARMRelocator &pParent,
   // R_ARM_LDR_PC_Gn encodes the group residual in the imm12 field.
   uint32_t Imm = helper_get_rem_for_group(pGroup, X);
   if (!llvm::isUInt<12>(Imm))
-    return checkUnsignedRange(pReloc, pParent, Imm, 12);
+    return reportUnsignedOverflow(pReloc, pParent, Imm, 12);
 
   // Preserve the instruction opcode/register fields and replace only U+imm12.
   pReloc.target() = (I & 0xff7ff000) | U | Imm;

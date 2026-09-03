@@ -711,7 +711,7 @@ Relocator::Result VerifyRelocAsNeededHelper(
     unsigned EffectiveBits = RelocInfo.EffectiveBits + RelocInfo.Shift;
     if (RelocInfo.IsSigned)
       return checkSignedRange(pReloc, Parent, PreShift, EffectiveBits);
-    return checkUnsignedRange(pReloc, Parent, PreShift, EffectiveBits);
+    return reportUnsignedOverflow(pReloc, Parent, PreShift, EffectiveBits);
   }
 
   if ((pRelocDesc.forceVerify) &&
