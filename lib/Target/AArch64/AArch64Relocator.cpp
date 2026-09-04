@@ -536,11 +536,12 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
       return;
-
+    if (config().isCodeStatic())
+      return;
     // set up the got and the corresponding rel entry
     AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
-    if (config().isCodeStatic() || (config().isBuildingExecutable() &&
-                                    !m_Target.isSymbolPreemptible(*rsym))) {
+    if (config().isBuildingExecutable() &&
+        !m_Target.isSymbolPreemptible(*rsym)) {
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       G->setValueType(GOT::TLSStaticSymbolValue);
       return;

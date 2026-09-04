@@ -1,8 +1,11 @@
 #---IEAlign.test----------------------------------------------------------#
-# Check that TLS IE GOT entries account for TLS block alignment padding.
+# Check that TLS IE relaxation accounts for TLS block alignment padding.
+# For static targets, IE relaxes to LE (movz+movk) with correct offsets.
+# Variable 'b' has 128-byte alignment so its TP-relative offset is 0x80.
 RUN: %clang %clangopts -target aarch64 -c %p/Inputs/ie-align.c -o %t.o -fPIC -ftls-model=initial-exec
 RUN: %link %linkopts -march aarch64 %t.o -o %t.out --no-threads
-RUN: %readelf -x .got %t.out | %filecheck %s
+RUN: llvm-objdump --triple=aarch64 -d %t.out | %filecheck %s
 
-CHECK: .got
-CHECK: 80000000 00000000
+# Variable 'b' has 128-byte alignment, TP-relative offset = 0x80
+CHECK: movz
+CHECK: movk    x{{[0-9]+}}, #0x80
