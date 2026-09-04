@@ -1,0 +1,31 @@
+#---TLS_IE_Relax.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify --relax/--no-relax flags control IE->LE TLS relaxation
+# for global symbols in static executables.
+# Without --relax (default): global symbols use GOT (adrp + ldr)
+# With --relax: global symbols relaxed to LE (movz + movk)
+#END_COMMENT
+#START_TEST
+RUN: %clangas %clangasopts -filetype obj -target-cpu generic \
+RUN:   -target-feature +neon -mrelax-all %p/Inputs/ie.s -o %t.o
+
+# Default (--no-relax): global symbol NOT relaxed → adrp + ldr
+RUN: %link %linkopts -march aarch64 -static \
+RUN:   -z max-page-size=0x1000 %t.o -o %t.no-relax.out
+RUN: llvm-objdump -d %t.no-relax.out | %filecheck %s --check-prefix=NO-RELAX
+
+# With --relax: global symbol relaxed → movz + movk
+RUN: %link %linkopts -march aarch64 -static --relax \
+RUN:   -z max-page-size=0x1000 %t.o -o %t.relax.out
+RUN: llvm-objdump -d %t.relax.out | %filecheck %s --check-prefix=RELAX
+#END_TEST
+
+# Without --relax: global symbol uses GOT
+NO-RELAX: _test_tls_IE
+NO-RELAX: b0000000       adrp
+NO-RELAX: f9400000       ldr
+
+# With --relax: global symbol relaxed to LE (movz + movk)
+RELAX: _test_tls_IE
+RELAX: d2a00000       movz
+RELAX: f280{{.*}}       movk
