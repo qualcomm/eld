@@ -368,6 +368,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // -pie
   Config.options().setPIE(Args.hasFlag(T::pie, T::no_pie, false));
 
+  // --relax/--no-relax: enable/disable relaxations (disabled by default)
+  Config.options().setRelax(
+      Args.hasFlag(T::relax, T::no_relax, /*default=*/false));
+
   // --verbose
   if (Args.hasArg(T::verbose))
     Config.options().setVerbose();
