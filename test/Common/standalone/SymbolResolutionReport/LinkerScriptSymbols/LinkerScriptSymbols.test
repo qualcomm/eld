@@ -5,19 +5,18 @@
 #END_COMMENT
 RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
 RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
-RUN: %link -MapStyle txt %linkopts -o %t1.a.out %t1.1.o %t1.2.o %p/Inputs/script1.t %p/Inputs/script2.t -Map %t1.a.map.txt --MapDetail show-symbol-resolution
-RUN: %filecheck %s < %t1.a.map.txt
+RUN: %link %linkopts -o %t1.a.out %t1.1.o %t1.2.o %p/Inputs/script1.t %p/Inputs/script2.t --emit-symbol-resolution-report %t1.a.json
+RUN: %python %eld_src_tools_root/SymbolResolutionInspector/SymbolResolutionInspector.py %t1.a.json | %filecheck %s
 
-CHECK: # Symbol Resolution:
 CHECK-DAG: bar
-CHECK-DAG: bar({{.*}}2.o:{{.*}}) [Size={{.*}}, Def, Global, Object] [Selected]
+CHECK-DAG: bar({{.*}}2.o:{{.*}}) [Size={{.*}}, Def, Global, Object, Default] [Selected]
 CHECK-DAG: foo
-CHECK-DAG: foo({{.*}}1.o:{{.*}}) [Size=4, Def, Global, Object]
-CHECK-DAG: foo({{.*}}2.o) [Size=0, Undef, Global, NoType]
-CHECK-DAG: foo({{.*}}script1.t) [Size=4, Abs, Object]
-CHECK-DAG: foo({{.*}}script1.t) [Size=4, Abs, Object]
-CHECK-DAG: foo({{.*}}script2.t) [Size=4, Abs, Object]
-CHECK-DAG: foo({{.*}}script2.t) [Size=4, Abs, Object] [Selected]
+CHECK-DAG: foo({{.*}}1.o:{{.*}}) [Size=4, Def, Global, Object, Default]
+CHECK-DAG: foo({{.*}}2.o) [Size=0, Undef, Global, NoType, Default]
+CHECK-DAG: foo({{.*}}script1.t) [Size=4, Abs, {{.*}}, Object, Default]
+CHECK-DAG: foo({{.*}}script1.t) [Size=4, Abs, {{.*}}, Object, Default]
+CHECK-DAG: foo({{.*}}script2.t) [Size=4, Abs, {{.*}}, Object, Default]
+CHECK-DAG: foo({{.*}}script2.t) [Size=4, Abs, {{.*}}, Object, Default] [Selected]
 
 
 

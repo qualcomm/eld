@@ -515,12 +515,20 @@ llvm::StringRef Module::getStateStr() const {
 void Module::addSymbolCreatedByPluginToFragment(Fragment *F, std::string Symbol,
                                                 uint64_t Val,
                                                 const eld::Plugin *Plugin) {
-  LayoutInfo *layoutInfo = getLayoutInfo();
   LDSymbol *S = SymbolNamePool.createPluginSymbol(
-      getInternalInput(Module::InternalInputType::Plugin), Symbol, F, Val,
-      layoutInfo);
-  if (S && layoutInfo && layoutInfo->showSymbolResolution())
-    SymbolNamePool.getSRI().recordPluginSymbol(S, Plugin);
+      getInternalInput(Module::InternalInputType::Plugin), Symbol, F, Val);
+  if (S && ThisConfig.options().shouldEmitSymbolResolutionReport()) {
+    const ResolveInfo *Info = S->resolveInfo();
+    SymbolResolutionInfo &SRI = SymbolNamePool.getSRI();
+    SRI.recordSymbolInfo(
+        S, SymbolInfo{Info->resolvedOrigin(), Info->size(),
+                      static_cast<ResolveInfo::Binding>(Info->binding()),
+                      static_cast<ResolveInfo::Type>(Info->type()),
+                      Info->visibility(),
+                      static_cast<ResolveInfo::Desc>(Info->desc()),
+                      /*isBitcode=*/false});
+    SRI.recordPluginSymbol(S, Plugin);
+  }
   PluginFragmentToSymbols[F];
   PluginFragmentToSymbols[F].push_back(S);
   llvm::dyn_cast<eld::ObjectFile>(F->getOwningSection()->getInputFile())

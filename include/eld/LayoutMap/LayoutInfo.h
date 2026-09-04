@@ -81,8 +81,7 @@ public:
     ShowTiming = 0x20,
     ShowDebugStrings = 0x40,
     ShowRelativePath = 0x80,
-    ShowInitialLayout = 0x100,
-    ShowSymbolResolution = 0x200
+    ShowInitialLayout = 0x100
   };
 
   enum InputKindPrefix {
@@ -428,10 +427,6 @@ public:
   }
 
   void printStats(void *H, llvm::raw_ostream &OS) const;
-
-  bool showSymbolResolution() const {
-    return LayoutDetail & LayoutDetail::ShowSymbolResolution;
-  }
 
 private:
   Stats LinkStats;
