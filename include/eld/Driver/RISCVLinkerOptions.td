@@ -24,10 +24,6 @@ def gpsize_alias : JoinedOrSeparate<["-"], "G">,
 //===----------------------------------------------------------------------===//
 def grp_riscv_linker : OptionGroup<"opts">, HelpText<"RISCV Linker Options">;
 
-def no_riscv_relax : Flag<["--"], "no-relax">,
-                     HelpText<"Disable relaxation">,
-                     Group<grp_riscv_linker>;
-
 def no_relax_zero : Flag<["--"], "no-relax-zero">,
                     HelpText<"Disable zero-page relaxation">,
                     Group<grp_riscv_linker>;
@@ -59,10 +55,6 @@ def no_relax_got
     : Flag<["--"], "no-relax-got">,
       HelpText<"Disable relaxing GOT load instruction sequences">,
       Group<grp_riscv_linker>;
-
-def riscv_relax : Flag<["--"], "relax">,
-                  HelpText<"Enable relaxation (default behavior)">,
-                  Group<grp_riscv_linker>;
 
 def relax_tbljal
     : Flag<["--"], "relax-tbljal">,

@@ -1591,3 +1591,14 @@ defm remap_inputs_file : EEq<"remap-inputs-file",
                              "Read input file name remappings from file">,
                          MetaVarName<"<file>">,
                          Group<grp_input_formats>;
+
+//===----------------------------------------------------------------------===//
+/// Relaxation Options
+//===----------------------------------------------------------------------===//
+def grp_relax : OptionGroup<"opts">, HelpText<"Relaxation Options">;
+def relax : Flag<["--"], "relax">,
+            HelpText<"Enable relaxations">,
+            Group<grp_relax>;
+def no_relax : Flag<["--"], "no-relax">,
+               HelpText<"Disable relaxations (default)">,
+               Group<grp_relax>;

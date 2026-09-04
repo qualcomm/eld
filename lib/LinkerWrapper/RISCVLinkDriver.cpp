@@ -119,8 +119,8 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
 
   // --[no-]relax
   Config.options().setRISCVRelax(
-      ArgList.hasFlag(OPT_RISCVLinkOptTable::riscv_relax,
-                      OPT_RISCVLinkOptTable::no_riscv_relax, /*default=*/true));
+      ArgList.hasFlag(OPT_RISCVLinkOptTable::relax,
+                      OPT_RISCVLinkOptTable::no_relax, /*default=*/true));
 
   // --no-relax-zero
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::no_relax_zero))
