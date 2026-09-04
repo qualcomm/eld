@@ -939,6 +939,10 @@ public:
 
   bool getRelax() const { return ShouldRelax; }
 
+  void setAArch64Relax(bool Value) { AArch64Relax = Value; }
+
+  bool getAArch64Relax() const { return AArch64Relax; }
+
   void setRISCVZeroRelax(bool Relax) { RiscvZeroRelax = Relax; }
 
   bool getRISCVZeroRelax() const { return RiscvZeroRelax; }
@@ -1332,8 +1336,9 @@ private:
   bool BExecuteOnly = false;              // --execute-only
   bool BPrintTimeStats = false;           // --print-stats
   bool BPrintAllUserPluginTimeStats = false;
-  bool BDemangle = true;                  // --demangle-style
-  bool ValidateArchOpts = false;          // check -mabi with backend
+  bool BDemangle = true;         // --demangle-style
+  bool ValidateArchOpts = false; // check -mabi with backend
+  bool AArch64Relax = false;     // AArch64 TLS relaxation (opt-in via --relax)
   bool DisableGuardForWeakUndefs = false; // hexagon specific option to
                                           // disable guard functionality.
   bool BRiscvRelax = true;                // enable riscv relaxation

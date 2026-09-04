@@ -66,3 +66,15 @@ def gpsize_alias : JoinedOrSeparate<["-"], "G">,
                    MetaVarName<"<maxsize>">,
                    Group<grp_compatorignoredopts>,
                    Alias<gpsize>;
+
+//===----------------------------------------------------------------------===//
+/// AArch64 Relaxation Options
+//===----------------------------------------------------------------------===//
+def grp_aarch64_relax : OptionGroup<"opts">,
+                        HelpText<"AArch64 Relaxation Options">;
+def relax : Flag<["--"], "relax">,
+            HelpText<"Enable TLS relaxations for AArch64 (disabled by default)">,
+            Group<grp_aarch64_relax>;
+def no_relax : Flag<["--"], "no-relax">,
+               HelpText<"Disable TLS relaxations for AArch64 (default)">,
+               Group<grp_aarch64_relax>;

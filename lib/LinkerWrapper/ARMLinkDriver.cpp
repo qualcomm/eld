@@ -156,6 +156,12 @@ ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
     Config.options().setROSegment(true);
   }
 
+  // --relax/--no-relax: AArch64 TLS relaxation (disabled by default)
+  Config.options().setAArch64Relax(
+      ArgList.hasFlag(OPT_ARMLinkOptTable::relax,
+                      OPT_ARMLinkOptTable::no_relax,
+                      /*default=*/false));
+
   // -target2
   if (llvm::opt::Arg *arg = ArgList.getLastArg(OPT_ARMLinkOptTable::target2)) {
     llvm::StringRef Value = arg->getValue();
