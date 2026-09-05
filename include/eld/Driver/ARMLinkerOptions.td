@@ -26,12 +26,6 @@ def use_mov_veneer
       Group<grp_arm_linker>;
 def grp_arm_linker_only : OptionGroup<"opts">,
                           HelpText<"ARM Linker Option ONLY">;
-def fix_cortex_a8 : Flag<["--"], "fix-cortex-a8">,
-                    HelpText<"Fix the Cortex A8 bug">,
-                    Group<grp_arm_linker_only>;
-def no_fix_cortex_a8 : Flag<["--"], "no-fix-cortex-a8">,
-                       HelpText<"Dont Fix the Cortex A8 bug">,
-                       Group<grp_arm_linker_only>;
 def fix_cortex_a53_843419 : Flag<["-", "--"], "fix-cortex-a53-843419">,
                             HelpText<"Fix the cortex a53 errata 843419">,
                             Group<grp_arm_linker_only>;
@@ -66,3 +60,9 @@ def gpsize_alias : JoinedOrSeparate<["-"], "G">,
                    MetaVarName<"<maxsize>">,
                    Group<grp_compatorignoredopts>,
                    Alias<gpsize>;
+def fix_cortex_a8 : Flag<["--"], "fix-cortex-a8">,
+                    HelpText<"Fix the Cortex A8 bug">,
+                    Group<grp_compatorignoredopts>;
+def no_fix_cortex_a8 : Flag<["--"], "no-fix-cortex-a8">,
+                       HelpText<"Dont Fix the Cortex A8 bug">,
+                       Group<grp_compatorignoredopts>;
