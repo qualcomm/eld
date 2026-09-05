@@ -889,8 +889,6 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --version-script
   for (auto *Arg : Args.filtered(T::version_script))
     Config.options().getVersionScripts().emplace(Arg->getValue());
-  if (Config.options().getVersionScripts().size())
-    Config.options().setVersionScript();
 
   // --default-symver
   if (Args.hasArg(T::default_symver))
