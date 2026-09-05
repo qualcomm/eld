@@ -882,8 +882,6 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --version-script
   for (auto *Arg : Args.filtered(T::version_script))
     Config.options().getVersionScripts().emplace(Arg->getValue());
-  if (Config.options().getVersionScripts().size())
-    Config.options().setVersionScript();
   Config.options().setAllowUndefinedVersion(
       Args.hasFlag(T::undefined_version, T::no_undefined_version,
                    /*default=*/true));

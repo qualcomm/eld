@@ -576,10 +576,6 @@ public:
 
   bool hasDynamicList() const { return BDynamicList; }
 
-  void setVersionScript() { BVersionScript = true; }
-
-  bool hasVersionScript() const { return BVersionScript; }
-
   void setAllowUndefinedVersion(bool Enable) { AllowUndefinedVersion = Enable; }
 
   bool allowUndefinedVersion() const { return AllowUndefinedVersion; }
@@ -1303,7 +1299,6 @@ private:
   bool BGenUnwindInfo = true;        // --ld-generated-unwind-info
   bool BForceDynamic = false;        // --force-dynamic
   bool BDynamicList = false;         // --dynamic-list flag
-  bool BVersionScript = false;       // --version-script
   bool AllowUndefinedVersion = true; // --[no-]undefined-version
   bool BDefaultSymver = false;       // --default-symver
   bool BHasDyld = false;             // user set dynamic linker ?
