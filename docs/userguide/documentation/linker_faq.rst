@@ -3157,6 +3157,7 @@ Step 2
 Check to see if there any system environment variables set. Important variables to note are :-
 
 * LD_LIBRARY_PATH
+* DYLD_LIBRARY_PATH (macOS)
 * PATH (Windows)
 
 Remove the values set and see if the error disappears

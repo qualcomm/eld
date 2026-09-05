@@ -1,4 +1,4 @@
-#UNSUPPORTED: windows
+#UNSUPPORTED: windows, darwin
 #------CopyReloc.test-------Copy Relocations------#
 #BEGIN_COMMENT
 # Verifies copy relocations for data symbols in non-PIC executables.

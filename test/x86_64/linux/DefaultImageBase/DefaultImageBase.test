@@ -1,4 +1,4 @@
-#UNSUPPORTED: windows
+#UNSUPPORTED: windows, darwin
 #---DefaultImageBase.test-----Executable--------#
 BEGIN_COMMENT
 # Test x86_64 default image address

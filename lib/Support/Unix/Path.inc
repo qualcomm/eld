@@ -6,7 +6,6 @@
 
 #include <limits.h>
 #include <stdlib.h>
-#include <linux/nfs.h>
 
 std::string Path::getFullPath(const std::string &Path) {
   char ResolvedPath[PATH_MAX + 1];

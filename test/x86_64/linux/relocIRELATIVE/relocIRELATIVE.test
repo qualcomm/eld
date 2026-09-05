@@ -1,4 +1,4 @@
-#UNSUPPORTED: windows
+#UNSUPPORTED: windows, darwin
 #------IRelativeStatic.test-------IRELATIVE Relocations in Static Executables------#
 #BEGIN_COMMENT
 # Verifies IRELATIVE relocations (R_X86_64_IRELATIVE) are generated when

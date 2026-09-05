@@ -1,4 +1,4 @@
-#UNSUPPORTED: windows
+#UNSUPPORTED: windows, darwin
 #---x86_64_Emulation.test----------------- Executable --------------------#
 
 BEGIN_COMMENT

@@ -11,6 +11,7 @@ on:
       - '.github/workflows/docs.yaml'
       - '.github/workflows/docs-multiversion.yaml'
       - '.github/workflows/ci-win.yml'
+      - '.github/workflows/ci-macos.yml'
       - '.github/workflows/clang-cross-schedule.yml'
       - '.github/workflows/DownloadClangCrossToolchain/action.yaml'
       - '.github/workflows/DownloadLatestBusybox/action.yaml'
@@ -76,22 +77,10 @@ jobs:
 
       - name: Check for non-doc changes
         id: file-check
-        working-directory: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
-        run: |
-          # We need to use base branch from qualcomm/eld
-          git remote add QC https://github.com/qualcomm/eld.git
-          git fetch QC ${{ env.BASE_BRANCH_NAME }} --depth=1
-          MERGE_BASE=$(git merge-base QC/${{ env.BASE_BRANCH_NAME }} HEAD)
-          CHANGED_FILES=$(git diff --name-only "$MERGE_BASE" HEAD)
-          echo "Changed files: $CHANGED_FILES"
-          for file in $CHANGED_FILES; do
-            if [[ ! "$file" =~ ^docs/ && ! "$file" =~ \.md$ ]]; then
-              echo "skip_build=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          done
-          echo "Only docs changed. Skipping build."
-          echo "skip_build=true" >> "$GITHUB_OUTPUT"
+        uses: ./pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld/.github/workflows/CheckNonDocChanges
+        with:
+          base-branch: ${{ env.BASE_BRANCH_NAME }}
+          base-sha: ${{ github.event.pull_request.base.sha }}
 
       - name: Run CMake
         if: steps.file-check.outputs.skip_build == 'false'
