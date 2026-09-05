@@ -272,14 +272,21 @@ ELFSection *RISCVLDBackend::mergeSection(ELFSection *S) {
 }
 
 void RISCVLDBackend::relaxDeleteBytes(StringRef Name, RegionFragmentEx &Region,
-                                      uint64_t Offset, unsigned NumBytes,
-                                      StringRef SymbolName) {
+                                      Relocation *Reloc, uint64_t Offset,
+                                      unsigned NumBytes, const ResolveInfo *Sym,
+                                      uint32_t NopBytes) {
   auto &Section = *Region.getOwningSection();
-  Region.deleteInstruction(Offset, NumBytes);
+  // Compute before adding the edit: matches the offset eager deletion
+  // would have already applied by this point.
+  uint32_t ReportedOffset = Region.mapOffset(Offset);
+  Region.recordDelete(Reloc, Offset, NumBytes, NopBytes);
+  m_FragmentsWithPendingRelaxEdits.insert(&Region);
   if (m_Module.getPrinter()->isVerbose())
     config().raise(Diag::deleting_instructions)
-        << Name << NumBytes << SymbolName << Section.name()
-        << llvm::utohexstr(Offset, true)
+        << Name << NumBytes
+        << (Sym ? Sym->getDecoratedName(config().options().shouldDemangle())
+                : std::string())
+        << Section.name() << llvm::utohexstr(ReportedOffset, true)
         << Section.getInputFile()->getInput()->decoratedPath();
   recordRelaxationStats(Section, NumBytes, 0);
 }
@@ -287,160 +294,17 @@ void RISCVLDBackend::relaxDeleteBytes(StringRef Name, RegionFragmentEx &Region,
 void RISCVLDBackend::reportMissedRelaxation(StringRef Name,
                                             RegionFragmentEx &Region,
                                             uint64_t Offset, unsigned NumBytes,
-                                            StringRef SymbolName) {
+                                            const ResolveInfo *Sym) {
   auto &Section = *Region.getOwningSection();
   if (m_Module.getPrinter()->isVerbose())
     config().raise(Diag::not_relaxed)
-        << Name << NumBytes << SymbolName << Section.name()
-        << llvm::utohexstr(Offset, true)
+        << Name << NumBytes
+        << Sym->getDecoratedName(config().options().shouldDemangle())
+        << Section.name() << llvm::utohexstr(Region.mapOffset(Offset), true)
         << Section.getInputFile()->getInput()->decoratedPath();
   recordRelaxationStats(Section, 0, NumBytes);
 }
 
-void RISCVLDBackend::recordCallRelaxation(RegionFragmentEx &Region,
-                                          Relocation *Reloc, uint64_t Offset,
-                                          uint32_t AuipcBytes,
-                                          uint32_t JalrBytes,
-                                          uint32_t RelaxedSize) {
-  m_CallRelaxRecords.push_back(
-      {&Region, Reloc, Offset, AuipcBytes, JalrBytes, RelaxedSize});
-}
-
-// After the ALIGN pass commits all deferred deletions, re-verify every
-// AUIPC+JALR→JAL relaxation using the final post-ALIGN symbol addresses.
-// Any relaxation whose final distance exceeds the ±1MB JAL range is undone:
-// the deleted JALR bytes are reinserted, the AUIPC is restored, and the
-// relocation type is changed back to R_RISCV_CALL_PLT.
-void RISCVLDBackend::verifyAndRollbackCallRelaxations(bool &pFinished) {
-  for (auto &R : m_CallRelaxRecords) {
-    if (R.rolledBack)
-      continue;
-
-    uint64_t relocOffset = R.reloc->targetRef()->offset();
-
-    Relocator::DWord S = getSymbolValuePLT(*R.reloc);
-    Relocator::DWord A = R.reloc->addend();
-    Relocator::DWord P = R.reloc->place(m_Module);
-    int64_t X = static_cast<int64_t>(S + A - P);
-
-    if (R.relaxedSize == 2) {
-      // C.J/C.JAL path: check if still within ±2KB (12-bit) range.
-      if (llvm::isInt<12>(X))
-        continue;
-
-      unsigned rd = (R.jalrBytes >> 7) & 0x1fu;
-
-      if (llvm::isInt<21>(X)) {
-        // Out of C.J range but still within JAL range: expand C.J → JAL.
-        // C.J is 2B; JAL is 4B. Insert 2 bytes then overwrite with JAL.
-        R.region->insertInstruction(relocOffset + 2, 2);
-        uint32_t jal = 0x6fu | rd << 7;
-        R.region->replaceInstruction(relocOffset, R.reloc,
-                                     reinterpret_cast<uint8_t *>(&jal), 4);
-        R.reloc->setTargetData(jal);
-        R.reloc->setType(llvm::ELF::R_RISCV_JAL);
-        R.rolledBack = true;
-
-        if (m_Module.getPrinter()->isVerbose())
-          config().raise(Diag::relax_cj_rolled_back_to_jal)
-              << R.reloc->symInfo()->name()
-              << R.region->getOwningSection()->name()
-              << llvm::utohexstr(relocOffset)
-              << R.region->getOwningSection()
-                     ->getInputFile()
-                     ->getInput()
-                     ->decoratedPath();
-      } else {
-        // Out of JAL range too: expand C.J → AUIPC+JALR.
-        // C.J is 2B; AUIPC+JALR is 8B. Insert 6 bytes, then restore both.
-        R.region->insertInstruction(relocOffset + 2, 6);
-        uint32_t auipcCopy = R.auipcBytes;
-        R.region->replaceInstruction(
-            relocOffset, R.reloc, reinterpret_cast<uint8_t *>(&auipcCopy), 4);
-        uint32_t jalrCopy = R.jalrBytes;
-        std::memcpy(const_cast<char *>(R.region->getRegion().data()) +
-                        relocOffset + 4,
-                    &jalrCopy, 4);
-        R.reloc->setTargetData(R.auipcBytes);
-        R.reloc->setType(llvm::ELF::R_RISCV_CALL_PLT);
-        R.rolledBack = true;
-
-        if (m_Module.getPrinter()->isVerbose())
-          config().raise(Diag::relax_cj_rolled_back_to_call)
-              << R.reloc->symInfo()->name()
-              << R.region->getOwningSection()->name()
-              << llvm::utohexstr(relocOffset)
-              << R.region->getOwningSection()
-                     ->getInputFile()
-                     ->getInput()
-                     ->decoratedPath();
-      }
-
-      undoAlignRelaxations();
-      pFinished = false;
-      continue;
-    }
-
-    // JAL path (relaxedSize == 4): check if still within ±1MB (21-bit) range.
-    if (llvm::isInt<21>(X))
-      continue; // still in range, keep the JAL relaxation
-
-    // Out of range: undo the JAL relaxation.
-    // The JALR bytes were deleted (committed) after the AUIPC.
-    // Reinsert 4 bytes at that position and restore original instructions.
-    R.region->insertInstruction(relocOffset + 4, 4);
-
-    // Restore AUIPC at its current offset.
-    uint32_t auipcCopy = R.auipcBytes;
-    R.region->replaceInstruction(relocOffset, R.reloc,
-                                 reinterpret_cast<uint8_t *>(&auipcCopy), 4);
-    // Write JALR bytes into the reinserted space.
-    uint32_t jalrCopy = R.jalrBytes;
-    std::memcpy(const_cast<char *>(R.region->getRegion().data()) + relocOffset +
-                    4,
-                &jalrCopy, 4);
-
-    R.reloc->setTargetData(R.auipcBytes);
-    R.reloc->setType(llvm::ELF::R_RISCV_CALL_PLT);
-    R.rolledBack = true;
-
-    if (m_Module.getPrinter()->isVerbose())
-      config().raise(Diag::relax_call_rolled_back)
-          << R.reloc->symInfo()->name() << R.region->getOwningSection()->name()
-          << llvm::utohexstr(relocOffset)
-          << R.region->getOwningSection()
-                 ->getInputFile()
-                 ->getInput()
-                 ->decoratedPath();
-
-    undoAlignRelaxations();
-    pFinished = false;
-  }
-}
-
-void RISCVLDBackend::undoAlignRelaxations() {
-  for (auto &A : llvm::reverse(m_AlignRelaxRecords)) {
-    if (A.bytesDeleted) {
-      uint32_t nopOffset = A.alignReloc->targetRef()->offset();
-      uint32_t insertOffset = nopOffset + A.nopsAdded;
-      A.region->insertInstruction(insertOffset, A.bytesDeleted);
-      A.region->addRequiredNops(insertOffset, A.bytesDeleted);
-      A.alignReloc->targetRef()->setOffset(nopOffset);
-    }
-    A.alignReloc->setType(llvm::ELF::R_RISCV_ALIGN);
-    if (m_Module.getPrinter()->isVerbose())
-      config().raise(Diag::relax_align_undone)
-          << A.nopsAdded << A.bytesDeleted
-          << A.region->getOwningSection()->name()
-          << llvm::utohexstr(A.alignReloc->targetRef()->offset(), true)
-          << A.region->getOwningSection()
-                 ->getInputFile()
-                 ->getInput()
-                 ->decoratedPath();
-  }
-  m_AlignRelaxRecords.clear();
-  m_NeedsAlignRerun = true;
-}
 // Select the matching JVT entry lookup for rd.
 // x0 uses the jump-only table instruction.
 // x1 uses the normal link-register table instruction.
@@ -514,7 +378,6 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
   const char *msgC = (rd == 1) ? "RISCV_CALL_JAL" : "RISCV_CALL_J";
   if (canRelaxCJ) {
     uint16_t c_j = (rd == 1) ? 0x2001u : 0xa001;
-    uint32_t auipcBytes = static_cast<uint32_t>(reloc->target());
 
     if (m_Module.getPrinter()->isVerbose())
       config().raise(Diag::relax_to_compress)
@@ -522,19 +385,17 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
           << llvm::utohexstr(reloc->target(), true, 8) + "," +
                  llvm::utohexstr(jalr_instr, true, 8)
           << llvm::utohexstr(c_j, true, 4) << reloc->symInfo()->name()
-          << region->getOwningSection()->name() << llvm::utohexstr(offset)
+          << region->getOwningSection()->name()
+          << llvm::utohexstr(region->mapOffset(offset))
           << region->getOwningSection()
                  ->getInputFile()
                  ->getInput()
                  ->decoratedPath();
 
-    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&c_j), 2);
-    reloc->setTargetData(c_j);
-    reloc->setType(llvm::ELF::R_RISCV_RVC_JUMP);
-    relaxDeleteBytes("RISCV_CALL_C", *region, offset + 2, 6,
-                     reloc->symInfo()->name());
-
-    recordCallRelaxation(*region, reloc, offset, auipcBytes, jalr_instr, 2);
+    relaxDeleteBytes("RISCV_CALL_C", *region, reloc, offset + 2, 6,
+                     reloc->symInfo());
+    region->attachDecision(reloc, llvm::ELF::R_RISCV_RVC_JUMP, c_j, offset, 2);
+    m_CallRelaxRecords.push_back({reloc, region, RelaxKind::CallToCJ});
 
     return true;
   }
@@ -553,33 +414,25 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
     if (EntryIndex >= 0) {
       applyTableJumpRelaxation(reloc, *region, offset,
                                static_cast<unsigned>(EntryIndex));
-      relaxDeleteBytes("RISCV_TBJAL", *region, offset + 2, 6,
-                       reloc->symInfo()->name());
+      relaxDeleteBytes("RISCV_TBJAL", *region, reloc, offset + 2, 6,
+                       reloc->symInfo());
       return true;
     }
   }
 
   if (canRelaxJal) {
-    // Save original bytes before we overwrite them, so we can roll back
-    // this relaxation post-ALIGN if the final distance exceeds ±1MB.
-    uint32_t auipcBytes = static_cast<uint32_t>(reloc->target());
-
     // Replace the instruction to JAL
     uint32_t jal = 0x6fu | rd << 7;
 
-    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&jal), 4);
-    reloc->setTargetData(jal);
-    reloc->setType(llvm::ELF::R_RISCV_JAL);
-    // Delete the next instruction (deferred)
-    relaxDeleteBytes("RISCV_CALL", *region, offset + 4, 4,
-                     reloc->symInfo()->name());
-
-    // Record this relaxation for post-ALIGN reverification.
-    recordCallRelaxation(*region, reloc, offset, auipcBytes, jalr_instr, 4);
+    // Delete the next instruction
+    relaxDeleteBytes("RISCV_CALL", *region, reloc, offset + 4, 4,
+                     reloc->symInfo());
+    region->attachDecision(reloc, llvm::ELF::R_RISCV_JAL, jal, offset, 4);
+    m_CallRelaxRecords.push_back({reloc, region, RelaxKind::CallToJal});
 
     // Report missed relaxation as we could still do a `C.J`/`C.JAL`
     reportMissedRelaxation("RISCV_CALL_C", *region, offset, 2,
-                           reloc->symInfo()->name());
+                           reloc->symInfo());
 
     return true;
   }
@@ -592,15 +445,14 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
     region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&qc_e_j), 6);
     reloc->setTargetData(qc_e_j);
     reloc->setType(ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT);
-    relaxDeleteBytes(msg, *region, offset + 6, 2, reloc->symInfo()->name());
+    relaxDeleteBytes(msg, *region, reloc, offset + 6, 2, reloc->symInfo());
 
-    reportMissedRelaxation(msg, *region, offset, 4, reloc->symInfo()->name());
+    reportMissedRelaxation(msg, *region, offset, 4, reloc->symInfo());
 
     return true;
   }
 
-  reportMissedRelaxation("RISCV_CALL", *region, offset, 6,
-                         reloc->symInfo()->name());
+  reportMissedRelaxation("RISCV_CALL", *region, offset, 6, reloc->symInfo());
   return false;
 }
 
@@ -628,8 +480,8 @@ bool RISCVLDBackend::doRelaxationJal(Relocation *reloc) {
 
   applyTableJumpRelaxation(reloc, *region, offset,
                            static_cast<unsigned>(EntryIndex));
-  relaxDeleteBytes("RISCV_TBJAL", *region, offset + 2, 2,
-                   reloc->symInfo()->name());
+  relaxDeleteBytes("RISCV_TBJAL", *region, reloc, offset + 2, 2,
+                   reloc->symInfo());
   return true;
 }
 
@@ -667,7 +519,7 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
   auto reportMissedQCCall = [&]() {
     reportMissedRelaxation("RISCV_QC_E_CALL", *region, offset,
                            (canCompress || canRelaxTbljal) ? 4 : 2,
-                           reloc->symInfo()->name());
+                           reloc->symInfo());
   };
 
   if (!canRelax) {
@@ -685,7 +537,8 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
       config().raise(Diag::relax_to_compress)
           << msg << llvm::utohexstr(qc_e_jump, true, 12)
           << llvm::utohexstr(compressed, true, 4) << reloc->symInfo()->name()
-          << region->getOwningSection()->name() << llvm::utohexstr(offset)
+          << region->getOwningSection()->name()
+          << llvm::utohexstr(region->mapOffset(offset))
           << region->getOwningSection()
                  ->getInputFile()
                  ->getInput()
@@ -696,7 +549,7 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
     // Replace the reloc to R_RISCV_RVC_JUMP
     reloc->setType(llvm::ELF::R_RISCV_RVC_JUMP);
     reloc->setTargetData(compressed);
-    relaxDeleteBytes(msg, *region, offset + 2, 4, reloc->symInfo()->name());
+    relaxDeleteBytes(msg, *region, reloc, offset + 2, 4, reloc->symInfo());
     return true;
   }
 
@@ -708,8 +561,8 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
     if (EntryIndex >= 0) {
       applyTableJumpRelaxation(reloc, *region, offset,
                                static_cast<unsigned>(EntryIndex));
-      relaxDeleteBytes("RISCV_TBJAL", *region, offset + 2, 4,
-                       reloc->symInfo()->name());
+      relaxDeleteBytes("RISCV_TBJAL", *region, reloc, offset + 2, 4,
+                       reloc->symInfo());
       return true;
     }
   }
@@ -730,8 +583,7 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
   const char *msg = "RISCV_QC_E_JAL";
   if (isTailCall)
     msg = "RISCV_QC_E_J";
-  relaxDeleteBytes(msg, *region, offset + 4, 2,
-                   reloc->symInfo()->name());
+  relaxDeleteBytes(msg, *region, reloc, offset + 4, 2, reloc->symInfo());
 
   return true;
 }
@@ -782,8 +634,14 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
     else if (canRelaxToGP)
       Msg = "RISCV_LUI_GP";
     if (!Msg.empty()) {
-      reloc->setType(llvm::ELF::R_RISCV_NONE);
-      relaxDeleteBytes(Msg, *region, offset, 4, reloc->symInfo()->name());
+      relaxDeleteBytes(Msg, *region, reloc, offset, 4, reloc->symInfo());
+      if (canRelaxToGP) {
+        // Deferred, so dropping later needs no restore.
+        region->attachDecision(reloc, llvm::ELF::R_RISCV_NONE);
+        m_GPRelaxRecords.push_back({reloc, reloc, region, RelaxKind::LuiGp});
+      } else {
+        reloc->setType(llvm::ELF::R_RISCV_NONE);
+      }
       return true;
     }
 
@@ -821,20 +679,20 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
       // Still report missing 2-byte relaxation opportunity because we only save
       // two bytes out of four.
       reportMissedRelaxation("RISCV_LUI_GP", *region, offset, 2,
-                             reloc->symInfo()->name());
+                             reloc->symInfo());
 
       // Replace encoding and relocation type, keep the register.
       unsigned compressed = 0x6001u | rd << 7;
       reloc->setTargetData(compressed);
       reloc->setType(ELF::riscv::internal::R_RISCV_RVC_LUI);
-      relaxDeleteBytes("RISCV_LUI_C", *region, offset + 2, 2,
-                       reloc->symInfo()->name());
+      relaxDeleteBytes("RISCV_LUI_C", *region, reloc, offset + 2, 2,
+                       reloc->symInfo());
       if (m_Module.getPrinter()->isVerbose())
         config().raise(Diag::relax_to_compress)
             << "RISCV_LUI_C" << llvm::utohexstr(instr, true, 8)
             << llvm::utohexstr(compressed, true, 4) << reloc->symInfo()->name()
             << region->getOwningSection()->name()
-            << llvm::utohexstr(offset, true)
+            << llvm::utohexstr(region->mapOffset(offset), true)
             << region->getOwningSection()
                    ->getInputFile()
                    ->getInput()
@@ -847,16 +705,15 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
     // cannot have lui with absolute relocations, anyway.
     if (!config().isCodeIndep())
       reportMissedRelaxation("RISCV_LUI_GP", *region, offset, 4,
-                             reloc->symInfo()->name());
+                             reloc->symInfo());
     return false;
   }
 
   // The remaining code deals with LO relocations.
   uint32_t rs;
-  if (canRelaxZero)
+  if (canRelaxZero) {
     rs = 0; // zero = x0
-  else if (canRelaxToGP) {
-    rs = 3; // x3 = gp
+  } else if (canRelaxToGP) {
     Relocation::Type new_type;
     switch (type) {
     case llvm::ELF::R_RISCV_LO12_I:
@@ -869,11 +726,17 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
       ASSERT(0, "Unexpected relocation type for RISCV_LUI_GP");
       return false;
     }
-    reloc->setType(new_type);
+    uint32_t instr = reloc->target();
+    uint32_t mask = 0xF8000;
+    instr = (instr & ~mask) | (3u << 15); // rs = gp
+    // No deletion, so a plain rewrite edit, not relaxDeleteBytes().
+    region->recordRewrite(reloc, offset, new_type, instr, 4);
+    m_FragmentsWithPendingRelaxEdits.insert(region);
+    m_GPRelaxRecords.push_back({reloc, reloc, region, RelaxKind::LuiGp});
+    return true;
   } else
     return false;
 
-  // do relaxation
   uint32_t instr = reloc->target();
   uint32_t mask = 0xF8000;
   instr = (instr & ~mask) | rs << 15;
@@ -931,7 +794,7 @@ bool RISCVLDBackend::doRelaxationQCELi(Relocation *reloc, Relocator::DWord G) {
     region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&qc_li), 4);
     reloc->setTargetData(qc_li);
     reloc->setType(ELF::riscv::internal::R_RISCV_QC_ABS20_U);
-    relaxDeleteBytes(msg, *region, offset + 4, 2, reloc->symInfo()->name());
+    relaxDeleteBytes(msg, *region, reloc, offset + 4, 2, reloc->symInfo());
     return true;
   }
 
@@ -943,12 +806,12 @@ bool RISCVLDBackend::doRelaxationQCELi(Relocation *reloc, Relocator::DWord G) {
     region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&addi), 4);
     reloc->setTargetData(addi);
     reloc->setType(ELF::riscv::internal::R_RISCV_GPREL_I);
-    relaxDeleteBytes(msg, *region, offset + 4, 2, reloc->symInfo()->name());
+    relaxDeleteBytes(msg, *region, reloc, offset + 4, 2, reloc->symInfo());
     return true;
   }
 
   if (canRelaxXqci)
-    reportMissedRelaxation(msg, *region, offset, 2, reloc->symInfo()->name());
+    reportMissedRelaxation(msg, *region, offset, 2, reloc->symInfo());
   return false;
 }
 
@@ -1236,8 +1099,8 @@ bool RISCVLDBackend::doRelaxationQCAccessCommon(Relocation *QCELiReloc,
     QCELiReloc->setTargetData(new_access);
     QCELiReloc->setAddend(A + (Relocator::DWord)access.offset);
     QCELiReloc->setType(access.isLoad() ? reloc_load : reloc_store);
-    relaxDeleteBytes(variant_msg, *region, qceli_offset + 4, 2 + access.size,
-                     QCELiReloc->symInfo()->name());
+    relaxDeleteBytes(variant_msg, *region, QCELiReloc, qceli_offset + 4,
+                     2 + access.size, QCELiReloc->symInfo());
     AccessReloc->setType(llvm::ELF::R_RISCV_NONE);
   };
 
@@ -1252,8 +1115,8 @@ bool RISCVLDBackend::doRelaxationQCAccessCommon(Relocation *QCELiReloc,
     QCELiReloc->setTargetData(new_access);
     QCELiReloc->setAddend(A + (Relocator::DWord)access.offset);
     QCELiReloc->setType(access.isLoad() ? reloc_load : reloc_store);
-    relaxDeleteBytes(variant_msg, *region, qceli_offset + 6, access.size,
-                     QCELiReloc->symInfo()->name());
+    relaxDeleteBytes(variant_msg, *region, QCELiReloc, qceli_offset + 6,
+                     access.size, QCELiReloc->symInfo());
     AccessReloc->setType(llvm::ELF::R_RISCV_NONE);
   };
 
@@ -1276,7 +1139,7 @@ bool RISCVLDBackend::doRelaxationQCAccessCommon(Relocation *QCELiReloc,
                      ELF::riscv::internal::R_RISCV_QC_GPREL26_S,
                      "RISCV_QC_E_LI_ACCESS_GP_XQCI");
     reportMissedRelaxation(msg, *region, qceli_offset, 2,
-                           QCELiReloc->symInfo()->name());
+                           QCELiReloc->symInfo());
     return true;
   }
   // 4. Absolute xqcilo
@@ -1285,13 +1148,13 @@ bool RISCVLDBackend::doRelaxationQCAccessCommon(Relocation *QCELiReloc,
                      ELF::riscv::internal::R_RISCV_QC_ABS26_S,
                      "RISCV_QC_E_LI_ACCESS_ABS_XQCI");
     reportMissedRelaxation(msg, *region, qceli_offset, 2,
-                           QCELiReloc->symInfo()->name());
+                           QCELiReloc->symInfo());
     return true;
   }
 
   if (canRelaxXqci)
     reportMissedRelaxation(msg, *region, qceli_offset, access.size,
-                           QCELiReloc->symInfo()->name());
+                           QCELiReloc->symInfo());
   return false;
 }
 
@@ -1314,10 +1177,10 @@ bool RISCVLDBackend::doRelaxationTLSDESC(Relocation &R, bool Relax) {
     bool Relaxed = Relax && config().options().getRISCVRelax() &&
                    config().options().getRISCVRelaxTLSDESC();
     if (Relaxed)
-      relaxDeleteBytes(RelaxType, *region, offset, 4, Sym.name());
+      relaxDeleteBytes(RelaxType, *region, &R, offset, 4, &Sym);
     else {
       // Otherwise, the instruction is replaced with a NOP.
-      reportMissedRelaxation(RelaxType, *region, offset, 4, Sym.name());
+      reportMissedRelaxation(RelaxType, *region, offset, 4, &Sym);
       uint32_t NOPi32 = static_cast<uint32_t>(NOP);
       region->replaceInstruction(
           offset, &R, reinterpret_cast<uint8_t *>(&NOPi32), 4);
@@ -1416,16 +1279,14 @@ bool RISCVLDBackend::doRelaxationAlign(Relocation *pReloc) {
   uint64_t TargetAddress = SymValue;
   alignAddress(TargetAddress, Alignment);
   uint32_t NopBytesToAdd = TargetAddress - SymValue;
-  if (NopBytesToAdd == pReloc->addend()) {
-    region->addRequiredNops(offset, NopBytesToAdd);
+  if (NopBytesToAdd == pReloc->addend())
     return false;
-  }
 
   if (NopBytesToAdd > pReloc->addend()) {
     config().raise(Diag::error_riscv_relaxation_align)
         << pReloc->addend() << NopBytesToAdd
         << region->getOwningSection()->name()
-        << llvm::utohexstr(offset + NopBytesToAdd, true)
+        << llvm::utohexstr(region->mapOffset(offset + NopBytesToAdd), true)
         << region->getOwningSection()
                ->getInputFile()
                ->getInput()
@@ -1436,19 +1297,18 @@ bool RISCVLDBackend::doRelaxationAlign(Relocation *pReloc) {
   if (m_Module.getPrinter()->isVerbose())
     config().raise(Diag::add_nops)
         << "RISCV_ALIGN" << NopBytesToAdd << region->getOwningSection()->name()
-        << llvm::utohexstr(offset, true)
+        << llvm::utohexstr(region->mapOffset(offset), true)
         << region->getOwningSection()
                ->getInputFile()
                ->getInput()
                ->decoratedPath();
 
-  uint32_t BytesDeleted = pReloc->addend() - NopBytesToAdd;
   region->addRequiredNops(offset, NopBytesToAdd);
-  relaxDeleteBytes("RISCV_ALIGN", *region, offset + NopBytesToAdd, BytesDeleted,
-                   "");
-  m_AlignRelaxRecords.push_back({pReloc, region, NopBytesToAdd, BytesDeleted});
+  relaxDeleteBytes("RISCV_ALIGN", *region, pReloc, offset + NopBytesToAdd,
+                   pReloc->addend() - NopBytesToAdd, nullptr, NopBytesToAdd);
   // Set the reloc to do nothing.
   pReloc->setType(llvm::ELF::R_RISCV_NONE);
+  m_AppliedAlignRelocs.insert(pReloc);
   return true;
 }
 
@@ -1565,12 +1425,12 @@ bool RISCVLDBackend::doRelaxationGOT(Relocation &Reloc) {
         GOTRelaxEnabled && !SymbolValueMayBeUnknown && llvm::isInt<12>(S);
     if (Reloc.type() == llvm::ELF::R_RISCV_GOT_HI20) {
       if (!CanRelaxToAddi) {
-        reportMissedRelaxation(RelaxName, *region, Offset, 4, SymName);
+        reportMissedRelaxation(RelaxName, *region, Offset, 4, SymInfo);
         return false;
       }
 
       Reloc.setType(llvm::ELF::R_RISCV_NONE);
-      relaxDeleteBytes(RelaxName, *region, Offset, 4, SymName);
+      relaxDeleteBytes(RelaxName, *region, &Reloc, Offset, 4, SymInfo);
       setRelocGOTLoadRelaxed(&Reloc);
       return true;
     }
@@ -1589,14 +1449,14 @@ bool RISCVLDBackend::doRelaxationGOT(Relocation &Reloc) {
       Reloc.setTargetData(CLi);
       Reloc.setType(ELF::riscv::internal::R_RISCV_RVC_LI);
       Reloc.setSymInfo(SymInfo);
-      relaxDeleteBytes(RelaxName, *region, Offset + 2, 2, SymName);
+      relaxDeleteBytes(RelaxName, *region, &Reloc, Offset + 2, 2, SymInfo);
 
       if (m_Module.getPrinter()->isVerbose())
         config().raise(Diag::relax_to_compress)
             << "RISCV_LI_C" << llvm::utohexstr(Instr, true, 8)
             << llvm::utohexstr(CLi, true, 4) << SymName
             << region->getOwningSection()->name()
-            << llvm::utohexstr(Offset, true)
+            << llvm::utohexstr(region->mapOffset(Offset), true)
             << region->getOwningSection()
                    ->getInputFile()
                    ->getInput()
@@ -1613,7 +1473,7 @@ bool RISCVLDBackend::doRelaxationGOT(Relocation &Reloc) {
       Reloc.setTargetData(Addi);
       Reloc.setType(llvm::ELF::R_RISCV_LO12_I);
       // Report the two bytes missed if we had been able to use `c.li`.
-      reportMissedRelaxation(RelaxName, *region, Offset, 2, SymName);
+      reportMissedRelaxation(RelaxName, *region, Offset, 2, SymInfo);
       setRelocGOTLoadRelaxed(&Reloc);
       return true;
     }
@@ -1631,7 +1491,7 @@ bool RISCVLDBackend::doRelaxationGOT(Relocation &Reloc) {
     // Still report a missed relaxation as we could have avoided a GOT access
     // even if it doesn't save any bytes.
     if (Reloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I)
-      reportMissedRelaxation(RelaxName, *region, Offset, 0, SymName);
+      reportMissedRelaxation(RelaxName, *region, Offset, 0, SymInfo);
     return false;
   }
 
@@ -1686,9 +1546,10 @@ bool RISCVLDBackend::doRelaxationPC(Relocation *reloc, Relocator::DWord G) {
     break;
   }
 
+  Relocation *HIReloc = reloc;
   if (new_type) {
     // Lookup reloc to get actual addend of HI.
-    const Relocation *HIReloc = getBaseReloc(*reloc);
+    HIReloc = getBaseReloc(*reloc);
     // If this is a GOT relocation, we cannot convert
     // this relative to GP.
     if (isGOTReloc(*HIReloc))
@@ -1710,13 +1571,14 @@ bool RISCVLDBackend::doRelaxationPC(Relocation *reloc, Relocator::DWord G) {
   if (type == llvm::ELF::R_RISCV_PCREL_HI20) {
     if (!canRelax) {
       reportMissedRelaxation("RISCV_PC_GP", *region, offset, 4,
-                             reloc->symInfo()->name());
+                             reloc->symInfo());
       return false;
     }
 
-    reloc->setType(llvm::ELF::R_RISCV_NONE);
-    relaxDeleteBytes("RISCV_PC_GP", *region, offset, 4,
-                     reloc->symInfo()->name());
+    relaxDeleteBytes("RISCV_PC_GP", *region, reloc, offset, 4,
+                     reloc->symInfo());
+    region->attachDecision(reloc, llvm::ELF::R_RISCV_NONE);
+    m_GPRelaxRecords.push_back({reloc, HIReloc, region, RelaxKind::PcGp});
     return true;
   }
 
@@ -1726,9 +1588,9 @@ bool RISCVLDBackend::doRelaxationPC(Relocation *reloc, Relocator::DWord G) {
   uint64_t instr = reloc->target();
   uint64_t mask = 0x1F << 15;
   instr = (instr & ~mask) | (0x3 << 15);
-  reloc->setType(new_type);
-  reloc->setTargetData(instr);
-  reloc->setAddend(A);
+  region->recordRewrite(reloc, offset, new_type, instr, 4, A);
+  m_FragmentsWithPendingRelaxEdits.insert(region);
+  m_GPRelaxRecords.push_back({reloc, HIReloc, region, RelaxKind::PcGp});
   return true;
 }
 
@@ -1793,21 +1655,15 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
   pFinished = true;
 
   // TLSDESC relaxations only apply to executables.
-  if (relaxation_pass == RELAXATION_TLSDESC &&
-      !config().isBuildingExecutable()) {
-    pFinished =
-        false; // ALIGN pass must still run to commit deferred deletions.
+  if (relaxation_pass == RELAXATION_TLSDESC && !config().isBuildingExecutable())
     return;
-  }
 
+  // RELAXATION_ALIGN pass, which is the last pass, will set pFinished to
+  // false if it has made changes. It is needed to call createProgramHdrs()
+  // again in the outer loop. Therefore, this function may be entered once more,
+  // for no good reason.
   if (relaxation_pass >= RELAXATION_PASS_COUNT) {
-    if (m_NeedsAlignRerun) {
-      m_NeedsAlignRerun = false;
-      relaxation_pass = RELAXATION_ALIGN;
-    } else {
-      verifyAndRollbackCallRelaxations(pFinished);
-      return;
-    }
+    return;
   }
 
   // retrieve gp value, .data + 0x800
@@ -1839,6 +1695,7 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
             pFinished = false;
           continue;
         }
+
         if (relaxation_pass == RELAXATION_TLSDESC) {
           // doRelaxationTLSDESC is used for both TLSDESC optimizations and
           // relaxations, therefore this function should be called regardless
@@ -1951,6 +1808,144 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
   // R_RISCV_ALIGN will cause another empty pass if it made changes.
   if (relaxation_pass < llvm::ELF::R_RISCV_ALIGN)
     pFinished = false;
+}
+
+bool RISCVLDBackend::verifyAndRollbackCallRelaxations() {
+  bool AnyDropped = false;
+  for (auto It = m_CallRelaxRecords.begin(); It != m_CallRelaxRecords.end();) {
+    Relocation *Reloc = It->Reloc;
+    RegionFragmentEx *Region = It->Region;
+
+    Relocator::DWord S = getSymbolValuePLT(*Reloc);
+    Relocator::DWord A = Reloc->addend();
+    Relocator::DWord P = Reloc->place(m_Module);
+    int64_t X = static_cast<int64_t>(S + A - P);
+
+    bool Fits = (It->Kind == RelaxKind::CallToCJ) ? llvm::isInt<12>(X)
+                                                  : llvm::isInt<21>(X);
+    if (Fits) {
+      ++It;
+      continue;
+    }
+
+    // Nothing to restore: the edit was never applied.
+    Region->dropEdit(Reloc);
+    if (m_Module.getPrinter()->isVerbose())
+      config().raise(Diag::relax_call_rolled_back)
+          << (It->Kind == RelaxKind::CallToCJ ? "RISCV_CALL_C" : "RISCV_CALL")
+          << Reloc->symInfo()->name() << Region->getOwningSection()->name()
+          << llvm::utohexstr(Region->mapOffset(Reloc->targetRef()->offset()),
+                             true)
+          << Region->getOwningSection()
+                 ->getInputFile()
+                 ->getInput()
+                 ->decoratedPath();
+    It = m_CallRelaxRecords.erase(It);
+    AnyDropped = true;
+  }
+  return AnyDropped;
+}
+
+bool RISCVLDBackend::verifyAndRollbackGPRelaxations() {
+  bool AnyDropped = false;
+  Relocator::DWord GP = 0;
+  if (m_pGlobalPointer)
+    GP = m_pGlobalPointer->value();
+  for (auto It = m_GPRelaxRecords.begin(); It != m_GPRelaxRecords.end();) {
+    Relocation *HIReloc = It->HIReloc;
+    Relocator::DWord S = getSymbolValuePLT(*HIReloc);
+    Relocator::DWord A = HIReloc->addend();
+    size_t SymbolSize = HIReloc->symInfo()->outSymbol()->size();
+    Fragment *Frag = HIReloc->targetRef()->frag();
+
+    bool Fits = GP != 0 && fitsInGP<12>(GP, S + A, Frag,
+                                        HIReloc->targetSection(), SymbolSize);
+    if (Fits) {
+      ++It;
+      continue;
+    }
+
+    // Nothing to restore: the edit was never applied.
+    It->Region->dropEdit(It->EditReloc);
+    if (m_Module.getPrinter()->isVerbose())
+      config().raise(Diag::relax_gp_rolled_back)
+          << (It->Kind == RelaxKind::PcGp ? "RISCV_PC_GP" : "RISCV_LUI_GP")
+          << It->EditReloc->symInfo()->name()
+          << It->Region->getOwningSection()->name()
+          << llvm::utohexstr(
+                 It->Region->mapOffset(It->EditReloc->targetRef()->offset()),
+                 true)
+          << It->Region->getOwningSection()
+                 ->getInputFile()
+                 ->getInput()
+                 ->decoratedPath();
+    It = m_GPRelaxRecords.erase(It);
+    AnyDropped = true;
+  }
+  return AnyDropped;
+}
+
+void RISCVLDBackend::undoAlignRelaxations() {
+  for (Relocation *Reloc : m_AppliedAlignRelocs) {
+    auto *Region = llvm::dyn_cast<RegionFragmentEx>(Reloc->targetRef()->frag());
+    if (!Region)
+      continue;
+    RelaxEdit *E = Region->pendingEdit(Reloc);
+    uint32_t NopBytes = E ? E->NopBytes : 0;
+    uint32_t DeleteBytes = E ? E->DeleteBytes : 0;
+    Region->dropEdit(Reloc);
+    Reloc->setType(llvm::ELF::R_RISCV_ALIGN);
+    if (m_Module.getPrinter()->isVerbose())
+      config().raise(Diag::relax_align_undone)
+          << "RISCV_ALIGN" << NopBytes << DeleteBytes
+          << Region->getOwningSection()->name()
+          << llvm::utohexstr(Region->mapOffset(Reloc->targetRef()->offset()),
+                             true)
+          << Region->getOwningSection()
+                 ->getInputFile()
+                 ->getInput()
+                 ->decoratedPath();
+  }
+  m_AppliedAlignRelocs.clear();
+}
+
+void RISCVLDBackend::postRelax(bool &pFinished) {
+  pFinished = true;
+  constexpr int MaxRounds = 8;
+
+  if (m_PostRelaxNeedsAlignRedecision) {
+    bool Dummy;
+    mayBeRelax(RELAXATION_ALIGN, Dummy);
+    m_PostRelaxNeedsAlignRedecision = false;
+  }
+
+  // Rolling back a relaxation can invalidate an ALIGN decision, so settle
+  // both against each other before committing anything for real.
+  bool AnyDropped = false;
+  if (m_PostRelaxRounds < MaxRounds) {
+    ++m_PostRelaxRounds;
+    AnyDropped = verifyAndRollbackCallRelaxations();
+    AnyDropped |= verifyAndRollbackGPRelaxations();
+  }
+  if (AnyDropped) {
+    undoAlignRelaxations();
+    m_PostRelaxNeedsAlignRedecision = true;
+    m_PostRelaxLayoutChanged = true;
+    pFinished = false;
+    return;
+  }
+
+  if (m_PostRelaxLayoutChanged) {
+    // ALIGN's last decision changed section sizes; sync program headers
+    // once more before committing.
+    m_PostRelaxLayoutChanged = false;
+    pFinished = false;
+    return;
+  }
+
+  for (RegionFragmentEx *Frag : m_FragmentsWithPendingRelaxEdits)
+    Frag->commitRelaxEdits();
+  m_FragmentsWithPendingRelaxEdits.clear();
 }
 
 /// finalizeSymbol - finalize the symbol value

@@ -16,9 +16,7 @@
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"
 #include "llvm/ADT/DenseSet.h"
-#include <cstdint>
 #include <unordered_set>
-#include <vector>
 
 namespace eld {
 
@@ -63,6 +61,10 @@ public:
   void preRelaxation() override;
 
   void mayBeRelax(int pass, bool &pFinished) override;
+
+  // Commits deferred relaxation edits once relax()'s fixed-point loop
+  // finishes.
+  void postRelax(bool &pFinished) override;
 
   /// getTargetSectionOrder - compute the layout order of RISCV target section
   unsigned int getTargetSectionOrder(const ELFSection &pSectHdr) const override;
@@ -236,12 +238,49 @@ private:
                               uint32_t pOffset, Relocation::Address pAddend);
 
   void relaxDeleteBytes(llvm::StringRef Name, RegionFragmentEx &Region,
-                        uint64_t Offset, unsigned NumBytes,
-                        llvm::StringRef SymbolName);
+                        Relocation *Reloc, uint64_t Offset, unsigned NumBytes,
+                        const ResolveInfo *Sym, uint32_t NopBytes = 0);
 
   void reportMissedRelaxation(llvm::StringRef Name, RegionFragmentEx &Region,
                               uint64_t Offset, unsigned NumBytes,
-                              llvm::StringRef SymbolName);
+                              const ResolveInfo *Sym);
+
+  // An AUIPC+JALR -> JAL/C.J relaxation candidate, re-verified once every
+  // pass has run.
+  struct CallRelaxRecord {
+    Relocation *Reloc;
+    RegionFragmentEx *Region;
+    RelaxKind Kind; // CallToJal or CallToCJ -> which range to check
+  };
+  std::vector<CallRelaxRecord> m_CallRelaxRecords;
+
+  // One relocation's half of a GP-relative relaxation candidate (the HI
+  // whose instruction gets deleted, or the LO rewritten in place).
+  // HIReloc is whichever relocation's symbol/addend fitsInGP() should use:
+  // itself for the HI entry and for LuiGp's LO entry; the real HI (via
+  // getBaseReloc()) for PcGp's LO entry.
+  struct GPRelaxRecord {
+    Relocation *EditReloc;
+    Relocation *HIReloc;
+    RegionFragmentEx *Region;
+    RelaxKind Kind; // LuiGp or PcGp
+  };
+  std::vector<GPRelaxRecord> m_GPRelaxRecords;
+
+  // R_RISCV_ALIGN relocations with a deferred deletion from the most
+  // recent ALIGN pass, undone and re-decided if a rollback invalidates them.
+  llvm::DenseSet<Relocation *> m_AppliedAlignRelocs;
+
+  // Re-verifies call relaxation candidates; drops (nothing to restore) any
+  // that no longer fit. Returns whether anything was dropped.
+  bool verifyAndRollbackCallRelaxations();
+
+  // Same as above, for GP-relative relaxation candidates.
+  bool verifyAndRollbackGPRelaxations();
+
+  // Undoes every ALIGN edit in m_AppliedAlignRelocs so mayBeRelax() can
+  // re-decide them, then clears the set.
+  void undoAlignRelaxations();
 
   bool isGOTReloc(const Relocation &reloc) const;
 
@@ -283,33 +322,6 @@ private:
 
   bool doRelaxationTLSDESC(Relocation &R, bool Relax);
 
-  // Records a call relaxation (AUIPC+JALR → C.J/JAL) so it can be reversed
-  // post-ALIGN if the final distance no longer fits the relaxed form.
-  struct CallRelaxRecord {
-    RegionFragmentEx *region;
-    Relocation *reloc;
-    uint64_t relocOffset; // fragment-relative offset of the AUIPC instruction
-    uint32_t auipcBytes;  // original AUIPC instruction bytes
-    uint32_t jalrBytes;   // original JALR instruction bytes (at relocOffset+4)
-    uint32_t
-        relaxedSize; // size in bytes of the relaxed instruction (2=C.J, 4=JAL)
-    bool rolledBack = false;
-  };
-
-  void recordCallRelaxation(RegionFragmentEx &Region, Relocation *Reloc,
-                            uint64_t Offset, uint32_t AuipcBytes,
-                            uint32_t JalrBytes, uint32_t RelaxedSize);
-
-  void verifyAndRollbackCallRelaxations(bool &pFinished);
-
-  struct AlignRelaxRecord {
-    Relocation *alignReloc;
-    RegionFragmentEx *region;
-    uint32_t nopsAdded;
-    uint32_t bytesDeleted;
-  };
-
-  void undoAlignRelaxations();
   /// getRelEntrySize - the size in BYTE of rela type relocation
   size_t getRelEntrySize() override { return 0; }
 
@@ -415,11 +427,14 @@ private:
 
   llvm::DenseSet<const Relocation *> m_RelaxedGOTLoadRelocs;
 
-  // JAL-relaxed call records for post-ALIGN range reverification.
-  std::vector<CallRelaxRecord> m_CallRelaxRecords;
+  // Fragments with a pending (uncommitted) RelaxPlan, recorded by
+  // relaxDeleteBytes() and applied once by postRelax().
+  llvm::DenseSet<RegionFragmentEx *> m_FragmentsWithPendingRelaxEdits;
 
-  std::vector<AlignRelaxRecord> m_AlignRelaxRecords;
-  bool m_NeedsAlignRerun = false;
+  // postRelax() settle-loop state, carried across its pFinished-driven calls.
+  bool m_PostRelaxNeedsAlignRedecision = false;
+  bool m_PostRelaxLayoutChanged = false;
+  int m_PostRelaxRounds = 0;
 };
 } // namespace eld
 
