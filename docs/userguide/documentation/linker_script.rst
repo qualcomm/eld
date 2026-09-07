@@ -474,6 +474,8 @@ Syntax :- ``ENTRY(symbol)``
   point.
 - The entry point is the first instruction that is executed after a
   program is loaded.
+- When multiple ENTRY() commands appear (in one script or across
+  several -T scripts), the last one takes effect.
 - This command is equivalent to the linker command-line option
   :option:`-e`.
 
