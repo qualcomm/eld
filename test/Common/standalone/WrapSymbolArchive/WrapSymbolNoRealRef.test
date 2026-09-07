@@ -1,0 +1,69 @@
+#---WrapSymbolNoRealRef.test---------- Executable ------------------#
+#BEGIN_COMMENT
+# Test that a wrapper that does not call __real_<sym> does not force the
+# archive member with the real symbol to be pulled.
+#
+# Includes native, LTO, and ThinLTO variants: LTO in particular exercises
+# Module::addSymbolFromBitCode's unconditional insertSymbol of the rename
+# target for undefined bitcode symbols, which must not cause the archive
+# member to be pulled when the wrapper never calls __real_<sym>.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t.1.add.o
+RUN: %clang %clangopts -c %p/Inputs/4.c -o %t.1.wrap.o
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.add.o
+
+
+# Should link successfully. __real_add never referenced
+RUN: %link %linkopts %t.1.main.o %t.1.wrap.o %t.2.libfoo.a \
+RUN:   --wrap=add -o %t.2.out -t 2>&1 | %filecheck %s --allow-empty
+
+#CHECK-NOT: undefined reference
+#CHECK-NOT: error
+#CHECK-NOT: {{.*}}libfoo.a{{.*}}add.o
+
+# Compile inputs with function/data sections enabled for --gc-sections.
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/3.c -o %t.1.add.o
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/4.c -o %t.1.wrap.o
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.add.o
+
+# Should link successfully with --gc-sections. __real_add never referenced.
+RUN: %link %linkopts %t.1.main.o %t.1.wrap.o %t.2.libfoo.a \
+RUN:   --wrap=add --gc-sections -o %t.2.out -t 2>&1 | %filecheck %s --allow-empty
+
+# Compile inputs with LTO enabled. Both main.o (undefined reference to add)
+# and wrap.o (defines __wrap_add, never calls __real_add) are bitcode.
+RUN: %clang %clangopts -flto -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -flto -c %p/Inputs/3.c -o %t.1.add.o
+RUN: %clang %clangopts -flto -c %p/Inputs/4.c -o %t.1.wrap.o
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.add.o
+
+# Should link successfully with LTO. __real_add never referenced, so the
+# archive member providing add() must not be pulled in.
+RUN: %link %linkopts -flto %t.1.main.o %t.1.wrap.o %t.2.libfoo.a \
+RUN:   --wrap=add -o %t.2.out -t 2>&1 | %filecheck %s --allow-empty
+
+# Compile inputs with ThinLTO enabled.
+RUN: %clang %clangopts -flto=thin -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -flto=thin -c %p/Inputs/3.c -o %t.1.add.o
+RUN: %clang %clangopts -flto=thin -c %p/Inputs/4.c -o %t.1.wrap.o
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.add.o
+
+# Should link successfully with ThinLTO. __real_add never referenced.
+RUN: %link %linkopts -flto=thin %t.1.main.o %t.1.wrap.o %t.2.libfoo.a \
+RUN:   --wrap=add -o %t.2.out -t 2>&1 | %filecheck %s --allow-empty
+
+# Mixed native/bitcode: main.o is bitcode (undefined reference to add via
+# LTO), wrap.o is a native object (never calls __real_add). Exercises the
+# bitcode-side insertSymbol interacting with the native shouldIncludeSymbol
+# gate on the same link.
+RUN: %clang %clangopts -flto -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -c %p/Inputs/4.c -o %t.1.wrap.o
+RUN: %clang %clangopts -flto -c %p/Inputs/3.c -o %t.1.add.o
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.add.o
+
+RUN: %link %linkopts -flto %t.1.main.o %t.1.wrap.o %t.2.libfoo.a \
+RUN:   --wrap=add -o %t.2.out -t 2>&1 | %filecheck %s --allow-empty

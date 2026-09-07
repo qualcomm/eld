@@ -673,8 +673,19 @@ LDSymbol *Module::addSymbolFromBitCode(
                                getPrinter());
     if (!ThisConfig.options().renameMap().empty() &&
         Desc == ResolveInfo::Undefined) {
-      if (ThisConfig.options().renameMap().count(Name))
+      auto RenameSym = ThisConfig.options().renameMap().find(Name);
+      if (RenameSym != ThisConfig.options().renameMap().end()) {
         saveWrapReference(Name);
+        // Also insert the rename target as undefined so archive scanning
+        // can find it and pull the archive member that defines it.
+        const std::string &RenamedName = RenameSym->getValue();
+        Resolver::Result RenameResult = {nullptr, false, false};
+        getNamePool().insertSymbol(
+            &CurInput, RenamedName, /*IsSymbolInDynamicLibrary=*/false, Type,
+            Desc, Binding, Size, /*Value=*/0, Visibility,
+            /*OldSymbolInfo=*/nullptr, RenameResult, /*IsLtoPhase=*/false,
+            /*IsBitCode=*/true, PIdx, getPrinter());
+      }
     }
   }
 

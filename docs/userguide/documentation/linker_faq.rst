@@ -3076,6 +3076,34 @@ The wrapper function prints the number of bytes that is requested by user using
   # '4' bytes requested using my_malloc
   # p: 11
 
+Archive Member Extraction
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When '--wrap=<sym>' is specified, three names form the *wrap chain* for that
+symbol: 'sym' (the original name, any reference to which is renamed to
+'__wrap_sym'), '__wrap_sym' (the wrapper definition supplied by the user),
+and '__real_sym' (any reference to which is renamed to 'sym', letting the
+wrapper call through to the original definition).
+
+Archive member extraction still follows the ordinary rule: a member is only
+pulled from an archive to resolve an undefined reference that actually
+exists after wrap-renaming has been applied.
+
+Debugging Wrap Symbols
+^^^^^^^^^^^^^^^^^^^^^^
+
+To trace symbol wrapping operations, use '--trace=wrap-symbols':
+
+.. code-block:: bash
+
+  eld ... --wrap=add --trace=wrap-symbols
+
+This will report:
+
+- Which symbols are renamed by the wrap mechanism
+- Which archive members are pulled for wrapped symbols
+- The complete symbol resolution chain
+
 Build time issues
 ==================
 

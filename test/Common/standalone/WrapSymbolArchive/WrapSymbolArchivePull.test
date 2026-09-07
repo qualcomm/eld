@@ -1,0 +1,64 @@
+
+#---WrapSymbolArchivePull.test------------------------ Executable ----------#
+#BEGIN_COMMENT
+# Test that an archive member providing the real symbol is pulled when a
+# wrapper calls __real_<sym> (verifies archive extraction for wrapped symbols).
+#END_COMMENT
+#START_TEST
+
+# Compile inputs.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.1.wrap.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t.1.add.o
+
+# Place the real add() implementation inside an archive.
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.add.o
+
+# Link: main.o + wrap.o are direct inputs; add.o is only reachable via the
+# archive.  The linker must pull add.o from libfoo.a because __real_add
+# (renamed to 'add') remains undefined after processing the object files.
+# Use -t (trace) to confirm the archive member is actually included.
+RUN: %link %linkopts %t.1.main.o %t.1.wrap.o %t.2.libfoo.a --wrap=add -o %t.2.out -t 2>&1 | %filecheck %s
+
+# Compile inputs with LTO enabled.
+RUN: %clang %clangopts -flto -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -flto -c %p/Inputs/2.c -o %t.1.wrap.o
+RUN: %clang %clangopts -flto -c %p/Inputs/3.c -o %t.1.add.o
+
+# Place the real add() implementation inside an archive.
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.add.o
+
+# Link with LTO: main.o + wrap.o are direct inputs;
+# add.o is only reachable via the archive.
+RUN: %link %linkopts -flto %t.1.main.o %t.1.wrap.o %t.2.libfoo.a \
+RUN:   --wrap=add -o %t.2.out -t 2>&1 | %filecheck %s
+
+# Compile inputs with ThinLTO enabled.
+RUN: %clang %clangopts -flto=thin  -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -flto=thin  -c %p/Inputs/2.c -o %t.1.wrap.o
+RUN: %clang %clangopts -flto=thin  -c %p/Inputs/3.c -o %t.1.add.o
+
+# Place the real add() implementation inside an archive.
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.add.o
+
+# Link with ThinLTO: main.o + wrap.o are direct inputs;
+# add.o is only reachable via the archive.
+RUN: %link %linkopts -flto=thin %t.1.main.o %t.1.wrap.o %t.2.libfoo.a \
+RUN:   --wrap=add -o %t.2.out -t 2>&1 | %filecheck %s
+
+# Compile inputs with function/data sections enabled for --gc-sections.
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/1.c -o %t.1.main.o
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/2.c -o %t.1.wrap.o
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/3.c -o %t.1.add.o
+
+# Place the real add() implementation inside an archive.
+RUN: %ar cr %aropts %t.2.libfoo.a %t.1.add.o
+
+# Link with --gc-sections: add.o must still be pulled from the archive
+# because __real_add (renamed to 'add') remains undefined, and the
+# resulting section must survive garbage collection.
+RUN: %link %linkopts %t.1.main.o %t.1.wrap.o %t.2.libfoo.a --wrap=add \
+RUN:   --gc-sections -o %t.2.out -t 2>&1 | %filecheck %s
+
+# Verify the archive member was pulled in.
+#CHECK: {{.*}}libfoo.a{{.*}}add.o
