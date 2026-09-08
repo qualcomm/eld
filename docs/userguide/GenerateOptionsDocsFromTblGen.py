@@ -215,6 +215,9 @@ def generate_docs(groups, out, supplements):
     """Generate command-line options documentation"""
     if supplements is None:
         supplements = {}
+    # Generated option content is authored as reStructuredText directives.
+    # Wrap it in an eval-rst block so MyST-parsed .md pages render it correctly.
+    out.write("```{eval-rst}\n")
     for key, group_info in groups.items():
         if not group_info.options or key is None:
             continue
@@ -224,6 +227,7 @@ def generate_docs(groups, out, supplements):
             option_info.generate_docs(out, supplement)
             out.write("\n")
         out.write("\n\n")
+    out.write("```\n")
 
 
 def create_argparser():

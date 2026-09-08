@@ -3,7 +3,7 @@ add_subdirectory(api_docs)
 if(LLVM_ENABLE_SPHINX)
   include(${ELD_SOURCE_DIR}/cmake/modules/BuildSphinxTarget.cmake)
   set(EXHALE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/api")
-  configure_file(conf.py.in ${CMAKE_CURRENT_BINARY_DIR}/source/conf.py)
+  configure_file(conf.py.in ${CMAKE_CURRENT_BINARY_DIR}/conf.py)
   file(MAKE_DIRECTORY ${EXHALE_OUTPUT_DIR})
 
   set(DOCS_BUILD_SOURCE ${CMAKE_CURRENT_BINARY_DIR}/source)
@@ -14,8 +14,11 @@ if(LLVM_ENABLE_SPHINX)
   # directory.
   add_custom_target(
     eld-copy-userguide-source
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${DOCS_BUILD_SOURCE}
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}
             ${DOCS_BUILD_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_CURRENT_BINARY_DIR}/conf.py ${DOCS_BUILD_SOURCE}/conf.py
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${ELD_SOURCE_DIR}/docs/DeveloperDocs
             ${DOCS_BUILD_SOURCE}/DeveloperDocs
@@ -28,6 +31,10 @@ if(LLVM_ENABLE_SPHINX)
   add_custom_target(
     eld-linkeroptions-create-json-dump-dir
     COMMAND ${CMAKE_COMMAND} -E make_directory ${LINKER_OPTS_DUMP_DIR})
+  # Avoid races: copy target may remove DOCS_BUILD_SOURCE before repopulating it.
+  # Ensure the dump dir is created only after source copying is finished.
+  add_dependencies(eld-linkeroptions-create-json-dump-dir
+                   eld-copy-userguide-source)
 
   foreach(target Gnu ARM Hexagon RISCV)
     string(TOLOWER ${target} targetLC)
@@ -54,7 +61,7 @@ if(LLVM_ENABLE_SPHINX)
       COMMAND
         python3 ${CMAKE_CURRENT_SOURCE_DIR}/GenerateOptionsDocsFromTblGen.py
         ${LINKER_OPTS_DUMP_DIR}/${target}LinkerOptionsTblGenDump.json -o
-        ${DOCS_BUILD_SOURCE}/documentation/options/${target}LinkerOptions.rst
+        ${DOCS_BUILD_SOURCE}/documentation/options/${target}LinkerOptions.md
         ${SKIP_OPTION}
         -S ${OPTIONS_SUPPLEMENTS_DIR})
 
