@@ -30,6 +30,7 @@ This document describes usage of ELD
    documentation/linker_optimizations.rst
    documentation/elf_tools.rst
    documentation/lto_support.rst
+   documentation/symbol_resolution_inspector.rst
    documentation/getting_image_details.rst
    documentation/options/options.rst
    documentation/target_specific_features.rst

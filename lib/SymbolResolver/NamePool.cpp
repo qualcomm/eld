@@ -278,8 +278,7 @@ void NamePool::setupNullSymbol() {
 
 /// createSymbol - create a symbol
 LDSymbol *NamePool::createPluginSymbol(InputFile *Input, std::string SymbolName,
-                                       Fragment *CurFragment, uint64_t Val,
-                                       LayoutInfo *layoutInfo) {
+                                       Fragment *CurFragment, uint64_t Val) {
   llvm::StringRef SymName = Saver.save(SymbolName);
   ResolveInfo *Info = make<ResolveInfo>(SymName);
   Info->setIsSymbol(true);
@@ -297,15 +296,6 @@ LDSymbol *NamePool::createPluginSymbol(InputFile *Input, std::string SymbolName,
   Sym->setFragmentRef(make<FragmentRef>(*CurFragment, Val));
   Info->setOutSymbol(Sym);
   LocalSymbols.push_back(Info);
-  if (layoutInfo && layoutInfo->showSymbolResolution())
-    getSRI().recordSymbolInfo(
-        Sym, SymbolInfo{Input, Info->size(),
-                        static_cast<ResolveInfo::Binding>(Info->binding()),
-                        static_cast<ResolveInfo::Type>(Info->type()),
-                        Info->visibility(),
-                        static_cast<ResolveInfo::Desc>(Info->desc()),
-                        /*isBitcode=*/false});
-
   return Sym;
 }
 
