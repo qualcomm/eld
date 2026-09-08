@@ -1078,7 +1078,8 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
       ThisConfig.raise(Diag::error_non_power_of_2_value_to_align_output_section)
           << Output->prolog().align().getContext() << utility::toHex(OutAlign)
           << OutSect->name();
-      return false;
+      if (!ThisConfig.getDiagEngine()->diagnose())
+        return false;
     }
     if (OutSect->getAddrAlign() < OutAlign)
       OutSect->setAddrAlign(OutAlign);
@@ -1127,6 +1128,8 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
 
   // Assign offsets.
   assignOffset(Output);
+  if (!ThisConfig.getDiagEngine()->diagnose())
+    return false;
 
   if (OutSect->size() || OutSect->isWanted()) {
     std::lock_guard<std::mutex> Guard(Mutex);
