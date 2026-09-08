@@ -10,7 +10,6 @@
 #include "eld/Script/SymbolContainer.h"
 #include "eld/Support/Memory.h"
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-#include "eld/Support/StringRefUtils.h"
 #include "eld/SymbolResolver/NamePool.h"
 #endif
 
@@ -160,7 +159,7 @@ void VersionSymbol::dump(
 
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 bool VersionSymbol::matched(const ResolveInfo &R, const NamePool &NP,
-                            DemangledNamesMap &DemangledNames) const {
+                            llvm::StringRef demangledName) const {
   auto *VB = getBlock();
   VersionScriptNode *VN = VB->getNode();
   if (!VN->isAnonymous()) {
@@ -183,17 +182,9 @@ bool VersionSymbol::matched(const ResolveInfo &R, const NamePool &NP,
 
   ScriptSymbol *symbolPattern = getSymbolPattern();
 
-  if (isExternCpp()) {
-    auto It = DemangledNames.find(&R);
-    if (It == DemangledNames.end()) {
-      std::string Demangled =
-          eld::string::getDemangledName(R.getNonVersionedName());
-      It = DemangledNames.insert({&R, std::move(Demangled)}).first;
-    }
-    const std::string &demangledName = It->second;
-    return symbolPattern->matched(R, demangledName);
-  }
+  if (isExternCpp())
+    return symbolPattern->matches(demangledName);
 
-  return symbolPattern->matched(R);
+  return symbolPattern->matches(R);
 }
 #endif
