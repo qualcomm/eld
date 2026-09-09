@@ -207,7 +207,15 @@ bool ObjectLinker::parseLinkerScript(InputFile *input) {
             ? llvm::StringRef(input->getInput()->getOriginalFileName())
             : llvm::StringRef());
 
-  ThisModule->getScript().addToHash(input->getInput()->decoratedPath());
+  // Archive members don't have a real filesystem path (decoratedPath()
+  // returns "archive.a(member)"), so mix in their already-loaded contents
+  // directly instead of trying to stat/re-read them from disk.
+  auto *AMI = llvm::dyn_cast<ArchiveMemberInput>(input->getInput());
+  if (AMI && AMI->getSize())
+    ThisModule->getScript().addToHash(AMI->decoratedPath(),
+                                      AMI->getFileContents());
+  else
+    ThisModule->getScript().addToHash(input->getInput()->decoratedPath());
 
   ScriptFile *scriptFile =
       make<ScriptFile>(ScriptFile::LDScript, *ThisModule, *LSFile,

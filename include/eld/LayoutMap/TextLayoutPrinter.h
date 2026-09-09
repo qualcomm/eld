@@ -45,6 +45,8 @@ public:
 
   void printVersionScripts(bool UseColor = false);
 
+  void printLinkerScriptHash(eld::Module &Module, bool UseColor = false);
+
   void printExternList(Module &CurModule, bool UseColor);
 
   void printCommons(eld::Module &CurModule, bool UseColor = false);
