@@ -1,5 +1,9 @@
 add_eld_unittest(LTOPreserveListTests LTOPreserveListTest.cpp)
 
+set(_lto_lib)
+if(NOT APPLE)
+  set(_lto_lib LLVMLTO)
+endif()
 target_link_libraries(
   LTOPreserveListTests
   PRIVATE ELDCore
@@ -7,5 +11,5 @@ target_link_libraries(
           ELDSymbolResolver
           ELDTarget
           ELDObject
-          LLVMLTO
+          ${_lto_lib}
           LW)

@@ -19,6 +19,8 @@
 
 #cmakedefine ELD_ON_MSVC "${ELD_ON_MSVC}"
 
+#cmakedefine ELD_ON_APPLE "${ELD_ON_APPLE}"
+
 #define RPATH "${CMAKE_INSTALL_RPATH}"
 
 #define LINKER_ALT_NAME "${USE_LINKER_ALT_NAME}"

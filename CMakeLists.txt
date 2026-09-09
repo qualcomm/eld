@@ -171,35 +171,54 @@ configure_file(${ELD_SOURCE_DIR}/include/eld/Config/Targets.def.cmake
                ${ELD_BINARY_DIR}/include/eld/Config/Targets.def)
 
 # Platform detection
+set(ELD_ON_WIN32 0)
+set(ELD_ON_UNIX 0)
+set(ELD_ON_MSVC 0)
+set(ELD_ON_APPLE 0)
+
 if(WIN32)
   if(CYGWIN)
-    set(ELD_ON_WIN32 0)
     set(ELD_ON_UNIX 1)
   else()
     set(ELD_ON_WIN32 1)
-    set(ELD_ON_UNIX 0)
+    set(ELD_ON_MSVC 1)
   endif()
+elseif(APPLE)
+  set(ELD_ON_UNIX 1)
+  set(ELD_ON_APPLE 1)
+elseif(UNIX)
+  set(ELD_ON_UNIX 1)
 else()
-  if(UNIX)
-    set(ELD_ON_WIN32 0)
-    set(ELD_ON_UNIX 1)
-  else()
-    message(SEND_ERROR "Unable to determine platform")
-  endif()
+  message(SEND_ERROR "Unable to determine platform")
 endif()
 
-if(NOT WIN32)
-  set(ELD_ON_MSVC 0)
+if(ELD_ON_APPLE)
+  info("Setting up build of ELD for Darwin")
+elseif(ELD_ON_UNIX)
   info("Setting up build of ELD for Unix")
 else()
-  set(ELD_ON_MSVC 1)
   info("Setting up build of ELD for Windows")
 endif()
 
-if(UNIX)
+# $ORIGIN is ELF-specific; Mach-O uses @loader_path / @rpath.
+if(APPLE)
+  set(CMAKE_MACOSX_RPATH ON)
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+  set(CMAKE_INSTALL_RPATH "@loader_path/../lib")
+elseif(UNIX)
   set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
   set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
   set(CMAKE_INSTALL_RPATH "\$ORIGIN/../lib")
+endif()
+
+# Match LLVM's bin/lib layout so $ORIGIN / @loader_path/../lib resolves in the
+# build tree as well as after install. Integrated LLVM builds already set these.
+if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+endif()
+if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 
 # Configure header files
@@ -253,6 +272,18 @@ if(ELD_USE_EXTERNAL_LLVM)
   link_directories(${LLVM_LIBRARY_DIRS})
 else()
   link_directories("${PATH_TO_LLVM_BUILD}/lib")
+endif()
+
+# Apple ld does not search Homebrew's prefix for short -l names. LLVMSupport
+# records zstd as LLVM_SYSTEM_LIBS ("zstd" → -lzstd). In-tree Darwin builds
+# then fail linking libLW with "ld: library 'zstd' not found" even when
+# /opt/homebrew/lib/libzstd.dylib is already on the same link line.
+if(APPLE)
+  foreach(_eld_brew_lib IN ITEMS /opt/homebrew/lib /usr/local/lib)
+    if(EXISTS "${_eld_brew_lib}")
+      link_directories("${_eld_brew_lib}")
+    endif()
+  endforeach()
 endif()
 
 add_subdirectory(include)
