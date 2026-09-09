@@ -92,12 +92,19 @@ public:
       return true;
     }
 
+    Spec &operator=(const Spec &RHS) {
+      if (this == &RHS)
+        return *this;
+      this->WildcardFilePattern = RHS.WildcardFilePattern;
+      this->InputArchiveMember = RHS.InputArchiveMember;
+      this->WildcardSectionPattern = RHS.WildcardSectionPattern;
+      this->InputIsArchive = RHS.InputIsArchive;
+      this->ExcludeFilesRule = RHS.ExcludeFilesRule;
+      return *this;
+    }
+
     void initialize(const Spec &Spec) {
-      this->WildcardFilePattern = Spec.WildcardFilePattern;
-      this->InputArchiveMember = Spec.InputArchiveMember;
-      this->WildcardSectionPattern = Spec.WildcardSectionPattern;
-      this->InputIsArchive = Spec.InputIsArchive;
-      this->ExcludeFilesRule = Spec.ExcludeFilesRule;
+      *this = Spec;
     }
 
     void setExcludeFiles(const ExcludeFiles *ExcludeFiles) {
