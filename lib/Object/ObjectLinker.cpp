@@ -358,7 +358,7 @@ bool ObjectLinker::parseVersionScript() {
        ThisConfig.isCodeIndep()))
     createDefaultSymverNode();
 
-  if (ThisConfig.options().hasVersionScript()) {
+  if (!ThisConfig.options().getVersionScripts().empty()) {
     LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
     for (const auto &List : ThisConfig.options().getVersionScripts()) {
       Input *VersionScriptInput =
