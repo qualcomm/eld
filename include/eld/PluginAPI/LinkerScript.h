@@ -1018,7 +1018,12 @@ struct DLL_A_EXPORT LinkerScript {
   /// Return true if the script defines the SECTIONS command.
   bool hasSectionsCommand() const;
 
-  /// Return the linker script hash.
+  /// Return the combined linker script hash.
+  ///
+  /// The value is a 40-character SHA1 hex string of each script path mixed
+  /// with an MD5 of that file's contents (including INCLUDE files). Hashing
+  /// is enabled when `--flto-options=cache` is set; otherwise returns an
+  /// empty string.
   std::string getHash() const;
 
 private:

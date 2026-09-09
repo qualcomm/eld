@@ -26,7 +26,8 @@
 #include "eld/Target/Relocator.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/FileSystem.h"
-#include "llvm/Support/xxhash.h"
+#include "llvm/Support/MD5.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include <algorithm>
 #include <string>
 #include <utility>
@@ -169,38 +170,40 @@ std::string LinkerScript::getHash() {
   return llvm::toHex(Hasher.result());
 }
 
+static void mixInMD5(llvm::SHA1 &Hasher, llvm::StringRef Contents) {
+  llvm::MD5::MD5Result Digest =
+      llvm::MD5::hash(llvm::arrayRefFromStringRef(Contents));
+  Hasher.update(llvm::ArrayRef<uint8_t>(Digest.data(), Digest.size()));
+}
+
 /// Compute a hash for the given linker script and add it to the combined hash
 /// if it's a file. Otherwise, add the given text to the hash.
 void LinkerScript::addToHash(llvm::StringRef FilenameOrText) {
-  using namespace llvm;
-
   if (!HashingEnabled)
     return;
 
   Hasher.update(FilenameOrText);
 
-  // If this is a file, we also want to read its contents and compute a hash.
+  // If this is a file, also mix an MD5 of its contents into the hash.
   llvm::sys::fs::file_status Status;
   if (llvm::sys::fs::status(FilenameOrText, Status))
     return;
 
-  ErrorOr<std::unique_ptr<MemoryBuffer>> MBOrErr =
-      MemoryBuffer::getFile(FilenameOrText);
+  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> MBOrErr =
+      llvm::MemoryBuffer::getFile(FilenameOrText);
   if (!MBOrErr)
     return; // Ignore errors here. It'll fail later.
 
-  uint64_t I = xxh3_64bits((*MBOrErr)->getBuffer());
+  mixInMD5(Hasher, (*MBOrErr)->getBuffer());
+}
 
-  uint8_t Data[8];
-  Data[0] = I;
-  Data[1] = I >> 8;
-  Data[2] = I >> 16;
-  Data[3] = I >> 24;
-  Data[4] = I >> 32;
-  Data[5] = I >> 40;
-  Data[6] = I >> 48;
-  Data[7] = I >> 56;
-  Hasher.update(llvm::ArrayRef<uint8_t>{Data, 8});
+void LinkerScript::addToHash(llvm::StringRef PathOrText,
+                             llvm::StringRef Contents) {
+  if (!HashingEnabled)
+    return;
+
+  Hasher.update(PathOrText);
+  mixInMD5(Hasher, Contents);
 }
 
 void LinkerScript::registerWildCardPattern(WildcardPattern *P) {

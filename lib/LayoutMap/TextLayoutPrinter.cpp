@@ -1107,6 +1107,18 @@ void TextLayoutPrinter::printScriptIncludes(bool UseColor) {
     outputStream().resetColor();
 }
 
+void TextLayoutPrinter::printLinkerScriptHash(eld::Module &Module,
+                                              bool UseColor) {
+  if (!Module.getScript().isHashingEnabled())
+    return;
+  if (UseColor)
+    outputStream().changeColor(llvm::raw_ostream::GREEN);
+  outputStream() << "\nLinker script hash: " << Module.getScript().getHash()
+                 << "\n";
+  if (UseColor)
+    outputStream().resetColor();
+}
+
 void TextLayoutPrinter::printVersionScripts(bool UseColor) {
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::GREEN);
@@ -1324,6 +1336,7 @@ void TextLayoutPrinter::printMapFile(eld::Module &Module) {
   printBuildStatistics(Module, UseColor);
   printScriptIncludes(UseColor);
   printVersionScripts(UseColor);
+  printLinkerScriptHash(Module, UseColor);
   printGlobalPluginInfo(Module, UseColor);
 
   if (Backend.getEntrySymbol())
