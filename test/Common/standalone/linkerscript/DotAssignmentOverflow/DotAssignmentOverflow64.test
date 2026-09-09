@@ -1,0 +1,11 @@
+#---DotAssignmentOverflow64.test----------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test that ELD emits a warning on 64-bit targets under -Wlinker-script
+# when dot assignment creates padding that exceeds UINT32_MAX.
+#END_COMMENT
+REQUIRES: aarch64 || riscv64 || x86
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fdata-sections -ffunction-sections
+RUN: %link %emulation %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Wlinker-script 2>&1 | %filecheck %s --allow-empty
+#END_TEST
+CHECK: dot assignment creates padding that exceeds UINT32_MAX
