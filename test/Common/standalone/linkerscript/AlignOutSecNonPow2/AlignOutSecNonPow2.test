@@ -13,7 +13,16 @@
 RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
 
 RUN: not %link %linkopts -o %t.a.out %t1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s
+RUN: not %link %linkopts -o %t.b.out %t1.o -T %p/Inputs/script-noninhibit.t 2>&1 | %filecheck %s --check-prefix=FATAL
+RUN: %link %linkopts -o %t.noinhibit.out %t1.o -T %p/Inputs/script-noninhibit.t --noinhibit-exec 2>&1 | %filecheck %s --check-prefix=NOINHIBIT
 
 CHECK: Error: {{.*}}Inputs/script.t: non-power-of-2 value 0x1e passed to ALIGN in 'text' output section description, value must be 0 or a power of 2
 CHECK-NOT: Error: {{.*}}Inputs/script.t: non-power-of-2 value 0x0 {{.*}}
+
+FATAL: Error: {{.*}}Inputs/script-noninhibit.t: non-power-of-2 value 0x1e passed to ALIGN in 'bad' output section description, value must be 0 or a power of 2
+FATAL: Fatal: Linking had errors ({{.*}}.b.out)
+
+NOINHIBIT: Error: {{.*}}Inputs/script-noninhibit.t: non-power-of-2 value 0x1e passed to ALIGN in 'bad' output section description, value must be 0 or a power of 2
+NOINHIBIT: Warning: Non-allocatable section '.comment' from input file '{{.*}}1.o' is being merged into loadable output section 'bad'
+NOINHIBIT: Warning: Non-allocatable section '.comment' from input file 'Linker Version' is being merged into loadable output section 'bad'
 #END_TEST
