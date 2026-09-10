@@ -1,4 +1,4 @@
-REQUIRES: symbol_versioning
+REQUIRES: symbol_versioning, linux
 #---BuildingSharedLibsWithSymbolVersioning.test---------------------------------------#
 #BEGIN_COMMENT
 # This test verifies that linker properly creates shared libraries with
