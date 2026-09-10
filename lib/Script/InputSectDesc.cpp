@@ -39,11 +39,7 @@ InputSectDesc::InputSectDesc(ScriptCommand::Kind Kind, uint32_t ID,
                              Policy Policy, const Spec &Spec,
                              OutputSectDesc &OutputDesc)
     : ScriptCommand(Kind), ThisRuleContainer(nullptr), InputSpecPolicy(Policy),
-      OutputSectionDescription(OutputDesc), ID(ID) {
-  InputSpec.initialize(Spec);
-}
-
-
+      InputSpec(Spec), OutputSectionDescription(OutputDesc), ID(ID) {}
 
 void InputSectDesc::dump(llvm::raw_ostream &Outs) const { dumpMap(Outs); }
 

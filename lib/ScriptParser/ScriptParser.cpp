@@ -860,7 +860,6 @@ InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {
     WildcardSections = ThisScriptFile.getCurrentStringList();
   }
   InputSectDesc::Spec ISDSpec;
-  ISDSpec.initialize();
   ISDSpec.WildcardFilePattern = FilePat;
   ISDSpec.WildcardSectionPattern = WildcardSections;
   ISDSpec.InputArchiveMember = ArchiveMem;

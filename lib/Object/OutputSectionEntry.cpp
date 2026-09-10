@@ -98,7 +98,6 @@ Fragment *OutputSectionEntry::getFirstFrag() const {
 RuleContainer *OutputSectionEntry::createDefaultRule(eld::Module &M) {
   // Add a default spec to catch rules that belong to the output section.
   InputSectDesc::Spec DefaultSpec;
-  DefaultSpec.initialize();
   StringList *StringList = eld::make<eld::StringList>();
 
   WildcardPattern *PatOne = make<WildcardPattern>("*");
@@ -113,7 +112,6 @@ RuleContainer *OutputSectionEntry::createDefaultRule(eld::Module &M) {
   DefaultSpec.InputIsArchive = 0;
 
   static OutputSectDesc O(Name);
-  O.initialize();
   InputSectDesc *Input =
       make<InputSectDesc>(M.getScript().getIncrementedRuleCount(),
                           InputSectDesc::SpecialNoKeep, DefaultSpec, O);
@@ -136,7 +134,6 @@ RuleContainer *OutputSectionEntry::createRule(eld::Module &M,
                                               std::string Annotation,
                                               InputFile *I) {
   InputSectDesc::Spec Spec;
-  Spec.initialize();
   StringList *StringList = eld::make<eld::StringList>();
 
   WildcardPattern *PatOne = make<WildcardPattern>("*");
@@ -153,7 +150,6 @@ RuleContainer *OutputSectionEntry::createRule(eld::Module &M,
   Spec.InputIsArchive = 0;
 
   OutputSectDesc *O = eld::make<OutputSectDesc>(Name);
-  O->initialize();
   InputSectDesc *Input =
       make<InputSectDesc>(M.getScript().getIncrementedRuleCount(),
                           InputSectDesc::SpecialNoKeep, Spec, *O);
