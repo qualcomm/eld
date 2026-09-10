@@ -1,0 +1,35 @@
+## Checks that slots for a discarded section still go away with the discarded section.
+
+# RUN: split-file %s %t
+# RUN: %clang %clangopts -c -fPIC -ffunction-sections -fdata-sections %t/lib.c -o %t/lib.o
+# RUN: %clang %clangopts -c -fPIC -ffunction-sections -fdata-sections %t/main.c -o %t/main.o
+# RUN: %link %linkopts -shared %t/lib.o -o %t/lib.so
+
+# RUN: %link %linkopts -pie --entry main %t/main.o %t/lib.so -o %t/nogc.out
+# RUN: %readelf -r %t/nogc.out > %t/nogc.txt
+# RUN: %filecheck %s --check-prefix=NOGC --input-file=%t/nogc.txt
+# NOGC-DAG: {{ }}used_g
+# NOGC-DAG: {{ }}used_fn
+# NOGC-DAG: {{ }}dead_g
+# NOGC-DAG: {{ }}dead_fn
+
+# RUN: %link %linkopts -pie --entry main --gc-sections %t/main.o %t/lib.so -o %t/gc.out
+# RUN: %readelf -r %t/gc.out > %t/gc.txt
+# RUN: %filecheck %s --check-prefix=GC --input-file=%t/gc.txt
+# GC-DAG: {{ }}used_g
+# GC-DAG: {{ }}used_fn
+# GC-NOT: {{ }}dead_g
+# GC-NOT: {{ }}dead_fn
+
+#--- lib.c
+int used_g = 1, dead_g = 2;
+int used_fn(void) { return 3; }
+int dead_fn(void) { return 4; }
+
+#--- main.c
+extern int used_g, dead_g;
+extern int used_fn(void), dead_fn(void);
+__attribute__((visibility("hidden"))) int deadpath(void) {
+  return dead_g + dead_fn();
+}
+int main(void) { return used_g + used_fn(); }

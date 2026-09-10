@@ -1,0 +1,37 @@
+## Checks that repeated multithreaded links of the same inputs produce identical GOT/PLT
+## slots and that a multithreaded link matches a serial one.
+
+# RUN: split-file %s %t
+
+# RUN: %clang %clangopts -c -fPIC %t/a.c -o %t/a.o
+# RUN: %clang %clangopts -c -fPIC %t/b.c -o %t/b.o
+# RUN: %clang %clangopts -c -fPIC %t/c.c -o %t/c.o
+# RUN: %clang %clangopts -c -fPIC %t/main.c -o %t/main.o
+
+# RUN: %link %linkopts -shared --enable-threads=all -o %t/out.1 %t/main.o %t/a.o %t/b.o %t/c.o
+# RUN: %link %linkopts -shared --enable-threads=all -o %t/out.2 %t/main.o %t/a.o %t/b.o %t/c.o
+# RUN: %link %linkopts -shared --enable-threads=all -o %t/out.3 %t/main.o %t/a.o %t/b.o %t/c.o
+# RUN: cmp %t/out.1 %t/out.2
+# RUN: cmp %t/out.1 %t/out.3
+
+# RUN: %link %linkopts -shared --no-threads -o %t/out.serial %t/main.o %t/a.o %t/b.o %t/c.o
+# RUN: cmp %t/out.1 %t/out.serial
+
+#--- a.c
+extern int g0, g1, g2, g3, g4, g5, g6, g7;
+int fa(void) { return g0 + g1 + g2 + g3 + g4 + g5 + g6 + g7; }
+
+#--- b.c
+extern int g0, g1, g2, g3, g4, g5, g6, g7;
+int fb(void) { return g7 + g6 + g5 + g4 + g3 + g2 + g1 + g0; }
+
+#--- c.c
+extern int g0, g1, g2, g3, g4, g5, g6, g7;
+int fc(void) { return g4 + g0 + g6 + g2 + g7 + g3 + g5 + g1; }
+
+#--- main.c
+int g0, g1, g2, g3, g4, g5, g6, g7;
+int fa(void);
+int fb(void);
+int fc(void);
+int entry(void) { return fa() + fb() + fc(); }
