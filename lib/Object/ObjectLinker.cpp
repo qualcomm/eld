@@ -536,13 +536,17 @@ void ObjectLinker::assignVersionNodesToSymbols() {
   // Emits diagnostics via ThisConfig.raise which is thread-safe.
   auto assignOneSymbol = [&](ResolveInfo *R) -> VersionSymbol * {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-    DemangledNamesMap demangledName;
+    std::optional<std::string> demangledName;
 #endif
     auto matchesR = [&](VersionSymbol *vs) {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-      return vs->matched(*R, NP, demangledName);
+      if (vs->isExternCpp() && !demangledName)
+        demangledName = eld::string::getDemangledName(R->getNonVersionedName());
+      return vs->matched(*R, NP,
+                         demangledName ? llvm::StringRef(*demangledName)
+                                       : llvm::StringRef());
 #else
-      return vs->getSymbolPattern()->matched(*R);
+      return vs->getSymbolPattern()->matches(*R);
 #endif
     };
 
@@ -610,8 +614,11 @@ void ObjectLinker::assignVersionNodesToSymbols() {
   // Serial merge: writes to SymbolScopes are single-threaded. Preserves the
   // hash-map's non-concurrent-insert invariant and keeps the diff minimal.
   for (size_t i = 0; i < VSApplicableSymbols.size(); ++i) {
-    if (Results[i])
+    if (Results[i]) {
+      Results[i]->getSymbolPattern()->addResolveInfoToContainer(
+          VSApplicableSymbols[i]);
       getTargetBackend().addSymbolScope(VSApplicableSymbols[i], Results[i]);
+    }
   }
 }
 
