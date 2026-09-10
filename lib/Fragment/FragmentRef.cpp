@@ -170,6 +170,12 @@ FragmentRef::Offset FragmentRef::getOutputOffset(Module &M) const {
     assert(S->hasOutputOffset());
     return S->OutputOffset + OffsetInString;
   }
+  /// Correct the output offset for pending RISC-V relaxation deletions that
+  /// haven't been physically applied to the fragment yet.
+  if (auto *RFE = llvm::dyn_cast<RegionFragmentEx>(ThisFragment))
+    return RFE->getOffset(M.getConfig().getDiagEngine()) +
+           RFE->mapOffset(ThisOffset);
+
   Offset Result = 0;
   if (nullptr != ThisFragment)
     Result = ThisFragment->getOffset(M.getConfig().getDiagEngine());

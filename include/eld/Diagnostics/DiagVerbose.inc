@@ -32,17 +32,14 @@ DIAG(add_nops, DiagnosticEngine::Verbose,
 DIAG(not_relaxed, DiagnosticEngine::Verbose,
      "%0 : Cannot relax %1 bytes for symbol '%2' in section %3+0x%4 file %5")
 DIAG(relax_call_rolled_back, DiagnosticEngine::Verbose,
-     "RISCV_CALL : Rolled back JAL for symbol '%0' in section %1+0x%2 file %3 "
+     "%0 : Rolled back JAL for symbol '%1' in section %2+0x%3 file %4 "
      "(out of range after ALIGN)")
-DIAG(relax_cj_rolled_back_to_jal, DiagnosticEngine::Verbose,
-     "RISCV_CALL : Rolled back C.J to JAL for symbol '%0' in section %1+0x%2 "
-     "file %3 (out of C.J range after ALIGN)")
-DIAG(relax_cj_rolled_back_to_call, DiagnosticEngine::Verbose,
-     "RISCV_CALL : Rolled back C.J to AUIPC+JALR for symbol '%0' in section "
-     "%1+0x%2 file %3 (out of JAL range after ALIGN)")
 DIAG(relax_align_undone, DiagnosticEngine::Verbose,
-     "RISCV_ALIGN : Undoing %0 nops / restoring %1 bytes in section %2+0x%3 "
-     "file %4 (re-run after rollback)")
+     "%0 : Undoing %1 nops / restoring %2 bytes in section %3+0x%4 file %5 "
+     "(re-run after rollback)")
+DIAG(relax_gp_rolled_back, DiagnosticEngine::Verbose,
+     "%0 : Rolled back GP-relative relaxation for symbol '%1' in section "
+     "%2+0x%3 file %4 (out of range after ALIGN)")
 DIAG(relax_to_compress, DiagnosticEngine::Verbose,
      "%0 : relaxing instruction 0x%1 to compressed instruction 0x%2 for symbol "
      "%3 in section %4+0x%5 file %6")
