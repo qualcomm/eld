@@ -705,7 +705,7 @@ def u_alias : JJ<"undefined=">,
               Group<grp_resolveropt>,
               Alias<u>;
 defm start_group : mDashDeprWithOpt<"start-group", "start_group",
-                                    "Start a group">,
+                                    "Archives between --start-group and --end-group are searched repeatedly until no new undefined symbols are resolved">,
                    Group<grp_resolveropt>;
 def start_lib : FF<"start-lib">,
                 HelpText<"Start a library">,
@@ -714,10 +714,11 @@ def start_lib_thin : FF<"start-lib-thin">,
                      HelpText<"Start a thin library">,
                      Group<grp_resolveropt>;
 def alias_start_group : Flag<["-"], "(">,
-                        HelpText<"Start a group">,
+                        HelpText<"Start a group (same as --start-group)">,
                         Group<grp_resolveropt>,
                         Alias<start_group>;
-defm end_group : mDashDeprWithOpt<"end-group", "end_group", "End a group">,
+defm end_group : mDashDeprWithOpt<"end-group", "end_group",
+                                  "Archives between --start-group and --end-group are searched repeatedly until no new undefined symbols are resolved">,
                  Group<grp_resolveropt>;
 def end_lib : FF<"end-lib">,
               HelpText<"End a library">,
@@ -726,7 +727,7 @@ def end_lib_thin : FF<"end-lib-thin">,
                    HelpText<"End a thin library">,
                    Group<grp_resolveropt>;
 def alias_end_group : Flag<["-"], ")">,
-                      HelpText<"End a group">,
+                      HelpText<"End a group (same as --end-group)">,
                       Group<grp_resolveropt>,
                       Alias<end_group>;
 def as_needed : FF<"as-needed">,
