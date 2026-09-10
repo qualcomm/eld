@@ -456,7 +456,6 @@ void ScriptFile::leaveOutputSectDesc(const OutputSectDesc::Epilog &PEpilog) {
 
   // Add a default spec to catch rules that belong to the output section.
   InputSectDesc::Spec DefaultSpec;
-  DefaultSpec.initialize();
   StringList *StringList = createStringList();
   DefaultSpec.WildcardFilePattern =
       createAndRegisterWildcardPattern(createParserStr("*", 1));

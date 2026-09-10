@@ -26,23 +26,7 @@ using namespace eld;
 // OutputSectDesc
 //===----------------------------------------------------------------------===//
 OutputSectDesc::OutputSectDesc(const std::string &PName)
-    : ScriptCommand(ScriptCommand::OUTPUT_SECT_DESC), Name(PName),
-      OutputSectDescProlog() {
-  OutputSectDescProlog.OutputSectionVMA = nullptr;
-  OutputSectDescProlog.ThisType = OutputSectDesc::DEFAULT_TYPE;
-  OutputSectDescProlog.SectionFlag = OutputSectDesc::DEFAULT_PERMISSIONS;
-  OutputSectDescProlog.OutputSectionLMA = nullptr;
-  OutputSectDescProlog.Alignment = nullptr;
-  OutputSectDescProlog.OutputSectionSubaAlign = nullptr;
-  OutputSectDescProlog.SectionConstraint = OutputSectDesc::NO_CONSTRAINT;
-  OutputSectDescProlog.ThisPlugin = nullptr;
-  OutputSectDescProlog.PluginCmd = nullptr;
-
-  OutputSectDescEpilog.OutputSectionMemoryRegion = nullptr;
-  OutputSectDescEpilog.OutputSectionLMARegion = nullptr;
-  OutputSectDescEpilog.ScriptPhdrs = nullptr;
-  OutputSectDescEpilog.FillExpression = nullptr;
-}
+    : ScriptCommand(ScriptCommand::OUTPUT_SECT_DESC), Name(PName) {}
 
 void OutputSectDesc::dump(llvm::raw_ostream &Outs) const {
   Outs << Name << "\t";
@@ -361,21 +345,4 @@ eld::Expected<void> OutputSectDesc::activate(Module &CurModule) {
                                                                        Anchor);
   }
   return eld::Expected<void>();
-}
-
-void OutputSectDesc::initialize() {
-  OutputSectDescProlog.OutputSectionVMA = nullptr;
-  OutputSectDescProlog.OutputSectionLMA = nullptr;
-  OutputSectDescProlog.Alignment = nullptr;
-  OutputSectDescProlog.OutputSectionSubaAlign = nullptr;
-  OutputSectDescProlog.ThisPlugin = nullptr;
-  OutputSectDescProlog.PluginCmd = nullptr;
-  OutputSectDescEpilog.OutputSectionMemoryRegion = nullptr;
-  OutputSectDescEpilog.OutputSectionLMARegion = nullptr;
-  OutputSectDescEpilog.ScriptPhdrs = nullptr;
-  OutputSectDescEpilog.FillExpression = nullptr;
-  OutputSectDescEpilog.ScriptVMAMemoryRegion = nullptr;
-  OutputSectDescEpilog.ScriptLMAMemoryRegion = nullptr;
-  OutputSectDescEpilog.InsertPosition = Epilog::InsertPlacement::None;
-  OutputSectDescEpilog.InsertTarget = nullptr;
 }

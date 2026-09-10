@@ -326,8 +326,6 @@ public:
 
   Epilog &epilog() { return OutputSectDescEpilog; }
 
-  void initialize();
-
   void dumpEpilogue(llvm::raw_ostream &Outs) const;
 
 private:
