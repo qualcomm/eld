@@ -1,4 +1,4 @@
-REQUIRES: symbol_versioning
+REQUIRES: symbol_versioning, linux
 #---UserFlowTests.test---------------------------------------#
 #BEGIN_COMMENT
 # This test verifies some end-to-end symbol versioning workflows.
