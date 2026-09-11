@@ -1,0 +1,14 @@
+#--TLSLDRelax_NoPLT.test----------Executable--------#
+# -fPIC -fno-plt emits R_X86_64_GOTPCRELX as the companion instead of PLT32.
+# -fPIC is required to get a TLSLD sequence; without it the compiler emits LE.
+#START_TEST
+RUN: %clang %clangopts -fPIC -fno-plt -c %p/Inputs/tls_ld_fnoplt.c -o %t.o
+RUN: %link %linkopts -static -e get_ld -o %t.eld %t.o
+RUN: %objdump -d %t.eld | %filecheck %s
+RUN: %readelf -r %t.eld | %filecheck %s --check-prefix=NORELOC
+#END_TEST
+
+CHECK: <get_ld>:
+CHECK:      {{[0-9a-f]+}}: 66 66 66 66 64 48 8b 04 25 00 00 00 00
+
+NORELOC-NOT: R_X86_64_DTPMOD64
