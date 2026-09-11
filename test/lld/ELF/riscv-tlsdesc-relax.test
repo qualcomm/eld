@@ -44,54 +44,52 @@ RUN: %link %linkopts -pie -z now --keep-labels --no-align-segments --section-sta
 RUN: %readelf --dyn-relocations %t.a.pie.ie | FileCheck %s --match-full-lines --check-prefix=IE-REL%xlen
 RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.pie.ie | FileCheck %s --check-prefix=IE --check-prefix=IE%xlen --check-prefix=IE-RELAX --check-prefix=IE%xlen-RELAX
 
-## .got has 3 additional header slots before the TLS slot.
+## .got has 4 additional header slots before the TLS slot.
 
-GD4:      .got     {{0*}}14 {{0*}}20c0 DATA
+GD4:      .got     {{0*}}0c {{0*}}20c0 DATA
 GD8:      .got     {{0*}}28 {{0*}}20c0 DATA
 
-GD-REL4:      {{0*}}20cc {{[[:xdigit:]]+}}0c       R_RISCV_TLSDESC {{0*}}7ff b + 0
-GD-REL8:      {{0*}}20d8 {{[[:xdigit:]]+}}0c       R_RISCV_TLSDESC {{0*}}7ff b + 0
+GD-REL4:      {{0*}}20c4 {{[[:xdigit:]]+}}0c       R_RISCV_TLSDESC {{0*}}7ff b + 0
+GD-REL8:      {{0*}}20c8 {{[[:xdigit:]]+}}0c       R_RISCV_TLSDESC {{0*}}7ff b + 0
 
 ## Notes re. comparing the output to lld:
-## - .got does not have the initial entry, so its size and all offsets are 8
-##   bytes less when compared to lld.
+## - .got now has the initial GOT0 entry, matching lld's layout.
 ## - lld keeps original relocation names after relaxation, which affects
 ##   --emit-relocs output. Due to relaxations, these relocations may point
 ##   to unrelated instructions.
 
 GD-LABEL: <foo>:
-## &.got[c]-. = 0x20cc - 0x1004 = 0x10c8
-## &.got[c]-. = 0x20d8 - 0x1004 = 0x10d4
+## &.got[c]-. = 0x20c4 - 0x1004 = 0x10c0
+## &.got[c]-. = 0x20c8 - 0x1004 = 0x10c4
 GD:        1004: auipc   a2, 0x1
 GD-NEXT:         c.add   a7, a7
-GD4-NEXT:        lw      a3, 0xc8(a2)
-GD8-NEXT:        ld      a3, 0xd4(a2)
-GD-NEXT:         c.add   a7, a7
-GD4-NEXT:        addi    a0, a2, 0xc8
-GD8-NEXT:        addi    a0, a2, 0xd4
+GD4-NEXT:        lw      a3, 0xc0(a2)
+GD8-NEXT:        ld      a3, 0xc4(a2)
+GD4-NEXT:        addi    a0, a2, 0xc0
+GD8-NEXT:        addi    a0, a2, 0xc4
 GD-NEXT:         c.add   a7, a7
 GD-NEXT:         jalr    t0, 0x0(a3)
 GD-NEXT:         c.add   a0, tp
 
 GD-LABEL: <.Ltlsdesc_hi1>:
-## &.got[c]-. = 0x20cc - 0x1020 = 0x10ac
-## &.got[c]-. = 0x20d8 - 0x1020 = 0x10b8
+## &.got[c]-. = 0x20c4 - 0x1020 = 0x10a4
+## &.got[c]-. = 0x20c8 - 0x1020 = 0x10a8
 GD-NEXT:   1020: auipc   a4, 0x1
-GD4-NEXT:        lw      a5, 0xac(a4)
-GD8-NEXT:        ld      a5, 0xb8(a4)
-GD4-NEXT:        addi    a0, a4, 0xac
-GD8-NEXT:        addi    a0, a4, 0xb8
+GD4-NEXT:        lw      a5, 0xa4(a4)
+GD8-NEXT:        ld      a5, 0xa8(a4)
+GD4-NEXT:        addi    a0, a4, 0xa4
+GD8-NEXT:        addi    a0, a4, 0xa8
 GD-NEXT:         jalr    t0, 0x0(a5)
 GD-NEXT:         c.add   a0, tp
 
 GD-LABEL: <.Ltlsdesc_hi2>:
-## &.got[c]-. = 0x20cc - 0x1032 = 0x109a
-## &.got[c]-. = 0x20d8 - 0x1032 = 0x10a6
+## &.got[c]-. = 0x20c4 - 0x1032 = 0x1092
+## &.got[c]-. = 0x20c8 - 0x1032 = 0x1096
 GD-NEXT:   1032: auipc   a6, 0x1
-GD4-NEXT:        lw      a7, 0x9a(a6)
-GD8-NEXT:        ld      a7, 0xa6(a6)
-GD4-NEXT:        addi    a0, a6, 0x9a
-GD8-NEXT:        addi    a0, a6, 0xa6
+GD4-NEXT:        lw      a7, 0x92(a6)
+GD8-NEXT:        ld      a7, 0x96(a6)
+GD4-NEXT:        addi    a0, a6, 0x92
+GD8-NEXT:        addi    a0, a6, 0x96
 GD-NEXT:         jalr    t0, 0x0(a7)
 GD-NEXT:         c.add   a0, tp
 
