@@ -1,0 +1,15 @@
+#---R_ARM_THM_PC8.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify R_ARM_THM_PC8 relocation is supported and correctly applied.
+# Formula: S + A - Pa where Pa = (PC + 4) & ~3
+# thm_pc8_slot at 0x08048054
+# Pa = (0x08048054 + 4) & ~3 = 0x08048058
+# target at 0x08048058
+# val = 0x08048058 - 0x08048058 = 0, imm8 = 0
+#END_COMMENT
+#START_TEST
+RUN: %clangas -c %p/Inputs/main.s -o %t.o
+RUN: %link %linkopts -march arm -static %t.o -o %t.out
+RUN: %readelf -x .text %t.out | %filecheck %s
+CHECK: 00000000 00000000
+#END_TEST
