@@ -1,0 +1,20 @@
+#--TLSGDRelax_PartialRelink.test----------Static Executable--------#
+# Partial link (-r) preserves TLSGD; final static link relaxes to LE.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_gd_hidden.s -o %t.o
+RUN: %link %linkopts -r -o %t.partial.o %t.o
+RUN: %readelf -r %t.partial.o | %filecheck %s --check-prefix=PARTIAL
+RUN: %link %linkopts -static -e get_tls -o %t.eld %t.partial.o
+RUN: %objdump -d %t.eld | %filecheck %s --check-prefix=FINAL
+RUN: %readelf -r %t.eld | %filecheck %s --check-prefix=NORELOC
+#END_TEST
+
+PARTIAL: R_X86_64_TLSGD
+PARTIAL: R_X86_64_PLT32
+
+FINAL: <get_tls>:
+FINAL-NEXT: {{[0-9a-f]+}}: 64 48 8b 04 25 {{.*}} movq
+FINAL-NEXT: {{[0-9a-f]+}}: 48 8d 80 {{.*}} leaq
+
+NORELOC-NOT: R_X86_64_DTPMOD64
+NORELOC-NOT: R_X86_64_DTPOFF64
