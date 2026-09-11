@@ -1,0 +1,27 @@
+# XFAIL: *
+# This test fails with lld since it does not set llvm::lto::SymbolResolution::VisibleToRegularObj
+# for symbols that need to be kept.
+
+# RUN: rm -rf %t && split-file %s %t
+# RUN: %opt -mtriple=%triple %t/1.ll -o %t/1.o
+# RUN: %link %linkopts --lto-linker-scripts %t/1.o -T %t/script.t -o %t/out -e main
+# RUN: %readelf -s %t/out | %filecheck --check-prefix=KEEP %s
+
+# KEEP: foo
+
+#--- 1.ll
+
+@data = internal global i32 10
+@foo = internal global i32 20, section ".text.foo"
+
+define i32 @main() nounwind {
+  %a = load i32, ptr @foo
+  %b = load i32, ptr @data
+  %c = add i32 %a, %b
+  ret i32 %c
+}
+
+#--- script.t
+SECTIONS {
+.mytext : { KEEP(*(.text.foo)) }
+}

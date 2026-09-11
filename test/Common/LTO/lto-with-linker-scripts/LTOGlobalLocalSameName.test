@@ -1,0 +1,33 @@
+# RUN: rm -rf %t && split-file %s %t
+# RUN: %opt -mtriple=%triple %t/1.ll -o %t/1.o
+# RUN: %opt -mtriple=%triple %t/2.ll -o %t/2.o
+# RUN: %link %linkopts --lto-linker-scripts --save-temps -e main -T %t/script.t \
+# RUN:   %t/1.o %t/2.o -o %t/out
+# RUN: %filecheck %s --check-prefix=RES < %t/out.llvm-lto.resolution.txt
+
+# RES: -r={{.*}}1.o{{.*}},quant_coef,pl
+# RES: -r={{.*}}2.o{{.*}},quant_coef,l
+# RES-NOT: -r={{.*}}2.o{{.*}},quant_coef,pl
+
+#--- 1.ll
+@quant_coef = global i32 1, section ".data.quant_coef"
+
+define i32 @main() section ".text.main" {
+entry:
+  ret i32 0
+}
+
+#--- 2.ll
+@quant_coef = internal global i32 2, section ".data.quant_coef.local"
+
+define i32 @foo() section ".text.foo" {
+entry:
+  %v = load i32, ptr @quant_coef, align 4
+  ret i32 %v
+}
+
+#--- script.t
+SECTIONS {
+  .text : { *(.text*) }
+  .data : { *(.data*) }
+}

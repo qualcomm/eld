@@ -1,0 +1,46 @@
+# RUN: rm -rf %t && split-file %s %t
+# RUN: %opt -mtriple=%triple %t/1.ll -o %t/1.o
+# RUN: %opt -mtriple=%triple %t/2.ll -o %t/2.o
+# RUN: %llvm-mc -filetype=obj -triple=%triple %t/3.s -o %t/3.o
+# RUN: %link %linkopts --lto-linker-scripts --gc-sections -e main -T %t/script.t \
+# RUN:   %t/1.o %t/2.o %t/3.o -o %t/out
+# RUN: %readelf -s -W %t/out | %filecheck %s
+
+# CHECK: FUNC GLOBAL DEFAULT {{.*}} foo
+
+#--- 1.ll
+
+module asm ".word ."
+
+define i32 @foo(i32 %x) nounwind section ".text.foo" {
+  %r = add i32 %x, 2
+  ret i32 %r
+}
+
+#--- 2.ll
+
+module asm ".word ."
+module asm ".weak foo"
+module asm ".equ foo,bar"
+
+@llvm.compiler.used = appending global [1 x ptr] [ptr @bar], section "llvm.metadata"
+
+define internal i32 @bar(i32 %x) nounwind section ".text.bar" {
+  %r = add i32 %x, 1
+  ret i32 %r
+}
+
+#--- 3.s
+.text
+.section .text.main,"ax",%progbits
+.globl main
+.type main,%function
+main:
+  .word foo
+  .byte 0
+.size main, .-main
+
+#--- script.t
+SECTIONS {
+  .text : { *(.text.*) }
+}

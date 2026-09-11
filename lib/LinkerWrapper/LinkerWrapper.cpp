@@ -109,7 +109,7 @@ eld::Expected<plugin::Symbol> LinkerWrapper::addSymbol(
     InputFile InputFile, const std::string &Name,
     plugin::Symbol::Binding Binding, plugin::Section InputSection,
     plugin::Symbol::Kind Kind, plugin::Symbol::Visibility Visibility,
-    unsigned Type, uint64_t Size) {
+    unsigned Type, uint64_t Size, unsigned SymbolIndex) {
 
   auto GetSymbolKind = [](plugin::Symbol::Kind SymbolKind) {
     switch (SymbolKind) {
@@ -159,10 +159,10 @@ eld::Expected<plugin::Symbol> LinkerWrapper::addSymbol(
 
   // We cast from an unsigned value to ResolveInfo::Type, assuming the
   // values represent ELF types.
-  // TODO: Index is unused.
   LDSymbol *S = m_Module.addSymbolFromBitCode(
       *BitcodeFile, Name, ResolveInfo::Type(Type), GetSymbolKind(Kind),
-      GetSymbolBinding(Binding), Size, GetSymbolVisibility(Visibility), 0);
+      GetSymbolBinding(Binding), Size, GetSymbolVisibility(Visibility),
+      SymbolIndex);
 
   if (InputSection && S->resolveInfo())
     BitcodeFile->setInputSectionForSymbol(*S->resolveInfo(),
