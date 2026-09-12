@@ -193,6 +193,7 @@ bool Linker::link() {
 
   {
     PluginManager &PM = ThisModule->getPluginManager();
+    ThisModule->setLinkState(LinkState::ActBeforePerformingLayout);
     if (!PM.callActBeforePerformingLayoutHook()) {
       // llvm::errs() << "callActBeforePerformingLayoutHook returning false!\n";
       return false;

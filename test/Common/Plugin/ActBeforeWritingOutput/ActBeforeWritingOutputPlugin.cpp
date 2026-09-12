@@ -7,6 +7,11 @@ public:
   ActBeforeWritingOutputPlugin()
       : eld::plugin::LinkerPlugin("ActBeforeWritingOutputPlugin") {}
   void ActBeforeWritingOutput() override {
+    if (!getLinker()->isLinkStateActBeforeWritingOutput()) {
+      getLinker()->reportDiag(
+          getLinker()->getErrorDiagID("Incorrect link state"));
+      return;
+    }
     getLinker()->reportDiag(
         getLinker()->getNoteDiagID("In ActBeforeWritingOutput"));
   }
