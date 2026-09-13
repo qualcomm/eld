@@ -91,7 +91,7 @@ void Assignment::trace(llvm::raw_ostream &Outs) const {
   }
   Outs << Name << "(" << ExpressionToEvaluate->result() << ") = ";
 
-  ExpressionToEvaluate->dump(llvm::outs());
+  ExpressionToEvaluate->dump(Outs);
 
   Outs << ";\n";
 }
@@ -240,7 +240,7 @@ bool Assignment::assign(Module &CurModule, const ELFSection *Section) {
   Backend.updateLatestAssignment(Name, this);
 
   if (CurModule.getPrinter()->traceAssignments())
-    trace(llvm::outs());
+    trace(llvm::errs());
   return true;
 }
 

@@ -2156,7 +2156,7 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out) {
     auto &fvector = m_PaddingMap[OutSection];
     for (auto &f : fvector) {
       if (f.Exp)
-        f.Exp->dump(llvm::outs(), true);
+        f.Exp->dump(llvm::errs(), true);
       config().raise(Diag::padding_map)
           << llvm::utostr(f.startOffset) << llvm::utostr(f.endOffset);
     }

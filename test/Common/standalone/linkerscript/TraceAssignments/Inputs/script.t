@@ -9,6 +9,9 @@ SECTIONS
     *(.text*)
     ABS2 = .;
     ABS3 = .;
+    . = . + 16;
+    FILL(0x1234);
+    . = . + 16;
   }
 
   /* OUTPUT_SECTION(EPILOGUE) assignment */
