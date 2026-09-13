@@ -12,8 +12,35 @@
 //===----------------------------------------------------------------------===//
 
 #include "ARMInfo.h"
+#include "eld/Support/MsgHandling.h"
 
 using namespace eld;
+
+namespace {
+
+uint64_t getEABIVersion(uint64_t Flags) {
+  return Flags & llvm::ELF::EF_ARM_EABIMASK;
+}
+
+bool areEABIVersionsCompatible(uint64_t InputFlags, uint64_t OutputFlags) {
+  uint64_t InputVersion = getEABIVersion(InputFlags);
+  uint64_t OutputVersion = getEABIVersion(OutputFlags);
+
+  if (InputVersion == OutputVersion ||
+      OutputVersion == llvm::ELF::EF_ARM_EABI_UNKNOWN)
+    return true;
+
+  return (InputVersion == llvm::ELF::EF_ARM_EABI_VER4 &&
+          OutputVersion == llvm::ELF::EF_ARM_EABI_VER5) ||
+         (InputVersion == llvm::ELF::EF_ARM_EABI_VER5 &&
+          OutputVersion == llvm::ELF::EF_ARM_EABI_VER4);
+}
+
+std::string getEABIVersionString(uint64_t Flags) {
+  return "EABI" + std::to_string(getEABIVersion(Flags) >> 24);
+}
+
+} // namespace
 
 bool ARMInfo::InitializeDefaultMappings(Module &pModule) {
   LinkerScript &pScript = pModule.getScript();
@@ -73,14 +100,33 @@ uint64_t ARMInfo::flags() const {
   // have flags.
   if (!OutputFlags)
     return llvm::ELF::EF_ARM_EABI_VER5;
-  assert(*OutputFlags == 0 || *OutputFlags == llvm::ELF::EF_ARM_EABI_VER5);
   return *OutputFlags;
 }
 
 bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I, bool) {
-  if (!OutputFlags && Flags == 0 && I->isBinaryFile())
+  // Binary inputs do not carry ARM EABI information.
+  if (I->isBinaryFile()) {
+    if (!OutputFlags)
+      OutputFlags = Flags;
+    return true;
+  }
+
+  if (!OutputFlags) {
     OutputFlags = Flags;
-  else
-    OutputFlags = llvm::ELF::EF_ARM_EABI_VER5;
+    return true;
+  }
+
+  if (!areEABIVersionsCompatible(Flags, *OutputFlags)) {
+    m_Config.raise(Diag::incompatible_architecture_versions)
+        << getEABIVersionString(Flags) << I->getInput()->decoratedPath()
+        << getEABIVersionString(*OutputFlags);
+
+    if (m_Config.options().warnMismatch())
+      return false;
+  }
+
+  if (Flags > *OutputFlags)
+    OutputFlags = Flags;
+
   return true;
 }

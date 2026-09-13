@@ -1,0 +1,118 @@
+#---object-flags.test---------------------- Executable --------------------#
+#BEGIN_COMMENT
+# Check that ARM e_flags are picked up from input object files and that
+# incompatible EABI versions are diagnosed.
+#END_COMMENT
+#START_TEST
+#RUN: %yaml2obj --docnum=1 %s -o %t.ver4.o
+#RUN: %yaml2obj --docnum=2 %s -o %t.ver5.o
+#RUN: %yaml2obj --docnum=3 %s -o %t.ver3.o
+#RUN: %yaml2obj --docnum=4 %s -o %t.unknown.o
+#
+#RUN: %link %emulation %t.ver4.o -o %t.ver4.out
+#RUN: %readelf -h %t.ver4.out | %filecheck %s --check-prefix=VER4
+#
+#RUN: %link %emulation %t.ver4.o %t.ver5.o -o %t.ver45.out
+#RUN: %readelf -h %t.ver45.out | %filecheck %s --check-prefix=VER5
+#
+#RUN: %link %emulation %t.ver5.o %t.ver4.o -o %t.ver54.out
+#RUN: %readelf -h %t.ver54.out | %filecheck %s --check-prefix=VER5
+#
+#RUN: %not %link %emulation --warn-mismatch %t.ver3.o %t.ver5.o \
+#RUN:   -o %t.ver35.out 2>&1 | %filecheck %s --check-prefix=MISMATCH35
+#
+#RUN: %not %link %emulation --warn-mismatch %t.ver5.o %t.ver3.o \
+#RUN:   -o %t.ver53.out 2>&1 | %filecheck %s --check-prefix=MISMATCH53
+#
+#RUN: %link %emulation --no-warn-mismatch %t.ver3.o %t.ver5.o \
+#RUN:   -o %t.noerr.out 2>&1 | %filecheck %s --check-prefix=NOERR
+#RUN: %readelf -h %t.noerr.out | %filecheck %s --check-prefix=VER5
+#
+# UNKNOWN followed by a known EABI version adopts the known version.
+#RUN: %link %emulation --warn-mismatch %t.unknown.o %t.ver5.o \
+#RUN:   -o %t.unknown5.out
+#RUN: %readelf -h %t.unknown5.out | %filecheck %s --check-prefix=VER5
+#
+# Once a known EABI version has been established, UNKNOWN is incompatible.
+#RUN: %not %link %emulation --warn-mismatch %t.ver5.o %t.unknown.o \
+#RUN:   -o %t.ver50.out 2>&1 | %filecheck %s --check-prefix=MISMATCH50
+#END_TEST
+
+#VER4: Flags: 0x4000000
+#VER5: Flags: 0x5000000
+#MISMATCH35: Error: Incompatible object files when reading {{.*}}ver5.o, mixing EABI5 and EABI3
+#MISMATCH53: Error: Incompatible object files when reading {{.*}}ver3.o, mixing EABI3 and EABI5
+#NOERR: Note: Incompatible object files when reading {{.*}}ver5.o, mixing EABI5 and EABI3
+#MISMATCH50: Error: Incompatible object files when reading {{.*}}unknown.o, mixing EABI0 and EABI5
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER4 ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+Symbols:
+  - Name:            foo4
+    Section:         .text
+    Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER5 ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+Symbols:
+  - Name:            foo5
+    Section:         .text
+    Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER3 ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+Symbols:
+  - Name:            foo3
+    Section:         .text
+    Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_UNKNOWN ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+Symbols:
+  - Name:            foo0
+    Section:         .text
+    Binding:         STB_GLOBAL
