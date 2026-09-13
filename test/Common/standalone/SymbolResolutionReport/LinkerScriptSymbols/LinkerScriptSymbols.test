@@ -13,9 +13,9 @@ CHECK-DAG: bar({{.*}}2.o:{{.*}}) [Size={{.*}}, Def, Global, Object, Default] [Se
 CHECK-DAG: foo
 CHECK-DAG: foo({{.*}}1.o:{{.*}}) [Size=4, Def, Global, Object, Default]
 CHECK-DAG: foo({{.*}}2.o) [Size=0, Undef, Global, NoType, Default]
-CHECK-DAG: foo({{.*}}script1.t) [Size=4, Abs, {{.*}}, Object, Default]
-CHECK-DAG: foo({{.*}}script1.t) [Size=4, Abs, {{.*}}, Object, Default]
-CHECK-DAG: foo({{.*}}script2.t) [Size=4, Abs, {{.*}}, Object, Default]
-CHECK-DAG: foo({{.*}}script2.t) [Size=4, Abs, {{.*}}, Object, Default] [Selected]
+CHECK-DAG: foo({{.*}}script1.t) [Size=4, Abs, Global, Object, Default]
+CHECK-DAG: foo({{.*}}script1.t) [Size=4, Abs, Global, Object, Default]
+CHECK-DAG: foo({{.*}}script2.t) [Size=4, Abs, Global, Object, Default]
+CHECK-DAG: foo({{.*}}script2.t) [Size=4, Abs, Global, Object, Default] [Selected]
 
 

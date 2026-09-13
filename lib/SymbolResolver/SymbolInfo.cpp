@@ -20,7 +20,6 @@ SymbolInfo::SymbolInfo(const InputFile *InputFile, size_t Size,
   setBitcodeAttribute(IsBitcode);
 }
 
-// FIXME: How is absolute binding handled?
 void SymbolInfo::setSymbolBinding(ResolveInfo::Binding Binding) {
   if (Binding == ResolveInfo::Local)
     SymbolInfoBitfield.SymBinding = SymbolBinding::Local;
@@ -28,6 +27,8 @@ void SymbolInfo::setSymbolBinding(ResolveInfo::Binding Binding) {
     SymbolInfoBitfield.SymBinding = SymbolBinding::Global;
   else if (Binding == ResolveInfo::Weak)
     SymbolInfoBitfield.SymBinding = SymbolBinding::Weak;
+  else if (Binding == ResolveInfo::Absolute)
+    SymbolInfoBitfield.SymBinding = SymbolBinding::Global;
 }
 
 void SymbolInfo::setSymbolType(ResolveInfo::Type SymType) {
