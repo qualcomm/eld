@@ -160,7 +160,7 @@ namespace {
 Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
                                ResolveInfo *pSym, Fragment *F, uint32_t pOffset,
                                Relocator::Type pType, x86_64LDBackend &B) {
-  Relocation *rela_entry = Obj->getRelaDyn()->createOneReloc();
+  Relocation *rela_entry = B.getRelaDyn()->createOneReloc();
 
   rela_entry->setType(pType);
   rela_entry->setTargetRef(make<FragmentRef>(*F, pOffset));

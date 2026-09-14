@@ -257,7 +257,7 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
                                Relocator::Type pType, RISCVLDBackend &B) {
   Relocation *rela_entry = nullptr;
 
-  rela_entry = Obj->getRelaDyn()->createOneReloc();
+  rela_entry = B.getRelaDyn()->createOneReloc();
   rela_entry->setType(pType);
   rela_entry->setTargetRef(make<FragmentRef>(*F, pOffset));
   rela_entry->setSymInfo(pSym);

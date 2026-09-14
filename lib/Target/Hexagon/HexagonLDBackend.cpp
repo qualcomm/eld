@@ -231,23 +231,8 @@ HexagonLDBackend::getTargetSectionOrder(const ELFSection &pSectHdr) const {
 }
 
 void HexagonLDBackend::initDynamicSections(ELFObjectFile &InputFile) {
-  InputFile.setDynamicSections(
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 4),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got.plt",
-          llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
-          8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".plt", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 16),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.dyn",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC, 4),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.plt",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC, 4));
+  GNULDBackend::initDynamicSections(InputFile,
+                                    {llvm::ELF::SHT_RELA, 4, 4, 8, 16});
 }
 
 void HexagonLDBackend::createAttributeSection() {
@@ -898,7 +883,7 @@ HexagonGOT *HexagonLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
   bool GOT = true;
   switch (T) {
   case GOT::Regular:
-    G = HexagonGOT::Create(Obj->getGOT(), R);
+    G = HexagonGOT::Create(getGOT(), R);
     break;
   case GOT::GOTPLT0:
     G = llvm::dyn_cast<HexagonGOT>(*getGOTPLT()->getFragmentList().begin());
@@ -909,18 +894,18 @@ HexagonGOT *HexagonLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     Fragment *PLT0 = config().options().hasNow()
                          ? nullptr
                          : *getPLT()->getFragmentList().begin();
-    G = HexagonGOTPLTN::Create(Obj->getGOTPLT(), R, PLT0);
+    G = HexagonGOTPLTN::Create(getGOTPLT(), R, PLT0);
     GOT = false;
     break;
   }
   case GOT::TLS_GD:
-    G = HexagonGDGOT::Create(Obj->getGOT(), R);
+    G = HexagonGDGOT::Create(getGOT(), R);
     break;
   case GOT::TLS_LD:
     G = HexagonLDGOT::Create(getGOT(), R);
     break;
   case GOT::TLS_IE:
-    G = HexagonIEGOT::Create(Obj->getGOT(), R);
+    G = HexagonIEGOT::Create(getGOT(), R);
     break;
   default:
     assert(0);
@@ -969,11 +954,10 @@ HexagonPLT *HexagonLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
                         createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
                         nullptr);
   }
-  HexagonPLT *P =
-      HexagonPLTN::Create(*m_Module.getIRBuilder(),
-                          createGOT(GOT::GOTPLTN, Obj, R), Obj->getPLT(), R);
+  HexagonPLT *P = HexagonPLTN::Create(
+      *m_Module.getIRBuilder(), createGOT(GOT::GOTPLTN, Obj, R), getPLT(), R);
   // init the corresponding rel entry in .rela.plt
-  Relocation &rela_entry = *Obj->getRelaPLT()->createOneReloc();
+  Relocation &rela_entry = *getRelaPLT()->createOneReloc();
   rela_entry.setType(llvm::ELF::R_HEX_JMP_SLOT);
   Fragment *F = P->getGOT();
   rela_entry.setTargetRef(make<FragmentRef>(*F, 0));

@@ -1717,25 +1717,46 @@ uint64_t GNULDBackend::getSymbolValue(LDSymbol *pSymbol) const {
   return pSymbol->value();
 }
 
-ELFSection *GNULDBackend::getGOT() const {
-  return m_DynamicSectionHeadersInputFile->getGOT();
+ELFSection *GNULDBackend::getGOT() const { return GOTSection; }
+
+ELFSection *GNULDBackend::getGOTPLT() const { return GOTPLTSection; }
+
+ELFSection *GNULDBackend::getPLT() const { return PLTSection; }
+
+void GNULDBackend::initDynamicSections(ELFObjectFile &InputFile,
+                                       const DynamicSectionLayout &Layout) {
+  if (GOTSection)
+    return;
+
+  bool IsRela = Layout.RelType == llvm::ELF::SHT_RELA;
+  RelDynSection = m_Module.createInternalSection(
+      InputFile, LDFileFormat::DynamicRelocation,
+      IsRela ? ".rela.dyn" : ".rel.dyn", Layout.RelType, llvm::ELF::SHF_ALLOC,
+      Layout.RelAlign);
+  RelPLTSection = m_Module.createInternalSection(
+      InputFile, LDFileFormat::DynamicRelocation,
+      IsRela ? ".rela.plt" : ".rel.plt", Layout.RelType, llvm::ELF::SHF_ALLOC,
+      Layout.RelAlign);
+
+  auto Create = [&](std::string Name, uint32_t Flags, uint32_t Align) {
+    return m_Module.createInternalSection(InputFile, LDFileFormat::Internal,
+                                          Name, llvm::ELF::SHT_PROGBITS, Flags,
+                                          Align);
+  };
+  GOTSection = Create(".got", llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
+                      Layout.GOTAlign);
+  GOTPLTSection =
+      Create(".got.plt", llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
+             Layout.GOTPLTAlign);
+  PLTSection = Create(".plt", llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR,
+                      Layout.PLTAlign);
+  InputFile.setDynamicSections(*GOTSection, *GOTPLTSection, *PLTSection,
+                               *RelDynSection, *RelPLTSection);
 }
 
-ELFSection *GNULDBackend::getGOTPLT() const {
-  return m_DynamicSectionHeadersInputFile->getGOTPLT();
-}
+ELFSection *GNULDBackend::getRelaDyn() const { return RelDynSection; }
 
-ELFSection *GNULDBackend::getPLT() const {
-  return m_DynamicSectionHeadersInputFile->getPLT();
-}
-
-ELFSection *GNULDBackend::getRelaDyn() const {
-  return m_DynamicSectionHeadersInputFile->getRelaDyn();
-}
-
-ELFSection *GNULDBackend::getRelaPLT() const {
-  return m_DynamicSectionHeadersInputFile->getRelaPLT();
-}
+ELFSection *GNULDBackend::getRelaPLT() const { return RelPLTSection; }
 
 void GNULDBackend::reportErrorIfGOTIsDiscarded(ResolveInfo *R) const {
   ELFSection *GOT = getGOT();

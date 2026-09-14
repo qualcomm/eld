@@ -2229,53 +2229,18 @@ bool ObjectLinker::scanRelocations(bool IsPartialLink) {
 
   getTargetBackend().provideSymbols();
 
+  // Slots are allocated as relocations are scanned in input order.
   std::vector<std::unique_ptr<Relocator::CopyRelocs>> AllCopyRelocs;
-  if (ThisConfig.options().numThreads() <= 1 ||
-      !ThisConfig.isScanRelocationsMultiThreaded()) {
-    if (ThisModule->getPrinter()->traceThreads())
-      ThisConfig.raise(Diag::threads_disabled) << "ScanRelocations";
-    for (auto &Input : ThisModule->getObjectList()) {
-      auto CopyRelocs = std::make_unique<Relocator::CopyRelocs>();
-      scanRelocationsHelper(Input, IsPartialLink, PluginVect, *CopyRelocs);
-      AllCopyRelocs.push_back(std::move(CopyRelocs));
-    }
-  } else {
-    if (ThisModule->getPrinter()->traceThreads())
-      ThisConfig.raise(Diag::threads_enabled)
-          << "ScanRelocations" << ThisConfig.options().numThreads();
-    llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
-    for (auto &Input : ThisModule->getObjectList()) {
-      auto CopyRelocs = std::make_unique<Relocator::CopyRelocs>();
-      auto &CopyRelocsRef = *CopyRelocs; // must dereference in the main thread
-      Pool->async([&] {
-        scanRelocationsHelper(Input, IsPartialLink, PluginVect, CopyRelocsRef);
-      });
-      AllCopyRelocs.push_back(std::move(CopyRelocs));
-    }
-    Pool->wait();
+  for (auto &Input : ThisModule->getObjectList()) {
+    auto CopyRelocs = std::make_unique<Relocator::CopyRelocs>();
+    scanRelocationsHelper(Input, IsPartialLink, PluginVect, *CopyRelocs);
+    AllCopyRelocs.push_back(std::move(CopyRelocs));
   }
   // assume there is only one copy relocation type per target
   Relocation::Type CopyRelocType = getTargetBackend().getCopyRelType();
   for (const auto &RelocVec : AllCopyRelocs)
     for (auto &Reloc : *RelocVec)
       createCopyRelocation(*Reloc, CopyRelocType);
-
-  // Merge per-file relocations
-  if (!IsPartialLink) {
-    ELFObjectFile *RelocInput =
-        getTargetBackend().getDynamicSectionHeadersInputFile();
-    auto MergeRelocs = [](ELFSection &To, ELFSection &From) {
-      To.appendRelocations(From.getRelocations());
-    };
-    for (auto &Input : ThisModule->getObjectList())
-      if (ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(Input))
-        if (Obj != RelocInput) {
-          if (const auto &S = Obj->getRelaDyn())
-            MergeRelocs(*RelocInput->getRelaDyn(), *S);
-          if (const auto &S = Obj->getRelaPLT())
-            MergeRelocs(*RelocInput->getRelaPLT(), *S);
-        }
-  }
 
   // If there is a undefined symbol, fail the link. No point fixing the
   // relocations. This is overridden by --noinhibit-exec.

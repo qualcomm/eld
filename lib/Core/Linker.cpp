@@ -169,13 +169,6 @@ bool Linker::link() {
       return false;
   }
 
-  // Init per-file synthetic dynamic sections.
-  if (LinkerConfig::Object != ThisConfig->codeGenType()) {
-    for (auto &Input : ThisModule->getObjectList())
-      if (ELFObjectFile *ELFObj = llvm::dyn_cast<ELFObjectFile>(Input))
-        Backend->initDynamicSections(*ELFObj);
-  }
-
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig->raise(Diag::merging_input_sections);
   {
