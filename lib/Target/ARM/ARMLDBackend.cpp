@@ -708,6 +708,9 @@ ELFSection *ARMGNULDBackend::mergeSection(ELFSection *pSection) {
   case llvm::ELF::SHT_ARM_ATTRIBUTES:
     return m_pARMAttributeSection;
   case llvm::ELF::SHT_ARM_EXIDX: {
+    const InputFile *inputFile = pSection->getInputFile();
+    if (inputFile && inputFile->getInput()->getAttribute().isJustSymbols())
+      return nullptr;
     if (!pSection->getLink() && pSection->getInputFile())
       config().raise(Diag::warn_armexidx_no_link)
           << pSection->getInputFile()->getInput()->getName()
