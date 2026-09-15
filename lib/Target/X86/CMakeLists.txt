@@ -12,5 +12,5 @@ llvm_add_library(
 add_subdirectory(TargetInfo)
 
 target_link_libraries(
-  ELDX86LDBackend PRIVATE ELDx86_64TargetInfo ELDCore ELDFragment ELDObject
+  ELDX86LDBackend PRIVATE ELDX86TargetInfo ELDCore ELDFragment ELDObject
                              ELDTarget LLVMX86CodeGen)
