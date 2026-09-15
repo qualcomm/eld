@@ -11,7 +11,6 @@
 namespace eld {
 class Module;
 class ELFReaderBase;
-class ELFExecutableFileReader;
 
 class ELFExecObjParser {
 public:
@@ -23,12 +22,9 @@ public:
   /// once
   eld::Expected<uint16_t> getMachine(InputFile &inputFile);
 
-  eld::Expected<bool> parseFile(InputFile &inputFile,
-                                bool &ELFOverriddenWithBC);
+  eld::Expected<bool> parseFile(InputFile &inputFile);
 
 private:
-  eld::Expected<void> readSections(ELFReaderBase &ELFReader);
-  eld::Expected<bool> readRelocations(InputFile &inputFile);
   Module &m_Module;
 };
 

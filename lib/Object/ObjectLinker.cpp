@@ -3755,11 +3755,16 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     ThisModule->getObjectList().push_back(CurInput);
     addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);
   } else if (CurInput->getKind() == InputFile::ELFExecutableFileKind) {
+    if (!CurInput->getInput()->getAttribute().isJustSymbols()) {
+      ThisConfig.raise(Diag::error_executable_requires_just_symbols)
+          << Input->getResolvedPath();
+      ThisModule->setFailure(true);
+      return false;
+    }
     eld::RegisterTimer T("Read ELF Executable Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(CurInput->getKind());
-    bool ELFOverriddenWithBC = false;
     if (!isBackendInitialized()) {
       // Infer machine for selecting backend
       eld::Expected<uint16_t> Machine =
@@ -3773,15 +3778,12 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
         return false;
     }
     eld::Expected<bool> ExpParseFile =
-        getELFExecObjParser()->parseFile(*CurInput, ELFOverriddenWithBC);
+        getELFExecObjParser()->parseFile(*CurInput);
     if (!ExpParseFile)
       ThisConfig.raiseDiagEntry(std::move(ExpParseFile.error()));
     if (!ExpParseFile.has_value() || !ExpParseFile.value()) {
       ThisModule->setFailure(true);
       return false;
-    }
-    if (!IsPostLto && overrideELFObjectWithBitCode(CurInput)) {
-      return readAndProcessInput(Input, IsPostLto);
     }
     ThisModule->getObjectList().push_back(CurInput);
     addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);

@@ -31,14 +31,9 @@ public:
   eld::Expected<ELFSection *>
   createSection(typename ELFReader<ELFT>::Elf_Shdr rawSectHdr) override;
 
-  eld::Expected<bool> readRelocationSection(ELFSection *RS) override;
-
 protected:
   explicit ExecELFReader(Module &module, InputFile &inputFile,
                          plugin::DiagnosticEntry &diagEntry);
-
-  template <bool isRela>
-  eld::Expected<bool> readRelocationSection(ELFSection *RS);
 };
 } // namespace eld
 
