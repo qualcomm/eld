@@ -1,9 +1,12 @@
-UNSUPPORTED: riscv32, riscv64, x86
-# This tests that the linker does not error when there is an executable
+#---invalidobject.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This tests that the linker errors when there is an executable
 # given as input.
+#END_COMMENT
+#START_TEST
 RUN: %clang %clangopts -c %p/Inputs/a.c -o %t1.o
 RUN: %link %linkopts %t1.o -o %t2 --no-emit-relocs
-RUN: %link -o %t1.out %linkopts %t2 2>&1
-RUN: %readelf -s -W %t1.out | %filecheck %s
+RUN: %not %link -o %t1.out %linkopts %t2 2>&1 | %filecheck %s
+#END_TEST
 
-#CHECK: foo
+#CHECK: Error: executable input file {{.*}} can only be used with --just-symbols

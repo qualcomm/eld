@@ -112,8 +112,7 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
 
   switch (Input.getKind()) {
   case InputFile::BinaryFileKind:
-  case InputFile::ELFObjFileKind:
-  case InputFile::ELFExecutableFileKind: {
+  case InputFile::ELFObjFileKind: {
 
     FragmentRef *FragRef = nullptr;
     if (nullptr == CurSection || ResolveInfo::Undefined == Desc ||
