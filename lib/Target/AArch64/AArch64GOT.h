@@ -52,6 +52,8 @@ public:
     return (make<AArch64GOT>(GOT::Regular, O, R));
   }
 
+  static AArch64GOT *CreateGOT0(ELFSection *O, ResolveInfo *R);
+
 private:
   uint8_t Value[8];
 };

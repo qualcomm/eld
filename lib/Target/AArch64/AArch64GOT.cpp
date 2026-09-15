@@ -11,6 +11,21 @@
 
 using namespace eld;
 
+// GOT0
+AArch64GOT *AArch64GOT::CreateGOT0(ELFSection *O, ResolveInfo *R) {
+  AArch64GOT *G = make<AArch64GOT>(GOT::Regular, O, R);
+
+  if (!R)
+    return G;
+
+  Relocation *Rel = Relocation::Create(
+      llvm::ELF::R_AARCH64_ABS64, 64, make<FragmentRef>(*G, 0), 0);
+  Rel->setSymInfo(R);
+  O->addRelocation(Rel);
+
+  return G;
+}
+
 // GOTPLT0
 AArch64GOTPLT0 *AArch64GOTPLT0::Create(ELFSection *O, ResolveInfo *R) {
   AArch64GOTPLT0 *G = make<AArch64GOTPLT0>(O, R);
