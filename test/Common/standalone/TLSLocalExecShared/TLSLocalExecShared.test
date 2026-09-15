@@ -1,0 +1,21 @@
+#---TLSLocalExecShared.test---------------------- Shared Library --------------#
+#BEGIN_COMMENT
+# Verify that TLS local-exec relocations are rejected when creating a shared
+# library.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -ftls-model=local-exec -c \
+RUN:   %p/Inputs/tls.c -o %t.tls.o
+RUN: %not %link %linkopts -shared %t.tls.o -o %t.tls.so 2>&1 \
+RUN:   | %filecheck %s --check-prefix=TLS
+
+RUN: %clang %clangopts -ftls-model=local-exec -c \
+RUN:   %p/Inputs/tls_hidden.c -o %t.hidden.o
+RUN: %not %link %linkopts -shared %t.hidden.o -o %t.hidden.so 2>&1 \
+RUN:   | %filecheck %s --check-prefix=HIDDEN
+
+#END_TEST
+
+TLS: Fatal: relocation {{R_.*(TLS|TPREL|TPOFF).*}} against tls_var referred from {{.*\(.*\+0x[0-9a-f]+\)}} cannot be used with -shared
+HIDDEN: Fatal: relocation {{R_.*(TLS|TPREL|TPOFF).*}} against hidden_tls_var referred from {{.*\(.*\+0x[0-9a-f]+\)}} cannot be used with -shared
