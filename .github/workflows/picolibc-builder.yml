@@ -28,44 +28,56 @@ jobs:
       matrix:
         arch:
           - name: hexagon
-            picolibc-name: hexagon
+            configure-script: do-clang-hexagon-configure
             triple: hexagon-unknown-none-elf
             llvm-target: Hexagon
             picolibc-default-config: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf"
             picolibc-no-tls: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf -Dthread-local-storage=false "
             picolibc-tls-ie: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf -Dtls-model=initial-exec"
           - name: aarch64
-            picolibc-name: aarch64
+            configure-script: do-clang-aarch64-configure
             triple: aarch64-none-elf
             llvm-target: AArch64
+            qemu-package: qemu-system-aarch64
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
             picolibc-tls-ie: "-Dtls-model=initial-exec"
           - name: riscv64
-            picolibc-name: riscv
+            configure-script: do-clang-riscv-configure
             triple: riscv64-unknown-unknown-elf
             llvm-target: RISCV
+            qemu-package: qemu-system-riscv64
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
             picolibc-tls-ie: "-Dtls-model=initial-exec"
           - name: riscv32
-            picolibc-name: rv32imafdc
+            configure-script: do-clang-rv32imafdc-configure
             triple: riscv32-unknown-unknown-elf
             llvm-target: RISCV
+            qemu-package: qemu-system-riscv32
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
             picolibc-tls-ie: "-Dtls-model=initial-exec"
             extra-c-flags: "-march=rv32imafdc -mabi=ilp32d"
             extra-cxx-flags: "-march=rv32imafdc -mabi=ilp32d"
           - name: arm
-            picolibc-name: arm
+            configure-script: do-clang-arm-configure
             triple: arm-none-eabi
             llvm-target: ARM
+            qemu-package: qemu-system-arm
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
             picolibc-tls-ie: "-Dtls-model=initial-exec"
             extra-c-flags: "-march=armv7-a"
             extra-cxx-flags: "-march=armv7-a"
+          - name: x86_64
+            configure-script: do-eld-x86_64-configure
+            triple: x86_64-none-elf
+            llvm-target: X86
+            qemu-package: qemu-system-x86
+            picolibc-default-config: "-Dc_link_args=-B$RUNNER_TEMP/eld-bin -Dcpp_link_args=-B$RUNNER_TEMP/eld-bin"
+            picolibc-no-tls: "-Dc_link_args=-B$RUNNER_TEMP/eld-bin -Dcpp_link_args=-B$RUNNER_TEMP/eld-bin -Dthread-local-storage=false"
+            picolibc-tls-ie: "-Dc_link_args=-B$RUNNER_TEMP/eld-bin -Dcpp_link_args=-B$RUNNER_TEMP/eld-bin -Dtls-model=initial-exec"
 
     steps:
       - name: Install system dependencies
@@ -105,6 +117,27 @@ jobs:
         # clang/clang++ and ld.eld) from the latest successful nightly-test.yml
         # run, prepending its bin dir to PATH.
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+
+      - name: Use LLD for the x86 semihost BIOS (x86_64 only)
+        if: matrix.arch.name == 'x86_64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          WRAPPER_DIR="$RUNNER_TEMP/eld-bin"
+          mkdir -p "$WRAPPER_DIR"
+          ELD_BIN=$(command -v ld.eld)
+          LLD_BIN=$(command -v ld.lld)
+          printf '%s\n' \
+            '#!/bin/sh' \
+            'for arg in "$@"; do' \
+            '  case "$arg" in' \
+            '    */libos/semihost/machine/x86/bios.ld)' \
+            "      exec \"$LLD_BIN\" \"\$@\" ;;" \
+            '  esac' \
+            'done' \
+            "exec \"$ELD_BIN\" \"\$@\"" \
+            > "$WRAPPER_DIR/ld.eld"
+          chmod +x "$WRAPPER_DIR/ld.eld"
 
       - name: Build compiler-rt builtins
         run: |
@@ -179,7 +212,12 @@ jobs:
           cd build-clang-${{ matrix.arch.name }}-picolibc-default-config
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-default-config }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
+          ../scripts/${{ matrix.arch.configure-script }} \
+            -Dc_ld=ld.eld \
+            -Dcpp_ld=ld.eld \
+            ${{ matrix.arch.picolibc-default-config }} \
+            -Dc_args="${{ matrix.arch.extra-c-flags }}" \
+            -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
           ninja
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, no-tls
@@ -189,7 +227,12 @@ jobs:
           cd build-clang-${{ matrix.arch.name }}-picolibc-no-tls
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-no-tls }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
+          ../scripts/${{ matrix.arch.configure-script }} \
+            -Dc_ld=ld.eld \
+            -Dcpp_ld=ld.eld \
+            ${{ matrix.arch.picolibc-no-tls }} \
+            -Dc_args="${{ matrix.arch.extra-c-flags }}" \
+            -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
           ninja
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, tls-ie
@@ -199,7 +242,12 @@ jobs:
           cd build-clang-${{ matrix.arch.name }}-picolibc-tls-ie
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-tls-ie }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
+          ../scripts/${{ matrix.arch.configure-script }} \
+            -Dc_ld=ld.eld \
+            -Dcpp_ld=ld.eld \
+            ${{ matrix.arch.picolibc-tls-ie }} \
+            -Dc_args="${{ matrix.arch.extra-c-flags }}" \
+            -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
           ninja
 
       - name: Get QEMU
@@ -217,7 +265,7 @@ jobs:
             ninja install
             echo "PATH=$QEMU_INSTALL/bin/:$PATH" >> $GITHUB_ENV
           else
-            sudo apt install qemu-system-arm qemu-system-aarch64 qemu-system-riscv32 qemu-system-riscv64
+            sudo apt install -y ${{ matrix.arch.qemu-package }}
           fi
 
       - name: Run Picolibc tests for ${{ matrix.arch.name }}, default-config
