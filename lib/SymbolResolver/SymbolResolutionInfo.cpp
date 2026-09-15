@@ -119,8 +119,7 @@ SymbolResolutionInfo::getSymbolInfoAsString(const LDSymbol *Sym,
   if (SymInfo.isBitcodeSymbol())
     SymbolAttributes.push_back("bitcode");
   SymbolAttributes.push_back(SymInfo.getSymbolSectionIndexKindAsStr().str());
-  if (SymInfo.getSymbolSectionIndexKind() != SymbolInfo::SectionIndexKind::Abs)
-    SymbolAttributes.push_back(SymInfo.getSymbolBindingAsStr().str());
+  SymbolAttributes.push_back(SymInfo.getSymbolBindingAsStr().str());
   SymbolAttributes.push_back(SymInfo.getSymbolTypeAsStr().str());
   if (SymInfo.getSymbolVisibility() != ResolveInfo::Visibility::Default)
     SymbolAttributes.push_back(SymInfo.getSymbolVisibilityAsStr().str());

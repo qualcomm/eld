@@ -27,6 +27,8 @@ void SymbolInfo::setSymbolBinding(ResolveInfo::Binding Binding) {
     SymbolInfoBitfield.SymBinding = SymbolBinding::Global;
   else if (Binding == ResolveInfo::Weak)
     SymbolInfoBitfield.SymBinding = SymbolBinding::Weak;
+  else if (Binding == ResolveInfo::Absolute)
+    SymbolInfoBitfield.SymBinding = SymbolBinding::Global;
 }
 
 void SymbolInfo::setSymbolType(ResolveInfo::Type SymType) {
