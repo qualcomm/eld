@@ -674,12 +674,17 @@ AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
                                                bool SkipPLTRef) {
 
   traceGOTCreation(T, R);
-  // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->hasFragments()) {
-    // TODO: This should be GOT0, not GOTPLT0.
+  // Create the reserved GOT entry when a regular GOT entry is first needed.
+  if (!getGOT()->hasFragments() && T == GOT::Regular) {
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
-    AArch64GOTPLT0::Create(getGOTPLT(),
+    AArch64GOT::CreateGOT0(getGOT(),
                            Dynamic ? Dynamic->resolveInfo() : nullptr);
+  }
+
+  // Create GOTPLT0 only when the PLT GOT is needed.
+  if (!getGOTPLT()->hasFragments() &&
+      (T == GOT::GOTPLT0 || T == GOT::GOTPLTN)) {
+    AArch64GOTPLT0::Create(getGOTPLT(), nullptr);
   }
 
   AArch64GOT *G = nullptr;

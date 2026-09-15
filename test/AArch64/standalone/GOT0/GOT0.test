@@ -1,0 +1,22 @@
+#---GOT0.test--------------------------------------------------------------#
+#BEGIN_COMMENT
+# Verify that AArch64 reserves the first 8-byte entry in .got as GOT0.
+# A regular GOT entry must be placed immediately after the reserved entry.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -target aarch64 -fPIC -c %p/Inputs/got0.s -o %t.o
+RUN: %link %linkopts -march aarch64 -shared %t.o -o %t.so
+RUN: %readelf -SW %t.so > %t.txt
+RUN: %readelf -r %t.so >> %t.txt
+RUN: %filecheck %s < %t.txt
+
+# Capture the start address of .got and verify that it contains two
+# 8-byte entries: the reserved GOT0 entry and the regular GOT entry.
+CHECK: .got              PROGBITS        [[#%x,GOT:]] {{[0-9a-f]+}} 000010
+CHECK-NOT: .got.plt
+
+# The regular GOT entry for foo must follow GOT0 by exactly 8 bytes.
+CHECK: [[#GOT+8]] {{.*}}R_AARCH64_GLOB_DAT{{.*}}foo
+
+#END_TEST
