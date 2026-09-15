@@ -1,0 +1,8 @@
+#---Architecture.test--------------------- Driver ------------------#
+#BEGIN_COMMENT
+# Verify that the X86 driver recognizes the i386 architecture name used by the
+# linker command line.
+#END_COMMENT
+#
+# RUN: %link -march=i386 --repository-version | %filecheck %s
+# CHECK: i386 eld repository revision:

@@ -21,6 +21,7 @@
 #include "eld/Driver/TemplateLinkDriver.h"
 #endif
 #ifdef ELD_ENABLE_TARGET_X86
+#include "eld/Driver/x86_32LinkDriver.h"
 #include "eld/Driver/x86_64LinkDriver.h"
 #endif
 #include "eld/Config/LinkerConfig.h"
@@ -107,6 +108,8 @@ GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, uint8_t Machine,
 #ifdef ELD_ENABLE_TARGET_X86
   case llvm::ELF::EM_X86_64:
     return x86_64LinkDriver::Create(C, is64bit);
+  case llvm::ELF::EM_386:
+    return x86_32LinkDriver::Create(C, is64bit);
 #endif
   default:
     break;
@@ -136,6 +139,8 @@ GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, DriverFlavor F,
 #ifdef ELD_ENABLE_TARGET_X86
   case DriverFlavor::x86_64:
     return x86_64LinkDriver::Create(C, InferredArch);
+  case DriverFlavor::x86_32:
+    return x86_32LinkDriver::Create(C, InferredArch);
 #endif
   default:
     return eld::make<GnuLdDriver>(C, F);
@@ -2171,6 +2176,8 @@ std::string GnuLdDriver::getDriverFlavorName() const {
     return "template";
   case DriverFlavor::x86_64:
     return "x86_64";
+  case DriverFlavor::x86_32:
+    return "i386";
   case DriverFlavor::Unknown:
     return "Unknown";
   case DriverFlavor::Invalid:

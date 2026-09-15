@@ -12,6 +12,7 @@
 #include "eld/Driver/HexagonLinkDriver.h"
 #include "eld/Driver/RISCVLinkDriver.h"
 #include "eld/Driver/TemplateLinkDriver.h"
+#include "eld/Driver/x86_32LinkDriver.h"
 #include "eld/Driver/x86_64LinkDriver.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/Support/Memory.h"
@@ -89,7 +90,8 @@ GnuLdDriver *Driver::getLinkerDriver() {
   case DriverFlavor::RISCV32_RISCV64:
   case DriverFlavor::Template:
   case DriverFlavor::Unknown:
-  case DriverFlavor::x86_64: {
+  case DriverFlavor::x86_64:
+  case DriverFlavor::x86_32: {
     LinkDriver = GnuLdDriver::Create(Config, m_DriverFlavor,
                                      InferredArchFromProgramName);
     break;
@@ -221,6 +223,9 @@ Driver::getDriverFlavorFromLinkCommand(llvm::ArrayRef<const char *> Args) {
           if (x86_64LinkDriver::isValidEmulation(Emulation)) {
         F = DriverFlavor::x86_64;
         InferredArch = x86_64LinkDriver::getInferredArch(Emulation);
+      } else if (x86_32LinkDriver::isValidEmulation(Emulation)) {
+        F = DriverFlavor::x86_32;
+        InferredArch = x86_32LinkDriver::getInferredArch(Emulation);
       } else
 #endif
         return std::make_unique<eld::DiagnosticEntry>(
@@ -254,6 +259,8 @@ Driver::getDriverFlavorFromLinkCommand(llvm::ArrayRef<const char *> Args) {
 #if defined(ELD_ENABLE_TARGET_X86)
     if (x86_64LinkDriver::isMyArch(MachineArch))
       F = DriverFlavor::x86_64;
+    else if (x86_32LinkDriver::isMyArch(MachineArch))
+      F = DriverFlavor::x86_32;
 #endif
     if (F == DriverFlavor::Invalid)
       return std::make_unique<eld::DiagnosticEntry>(
