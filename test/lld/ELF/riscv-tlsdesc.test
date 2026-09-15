@@ -36,26 +36,27 @@ RUN: %llvm-mc -filetype=obj %p/Inputs/riscv-tlsdesc/a1.s -o %t.a1.o
 RUN: %link %linkopts --no-emit-relocs --keep-labels --no-align-segments --section-start .text=0x1250 --section-start .got=0x233c -pie %t.a1.o %t.c.so -o %t.a1
 RUN: %objdump --no-show-raw-insn -M no-aliases -Rd %t.a1 | FileCheck -D#%x,XLEN=%xlen %s --check-prefix=IEA --check-prefix=IEA%xlen
 
-## .got has 3 additional header slots before the TLS slot.
+## .got has 4 additional header slots before the TLS slot.
 
 ## The order of symbols and GOT slots is different than produced by lld.
 GD-RELA:      .rela.dyn
-GD-RELA-DAG:   0x{{0*}}[[#%X,0x2880+mul(XLEN,5)]] R_RISCV_TLSDESC - 0x7FF{{$}}
-GD-RELA-DAG:   0x{{0*}}[[#%X,0x2880+mul(XLEN,7)]] R_RISCV_TLSDESC c 0x0{{$}}
-GD-RELA-DAG:   0x{{0*}}[[#%X,0x2880+mul(XLEN,3)]] R_RISCV_TLSDESC a 0x0{{$}}
+GD-RELA-DAG:   0x{{0*}}[[#%X,0x2880+mul(XLEN,3)]] R_RISCV_TLSDESC - 0x7FF{{$}}
+GD-RELA-DAG:   0x{{0*}}[[#%X,0x2880+mul(XLEN,5)]] R_RISCV_TLSDESC c 0x0{{$}}
+GD-RELA-DAG:   0x{{0*}}[[#%X,0x2880+mul(XLEN,1)]] R_RISCV_TLSDESC a 0x0{{$}}
 GD-RELA-NEXT: }
 GD-RELA-GOT4:      Hex dump of section '.got':
 GD-RELA-GOT4-NEXT: 0x{{0*}}[[#%x,0x2880]] 00000000 00000000 00000000 00000000
-GD-RELA-GOT4-NEXT: 0x{{0*}}[[#%x,0x2890]] 00000000 00000000
+GD-RELA-GOT4-NEXT: 0x{{0*}}[[#%x,0x2890]] 00000000 00000000 00000000
 GD-RELA-GOT8:      Hex dump of section '.got':
 GD-RELA-GOT8-NEXT: 0x{{0*}}[[#%x,0x2880]] 00000000 00000000 00000000 00000000
 GD-RELA-GOT8-NEXT: 0x{{0*}}[[#%x,0x2890]] 00000000 00000000 00000000 00000000
 GD-RELA-GOT8-NEXT: 0x{{0*}}[[#%x,0x28A0]] 00000000 00000000 00000000 00000000
+GD-RELA-GOT8-NEXT: 0x{{0*}}[[#%x,0x28B0]] 00000000 00000000
 
-## .got does not have the intial entry, so its size and all offsets are 8 bytes less than produced by lld.
+## .got now has the initial GOT0 entry, matching lld's layout.
 
-GD4:      .got     {{0*}}24 {{0*}}2880 DATA
-GD8:      .got     {{0*}}48 {{0*}}2880 DATA
+GD4:      .got     {{0*}}20 {{0*}}2880 DATA
+GD8:      .got     {{0*}}58 {{0*}}2880 DATA
 
 ## &.got[a]-. = 0x2880+3*4 - 0x1800 = 0x108c
 ## &.got[a]-. = 0x2880+3*8 - 0x1800 = 0x1098

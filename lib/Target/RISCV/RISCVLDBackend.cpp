@@ -2466,16 +2466,16 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                                     ResolveInfo *R) {
 
   traceGOTCreation(T, R);
-  // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->hasFragments()) {
-    LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
-    // TODO: This should be GOT0, not GOTPLT0.
-    RISCVGOT::CreateGOT0(getGOT(), Dynamic ? Dynamic->resolveInfo() : nullptr,
-                         config().targets().is32Bits());
-    RISCVGOT::CreateGOTPLT0(getGOTPLT(), nullptr,
-                            config().targets().is32Bits());
+  // Create GOT0 in .got only when a real GOT entry is needed,
+  // not for PLT-related GOT entries.
+  if (T != GOT::GOTPLT0) {
+    if (auto *GOTSec = getGOT())
+      if (!GOTSec->hasFragments()) {
+        LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
+        RISCVGOT::CreateGOT0(GOTSec, Dynamic ? Dynamic->resolveInfo() : nullptr,
+                             config().targets().is32Bits());
+      }
   }
-
   RISCVGOT *G = nullptr;
   bool GOT = true;
   switch (T) {
@@ -2483,6 +2483,10 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     G = RISCVGOT::Create(Obj->getGOT(), R, config().targets().is32Bits());
     break;
   case GOT::GOTPLT0:
+    // Create GOTPLT0 in .got.plt only when PLT is actually needed.
+    if (!getGOTPLT()->hasFragments())
+      RISCVGOT::CreateGOTPLT0(getGOTPLT(), nullptr,
+                              config().targets().is32Bits());
     G = llvm::dyn_cast<RISCVGOT>(*getGOTPLT()->getFragmentList().begin());
     GOT = false;
     break;
@@ -2553,11 +2557,16 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
   RISCVGOT *G = createGOT(GOT::GOTPLTN, Obj, R);
   RISCVPLT *P = RISCVPLT::CreatePLTN(G, Obj->getPLT(), R, is32Bits);
   recordPLT(R, P);
+  // Always create GOTPLT0 when first PLT entry is needed.
+  if (!getGOTPLT()->hasFragments())
+    createGOT(GOT::GOTPLT0, Obj, nullptr);
   if (!config().options().hasNow()) {
-    // For lazy binding, create GOTPLT0 and PLT0, if they don't exist.
+    // For lazy binding, create PLT0 if it doesn't exist.
     if (!getPLT()->hasFragments())
-      RISCVPLT::CreatePLT0(*this, createGOT(GOT::GOTPLT0, Obj, nullptr),
-                           getPLT(), is32Bits);
+      RISCVPLT::CreatePLT0(
+          *this,
+          llvm::dyn_cast<RISCVGOT>(*getGOTPLT()->getFragmentList().begin()),
+          getPLT(), is32Bits);
     // Create a static relocation to the PLT0 fragment.
     Relocation *r0 = Relocation::Create(
         is32Bits ? llvm::ELF::R_RISCV_32 : llvm::ELF::R_RISCV_64,
