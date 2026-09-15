@@ -2,7 +2,7 @@ RUN: %clang %clangopts -target aarch64 -c -ffunction-sections -fdata-sections %p
 RUN: %link %linkopts -march aarch64 %t1.o -o %t.out -dy -shared  --gc-sections --entry=main 2>&1
 RUN: %readelf -s %t.out | %filecheck %s
 
-#CHECK:   4 OBJECT  GLOBAL DEFAULT    9 commonInt
-#CHECK:   1 OBJECT GLOBAL DEFAULT 9 commonChar
-#CHECK:   40 OBJECT GLOBAL DEFAULT 9 commonArray
+#CHECK:   4 OBJECT  GLOBAL DEFAULT    8 commonInt
+#CHECK:   1 OBJECT GLOBAL DEFAULT 8 commonChar
+#CHECK:   40 OBJECT GLOBAL DEFAULT 8 commonArray
 
