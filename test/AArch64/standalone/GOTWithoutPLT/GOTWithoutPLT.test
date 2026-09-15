@@ -1,0 +1,21 @@
+#---GOTWithoutPLT.test-----------------------------------------------------#
+#BEGIN_COMMENT
+# Verify that a regular AArch64 GOT reference creates a .got entry without
+# creating an unnecessary .got.plt section.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -target aarch64 -fPIC -c %p/Inputs/got.s -o %t.o
+RUN: %link %linkopts -march aarch64 -shared %t.o -o %t.so
+RUN: %readelf -SW %t.so > %t.txt
+RUN: %readelf -r %t.so >> %t.txt
+RUN: %filecheck %s < %t.txt
+
+# Capture the start address of .got and verify that it contains one
+# regular 8-byte GOT entry.
+CHECK: .got              PROGBITS        [[#%x,GOT:]] {{[0-9a-f]+}} 000008
+CHECK-NOT: .got.plt
+
+CHECK: [[#GOT]] {{.*}}R_AARCH64_GLOB_DAT{{.*}}foo
+
+#END_TEST
