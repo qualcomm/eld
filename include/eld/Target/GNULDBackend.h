@@ -606,6 +606,12 @@ public:
   /// implementation. Set pFinished to true if no more passes are needed.
   virtual void mayBeRelax(int pass, bool &pFinished) { pFinished = true; }
 
+  /// postRelax - Called once after relax()'s fixed-point loop finishes, and
+  /// then repeatedly while pFinished is false, with createProgramHdrs() run
+  /// by the caller between calls. Backends that defer relaxation edits can
+  /// override this to commit them.
+  virtual void postRelax(bool &pFinished) { pFinished = true; }
+
   virtual void setOptions() {}
 
   void assignOffsetsToSkippedSections();
