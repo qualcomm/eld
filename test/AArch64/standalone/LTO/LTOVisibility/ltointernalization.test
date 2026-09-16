@@ -6,7 +6,7 @@
 # Tests that globals are appropriately internalized.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -target aarch64 -c -flto %p/Inputs/perf_art.ll -o %t.o
+RUN: %clang %clangopts -c -flto %p/Inputs/perf_art.ll -o %t.o
 RUN: %link %linkopts -march aarch64 -e main %t.o -o %t.out --trace=lto 2>&1 | %filecheck %s -check-prefix=TRACELTO
 RUN: %nm -n %t.out | %filecheck %s -check-prefix=SYMBOLS
 
