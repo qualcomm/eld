@@ -4,15 +4,20 @@ on:
   pull_request:
     paths:
     - '.github/workflows/zephyr-nightly.yml'
-  schedule:
-    - cron: '0 9 * * *'
+  workflow_run:
+    workflows: [Nightly check]
+    types: [completed]
   workflow_dispatch:
 
 
 permissions: {}
 jobs:
   resolve:
-    if: github.repository == 'qualcomm/eld' || github.event_name == 'workflow_dispatch'
+    if: |
+      (github.repository == 'qualcomm/eld' ||
+       github.event_name == 'workflow_dispatch') &&
+      (github.event_name != 'workflow_run' ||
+       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -27,6 +32,14 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
+
+            const wr = context.payload.workflow_run;
+            if (wr) {
+              core.info(`Using completed Nightly check run: id=${wr.id}`);
+              core.setOutput('run_id', String(wr.id));
+              return;
+            }
+
             const resp = await github.rest.actions.listWorkflowRuns({
               owner, repo,
               workflow_id: 'nightly-test.yml',

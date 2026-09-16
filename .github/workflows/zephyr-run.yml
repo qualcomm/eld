@@ -129,7 +129,11 @@ jobs:
           {
             echo "TOOLCHAIN_VARIANT=host/llvm"
             echo "ELD_SELECT_ARGS=-DCONFIG_LLVM_USE_ELD=y -DCONFIG_COMPILER_RT_RTLIB=y"
-            echo "ELD_SELECT_TWISTER_ARGS=-x=CONFIG_LLVM_USE_ELD=y -x=CONFIG_COMPILER_RT_RTLIB=y"
+            # Mbed TLS and TF-PSA-Crypto have a separate -Werror default that
+            # twister's -W does not disable.
+            echo "ELD_SELECT_TWISTER_ARGS=-x=CONFIG_LLVM_USE_ELD=y" \
+              "-x=CONFIG_COMPILER_RT_RTLIB=y" \
+              "-x=MBEDTLS_FATAL_WARNINGS=OFF"
           } >> "$GITHUB_ENV"
 
       - name: Select ELD for the Zephyr SDK GCC
@@ -152,7 +156,7 @@ jobs:
       - name: Set safe.directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE/zephyr"
 
-      # When a linker script is present, retention is the script's responsibility. 
+      # When a linker script is present, retention is the script's responsibility.
       # KEEP is the mechanism for sections that must survive garbage collection.
       # Will be dropped once the change is merged in Zephyr upstream.
       - name: Add linker-script KEEP rules for C++ exception tables
