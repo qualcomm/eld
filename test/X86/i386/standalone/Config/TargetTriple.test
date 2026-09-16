@@ -1,0 +1,9 @@
+#---TargetTriple.test--------------------- Configuration ------------#
+#BEGIN_COMMENT
+# Verify that the i386 lit configuration produces ELF32 input objects.
+#END_COMMENT
+#
+# RUN: %clang -c %S/Inputs/empty.c -o %t.o
+# RUN: %readelf -h %t.o | %filecheck %s
+# CHECK: Class:                             ELF32
+# CHECK: Machine:                           Intel 80386

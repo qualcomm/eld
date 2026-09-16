@@ -1,5 +1,5 @@
 # UNSUPPORTED: windows
-# REQUIRES: x86
+# REQUIRES: x86_64
 
 ## Test GNU ld's NEXT_SECTION support for ALIGNOF/SIZEOF builtins.
 ## NEXT_SECTION refers to the next allocated (SHF_ALLOC) output section after

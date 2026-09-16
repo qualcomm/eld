@@ -26,4 +26,4 @@ RUN: %eld --whole-archive %t.lib1.lto.a -o %t2.out --verbose 2>&1 | %filecheck %
 RUN: %eld %t.lib1.lto.a -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=INFERRED
 #END_TEST
 
-#INFERRED: {{[hexagon|arm|aarch64|x86_64|riscv]}}
+#INFERRED: {{Inferred target : (hexagon|arm|aarch64|x86_64|i386|riscv32|riscv64)}}
