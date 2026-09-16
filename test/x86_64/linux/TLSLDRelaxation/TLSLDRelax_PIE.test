@@ -1,0 +1,14 @@
+#--TLSLDRelax_PIE.test----------PIE Executable--------#
+# PIE executables link against their own TLS block at a fixed TP-relative
+# offset known at link time. LD→LE must fire for PIE (isBuildingExecutable()).
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ld.s -o %t.o
+RUN: %link %linkopts -pie -e get_tls -o %t.pie %t.o
+RUN: %objdump -d %t.pie | %filecheck %s
+RUN: %readelf -r %t.pie | %filecheck %s --check-prefix=NORELOC
+#END_TEST
+
+CHECK: <get_tls>:
+CHECK-NEXT: {{[0-9a-f]+}}: 66 66 66 64 48 8b 04 25 00 00 00 00
+
+NORELOC-NOT: R_X86_64_DTPMOD64
