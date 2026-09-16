@@ -27,6 +27,8 @@ on:
       - '.github/workflows/BuildStatusDataRecorder/action.yaml'
       - '.github/workflows/clang-format-pr.yml'
       - '.github/workflows/cpp-linter-pr.yml'
+      - '.github/workflows/new-pr.yml'
+      - '.github/pr-labeler.yml'
       - 'etc/**/*.sh'
       - '**/configure_external_llvm.sh'
 
