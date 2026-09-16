@@ -51,7 +51,7 @@ To generate a map file that shows how a linker script controlled linking, use th
 | GROUP         | Define files that will be searched repeatedly                     |
 | ASSERT        | Linker script assertion                                           |
 | NOCROSSREFS   | Check cross references among a group of sections                  |
-| OVERLAY       | GNU ld compatible OVERLAY block (parsing support)                 |
+| OVERLAY       | Overlay sections with shared VMA and consecutive LMA placement    |
 
 ## Basic script syntax
 
@@ -953,11 +953,47 @@ member-level `>REGION`/`AT>REGION`, no `:PHDR` list, and no
 
 ### eld support status
 
-eld currently supports parsing `OVERLAY` blocks and printing them into the
-text map file (`-MapStyle txt`) as comments. The GNU ld overlay *semantics*
-described above (LMA/VMA overlay placement, generated symbols, overlay-member
-swapping behavior, overlay-specific `NOCROSSREFS` enforcement, and location
-counter advancement rules) are not implemented yet.
+eld supports the initial layout semantics for `OVERLAY` blocks:
+
+* All non-empty members use the overlay start as their VMA. If the start is
+  omitted, the current location counter is used.
+* `AT(<lma_start>)` sets the LMA of the first member. Without `AT(...)`,
+  the first member's LMA defaults to its VMA.
+* Later members receive consecutive LMAs based on the preceding member's
+  size.
+* The location counter advances to the overlay VMA plus the size of the
+  largest member, allowing the next output section to follow the reserved
+  overlay region.
+* The intentional VMA overlap between members of the same overlay is allowed.
+
+> [!WARNING]
+> The layout is currently supported for the normal section-layout path. An
+> overlay combined with an explicit `PHDRS` layout is diagnosed as unsupported.
+> ELD does not generate overlay-management code or GNU ld's
+> `__load_start_<section>` and `__load_stop_<section>` symbols; runtime code
+> must still copy the selected member from its LMA into the shared VMA. Overlay
+> member swapping and overlay-specific `NOCROSSREFS` behavior are also not
+> implemented.
+
+For example, this script places two sections at VMA `0x2000` and stores them
+back-to-back starting at LMA `0x8000`:
+
+```
+   SECTIONS
+   {
+     OVERLAY 0x2000 : AT(0x8000)
+     {
+       .overlay_a { *(.overlay_a) }
+       .overlay_b { *(.overlay_b) }
+     }
+
+     .text : { *(.text) }
+   }
+```
+
+The resulting image contains `.overlay_a` and `.overlay_b` at the same
+runtime address, while their load addresses are consecutive. The overlay
+manager selects which member is copied to `0x2000` before it is executed.
 
 ## Output Section Description
 
