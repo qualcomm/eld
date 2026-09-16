@@ -73,6 +73,9 @@ on:
         default: ""
       linker_flags:
         description: "Additional linker flags to pass to ld.eld (e.g. --verbose)"
+        required: false
+        type: string
+        default: ""
       artifact-workflow-id:
         description: Workflow file whose kernel artifacts should be cleaned up
         required: true

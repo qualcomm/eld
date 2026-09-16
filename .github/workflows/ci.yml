@@ -218,13 +218,24 @@ jobs:
           retention-days: 7
           path: pr-${{ env.PR_NUMBER }}/install-pr-toolset.tar.xz
 
+      # Local action paths must be literal, so copy the PR version to a fixed
+      # workspace path before invoking it.
+      - name: Stage DeleteOldArtifacts action
+        if: |
+          steps.file-check.outputs.skip_build == 'false' &&
+          (contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
+           contains(github.event.pull_request.labels.*.name, 'kernel-check'))
+        run: |
+          mkdir -p .github/workflows/DeleteOldArtifacts
+          cp "pr-${PR_NUMBER}/llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts/action.yaml" .github/workflows/DeleteOldArtifacts/action.yaml
+
       - name: Delete older PR ELD toolsets
         if: |
           steps.file-check.outputs.skip_build == 'false' &&
           (contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
            contains(github.event.pull_request.labels.*.name, 'kernel-check'))
         continue-on-error: true
-        uses: ./pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts
+        uses: ./.github/workflows/DeleteOldArtifacts
         with:
           artifact-names: pr-eld-toolset
           pull-request-number: ${{ github.event.pull_request.number }}
