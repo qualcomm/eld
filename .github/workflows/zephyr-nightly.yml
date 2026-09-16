@@ -77,6 +77,7 @@ jobs:
       toolchain: ${{ matrix.target.toolchain || 'cpullvm' }}
       extra_args: ${{ matrix.target.extra_args }}
       test_scope: tests
+      quarantine_verify: true
       toolset_run_id: ${{ needs.resolve.outputs.run_id }}
       toolset_artifact: install-nightly-toolchain.tar.xz
       toolset_tarball: install-nightly-toolchain.tar.xz
