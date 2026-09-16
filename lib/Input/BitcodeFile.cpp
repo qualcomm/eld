@@ -21,12 +21,14 @@ BitcodeFile::BitcodeFile(Input *I, DiagnosticEngine *PDiagEngine)
 BitcodeFile::~BitcodeFile() {}
 
 /// Helper function to create a LTO module from a file.
-bool BitcodeFile::createLTOInputFile(const std::string &PModuleID) {
+bool BitcodeFile::createLTOInputFile(const std::string &PModuleID,
+                                     bool IncludeLocalSymbols) {
 
   ModuleID = PModuleID;
 
   llvm::Expected<std::unique_ptr<llvm::lto::InputFile>> IFOrErr =
-      llvm::lto::InputFile::create(llvm::MemoryBufferRef(Contents, ModuleID));
+      llvm::lto::InputFile::create(llvm::MemoryBufferRef(Contents, ModuleID),
+                                   IncludeLocalSymbols);
   if (!IFOrErr) {
     DiagEngine->raise(Diag::fatal_cannot_make_module)
         << getInput()->decoratedPath() << llvm::toString(IFOrErr.takeError());
@@ -61,6 +63,19 @@ void BitcodeFile::setInputSectionForSymbol(const ResolveInfo &R, Section &S) {
 Section *BitcodeFile::getInputSectionForSymbol(const ResolveInfo &R) const {
   auto It = InputSectionForSymbol.find(&R);
   return It != InputSectionForSymbol.end() ? It->second : nullptr;
+}
+
+void BitcodeFile::setResolveInfoForLTOSymbol(unsigned Index,
+                                             ResolveInfo &Info) {
+  if (ResolveInfoForLTOSymbol.size() <= Index)
+    ResolveInfoForLTOSymbol.resize(Index + 1);
+  ResolveInfoForLTOSymbol[Index] = &Info;
+}
+
+ResolveInfo *BitcodeFile::getResolveInfoForLTOSymbol(unsigned Index) const {
+  if (Index >= ResolveInfoForLTOSymbol.size())
+    return nullptr;
+  return ResolveInfoForLTOSymbol[Index];
 }
 
 uint16_t BitcodeFile::inferMachine(const llvm::Triple &t) const {

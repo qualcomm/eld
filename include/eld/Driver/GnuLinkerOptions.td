@@ -1272,6 +1272,14 @@ defm no_fat_lto_objects
     : mDashDeprWithOpt<"no-fat-lto-objects", "no_fat_lto_objects", "Ignore "
                        ".llvm.lto section in fat LTO objects">,
       Group<grp_ltooptions>;
+def lto_linker_scripts : Flag<["--"], "lto-linker-scripts">,
+                         HelpText<"Make LTO respect section mappings "
+                                  "specified in linker scripts">,
+                         Group<grp_ltooptions>;
+def no_lto_linker_scripts : Flag<["--"], "no-lto-linker-scripts">,
+                            HelpText<"Ignore section mappings specified in "
+                                     "linker scripts during LTO (default)">,
+                            Group<grp_ltooptions>;
 defm ffat_lto_objects : mDashDeprAlias<"ffat-lto-objects", "fat_lto_objects",
                                        "Alias for --fat-lto-objects">,
                         Group<grp_ltooptions>;
@@ -1428,6 +1436,16 @@ def thinlto_jobs_eq : JJ<"thinlto-jobs=">,
 def : J<"plugin-opt=jobs=">,
       Alias<thinlto_jobs_eq>,
       HelpText<"Alias for --thinlto-jobs=">,
+      Group<grp_ltooptions>;
+
+def thinlto_cache_dir_eq
+    : JJ<"thinlto-cache-dir=">,
+      HelpText<"Path to ThinLTO cached object file directory">,
+      MetaVarName<"<directory>">,
+      Group<grp_ltooptions>;
+def : J<"plugin-opt=cache-dir=">,
+      Alias<thinlto_cache_dir_eq>,
+      HelpText<"Alias for --thinlto-cache-dir=">,
       Group<grp_ltooptions>;
 
 def lto_O : JJ<"lto-O">,

@@ -1,0 +1,38 @@
+# RUN: rm -rf %t && split-file %s %t
+# RUN: %opt -mtriple=%triple %t/1.ll -o %t/1.o
+# RUN: %llvm-mc -filetype=obj -triple=%triple %t/2.s -o %t/2.o
+# RUN: %link %linkopts --lto-linker-scripts --gc-sections -e main -T %t/script.t \
+# RUN:   %t/1.o %t/2.o -o %t/out
+# RUN: %readelf -S -W %t/out | %filecheck --check-prefix=SECTIONS %s
+# RUN: %readelf -s -W %t/out | %filecheck %s
+
+# SECTIONS: foo
+# SECTIONS-NOT: ] .text
+
+# CHECK-DAG: FUNC GLOBAL DEFAULT {{.*}} foo
+# CHECK-DAG: FUNC GLOBAL DEFAULT {{.*}} alias_foo
+# CHECK-DAG: FUNC GLOBAL DEFAULT {{.*}} main
+
+#--- 1.ll
+
+module asm ".global alias_foo"
+module asm ".set alias_foo, foo"
+
+define i32 @foo() nounwind section ".text.foo" {
+  ret i32 0
+}
+
+#--- 2.s
+.text
+.section .text.main,"ax",%progbits
+.globl main
+.type main,%function
+main:
+  .long alias_foo
+  .byte 0
+.size main, .-main
+
+#--- script.t
+SECTIONS {
+foo : { *(.text.*) }
+}
