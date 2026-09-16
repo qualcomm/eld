@@ -10,3 +10,14 @@ are also supported.
 
 Rules from this file are appended to the same ordered remap list used by
 :option:`--remap-inputs`.
+
+Rules are evaluated in command-line order; the first matching rule wins. The
+pattern supports wildcard matching. For example, ``remap.txt`` can contain:
+
+| ``foo.o=bar.o``
+| ``*foo.o=build/alt/bar.o``
+
+When used with ``--reproduce``, the remap file is copied into the reproduce
+archive and the generated ``response.txt`` refers to the captured replacement
+paths. This allows the extracted archive to be replayed without access to the
+original remap file or the original input paths.
