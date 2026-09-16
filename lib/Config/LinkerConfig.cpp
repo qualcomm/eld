@@ -61,7 +61,9 @@ void LinkerConfig::addCommandLine(llvm::StringRef Option,
   addCommandLine(Option, MapStyles);
 }
 
-// TODO: Use DIAG here.
+// This writes map/trace metadata to a caller-provided stream. Using DIAG here
+// would route the output through DiagnosticPrinter instead of preserving the
+// stream and '#'-prefixed map-file format.
 void LinkerConfig::printOptions(llvm::raw_ostream &Outs, Module const &M,
                                 bool UseColor) {
   Outs << "# Notable linker command/script options:\n";

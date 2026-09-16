@@ -38,9 +38,6 @@ struct DLL_A_EXPORT DWARFInfo {
 
   explicit DWARFInfo(llvm::DWARFContext *DC);
 
-  // FIXME: remove this constructor in favor of the above
-  explicit DWARFInfo(InputFile IF);
-
   ~DWARFInfo();
 
   bool hasDWARFContext() const { return m_DWARFContext != nullptr; }

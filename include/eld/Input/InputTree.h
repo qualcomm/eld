@@ -14,6 +14,7 @@
 #define ELD_INPUT_INPUTTREE_H
 
 #include <cstdint>
+#include <optional>
 
 namespace eld {
 
@@ -54,21 +55,33 @@ public:
 
   void unsetJustSymbols() { JustSymbols = false; }
 
-  bool isWholeArchive() const { return WholeArchive; }
+  bool hasWholeArchive() const { return WholeArchive.has_value(); }
 
-  bool isAsNeeded() const { return AsNeeded; }
+  bool hasAsNeeded() const { return AsNeeded.has_value(); }
 
-  bool isAddNeeded() const { return AddNeeded; }
+  bool hasAddNeeded() const { return AddNeeded.has_value(); }
 
-  bool isStatic() const { return Static; }
+  bool hasStatic() const { return Static.has_value(); }
 
-  bool isDynamic() const { return !Static; }
+  bool hasJustSymbols() const { return JustSymbols.has_value(); }
 
-  bool isJustSymbols() const { return JustSymbols; }
+  bool hasIsBinary() const { return IsBinary.has_value(); }
+
+  bool isWholeArchive() const { return (hasWholeArchive() && *WholeArchive); }
+
+  bool isAsNeeded() const { return (hasAsNeeded() && *AsNeeded); }
+
+  bool isAddNeeded() const { return (hasAddNeeded() && *AddNeeded); }
+
+  bool isStatic() const { return (hasStatic() && *Static); }
+
+  bool isDynamic() const { return (hasStatic() && !*Static); }
+
+  bool isJustSymbols() const { return (hasJustSymbols() && *JustSymbols); }
 
   void setIsBinary(bool pIsBinary = true) { IsBinary = true; }
 
-  bool isBinary() const { return IsBinary; }
+  bool isBinary() const { return (hasIsBinary() && *IsBinary); }
 
   Attribute &operator=(const Attribute &) = default;
 
@@ -79,13 +92,12 @@ public:
         JustSymbols(false), IsBinary(false) {}
 
 private:
-  // FIXME: Convert to std::optional<bool>
-  bool WholeArchive;
-  bool AsNeeded;
-  bool AddNeeded;
-  bool Static;
-  bool JustSymbols;
-  bool IsBinary;
+  std::optional<bool> WholeArchive;
+  std::optional<bool> AsNeeded;
+  std::optional<bool> AddNeeded;
+  std::optional<bool> Static;
+  std::optional<bool> JustSymbols;
+  std::optional<bool> IsBinary;
 };
 
 // -----  comparisons  ----- //

@@ -780,7 +780,6 @@ protected:
 };
 
 /// Block represents output sections and their content.
-// TODO:
 struct DLL_A_EXPORT Block final {
   Block() : Data(nullptr), Size(0), Address(0), Alignment(1) {}
   const uint8_t *Data; ///< Data passed to the plugin
@@ -1249,7 +1248,6 @@ struct DLL_A_EXPORT InputFile {
   /// this input file
   uint32_t getOrdinal() const;
 
-  /// TODO
   std::string decoratedPath() const;
 
   std::string getRealPath() const;
