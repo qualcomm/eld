@@ -1,7 +1,7 @@
 name: Nightly check
 
 on:
-  # pull_request: {} # Uncomment to build ELD PR branch.
+  pull_request: {} # Uncomment to build ELD PR branch.
   schedule:
     - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
   workflow_dispatch: {}
@@ -14,7 +14,7 @@ jobs:
     if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-22.04
     env:
-      BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
+      BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref || 'release/23.x' }}
       ELD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
       ELD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
       SCRIPTS_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld/.github/workflows/scripts
