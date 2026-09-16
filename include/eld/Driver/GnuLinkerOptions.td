@@ -208,49 +208,6 @@ multiclass mDashCompAlias<string opt, string realopt, string help> {
                  HelpText<"Compatibility alias for --" # opt>;
 }
 
-// Single and multiple dash options combined
-multiclass smDashWithOpt<string opt1, string realopt, string help> {
-  // Option
-  def "" : Separate<["-"], opt1>, HelpText<help>;
-  def opt1_eq : Joined<["-"], opt1 #"=">, Alias<!cast<Option>(realopt)>;
-  // Compatibility aliases
-  def opt1_dashdash : Separate<["--"], opt1>, Alias<!cast<Option>(realopt)>;
-  def opt1_dashdash_eq : JJ<opt1 #"=">, Alias<!cast<Option>(realopt)>;
-}
-
-// Single and multiple dash options combined
-// -opt1 <x>
-// -opt1<x>
-// --opt2 x
-// --opt2=x
-// -opt2=x
-// -opt2 <x>
-multiclass
-    smDashTwoWithOpt<string opt1, string opt2, string realopt, string help> {
-  // Option
-  def "" : Separate<["-"], opt1>, HelpText<help>;
-  def opt1_eq : Joined<["-"], opt1 #"=">, Alias<!cast<Option>(realopt)>;
-  def opt2_joined_dash : Separate<["-"], opt2>, Alias<!cast<Option>(realopt)>;
-  def opt1_joined : Joined<["-"], opt1>, Alias<!cast<Option>(realopt)>;
-  // Compatibility aliases
-  def opt1_dashdash : Separate<["--"], opt1>, Alias<!cast<Option>(realopt)>;
-  def opt2_dashdash : Separate<["--"], opt2>,
-                      HelpText<help>,
-                      Alias<!cast<Option>(realopt)>;
-  def opt2_dashdash_eq : JJ<opt2 #"=">,
-                         Alias<!cast<Option>(realopt)>;
-  def opt2_joined_dash_eq : Joined<["-"], opt2 #"=">,
-                            Alias<!cast<Option>(realopt)>;
-}
-
-// Support -<option>,-<option>=
-multiclass dashEq<string opt1, string opt2, string help> {
-  // Option
-  def "" : Separate<["-"], opt1>, HelpText<help>;
-  // Compatibility aliases
-  def opt2_eq : Joined<["-"], opt2 #"=">, Alias<!cast<Option>(opt1)>;
-}
-
 // Support --<option>,--<option>=
 multiclass mDashEq<string opt1, string realopt, string help> {
   // Option
@@ -266,15 +223,6 @@ multiclass EEq<string name, string help> {
     HelpText<help>;
 }
 
-// Support -<option>,-<option>=
-multiclass
-    dashEqWithOpt<string opt1, string opt2, string realopt, string help> {
-  // Option
-  def "" : Separate<["-"], opt1>, HelpText<help>;
-  // Compatibility aliases
-  def opt2_eq : Joined<["-"], opt2 #"=">, Alias<!cast<Option>(realopt)>;
-}
-
 // Support -<option></b><value>,-<option><value>,-<option>=
 multiclass
     dashEqWithJoinedOpt<string opt1, string opt2, string realopt, string help> {
@@ -283,22 +231,6 @@ multiclass
   // Compatibility aliases
   def opt1_joined : Joined<["-"], opt1>, Alias<!cast<Option>(realopt)>;
   def opt2_eq : Joined<["-"], opt2 #"=">, Alias<!cast<Option>(realopt)>;
-}
-
-// Support -<option>=,--<option>=
-multiclass smDashOnlyEq<string opt1, string realopt, string help> {
-  def "" : Joined<["-"], opt1 #"=">, HelpText<help>;
-  def opt1_eq : JJ<opt1 #"=">, Alias<!cast<Option>(realopt)>;
-}
-
-// Support -<option>=,--<option>= aliases
-multiclass smDashOnlyEqAlias<string opt1, string realopt, string help> {
-  def "" : Joined<["-"], opt1#"=">,
-           Alias<!cast<Option>(realopt)>,
-           HelpText<help>;
-  def opt1_eq : JJ<opt1#"=">,
-                Alias<!cast<Option>(realopt)>,
-                HelpText<help>;
 }
 
 //===----------------------------------------------------------------------===//
