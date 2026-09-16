@@ -46,7 +46,7 @@ jobs:
     needs: resolve
     permissions:
       contents: write
-      actions: read
+      actions: write
     strategy:
       fail-fast: false
       matrix:
@@ -67,3 +67,4 @@ jobs:
       toolset_run_id: ${{ needs.resolve.outputs.run_id }}
       toolset_artifact: install-nightly-toolchain.tar.xz
       toolset_tarball: install-nightly-toolchain.tar.xz
+      artifact-workflow-id: zephyr-nightly.yml

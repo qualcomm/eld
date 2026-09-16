@@ -11,7 +11,7 @@ on:
 
 permissions:
   contents: write
-  actions: read
+  actions: write
 jobs:
   test-llvm-test-suite-x86_64:
     if: github.repository == 'qualcomm/eld' || github.event_name == 'workflow_dispatch'
@@ -112,7 +112,8 @@ jobs:
         with:
           name: llvm-test-suite-results
           path: test-output.txt
-          retention-days: 1
+          # Keep a fallback copy in case the workflow fails before cleanup.
+          retention-days: 7
 
       - name: Update build entry
         if: github.event_name == 'schedule'
@@ -127,3 +128,10 @@ jobs:
           run-id: ${{github.run_id}}
           arch-name: "x86_64"
           branch-name: "${{env.BUILD_BRANCH}}"
+
+      - name: Delete older LLVM test-suite results
+        if: success()
+        continue-on-error: true
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts
+        with:
+          artifact-names: llvm-test-suite-results

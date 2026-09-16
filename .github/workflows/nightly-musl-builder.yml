@@ -16,6 +16,7 @@ jobs:
     if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
     env:
       ELD_SOURCE_DIR: llvm-project/llvm/tools/eld
@@ -129,6 +130,7 @@ jobs:
         arch: [arm, aarch64, riscv32, riscv64]
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
     env:
       ELD_SOURCE_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld
@@ -218,7 +220,8 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: libc-test-${{ matrix.arch }}.zip
-          retention-days: 2
+          # Keep a fallback copy in case the workflow fails before cleanup.
+          retention-days: 7
           path: libc-test
 
       - name: Validate test results with FileCheck
@@ -229,6 +232,12 @@ jobs:
           FileCheck --check-prefixes=CHECK "${ELD_SOURCE_DIR}/test/musl/${ARCH}/test-failures.txt" < src/REPORT
           FileCheck --check-prefixes=COUNT "${ELD_SOURCE_DIR}/test/musl/${ARCH}/test-failures.txt" < src/REPORT
           echo "Test results validated"
+
+      - name: Delete older libc-test artifacts
+        continue-on-error: true
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts
+        with:
+          artifact-names: libc-test-${{ matrix.arch }}.zip
 
       - name: Update build entry
         if: github.event_name == 'schedule'

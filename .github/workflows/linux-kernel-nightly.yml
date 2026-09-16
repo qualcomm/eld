@@ -24,7 +24,7 @@ jobs:
     # declares; a called job is capped at the caller job's permissions.
     permissions:
       contents: write # BuildStatusDataRecorder pushes to the dashboard branch
-      actions: read # list/download artifacts from busybox.yml and the toolset run
+      actions: write # list/download artifacts and remove superseded kernel artifacts
 
     strategy:
       fail-fast: false
@@ -98,3 +98,4 @@ jobs:
       qemu_bios: ${{ matrix.qemu_bios }}
       console_device: ${{ matrix.console_device }}
       enabled: ${{ matrix.enabled }}
+      artifact-workflow-id: linux-kernel-nightly.yml
