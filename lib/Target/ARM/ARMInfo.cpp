@@ -103,7 +103,8 @@ uint64_t ARMInfo::flags() const {
   return *OutputFlags;
 }
 
-bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I, bool) {
+bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I,
+                         bool hasExecutableSections) {
   // Binary inputs do not carry ARM EABI information.
   if (I->isBinaryFile()) {
     if (!OutputFlags)
@@ -111,10 +112,17 @@ bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I, bool) {
     return true;
   }
 
+  // The first object establishes the output flags, matching ld.bfd.
   if (!OutputFlags) {
     OutputFlags = Flags;
     return true;
   }
+
+  // Once output flags have been established, data-only relocatable objects do
+  // not participate in ARM EABI compatibility checking. Dynamic objects still
+  // participate, matching ld.bfd behavior.
+  if (!hasExecutableSections && !I->isDynamicLibrary())
+    return true;
 
   if (!areEABIVersionsCompatible(Flags, *OutputFlags)) {
     m_Config.raise(Diag::incompatible_architecture_versions)
@@ -125,7 +133,9 @@ bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I, bool) {
       return false;
   }
 
-  if (Flags > *OutputFlags)
+  // UNKNOWN may be superseded by the first known EABI version.
+  if (getEABIVersion(*OutputFlags) == llvm::ELF::EF_ARM_EABI_UNKNOWN &&
+      getEABIVersion(Flags) != llvm::ELF::EF_ARM_EABI_UNKNOWN)
     OutputFlags = Flags;
 
   return true;
