@@ -45,12 +45,6 @@ public:
 
   void setTimingSection(TimingSection *T) { timingSection = T; }
 
-  void setDynamicSections(ELFSection &GOT, ELFSection &GOTPLT, ELFSection &PLT,
-                          ELFSection &RelDyn, ELFSection &RelPLT);
-
-  ELFSection *getRelaDyn() const { return RelaDyn; }
-  ELFSection *getRelaPLT() const { return RelaPLT; }
-
   ~ELFObjectFile() {}
 
   // --- DWARF Support
@@ -134,11 +128,6 @@ private:
   std::vector<ELFSection *> GroupSections;
   std::unordered_map<const ELFSection *, GroupMemberList>
       GroupMembersByGroupSection;
-  ELFSection *GOT = nullptr;
-  ELFSection *GOTPLT = nullptr;
-  ELFSection *PLT = nullptr;
-  ELFSection *RelaDyn = nullptr;
-  ELFSection *RelaPLT = nullptr;
   std::unordered_map<const ELFSection *, InputFile *> OldInputFileBySection;
   std::unordered_map<const ELFSection *, llvm::SmallVector<std::string, 1>>
       SectionAnnotationsBySection;

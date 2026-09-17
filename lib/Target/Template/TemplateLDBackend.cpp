@@ -63,8 +63,7 @@ Stub *TemplateLDBackend::getBranchIslandStub(Relocation *pReloc,
   return nullptr;
 }
 
-TemplateGOT *TemplateLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
-                                          ResolveInfo *R) {
+TemplateGOT *TemplateLDBackend::createGOT(GOT::GOTType T, ResolveInfo *R) {
   return nullptr;
 }
 
@@ -87,9 +86,7 @@ TemplateGOT *TemplateLDBackend::findEntryInGOT(ResolveInfo *I) const {
 }
 
 // Create PLT entry.
-TemplatePLT *TemplateLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
-  return nullptr;
-}
+TemplatePLT *TemplateLDBackend::createPLT(ResolveInfo *R) { return nullptr; }
 
 // Record PLT entry
 void TemplateLDBackend::recordPLT(ResolveInfo *I, TemplatePLT *P) {

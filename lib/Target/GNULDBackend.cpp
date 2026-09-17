@@ -1650,15 +1650,6 @@ bool GNULDBackend::isGOTAndGOTPLTMerged() const {
           (GOTPLT->getOutputSection() == GOT->getOutputSection()));
 }
 
-void GNULDBackend::createInternalInputs() {
-  // Create a special global input file for dynamic section headers, e.g.
-  // GOT0, PLT0. This input file must be inserted before real inputs.
-  m_DynamicSectionHeadersInputFile =
-      llvm::dyn_cast<ELFObjectFile>(m_Module.createInternalInputFile(
-          make<Input>("Dynamic section headers", config().getDiagEngine()),
-          true));
-}
-
 /// getSymbolSize
 uint64_t GNULDBackend::getSymbolSize(LDSymbol *pSymbol) const {
   // undefined and dynamic symbols should have zero size.
@@ -1723,7 +1714,7 @@ ELFSection *GNULDBackend::getGOTPLT() const { return GOTPLTSection; }
 
 ELFSection *GNULDBackend::getPLT() const { return PLTSection; }
 
-void GNULDBackend::initDynamicSections(ELFObjectFile &InputFile,
+void GNULDBackend::initDynamicSections(InputFile &InputFile,
                                        const DynamicSectionLayout &Layout) {
   if (GOTSection)
     return;
@@ -1750,8 +1741,13 @@ void GNULDBackend::initDynamicSections(ELFObjectFile &InputFile,
              Layout.GOTPLTAlign);
   PLTSection = Create(".plt", llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR,
                       Layout.PLTAlign);
-  InputFile.setDynamicSections(*GOTSection, *GOTPLTSection, *PLTSection,
-                               *RelDynSection, *RelPLTSection);
+
+  RelPLTSection->setLink(GOTPLTSection);
+  GOTSection->setExcludedFromGC();
+  GOTPLTSection->setExcludedFromGC();
+  PLTSection->setExcludedFromGC();
+  RelDynSection->setExcludedFromGC();
+  RelPLTSection->setExcludedFromGC();
 }
 
 ELFSection *GNULDBackend::getRelaDyn() const { return RelDynSection; }

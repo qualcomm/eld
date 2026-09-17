@@ -87,7 +87,7 @@ void ARMGNULDBackend::createAttributeSection(uint32_t Flag, uint32_t Align) {
       ".ARM.attributes", llvm::ELF::SHT_ARM_ATTRIBUTES, Flag, Align);
 }
 
-void ARMGNULDBackend::initDynamicSections(ELFObjectFile &InputFile) {
+void ARMGNULDBackend::initDynamicSections(InputFile &InputFile) {
   GNULDBackend::initDynamicSections(InputFile,
                                     {llvm::ELF::SHT_REL, 4, 4, 4, 4});
 }
@@ -648,7 +648,7 @@ bool ARMGNULDBackend::finalizeScanRelocations() {
     if (!symInfo || !symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
         !symInfo->hasIFuncNeedsGOT())
       continue;
-    ARMGOT *G = createGOT(GOT::Regular, nullptr, symInfo);
+    ARMGOT *G = createGOT(GOT::Regular, symInfo);
     FragmentRef *PLTFragRef = make<FragmentRef>(*plt, 0);
     Relocation *r = Relocation::Create(llvm::ELF::R_ARM_ABS32, 32,
                                        make<FragmentRef>(*G, 0), 0);
@@ -1036,8 +1036,8 @@ bool ARMGNULDBackend::ltoCallExternalAssembler(const std::string &Input,
 }
 
 // Create GOT entry.
-ARMGOT *ARMGNULDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
-                                   ResolveInfo *R, bool SkipPLTRef) {
+ARMGOT *ARMGNULDBackend::createGOT(GOT::GOTType T, ResolveInfo *R,
+                                   bool SkipPLTRef) {
   traceGOTCreation(T, R);
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->hasFragments()) {
@@ -1114,8 +1114,7 @@ int64_t ARMGNULDBackend::getPLTAddr(ResolveInfo *pInfo) const {
 }
 
 // Create PLT entry.
-ARMPLT *ARMGNULDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
-                                   bool isIRelative) {
+ARMPLT *ARMGNULDBackend::createPLT(ResolveInfo *R, bool isIRelative) {
   bool hasNow = config().options().hasNow();
   tracePLTCreation(R);
 
@@ -1123,13 +1122,12 @@ ARMPLT *ARMGNULDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
 
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
   if (!getPLT()->hasFragments()) {
-    ARMPLT0::Create(*m_Module.getIRBuilder(),
-                    createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
-                    nullptr);
+    ARMPLT0::Create(*m_Module.getIRBuilder(), createGOT(GOT::GOTPLT0, nullptr),
+                    getPLT(), nullptr);
   }
-  ARMPLT *P = ARMPLTN::Create(
-      *m_Module.getIRBuilder(),
-      createGOT(GOT::GOTPLTN, Obj, R, hasNow || isIRelative), getPLT(), R);
+  ARMPLT *P = ARMPLTN::Create(*m_Module.getIRBuilder(),
+                              createGOT(GOT::GOTPLTN, R, hasNow || isIRelative),
+                              getPLT(), R);
   // init the corresponding rel entry in .rel.plt
   Relocation *rel_entry = getRelaPLT()->createOneReloc();
   rel_entry->setType(isIRelative ? llvm::ELF::R_ARM_IRELATIVE

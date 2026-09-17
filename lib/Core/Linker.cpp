@@ -467,11 +467,6 @@ bool Linker::resolve() {
         ThisConfig->options().printTimingStats());
     LinkerProgress->incrementAndDisplayProgress();
 
-    // Add dynamic section header inputs to the front of the input list.
-    ThisModule->getObjectList().insert(
-        ThisModule->getObjectList().begin(),
-        Backend->getDynamicSectionHeadersInputFile());
-
     // Add all internal inputs
     for (auto &Obj : ThisModule->getInternalFiles()) {
       ThisModule->getObjectList().push_back(Obj);
@@ -990,6 +985,5 @@ bool Linker::initializeTarget(uint16_t machine, bool is64bit) {
   // Initialize all plugin configs
   ThisModule->getScript().initializePluginConfig(*ThisModule);
 
-  Backend->createInternalInputs();
   return true;
 }

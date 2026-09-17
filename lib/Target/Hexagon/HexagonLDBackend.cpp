@@ -230,7 +230,7 @@ HexagonLDBackend::getTargetSectionOrder(const ELFSection &pSectHdr) const {
   return SHO_UNDEFINED;
 }
 
-void HexagonLDBackend::initDynamicSections(ELFObjectFile &InputFile) {
+void HexagonLDBackend::initDynamicSections(InputFile &InputFile) {
   GNULDBackend::initDynamicSections(InputFile,
                                     {llvm::ELF::SHT_RELA, 4, 4, 8, 16});
 }
@@ -868,8 +868,7 @@ void HexagonLDBackend::initializeAttributes() {
 }
 
 // Create GOT entry.
-HexagonGOT *HexagonLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
-                                        ResolveInfo *R) {
+HexagonGOT *HexagonLDBackend::createGOT(GOT::GOTType T, ResolveInfo *R) {
 
   traceGOTCreation(T, R);
   // If we are creating a GOT, always create a .got.plt.
@@ -942,7 +941,7 @@ HexagonGOT *HexagonLDBackend::findEntryInGOT(ResolveInfo *I) const {
 }
 
 // Create PLT entry.
-HexagonPLT *HexagonLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
+HexagonPLT *HexagonLDBackend::createPLT(ResolveInfo *R) {
   bool hasNow = config().options().hasNow();
   tracePLTCreation(R);
 
@@ -951,11 +950,10 @@ HexagonPLT *HexagonLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
   if (!hasNow && !getPLT()->hasFragments()) {
     HexagonPLT0::Create(*m_Module.getIRBuilder(),
-                        createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
-                        nullptr);
+                        createGOT(GOT::GOTPLT0, nullptr), getPLT(), nullptr);
   }
-  HexagonPLT *P = HexagonPLTN::Create(
-      *m_Module.getIRBuilder(), createGOT(GOT::GOTPLTN, Obj, R), getPLT(), R);
+  HexagonPLT *P = HexagonPLTN::Create(*m_Module.getIRBuilder(),
+                                      createGOT(GOT::GOTPLTN, R), getPLT(), R);
   // init the corresponding rel entry in .rela.plt
   Relocation &rela_entry = *getRelaPLT()->createOneReloc();
   rela_entry.setType(llvm::ELF::R_HEX_JMP_SLOT);

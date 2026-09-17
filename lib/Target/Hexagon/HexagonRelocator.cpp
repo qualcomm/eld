@@ -55,7 +55,7 @@ void HexagonRelocator::CreateGOTAbsolute(ELFObjectFile *Obj,
   rsym->setReserved(rsym->reserved() | Relocator::ReserveGOT);
 
   // Symbol needs GOT entry, reserve entry in .got
-  HexagonGOT *G = m_Target.createGOT(GOT::Regular, Obj, rsym);
+  HexagonGOT *G = m_Target.createGOT(GOT::Regular, rsym);
 
   // If the GOT is used in statically linked binaries,
   // the GOT entry is enough and no relocation is needed.
@@ -107,11 +107,11 @@ void HexagonRelocator::CreateGOTGD(ELFObjectFile *Obj, const Relocation &pReloc,
 
   if (config().isCodeStatic()) {
     m_Target.createTLSStub(HexagonTLSStub::GDtoIE);
-    HexagonGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    HexagonGOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     G->setValueType(GOT::TLSStaticSymbolValue);
   } else {
     // set up a pair of got entries and a pair of dyn rel
-    HexagonGOT *G = m_Target.createGOT(GOT::TLS_GD, Obj, rsym);
+    HexagonGOT *G = m_Target.createGOT(GOT::TLS_GD, rsym);
     // setup dyn rel for got entries against rsym
     helper_DynRel_init(Obj, &pReloc, rsym, G->getFirst(), 0x0,
                        llvm::ELF::R_HEX_DTPMOD_32, m_Target);
@@ -140,7 +140,7 @@ void HexagonRelocator::CreateGOTIE(ELFObjectFile *Obj,
   rsym->setReserved(rsym->reserved() | Relocator::ReserveGOT);
 
   // set up the got and the corresponding rel entry
-  HexagonGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+  HexagonGOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
   if (config().isCodeStatic() ||
       (config().isBuildingExecutable() && !m_Target.isSymbolPreemptible(*rsym)))
     G->setValueType(GOT::TLSStaticSymbolValue);
@@ -152,7 +152,7 @@ void HexagonRelocator::CreateGOTIE(ELFObjectFile *Obj,
 void HexagonRelocator::CreatePLT(ELFObjectFile *Obj, ResolveInfo *pInfo) {
   if (pInfo->reserved() & ReservePLT)
     return;
-  m_Target.createPLT(Obj, pInfo);
+  m_Target.createPLT(pInfo);
   pInfo->setReserved(pInfo->reserved() | ReservePLT);
 }
 
@@ -408,7 +408,7 @@ void HexagonRelocator::scanLocalReloc(InputFile &InputFile, Relocation &pReloc,
   case llvm::ELF::R_HEX_GOTREL_11_X: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     // This assumes that GOT exists, so we should handle the assumption as well.
-    m_Target.createGOT(GOT::GOTPLT0, nullptr, nullptr);
+    m_Target.createGOT(GOT::GOTPLT0, nullptr);
     return;
   }
 
@@ -505,7 +505,7 @@ void HexagonRelocator::scanGlobalReloc(InputFile &InputFile, Relocation &pReloc,
   case llvm::ELF::R_HEX_GOTREL_11_X: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     // This assumes that GOT exists, so we should handle the assumption as well.
-    m_Target.createGOT(GOT::GOTPLT0, nullptr, nullptr);
+    m_Target.createGOT(GOT::GOTPLT0, nullptr);
     return;
   }
 
@@ -671,10 +671,10 @@ HexagonGOT *HexagonRelocator::getTLSModuleID(ResolveInfo *R) {
   std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
   if (!G) {
     // Allocate 2 got entries and 1 dynamic reloc for R_HEX_LD_GOT*
-    G = m_Target.createGOT(GOT::TLS_LD, nullptr, nullptr);
+    G = m_Target.createGOT(GOT::TLS_LD, nullptr);
 
-    helper_DynRel_init(m_Target.getDynamicSectionHeadersInputFile(), nullptr,
-                       nullptr, G, 0x0, llvm::ELF::R_HEX_DTPMOD_32, m_Target);
+    helper_DynRel_init(nullptr, nullptr, nullptr, G, 0x0,
+                       llvm::ELF::R_HEX_DTPMOD_32, m_Target);
   }
 
   m_Target.recordGOT(R, G);

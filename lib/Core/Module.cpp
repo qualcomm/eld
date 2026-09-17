@@ -155,6 +155,10 @@ bool Module::createInternalInputs() {
                       ThisConfig.getDiagEngine());
       break;
 
+    case Module::InternalInputType::DynamicSectionHeaders:
+      I = make<Input>("Dynamic section headers", ThisConfig.getDiagEngine());
+      break;
+
     case Module::InternalInputType::EhFrameFiller:
       I = make<Input>("EH Frame filler", ThisConfig.getDiagEngine());
       break;
@@ -249,9 +253,6 @@ bool Module::createInternalInputs() {
       return false;
     InternalFiles[IType] = IF;
   }
-
-  if (L->getBackend())
-    getBackend().createInternalInputs();
 
   // Add implicit dot symbol
   Resolver::Result ResolvedResult;
