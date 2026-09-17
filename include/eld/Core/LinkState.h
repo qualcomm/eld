@@ -40,6 +40,10 @@ enum LinkState : uint8_t {
   ActBeforeWritingOutput
 };
 
+// All enum values are handled; llvm_unreachable terminates invalid input.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 static inline llvm::StringRef getLinkStateStrRef(LinkState State) {
 #define ADD_CASE(S)                                                            \
   case LinkState::S:                                                           \

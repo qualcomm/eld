@@ -23,6 +23,11 @@ class LinkerWrapper;
 struct OutputSection;
 /// LayoutWrapper allows plugins to get the link-time information to populate
 /// layout data in a map file.
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 class DLL_A_EXPORT LayoutWrapper {
 public:
   explicit LayoutWrapper(const LinkerWrapper &Linker);

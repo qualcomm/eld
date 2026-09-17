@@ -80,6 +80,11 @@ private:
 
 /// ErrorDiagnosticEntry subclass allows to easily create error diagnostic
 /// entry.
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 class DLL_A_EXPORT ErrorDiagnosticEntry : public DiagnosticEntry {
 public:
   ErrorDiagnosticEntry() = default;
@@ -92,6 +97,11 @@ public:
 
 /// WarningDiagnosticEntry subclass allows to easily create warning diagnostic
 /// entry.
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 class DLL_A_EXPORT WarningDiagnosticEntry : public DiagnosticEntry {
 public:
   WarningDiagnosticEntry() = default;
@@ -105,6 +115,11 @@ public:
 
 /// FatalDiagnosticEntry subclass allows to easily create fatal diagnostic
 /// entry.
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 class DLL_A_EXPORT FatalDiagnosticEntry : public DiagnosticEntry {
 public:
   FatalDiagnosticEntry() = default;
@@ -117,6 +132,11 @@ public:
 
 /// VerboseDiagnosticEntry subclass allows to easily create verbose diagnostic
 /// entry.
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 class DLL_A_EXPORT VerboseDiagnosticEntry : public DiagnosticEntry {
 public:
   VerboseDiagnosticEntry() = default;
@@ -130,6 +150,11 @@ public:
 
 /// NoteDiagnosticEntry subclass allows to easily create note diagnostic
 /// entry.
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 class DLL_A_EXPORT NoteDiagnosticEntry : public DiagnosticEntry {
 public:
   NoteDiagnosticEntry() = default;

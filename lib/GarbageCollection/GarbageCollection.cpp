@@ -125,6 +125,10 @@ GarbageCollection::SectionReachedListMap::findReachedList(Section &CurSection) {
   ReachedSectionsTy::iterator It = ReachedSections.find(&CurSection);
   if (It == ReachedSections.end())
     return nullptr;
+  // The list is owned by ReachedSections; this is not stack storage.
+  // clang-format off
+  // nosemgrep: reusable-workflows.semgrep_rules.cxx.locret.ret.local-address-returned
+  // clang-format on
   return &It->second;
 }
 
@@ -140,6 +144,10 @@ GarbageCollection::SectionReachedListMap::findReachedSymbolList(
   ReachedSymbolsTy::iterator It = ReachedSymbols.find(&CurSection);
   if (It == ReachedSymbols.end())
     return nullptr;
+  // The list is owned by ReachedSymbols; this is not stack storage.
+  // clang-format off
+  // nosemgrep: reusable-workflows.semgrep_rules.cxx.locret.ret.local-address-returned
+  // clang-format on
   return &It->second;
 }
 
@@ -451,6 +459,11 @@ void GarbageCollection::setUpReachedSectionsAndSymbols() {
   }
 }
 
+// The bare return belongs to the local void lambda AddListEntry, not this
+// bool-returning function.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-bare-return
+// clang-format on
 bool GarbageCollection::getEntrySections(SectionSetTy &EntrySections) {
   // all the KEEP sections defined in ldscript are entries, traverse all the
   // input sections and check the SectionMap to find the KEEP sections

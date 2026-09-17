@@ -18,6 +18,7 @@ This tool needs no user invocation or intervention for generating data and displ
 from argparse import ArgumentParser
 from datetime import date, datetime
 import json
+import re
 import sys
 import atexit
 
@@ -33,7 +34,9 @@ _build_status_db_connection = None
 
 # Allow hyphenated names e.g. linux-kernel
 def quote_workflow(workflow):
-    return '"' + workflow + '"'
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", workflow):
+        raise ValueError(f"Invalid workflow name: {workflow!r}")
+    return '"' + workflow.replace('"', '""') + '"'
 
 
 def close_connection():
@@ -52,6 +55,8 @@ def get_connection():
 
 def createBuildDataTables(workflow):
     # Create table for a workflow
+    # Table names cannot be bound as SQL parameters; quote_workflow validates
+    # them as safe identifiers, while all row values are bound separately.
     conn = get_connection()
     cursor = conn.cursor()
     create_table = ""
@@ -60,10 +65,13 @@ def createBuildDataTables(workflow):
     # Set unique constraint on run_id and architecture.
     create_table = (
         " CREATE TABLE IF NOT EXISTS "
+        # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
         + quote_workflow(workflow)
         + " (build_count INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, state TEXT, build_date TEXT, build_time TEXT, arch TEXT, branch TEXT, build_end_time TEXT, UNIQUE(run_id, arch));"
     )
     try:
+        # The table identifier was validated by quote_workflow above.
+        # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
         cursor.execute(create_table)
     except Exception as e:
         print(f"Error creating table '" + workflow + "': {e}")
@@ -78,7 +86,8 @@ def addNewBuildData(args):
     cursor = conn.cursor()
     workflow_table_quoted = quote_workflow(workflow_table)
     try:
-        cursor.execute(
+        # The table identifier is validated; row values use bound parameters.
+        cursor.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
             "INSERT INTO "
             + workflow_table_quoted
             + " (run_id, state, build_date, build_time, arch, branch) VALUES (?, ?, ?, ?, ?, ?)",
@@ -116,7 +125,8 @@ def updateBuildData(args):
     workflow_table = args.workflow_build.lower()
     workflow_table_quoted = quote_workflow(workflow_table)
     try:
-        cursor.execute(
+        # The table identifier is validated; row values use bound parameters.
+        cursor.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
             "UPDATE "
             + workflow_table_quoted
             + " SET state = ? WHERE run_id = ? AND arch = ?",
@@ -176,7 +186,8 @@ def emitJSDataForWorkflow(workflow):
     all_data = []
     all_states_data = []
     try:
-        cursor.execute(
+        # The table identifier is validated before it is inserted into the query.
+        cursor.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
             "SELECT run_id, state, build_date, build_time, arch, branch FROM "
             + workflow_quoted
             + ";"

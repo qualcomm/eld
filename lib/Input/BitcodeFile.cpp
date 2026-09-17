@@ -60,6 +60,10 @@ void BitcodeFile::setInputSectionForSymbol(const ResolveInfo &R, Section &S) {
 
 Section *BitcodeFile::getInputSectionForSymbol(const ResolveInfo &R) const {
   auto It = InputSectionForSymbol.find(&R);
+  // The section is owned by linker data structures; this is not stack storage.
+  // clang-format off
+  // nosemgrep: reusable-workflows.semgrep_rules.cxx.locret.ret.local-address-returned
+  // clang-format on
   return It != InputSectionForSymbol.end() ? It->second : nullptr;
 }
 

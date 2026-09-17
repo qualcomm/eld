@@ -1020,6 +1020,11 @@ bool LinkerWrapper::isChunkMovableFromOutputSection(const Chunk &C) const {
   return true;
 }
 
+// The switch handles every LinkState; llvm_unreachable is the noreturn
+// fallback.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 std::string_view LinkerWrapper::getCurrentLinkStateAsStr() const {
   switch (getLinkState()) {
 #define ADD_CASE(linkerState)                                                  \

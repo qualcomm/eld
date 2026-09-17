@@ -134,6 +134,10 @@ DiagnosticEngine::convertToDiagEntry(llvm::Error Err) const {
 
 void DiagnosticEngine::resetSeverity(DiagIDType &Id) { Id &= ~SeverityMask; }
 
+// All severity values are handled; llvm_unreachable terminates invalid input.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 DiagnosticEngine::Severity DiagnosticEngine::getSeverity(DiagIDType Id) {
   DiagIDType SeverityVal = (Id & SeverityMask) >> NumOfBaseDiagBits;
   switch (SeverityVal) {
@@ -181,6 +185,10 @@ bool DiagnosticEngine::isUsable() {
   return false;
 }
 
+// All plugin severity values are handled; llvm_unreachable is the fallback.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 DiagnosticEngine::Severity DiagnosticEngine::getDiagEngineSeverity(
     plugin::DiagnosticEntry::Severity Severity) {
   switch (Severity) {
@@ -198,6 +206,10 @@ DiagnosticEngine::Severity DiagnosticEngine::getDiagEngineSeverity(
   llvm_unreachable("Unexpected severity!");
 }
 
+// All diagnostic severity values are handled; llvm_unreachable is the fallback.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 plugin::DiagnosticEntry::Severity DiagnosticEngine::getDiagEntrySeverity(
     eld::DiagnosticEngine::Severity Severity) {
   switch (Severity) {

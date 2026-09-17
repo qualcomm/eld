@@ -9,6 +9,7 @@
 #include "eld/Core/Module.h"
 #include "eld/Support/Memory.h"
 #include "llvm/Support/BinaryStreamWriter.h"
+#include <vector>
 
 using namespace eld;
 
@@ -37,9 +38,9 @@ void TimingFragment::setData(uint64_t BeginningOfTime, uint64_t Duration) {
 
 void TimingFragment::dump(llvm::raw_ostream &OS) {
   uint32_t FragmentSize = size();
-  uint8_t *Buf = new uint8_t[FragmentSize];
+  std::vector<uint8_t> Buf(FragmentSize);
   llvm::MutableArrayRef<uint8_t> Data =
-      llvm::MutableArrayRef(Buf, FragmentSize);
+      llvm::MutableArrayRef(Buf.data(), FragmentSize);
   llvm::BinaryStreamWriter Writer(Data, llvm::endianness::little);
 
   llvm::Error E =
@@ -56,7 +57,6 @@ void TimingFragment::dump(llvm::raw_ostream &OS) {
   std::string LinkStats(reinterpret_cast<const char *>(Data.data()),
                         FragmentSize);
   OS << LinkStats;
-  delete[] Buf;
 }
 
 eld::Expected<void> TimingFragment::emit(MemoryRegion &Mr, Module &M) {

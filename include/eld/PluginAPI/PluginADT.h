@@ -113,6 +113,11 @@ struct DLL_A_EXPORT Chunk {
 
   /// Returns true if the chunks A and B originates
   /// from different input sections; Otherwise returns false.
+  // This is a type declaration; its call operator is declared separately.
+  // This is a type declaration; its call operator is declared separately.
+  // clang-format off
+  // nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+  // clang-format on
   struct DEPRECATED DLL_A_EXPORT Compare final {
     bool operator()(const Chunk &A, const Chunk &B) const;
   };
@@ -181,6 +186,11 @@ protected:
 /// null-terminated strings that the linker may  merge with other identical
 /// strings. For a Chunk to be a MergeStringChunk, isMergeableString() must be
 /// true for that Chunk.
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 struct DLL_A_EXPORT MergeStringChunk : public Chunk {
   MergeStringChunk(eld::Fragment *F) : Chunk(F) {}
 
@@ -191,6 +201,11 @@ struct DLL_A_EXPORT MergeStringChunk : public Chunk {
 /// MergeableString represents a null-terminated string inside a Chunk of a
 /// section that has the flags SHF_STRINGS & SHF_MERGE, and alignment and entry
 /// size of 1.
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 struct DLL_A_EXPORT MergeableString {
   explicit MergeableString(const eld::MergeableString *S);
   /// return the null-terminated string that this MergeableString represents.
@@ -402,6 +417,11 @@ private:
 /// It is typically used as an indirect-call for far-function calls.
 /// Far-function calls are function calls where the function address
 /// cannot be represented in the default function call instruction.
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 class DLL_A_EXPORT Stub {
 public:
   explicit Stub(const eld::BranchIsland *pBI) : BI(pBI) {}
@@ -781,6 +801,11 @@ protected:
 
 /// Block represents output sections and their content.
 // TODO:
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 struct DLL_A_EXPORT Block final {
   Block() : Data(nullptr), Size(0), Address(0), Alignment(1) {}
   const uint8_t *Data; ///< Data passed to the plugin
@@ -1103,6 +1128,11 @@ private:
 /// plugin::MemoryBuffer can be used to hold and retrieve uint8_t* data.
 /// E.g. Adding data to a tar file using the plugin::TarWriter's
 /// addBufferToTar(eld::Expected<plugin::MemoryBuffer> buffer) function.
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 class DLL_A_EXPORT MemoryBuffer final {
 private:
   std::unique_ptr<eld::MemoryArea> getBuffer();
@@ -1259,6 +1289,11 @@ private:
 };
 
 /// An interface to represent a bitcode file to retrieve the LTO Input file.
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 struct DLL_A_EXPORT BitcodeFile final : public InputFile {
 
   explicit BitcodeFile(eld::BitcodeFile &F);
@@ -1269,6 +1304,11 @@ struct DLL_A_EXPORT BitcodeFile final : public InputFile {
   bool findIfKeptComdat(unsigned index) const;
 };
 
+// This is a type declaration; it has no function return value.
+// This is a type declaration; it has no function return value.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 struct DLL_A_EXPORT DynamicLibrary final {
   void *Handle;
   std::string Path;
@@ -1448,6 +1488,11 @@ private:
 
 /// LinkerConfig houses functions for plugins to access linker configurations
 /// and options.
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 struct DLL_A_EXPORT LinkerConfig {
   explicit LinkerConfig(const eld::LinkerConfig &Config);
   std::string getTargetCPU() const;

@@ -101,6 +101,11 @@ public:
   /// For unbalanced chunk add:
   /// chunk: The added chunk
   /// rule: Rule to which it was added.
+  // This is a type declaration; it has no function return value.
+  // This is a type declaration; it has no function return value.
+  // clang-format off
+  // nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+  // clang-format on
   struct DLL_A_EXPORT UnbalancedChunkMove {
     Chunk chunk;
     LinkerScriptRule rule;

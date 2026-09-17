@@ -114,6 +114,11 @@ Relocator::findFragmentForMergeStr(const ELFSection *RelocationSection,
   return {String->Fragment, String->InputOffset + OffsetInString};
 }
 
+// The bare returns belong to the void DoMergeStrReloc lambda, not this bool-
+// returning function.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-bare-return
+// clang-format on
 bool Relocator::doMergeStrings(ELFSection *S) {
   auto DoMergeStrReloc = [&](Relocation *R) -> void {
     if (!R->isMergeKind() || !R->symInfo()->isSection() ||

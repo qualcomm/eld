@@ -191,6 +191,10 @@ public:
     auto reloc = m_GroupRelocs.find(&R);
     if (reloc == m_GroupRelocs.end())
       return nullptr;
+    // The relocation is owned by m_GroupRelocs; this is not stack storage.
+    // clang-format off
+    // nosemgrep: reusable-workflows.semgrep_rules.cxx.locret.ret.local-address-returned
+    // clang-format on
     return reloc->second;
   }
 
@@ -198,6 +202,10 @@ public:
     auto reloc = m_BaseRelocs.find(&R);
     if (reloc == m_BaseRelocs.end())
       return nullptr;
+    // The relocation is owned by m_BaseRelocs; this is not stack storage.
+    // clang-format off
+    // nosemgrep: reusable-workflows.semgrep_rules.cxx.locret.ret.local-address-returned
+    // clang-format on
     return reloc->second;
   }
 
@@ -205,6 +213,11 @@ public:
   getNewBaseForTLSDESCRelaxation(const Relocation &BaseReloc) const {
     auto It = m_HiToIELoadBase.find(&BaseReloc);
     if (It != m_HiToIELoadBase.end())
+      // The relocation is owned by linker data structures; this is not stack
+      // storage.
+      // clang-format off
+      // nosemgrep: reusable-workflows.semgrep_rules.cxx.locret.ret.local-address-returned
+      // clang-format on
       return It->second;
     return nullptr;
   }
@@ -345,6 +358,10 @@ private:
     auto Refs = m_BaseRelocRefs.find(&R);
     if (Refs == m_BaseRelocRefs.end())
       return nullptr;
+    // The vector is owned by m_BaseRelocRefs; this is not stack storage.
+    // clang-format off
+    // nosemgrep: reusable-workflows.semgrep_rules.cxx.locret.ret.local-address-returned
+    // clang-format on
     return &Refs->second;
   }
 

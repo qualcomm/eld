@@ -10,6 +10,11 @@
 #include "LinkerPlugin.h"
 #include <iostream>
 
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 class DLL_A_EXPORT HelloWorldPlugin : public eld::plugin::LinkerPlugin {
 public:
   HelloWorldPlugin() : eld::plugin::LinkerPlugin("HelloWorldPlugin") {}

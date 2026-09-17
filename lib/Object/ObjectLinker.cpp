@@ -2432,6 +2432,11 @@ void ObjectLinker::finalizeSymbolValue(ResolveInfo *I) const {
 /// Create relocation section, asking GNULDBackend to
 /// read the relocation information into RelocationEntry
 /// and push_back into the relocation section
+// The bare return is inside the void Pool->async callback, not this bool-
+// returning function.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-bare-return
+// clang-format on
 bool ObjectLinker::relocation(bool EmitRelocs) {
   // when producing relocatables, no need to apply relocation
   if (LinkerConfig::Object == ThisConfig.codeGenType())

@@ -20,6 +20,11 @@ namespace eld::plugin {
 class LinkerWrapper;
 
 /// A utility class for creating tar archives
+// TarWriter is a class; its constructors intentionally have no return value.
+// TarWriter is a class; its constructors intentionally have no return value.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 class DLL_A_EXPORT TarWriter {
   explicit TarWriter(std::unique_ptr<llvm::TarWriter> TW);
 

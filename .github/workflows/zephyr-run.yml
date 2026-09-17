@@ -197,15 +197,19 @@ jobs:
 
       - name: Install Zephyr SDK hosttools
         shell: bash
+        env:
+          TOOLCHAIN: ${{ inputs.toolchain }}
+          TARGET_ARCH: ${{ inputs.arch }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          if [ "${{ inputs.toolchain }}" = "zephyr-sdk" ]; then
-            gnu_toolchains=(-t "${{ inputs.arch }}-zephyr-elf")
+          if [ "$TOOLCHAIN" = "zephyr-sdk" ]; then
+            gnu_toolchains=(-t "$TARGET_ARCH-zephyr-elf")
           else
             gnu_toolchains=(--no-gnu-toolchains)
           fi
           west sdk install "${gnu_toolchains[@]}" \
             --install-base /opt/toolchains \
-            --personal-access-token "${{ github.token }}"
+            --personal-access-token "$GITHUB_TOKEN"
 
       # cpullvm's armv7m soft-float picolibc is PIC. Borrow the SDK's non-PIC one via
       # SYSROOT_DIR so ARM can use PICOLIBC_USE_TOOLCHAIN=y like the other boards.

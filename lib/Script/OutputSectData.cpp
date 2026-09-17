@@ -71,6 +71,10 @@ OutputSectData::OutputSectData(uint32_t ID, InputSectDesc::Policy Policy,
                     OutSectDesc),
       DataKind(OSDKind::ASCIZ), ASCIIZStr(Str) {}
 
+// The switch handles every OSDKind; llvm_unreachable is the noreturn fallback.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 llvm::StringRef OutputSectData::getOSDKindAsStr() const {
 #define ADD_CASE(dataKind)                                                     \
   case OSDKind::dataKind:                                                      \

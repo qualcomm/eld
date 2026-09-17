@@ -52,7 +52,10 @@ jobs:
 
       - name: Install D2
         run: |
-          curl -fsSL https://d2lang.com/install.sh | sh -s -- \
+          curl --fail --silent --show-error --location --proto '=https' \
+            --tlsv1.2 https://d2lang.com/install.sh \
+            --output "$RUNNER_TEMP/d2-install.sh"
+          sh "$RUNNER_TEMP/d2-install.sh" \
             --method=standalone \
             --prefix "$HOME/.local" \
             --version "$D2_VERSION"

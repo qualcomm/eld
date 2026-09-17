@@ -721,6 +721,10 @@ LDSymbol *Module::addSymbolFromBitCode(
         << InputSym->resolveInfo()->infoAsString();
   }
 
+  // The symbol is owned by linker data structures; this is not stack storage.
+  // clang-format off
+  // nosemgrep: reusable-workflows.semgrep_rules.cxx.locret.ret.local-address-returned
+  // clang-format on
   return InputSym;
 }
 

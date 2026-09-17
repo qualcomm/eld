@@ -23,6 +23,11 @@ struct DLL_A_EXPORT SmallJSONValue;
 
 /// A Class representing a value representible in JSON. Includes Objects,
 /// Arrays, boolean, floating point, integral, string, and null types
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 struct DLL_A_EXPORT SmallJSONValue {
 public:
   /// Create a SmallJSONValue from a SmallJSONObject
@@ -65,6 +70,11 @@ private:
 /// Represents a JSON Object consisting of key value pairs.
 /// This class is append only. Items will appear in the order in which they were
 /// inserted
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 struct DLL_A_EXPORT SmallJSONObject {
 
 public:
@@ -95,6 +105,11 @@ private:
 
 /// An append-only class represeting a heterogenous array of JSON values. Items
 /// are stored in insertion order.
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 struct DLL_A_EXPORT SmallJSONArray {
 
 public:

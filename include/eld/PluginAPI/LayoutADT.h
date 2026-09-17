@@ -17,6 +17,11 @@ namespace eld::plugin {
 struct DLL_A_EXPORT LinkerConfig;
 struct DLL_A_EXPORT MapHeader;
 
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 struct DLL_A_EXPORT MapHeader {
   explicit MapHeader(const plugin::LinkerConfig &Config);
   std::string getVendorName() const;
@@ -31,6 +36,11 @@ private:
 
 /// Padding details at section start, fragment and
 /// between rules.
+// This is a type declaration; it has no function return value.
+// This is a type declaration; it has no function return value.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 struct DLL_A_EXPORT Padding {
   uint64_t startOffset = 0;
   uint64_t size = 0;

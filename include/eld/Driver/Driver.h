@@ -27,6 +27,11 @@ class DiagnosticEngine;
 
 class GnuLdDriver;
 
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 class DLL_A_EXPORT Driver {
 public:
   Driver(DriverFlavor F = DriverFlavor::Invalid);

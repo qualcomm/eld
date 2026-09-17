@@ -4,11 +4,6 @@ import argparse
 import os
 import sys
 import yaml
-try:
-    from yaml import CLoader as Loader
-except ImportError:
-    print("Warning: Missing CLoader - long run time is likely.")
-    from yaml import Loader
 
 class YAMLFile(object):
 
@@ -28,7 +23,7 @@ class YAMLFile(object):
     }
 
     def __init__(self, yamlfile):
-        self.yamlfile = yaml.load(yamlfile, Loader=Loader)
+        self.yamlfile = yaml.safe_load(yamlfile)
         self.grand_totals = {}
         self.objs = {}
         self.obj_totals = {}

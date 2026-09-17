@@ -97,6 +97,11 @@ public:
     auto It = OldInputFileBySection.find(&S);
     if (It == OldInputFileBySection.end())
       return nullptr;
+    // The input file is owned by linker data structures; this is not stack
+    // storage.
+    // clang-format off
+    // nosemgrep: reusable-workflows.semgrep_rules.cxx.locret.ret.local-address-returned
+    // clang-format on
     return It->second;
   }
 
@@ -125,6 +130,10 @@ public:
     auto It = SignatureSymbolForGroupSections.find(&S);
     if (It == SignatureSymbolForGroupSections.end())
       return nullptr;
+    // The symbol is owned by linker data structures; this is not stack storage.
+    // clang-format off
+    // nosemgrep: reusable-workflows.semgrep_rules.cxx.locret.ret.local-address-returned
+    // clang-format on
     return It->second;
   }
 

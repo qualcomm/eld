@@ -275,6 +275,11 @@ private:
 };
 
 /// Represents DWARF Attributes
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 struct DLL_A_EXPORT DWARFAttribute {
 
   /// Create a DWARFAttribute from llvm::DWARFAttribute
@@ -299,6 +304,11 @@ private:
 };
 
 /// The associated value for an attribute
+// This is a type declaration; its constructors do not return values.
+// This is a type declaration; its constructors do not return values.
+// clang-format off
+// nosemgrep: reusable-workflows.semgrep_rules.cxx.funcret.gen.non-void-function-no-return
+// clang-format on
 struct DLL_A_EXPORT DWARFValue {
   explicit DWARFValue(const llvm::DWARFFormValue *V);
 
