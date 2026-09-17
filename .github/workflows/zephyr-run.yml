@@ -64,7 +64,6 @@ jobs:
       CCACHE_DIR: /root/.ccache
       CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_NOHASHDIR: "1"
-      CCACHE_MAXSIZE: "2G"
       CCACHE_COMPRESS: "1"
       CCACHE_COMPILERCHECK: "content"
 
@@ -80,12 +79,28 @@ jobs:
           ccache --version | head -1
 
       - name: Restore ccache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        if: inputs.arch == 'riscv64'
+        id: restore-ccache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ccache-${{ inputs.arch }}-${{ inputs.toolchain }}-${{ github.run_id }}
           restore-keys: |
             ccache-${{ inputs.arch }}-${{ inputs.toolchain }}-
+
+      - name: Configure ccache
+        env:
+          ARCH: ${{ inputs.arch }}
+        run: |
+          if [ "$ARCH" != "riscv64" ]; then
+            echo "CCACHE_DISABLE=1" >> "$GITHUB_ENV"
+            ccache --zero-stats
+            exit 0
+          fi
+
+          echo "CCACHE_MAXSIZE=2G" >> "$GITHUB_ENV"
+          ccache --set-config=max_size=2G
+          ccache --zero-stats
 
       - name: ccache stats (before build)
         run: ccache -s -v || ccache -s
@@ -312,6 +327,25 @@ jobs:
       - name: ccache stats (after build)
         if: always()
         run: ccache -s -v || ccache -s
+
+      - name: Prune ccache before save
+        if: |
+          success() &&
+          inputs.artifact-workflow-id == 'zephyr-nightly.yml' &&
+          github.event_name != 'pull_request' &&
+          inputs.arch == 'riscv64'
+        run: ccache --cleanup
+
+      - name: Save ccache
+        if: |
+          success() &&
+          inputs.artifact-workflow-id == 'zephyr-nightly.yml' &&
+          github.event_name != 'pull_request' &&
+          inputs.arch == 'riscv64'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ inputs.arch }}-${{ inputs.toolchain }}-${{ github.run_id }}
 
       - name: Update build entry
         if: success() && github.event_name == 'schedule'
