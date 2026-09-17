@@ -22,28 +22,6 @@ ELFObjectFile::ELFObjectFile(Input *I, DiagnosticEngine *DiagEngine)
     Contents = I->getFileContents();
 }
 
-void ELFObjectFile::setDynamicSections(ELFSection &PGOT, ELFSection &PGOTPLT,
-                                       ELFSection &PPLT, ELFSection &PRelDyn,
-                                       ELFSection &PRelPLT) {
-  GOT = &PGOT;
-  GOTPLT = &PGOTPLT;
-  PLT = &PPLT;
-  RelaDyn = &PRelDyn;
-  // RelaDyn link field is not set because .rel(a).dyn may include dynamic
-  // relocations from sections other than .got. Therefore, its sh_info field is
-  // zero.
-  RelaPLT = &PRelPLT;
-  // .rel(a).plt has sh_info pointing to the .got.plt section, although, it's
-  // not clear why this is needed for dynamic relocation sections.
-  RelaPLT->setLink(GOTPLT);
-
-  GOT->setExcludedFromGC();
-  GOTPLT->setExcludedFromGC();
-  PLT->setExcludedFromGC();
-  RelaDyn->setExcludedFromGC();
-  RelaPLT->setExcludedFromGC();
-}
-
 void ELFObjectFile::createDWARFContext(bool Is32) {
   if (DebugSections.empty())
     return;

@@ -104,7 +104,7 @@ static ARMGOT *CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
                          ARMGNULDBackend &B, bool isExec) {
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
-  ARMGOT *G = B.createGOT(GOT::Regular, Obj, rsym);
+  ARMGOT *G = B.createGOT(GOT::Regular, rsym);
 
   if (!pHasRel) {
     G->setValueType(GOT::SymbolValue);
@@ -231,12 +231,11 @@ ARMGOT *ARMRelocator::getTLSModuleID(ResolveInfo *R, bool isStatic) {
     return G;
   }
 
-  G = m_Target.createGOT(GOT::TLS_LD, nullptr, nullptr);
+  G = m_Target.createGOT(GOT::TLS_LD, nullptr);
 
   if (!isStatic)
-    helper_DynRel_init(m_Target.getDynamicSectionHeadersInputFile(), nullptr,
-                       nullptr, G, 0x0, llvm::ELF::R_ARM_TLS_DTPMOD32,
-                       m_Target);
+    helper_DynRel_init(nullptr, nullptr, nullptr, G, 0x0,
+                       llvm::ELF::R_ARM_TLS_DTPMOD32, m_Target);
 
   m_Target.recordGOT(R, G);
   return G;
@@ -457,7 +456,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
       return;
 
     // set up a pair of got entries and a pair of dyn rel
-    ARMGOT *G = m_Target.createGOT(GOT::TLS_GD, Obj, rsym);
+    ARMGOT *G = m_Target.createGOT(GOT::TLS_GD, rsym);
     if (config().isCodeStatic()) {
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       G->getFirst()->setReservedValue(1);
@@ -500,7 +499,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
       return;
 
     // set up the got and the corresponding rel entry
-    ARMGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    ARMGOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     if (config().isCodeStatic() || config().isBuildingExecutable()) {
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       G->setValueType(GOT::TLSStaticSymbolValue);
@@ -550,7 +549,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
         // Symbol needs PLT entry, we need to reserve a PLT entry
         // and the corresponding GOT and dynamic relocation entry
         // in .got and .rel.plt.
-        m_Target.createPLT(Obj, rsym);
+        m_Target.createPLT(rsym);
         // set PLT bit
         rsym->setReserved(rsym->reserved() | ReservePLT);
       }
@@ -691,7 +690,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
     // Symbol needs PLT entry, we need to reserve a PLT entry
     // and the corresponding GOT and dynamic relocation entry
     // in .got and .rel.plt.
-    m_Target.createPLT(Obj, rsym);
+    m_Target.createPLT(rsym);
     // set PLT bit
     rsym->setReserved(rsym->reserved() | ReservePLT);
     return;
@@ -734,7 +733,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
       return;
 
     // set up a pair of got entries and a pair of dyn rel
-    ARMGOT *G = m_Target.createGOT(GOT::TLS_GD, Obj, rsym);
+    ARMGOT *G = m_Target.createGOT(GOT::TLS_GD, rsym);
 
     if (config().isCodeStatic()) {
       rsym->setReserved(rsym->reserved() | ReserveGOT);
@@ -778,7 +777,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
       return;
 
     // set up the got and the corresponding rel entry
-    ARMGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    ARMGOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     if (config().isCodeStatic() || (config().isBuildingExecutable() &&
                                     !m_Target.isSymbolPreemptible(*rsym))) {
       rsym->setReserved(rsym->reserved() | ReserveGOT);
@@ -893,7 +892,7 @@ void ARMRelocator::handleScanForNonPreemptibleIFunc(Relocation &R,
 
   if (RI->reserved() & ReservePLT)
     return;
-  m_Target.createPLT(Obj, RI, /*isIRelative=*/true);
+  m_Target.createPLT(RI, /*isIRelative=*/true);
   RI->setReserved(RI->reserved() | ReservePLT);
 }
 

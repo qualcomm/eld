@@ -62,7 +62,7 @@ x86_64LDBackend::getTargetSectionOrder(const ELFSection &pSectHdr) const {
 
 void x86_64LDBackend::initTargetSections(ObjectBuilder &pBuilder) {}
 
-void x86_64LDBackend::initDynamicSections(ELFObjectFile &InputFile) {
+void x86_64LDBackend::initDynamicSections(InputFile &InputFile) {
   GNULDBackend::initDynamicSections(InputFile,
                                     {llvm::ELF::SHT_RELA, 8, 8, 8, 16});
 }
@@ -317,8 +317,7 @@ void x86_64LDBackend::applyTargetDynamicEntries() {
 }
 
 // Create GOT entry.
-x86_64GOT *x86_64LDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
-                                      ResolveInfo *R) {
+x86_64GOT *x86_64LDBackend::createGOT(GOT::GOTType T, ResolveInfo *R) {
 
   traceGOTCreation(T, R);
   // If we are creating a GOT, always create a .got.plt.
@@ -385,8 +384,7 @@ x86_64GOT *x86_64LDBackend::findEntryInGOT(ResolveInfo *I) const {
 }
 
 // Create PLT entry.
-x86_64PLT *x86_64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
-                                      bool isIRelative) {
+x86_64PLT *x86_64LDBackend::createPLT(ResolveInfo *R, bool isIRelative) {
   bool hasNow = config().options().hasNow();
   tracePLTCreation(R);
 
@@ -396,12 +394,12 @@ x86_64PLT *x86_64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
   // trampoline that all PLTN entries jump to for symbol resolution.
   if (!hasNow && !isIRelative && !getPLT()->hasFragments()) {
     x86_64PLT0::Create(*m_Module.getIRBuilder(),
-                       createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
-                       nullptr, hasNow);
+                       createGOT(GOT::GOTPLT0, nullptr), getPLT(), nullptr,
+                       hasNow);
   }
-  x86_64PLT *P = x86_64PLTN::Create(
-      *m_Module.getIRBuilder(), createGOT(GOT::GOTPLTN, Obj, R), getPLT(), R,
-      /*BindNow*/ (hasNow || isIRelative));
+  x86_64PLT *P = x86_64PLTN::Create(*m_Module.getIRBuilder(),
+                                    createGOT(GOT::GOTPLTN, R), getPLT(), R,
+                                    /*BindNow*/ (hasNow || isIRelative));
 
   // The relocation index is set before getContent() is called during
   // layout, as it is embedded directly in the PLT entry's instruction bytes.

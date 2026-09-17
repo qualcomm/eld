@@ -180,8 +180,8 @@ bool ObjectLinker::initStdSections() {
 
   // initialize dynamic sections
   if (LinkerConfig::Object != ThisConfig.codeGenType()) {
-    getTargetBackend().initDynamicSections(
-        *getTargetBackend().getDynamicSectionHeadersInputFile());
+    getTargetBackend().initDynamicSections(*ThisModule->getInternalInput(
+        Module::InternalInputType::DynamicSectionHeaders));
   }
 
   // Initialize symbol versioning sections only for dynamic artifacts when

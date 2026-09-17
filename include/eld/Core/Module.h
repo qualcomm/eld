@@ -82,6 +82,7 @@ public:
     DynamicExports,
     DynamicList,
     DynamicSections,
+    DynamicSectionHeaders,
     EhFrameFiller,
     EhFrameHdr,
     Exception,

@@ -88,7 +88,7 @@ Relocation::Type RISCVLDBackend::getCopyRelType() const {
   return llvm::ELF::R_RISCV_COPY;
 }
 
-void RISCVLDBackend::initDynamicSections(ELFObjectFile &InputFile) {
+void RISCVLDBackend::initDynamicSections(InputFile &InputFile) {
   bool Is32 = config().targets().is32Bits();
   uint32_t Align = Is32 ? 4 : 8;
   GNULDBackend::initDynamicSections(
@@ -2434,7 +2434,7 @@ bool RISCVLDBackend::finalizeScanRelocations() {
         !symInfo->hasIFuncNeedsGOT())
       continue;
 
-    RISCVGOT *G = createGOT(GOT::GOTType::Regular, nullptr, symInfo);
+    RISCVGOT *G = createGOT(GOT::GOTType::Regular, symInfo);
 
     FragmentRef *PLTFragRef = make<FragmentRef>(*plt, 0);
     Relocation *r = Relocation::Create(
@@ -2450,8 +2450,7 @@ bool RISCVLDBackend::finalizeScanRelocations() {
 }
 
 // Create GOT entry.
-RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
-                                    ResolveInfo *R) {
+RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ResolveInfo *R) {
 
   traceGOTCreation(T, R);
   // If we are creating a GOT, always create a .got.plt.
@@ -2528,8 +2527,7 @@ RISCVGOT *RISCVLDBackend::findEntryInGOT(ResolveInfo *I) const {
 }
 
 // Create PLT entry.
-RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
-                                    bool isIRelative) {
+RISCVPLT *RISCVLDBackend::createPLT(ResolveInfo *R, bool isIRelative) {
   bool is32Bits = config().targets().is32Bits();
   tracePLTCreation(R);
 
@@ -2539,10 +2537,10 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
   // shared .plt is emission order.
   bool NeedsLazy = !config().options().hasNow();
   if (NeedsLazy && !getPLT()->hasFragments())
-    RISCVPLT::CreatePLT0(*this, createGOT(GOT::GOTPLT0, Obj, nullptr), getPLT(),
+    RISCVPLT::CreatePLT0(*this, createGOT(GOT::GOTPLT0, nullptr), getPLT(),
                          is32Bits);
 
-  RISCVGOT *G = createGOT(GOT::GOTPLTN, Obj, R);
+  RISCVGOT *G = createGOT(GOT::GOTPLTN, R);
   RISCVPLT *P = RISCVPLT::CreatePLTN(G, getPLT(), R, is32Bits);
   recordPLT(R, P);
   if (NeedsLazy) {
