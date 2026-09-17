@@ -92,6 +92,8 @@ ScriptLexer::ScriptLexer(eld::LinkerConfig &Config, ScriptFile &ScriptFile)
   llvm::MemoryBufferRef MemBufRef = IF->getInput()->getMemoryBufferRef();
   CurBuf = Buffer(MemBufRef);
   MemoryBuffers.push_back(MemBufRef);
+  ThisScriptFile.setCurrentLineNumberSource(
+      [this]() { return getCurrentLineNumber(); });
 }
 
 bool ScriptLexer::diagnose() const {
