@@ -86,6 +86,7 @@ public:
     std::optional<bool> EnableAttributeMixWarnings;
     std::optional<bool> EnableArchiveFileWarnings;
     std::optional<bool> EnableLinkerScriptMemoryWarnings;
+    std::optional<bool> EnableDynamicWarnings;
     std::optional<bool> EnableBadDotAssignmentWarnings;
     std::optional<bool> EnableWholeArchiveWarnings;
     std::optional<bool> EnableCommandLineWarnings;
@@ -343,6 +344,18 @@ public:
             *WarnOpt.EnableLinkerScriptMemoryWarnings);
   }
 
+  bool hasShowDynamicWarnings() const {
+    return WarnOpt.EnableDynamicWarnings.has_value();
+  }
+
+  bool showDynamicWarnings() const {
+    return (hasShowDynamicWarnings() && *WarnOpt.EnableDynamicWarnings);
+  }
+
+  void setShowDynamicWarnings(bool Option = true) {
+    WarnOpt.EnableDynamicWarnings = Option;
+  }
+
   bool showBadDotAssignmentWarnings() const {
     return (hasBadDotAssignmentsWarnings() &&
             *WarnOpt.EnableBadDotAssignmentWarnings);
@@ -379,6 +392,7 @@ public:
     WarnOpt.EnableWholeArchiveWarnings = true;
     WarnOpt.EnableOSABIWarnings = true;
     WarnOpt.EnableVersionScriptWarnings = true;
+    WarnOpt.EnableDynamicWarnings = true;
   }
 
   void setShowLinkerScriptWarning(bool Option) {
