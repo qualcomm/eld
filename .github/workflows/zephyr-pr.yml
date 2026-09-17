@@ -56,14 +56,22 @@ jobs:
             const wr = context.payload.workflow_run;
             if (wr) {
               if (await liveToolset(wr.id)) {
-                const pullRequests = wr.pull_requests || [];
-                if (pullRequests.length === 0) {
+                const headOwner = wr.head_repository?.full_name?.split('/')[0];
+                const { data: pullRequests } = await github.rest.pulls.list({
+                  owner,
+                  repo,
+                  state: 'all',
+                  head: `${headOwner}:${wr.head_branch}`,
+                  per_page: 100,
+                });
+                const pullRequest = pullRequests.find(pr => pr.head.sha === wr.head_sha);
+                if (!pullRequest) {
                   core.setFailed(`Workflow run ${wr.id} is not associated with a pull request.`);
                   return;
                 }
                 core.setOutput('run_id', String(wr.id));
                 core.setOutput('head_sha', wr.head_sha);
-                core.setOutput('pr_number', String(pullRequests[0].number));
+                core.setOutput('pr_number', String(pullRequest.number));
               }
               return;
             }
