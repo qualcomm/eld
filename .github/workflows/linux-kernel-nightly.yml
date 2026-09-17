@@ -99,3 +99,4 @@ jobs:
       console_device: ${{ matrix.console_device }}
       enabled: ${{ matrix.enabled }}
       artifact-workflow-id: linux-kernel-nightly.yml
+      stable_llvm: true
