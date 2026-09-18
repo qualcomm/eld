@@ -7,7 +7,7 @@ RUN: %clang %clangopts -c %p/Inputs/1.c %clangg0opts -fpic -o %t1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c %clangg0opts -fpic -o %t2.o
 RUN: %link %linkopts -shared %t2.o -o %t.so
 RUN: %link %linkopts -mtriple=hexagon-unknown-linux  -dy %t1.o %t.so -o %t.out
-RUN: %readelf -l %t.out | %grep -v None > %tunstripped
+RUN: %readelf -l %t.out | %python -c "import sys; print(''.join(line for line in sys.stdin if 'None' not in line), end='')" > %tunstripped
 RUN: %strip %t.out
-RUN: %readelf -l %t.out | %grep -v None > %tstripped
+RUN: %readelf -l %t.out | %python -c "import sys; print(''.join(line for line in sys.stdin if 'None' not in line), end='')" > %tstripped
 RUN: diff %tunstripped %tstripped

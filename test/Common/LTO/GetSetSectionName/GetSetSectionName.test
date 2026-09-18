@@ -1,5 +1,7 @@
 UNSUPPORTED: x86
 
+UNSUPPORTED: x86
+
 # Check if LTO works for no groups and only archives and bitcodes
 RUN: %clang %clangopts -c  %p/Inputs/a.c -flto -o %t1
 RUN: %clang %clangopts -c  %p/Inputs/b1.c -o %t2
@@ -9,9 +11,30 @@ RUN: %ar cr %aropts %t5 %t2
 RUN: %ar cr %aropts %t6 %t3
 RUN: %ar cr %aropts %t7 %t4
 RUN: %link %linkopts -M  --flto-options=preserveall  %t1 --start-group %t5 %t7 %t6 --end-group -o %t8
-RUN: %readelf -s %t8 | %grep "foo" | %filecheck %s -check-prefix YES
-RUN: %readelf -s %t8 | %grep "bar" | %filecheck %s -check-prefix YES
-RUN: %readelf -s %t8 | %grep "baz" | %filecheck %s -check-prefix YES
-RUN: %readelf -s %t8 | %grep "boo" | %filecheck %s -check-prefix YES
+RUN: %readelf -s %t8 | %filecheck %s -check-prefix YES_foo
+RUN: %readelf -s %t8 | %filecheck %s -check-prefix YES_bar
+RUN: %readelf -s %t8 | %filecheck %s -check-prefix YES_baz
+RUN: %readelf -s %t8 | %filecheck %s -check-prefix YES_boo
 
-YES: 1
+# Check if LTO works for no groups and only archives and bitcodes
+RUN: %clang %clangopts -c  %p/Inputs/a.c -flto -o %t1
+RUN: %clang %clangopts -c  %p/Inputs/b1.c -o %t2
+RUN: %clang %clangopts -c  %p/Inputs/b2.c -o %t3
+RUN: %clang %clangopts -c  %p/Inputs/c.c -o %t4
+RUN: %ar cr %aropts %t5 %t2
+RUN: %ar cr %aropts %t6 %t3
+RUN: %ar cr %aropts %t7 %t4
+RUN: %link %linkopts -M  --flto-options=preserveall  %t1 --start-group %t5 %t7 %t6 --end-group -o %t8
+RUN: %readelf -s %t8 | %filecheck %s -check-prefix YES_foo
+RUN: %readelf -s %t8 | %filecheck %s -check-prefix YES_bar
+RUN: %readelf -s %t8 | %filecheck %s -check-prefix YES_baz
+RUN: %readelf -s %t8 | %filecheck %s -check-prefix YES_boo
+
+
+
+
+
+YES_foo: foo
+YES_bar: bar
+YES_baz: baz
+YES_boo: boo
