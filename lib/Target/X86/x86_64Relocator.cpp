@@ -206,7 +206,7 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
 x86_64GOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
                      x86_64LDBackend &B) {
   ResolveInfo *rsym = pReloc.symInfo();
-  x86_64GOT *G = B.createGOT(GOT::Regular, Obj, rsym);
+  x86_64GOT *G = B.createGOT(GOT::Regular, rsym);
   if (!pHasRel) {
     // Write link-time content into GOT for static/non-dynamic case.
     G->setValueType(GOT::SymbolValue);
@@ -234,15 +234,15 @@ x86_64GOT *x86_64Relocator::getTLSModuleID(ResolveInfo *R, bool isStatic) {
     return G;
   }
 
-  G = m_Target.createGOT(GOT::TLS_LD, nullptr, nullptr);
+  G = m_Target.createGOT(GOT::TLS_LD, nullptr);
 
   ASSERT(!isStatic,
          "We always need to relax if -static because libc.a doesn't "
          "contain__tls_get_addr(). Relaxations are currently unsupported");
 
   if (!isStatic)
-    helper_DynRel_init(m_Target.getDynamicSectionHeadersInputFile(), nullptr,
-                       nullptr, G, 0x0, llvm::ELF::R_X86_64_DTPMOD64, m_Target);
+    helper_DynRel_init(nullptr, nullptr, nullptr, G, 0x0,
+                       llvm::ELF::R_X86_64_DTPMOD64, m_Target);
 
   m_Target.recordGOT(R, G);
   return G;
@@ -278,7 +278,7 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->reserved() & ReserveGOT)
       return;
-    x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     // For executables, the symbol's offset from the thread pointer is fixed at
     // link time. For shared objects, the dynamic loader must compute the offset
     // at load time, so emit R_X86_64_TPOFF64.
@@ -405,7 +405,7 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
 
     // create IRELATIVE for IFUNC symbol
     if (rsym->type() == ResolveInfo::IndirectFunc && config().isCodeStatic()) {
-      m_Target.createPLT(Obj, rsym, true);
+      m_Target.createPLT(rsym, true);
       rsym->setReserved(rsym->reserved() | ReservePLT);
       return;
     }
@@ -418,7 +418,7 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     // Symbol needs PLT entry, we need to reserve a PLT entry
     // and the corresponding GOT and dynamic relocation entry
     // in .got and .rel.plt.
-    m_Target.createPLT(Obj, rsym);
+    m_Target.createPLT(rsym);
     rsym->setReserved(rsym->reserved() | ReservePLT);
     return;
   }
@@ -462,7 +462,7 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->reserved() & ReserveGOT)
       return;
-    x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     const bool isExec = config().isBuildingExecutable();
     const bool preemptible = m_Target.isSymbolPreemptible(*rsym);
     if (isExec && !preemptible) {
@@ -481,7 +481,7 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
       return;
 
     // Create GD GOT pair (x86_64GDGOT creates both entries)
-    x86_64GOT *G = m_Target.createGOT(GOT::TLS_GD, Obj, rsym);
+    x86_64GOT *G = m_Target.createGOT(GOT::TLS_GD, rsym);
 
     // Always emit DTPMOD64 for first entry (module ID unknown for DSO)
     helper_DynRel_init(Obj, &pReloc, rsym, G->getFirst(), 0x0,

@@ -55,7 +55,7 @@ class SFrameSection;
 class ELFDynamic;
 class ELFDynObjFileFormat;
 class ELFExecFileFormat;
-class ELFObjectFile;
+class InputFile;
 class ELFObjectFileFormat;
 class ELFSegmentFactory;
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
@@ -463,15 +463,9 @@ public:
 
   virtual bool initRelocator() = 0;
 
-  void createInternalInputs();
-
   virtual void initTargetSections(ObjectBuilder &pBuilder) = 0;
 
-  ELFObjectFile *getDynamicSectionHeadersInputFile() const {
-    return m_DynamicSectionHeadersInputFile;
-  }
-
-  virtual void initDynamicSections(ELFObjectFile &) {}
+  virtual void initDynamicSections(InputFile &) {}
 
   struct DynamicSectionLayout {
     uint32_t RelType = 0;
@@ -483,7 +477,7 @@ public:
 
   /// Create this input file's dynamic relocation sections. On the first
   /// call, create the shared .got/.got.plt/.plt too.
-  void initDynamicSections(ELFObjectFile &InputFile,
+  void initDynamicSections(InputFile &InputFile,
                            const DynamicSectionLayout &Layout);
 
   virtual void initTargetSymbols() = 0;
@@ -1293,7 +1287,6 @@ protected:
   std::unordered_map<std::string, ScriptMemoryRegion *> m_MemoryRegionMap;
 
   // Dynamic linking
-  ELFObjectFile *m_DynamicSectionHeadersInputFile = nullptr;
   ELFSection *GOTSection = nullptr;
   ELFSection *GOTPLTSection = nullptr;
   ELFSection *PLTSection = nullptr;

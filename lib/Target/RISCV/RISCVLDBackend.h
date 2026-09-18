@@ -48,7 +48,7 @@ public:
 
   void initTargetSections(ObjectBuilder &pBuilder) override;
 
-  void initDynamicSections(ELFObjectFile &) override;
+  void initDynamicSections(InputFile &) override;
 
   void initTargetSymbols() override;
 
@@ -103,7 +103,7 @@ public:
   Relocation::Type getCopyRelType() const override;
 
   // ---  GOT Support ------
-  RISCVGOT *createGOT(GOT::GOTType T, ELFObjectFile *Obj, ResolveInfo *sym);
+  RISCVGOT *createGOT(GOT::GOTType T, ResolveInfo *sym);
 
   void recordGOT(ResolveInfo *, RISCVGOT *);
 
@@ -120,8 +120,7 @@ public:
   shouldProcessSectionForGC(const ELFSection &pSec) const override;
 
   // ---------------------  PLT Support ---------------------------
-  RISCVPLT *createPLT(ELFObjectFile *Obj, ResolveInfo *sym,
-                      bool isIRelative = false);
+  RISCVPLT *createPLT(ResolveInfo *sym, bool isIRelative = false);
 
   void recordPLT(ResolveInfo *, RISCVPLT *);
 

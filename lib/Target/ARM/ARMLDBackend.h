@@ -55,7 +55,7 @@ public:
   void initTargetSections(ObjectBuilder &pBuilder) override;
 
   /// Create dynamic input sections in an input file.
-  void initDynamicSections(ELFObjectFile &) override;
+  void initDynamicSections(InputFile &) override;
 
   /// initTargetSymbols - initialize target dependent symbols in output.
   void initTargetSymbols() override;
@@ -121,8 +121,7 @@ public:
   Relocation::Type getCopyRelType() const override;
 
   // ---  GOT Support ------
-  ARMGOT *createGOT(GOT::GOTType T, ELFObjectFile *Obj, ResolveInfo *sym,
-                    bool SkipPLTRef = false);
+  ARMGOT *createGOT(GOT::GOTType T, ResolveInfo *sym, bool SkipPLTRef = false);
 
   void recordGOT(ResolveInfo *, ARMGOT *);
 
@@ -131,8 +130,7 @@ public:
   ARMGOT *findEntryInGOT(ResolveInfo *) const;
 
   // ---  PLT Support ------
-  ARMPLT *createPLT(ELFObjectFile *Obj, ResolveInfo *sym,
-                    bool isIRelative = false);
+  ARMPLT *createPLT(ResolveInfo *sym, bool isIRelative = false);
 
   void recordPLT(ResolveInfo *, ARMPLT *);
 

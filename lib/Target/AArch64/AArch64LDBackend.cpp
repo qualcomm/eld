@@ -80,7 +80,7 @@ bool AArch64LDBackend::initStubFactory() {
   return true;
 }
 
-void AArch64LDBackend::initDynamicSections(ELFObjectFile &InputFile) {
+void AArch64LDBackend::initDynamicSections(InputFile &InputFile) {
   GNULDBackend::initDynamicSections(InputFile,
                                     {llvm::ELF::SHT_RELA, 8, 8, 8, 16});
 }
@@ -519,10 +519,6 @@ bool AArch64LDBackend::finalizeScanRelocations() {
   if (!config().isCodeStatic())
     return true;
 
-  ELFObjectFile *Obj = getDynamicSectionHeadersInputFile();
-  if (!Obj)
-    return true;
-
   if (!getPLT())
     return true;
 
@@ -660,10 +656,8 @@ bool AArch64LDBackend::ltoCallExternalAssembler(
 }
 
 // Create GOT entry.
-AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
-                                               ELFObjectFile *Obj,
-                                               ResolveInfo *R,
-                                               bool SkipPLTRef) {
+AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T, ResolveInfo *R,
+                                        bool SkipPLTRef) {
 
   traceGOTCreation(T, R);
   // If we are creating a GOT, always create a .got.plt.
@@ -736,8 +730,7 @@ AArch64GOT *AArch64LDBackend::findEntryInGOT(ResolveInfo *I) const {
 }
 
 // Create PLT entry.
-AArch64PLT *AArch64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
-                                        bool isIRelative) {
+AArch64PLT *AArch64LDBackend::createPLT(ResolveInfo *R, bool isIRelative) {
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
   tracePLTCreation(R);
 
@@ -745,12 +738,11 @@ AArch64PLT *AArch64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
 
   if (!getPLT()->hasFragments()) {
     AArch64PLT0::Create(*m_Module.getIRBuilder(),
-                        createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
-                        nullptr);
+                        createGOT(GOT::GOTPLT0, nullptr), getPLT(), nullptr);
   }
-  AArch64PLT *P = AArch64PLTN::Create(
-      *m_Module.getIRBuilder(), createGOT(GOT::GOTPLTN, Obj, R, isIRelative),
-      getPLT(), R);
+  AArch64PLT *P =
+      AArch64PLTN::Create(*m_Module.getIRBuilder(),
+                          createGOT(GOT::GOTPLTN, R, isIRelative), getPLT(), R);
   // init the corresponding rel entry in .rela.plt
   Relocation &rela_entry = *getRelaPLT()->createOneReloc();
   rela_entry.setType(isIRelative ? llvm::ELF::R_AARCH64_IRELATIVE

@@ -81,7 +81,7 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
 AArch64GOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
                       AArch64LDBackend &B, bool isExec) {
   ResolveInfo *rsym = pReloc.symInfo();
-  AArch64GOT *G = B.createGOT(GOT::Regular, Obj, rsym);
+  AArch64GOT *G = B.createGOT(GOT::Regular, rsym);
 
   if (!pHasRel) {
     G->setValueType(GOT::SymbolValue);
@@ -305,7 +305,7 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     // Dont use a GOT, convert the instruction.
     if (config().isCodeStatic())
       return;
-    AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     if (config().isBuildingExecutable()) {
       G->setValueType(GOT::TLSStaticSymbolValue);
       if (rsym->reserved() == Relocator::None)
@@ -331,12 +331,12 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
       return;
 
     if (config().isCodeStatic() || config().isBuildingExecutable()) {
-      AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+      AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       G->setValueType(GOT::TLSStaticSymbolValue);
       return;
     }
-    AArch64GOT *G = m_Target.createGOT(GOT::TLS_DESC, Obj, rsym);
+    AArch64GOT *G = m_Target.createGOT(GOT::TLS_DESC, rsym);
     helper_DynRel_init(Obj, &pReloc, rsym, G->getFirst(), 0x0,
                        llvm::ELF::R_AARCH64_TLSDESC, m_Target);
     if (rsym->reserved() == Relocator::None)
@@ -374,7 +374,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
         // Symbol needs PLT entry, we need a PLT entry
         // and the corresponding GOT and dynamic relocation entry
         // in .got and .rel.plt.
-        m_Target.createPLT(Obj, rsym);
+        m_Target.createPLT(rsym);
         // set PLT bit
         rsym->setReserved(rsym->reserved() | ReservePLT);
       }
@@ -435,7 +435,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
           // Symbol needs PLT entry, we need a PLT entry
           // and the corresponding GOT and dynamic relocation entry
           // in .got and .rel.plt.
-          m_Target.createPLT(Obj, rsym);
+          m_Target.createPLT(rsym);
           // set PLT bit
           rsym->setReserved(rsym->reserved() | ReservePLT);
         }
@@ -473,7 +473,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     // Symbol needs PLT entry, we need to reserve a PLT entry
     // and the corresponding GOT and dynamic relocation entry
     // in .got and .rel.plt.
-    m_Target.createPLT(Obj, rsym);
+    m_Target.createPLT(rsym);
     // set PLT bit
     rsym->setReserved(rsym->reserved() | ReservePLT);
     return;
@@ -503,7 +503,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
         // Symbol needs PLT entry, we need a PLT entry
         // and the corresponding GOT and dynamic relocation entry
         // in .got and .rel.plt.
-        m_Target.createPLT(Obj, rsym);
+        m_Target.createPLT(rsym);
         // set PLT bit
         rsym->setReserved(rsym->reserved() | ReservePLT);
       }
@@ -538,7 +538,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
       return;
 
     // set up the got and the corresponding rel entry
-    AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     if (config().isCodeStatic() || (config().isBuildingExecutable() &&
                                     !m_Target.isSymbolPreemptible(*rsym))) {
       rsym->setReserved(rsym->reserved() | ReserveGOT);
@@ -564,12 +564,12 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
 
     if (config().isCodeStatic() || (config().isBuildingExecutable() &&
                                     !m_Target.isSymbolPreemptible(*rsym))) {
-      AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+      AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       G->setValueType(GOT::TLSStaticSymbolValue);
       return;
     }
-    AArch64GOT *G = m_Target.createGOT(GOT::TLS_DESC, Obj, rsym);
+    AArch64GOT *G = m_Target.createGOT(GOT::TLS_DESC, rsym);
     helper_DynRel_init(Obj, &pReloc, rsym, G->getFirst(), 0x0,
                        llvm::ELF::R_AARCH64_TLSDESC, m_Target);
     rsym->setReserved(rsym->reserved() | ReserveGOT);
@@ -1373,7 +1373,7 @@ void AArch64Relocator::handleScanForNonPreemptibleIFunc(Relocation &R,
     RI->setIFuncDirectRef();
   if (RI->reserved() & Relocator::ReservePLT)
     return;
-  m_Target.createPLT(Obj, RI, /*isIRelative=*/true);
+  m_Target.createPLT(RI, /*isIRelative=*/true);
   RI->setReserved(RI->reserved() | Relocator::ReservePLT);
 }
 

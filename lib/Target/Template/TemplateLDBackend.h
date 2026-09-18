@@ -45,14 +45,14 @@ public:
   void initializeAttributes() override;
 
   // ---  GOT Support ------
-  TemplateGOT *createGOT(GOT::GOTType T, ELFObjectFile *Obj, ResolveInfo *sym);
+  TemplateGOT *createGOT(GOT::GOTType T, ResolveInfo *sym);
 
   void recordGOT(ResolveInfo *, TemplateGOT *);
 
   void recordGOTPLT(ResolveInfo *, TemplateGOT *);
 
   // ---------------------  PLT Support ---------------------------
-  TemplatePLT *createPLT(ELFObjectFile *Obj, ResolveInfo *sym);
+  TemplatePLT *createPLT(ResolveInfo *sym);
 
   void recordPLT(ResolveInfo *, TemplatePLT *);
 

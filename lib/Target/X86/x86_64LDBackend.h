@@ -41,7 +41,7 @@ public:
   void initTargetSections(ObjectBuilder &pBuilder) override;
 
   /// Create dynamic input sections in an input file.
-  void initDynamicSections(ELFObjectFile &) override;
+  void initDynamicSections(InputFile &) override;
 
   void initTargetSymbols() override;
 
@@ -74,7 +74,7 @@ public:
   Relocation::Type getCopyRelType() const override;
 
   // ---  GOT Support ------
-  x86_64GOT *createGOT(GOT::GOTType T, ELFObjectFile *Obj, ResolveInfo *sym);
+  x86_64GOT *createGOT(GOT::GOTType T, ResolveInfo *sym);
 
   void recordGOT(ResolveInfo *, x86_64GOT *);
 
@@ -86,8 +86,7 @@ public:
   // Create a PLT entry for a symbol. If isIRelative is true, emit an
   // IRELATIVE relocation targeting the GOTPLT slot and build a PLT entry
   // suitable for eager binding (no PLT0 back-edge).
-  x86_64PLT *createPLT(ELFObjectFile *Obj, ResolveInfo *sym,
-                       bool isIRelative = false);
+  x86_64PLT *createPLT(ResolveInfo *sym, bool isIRelative = false);
 
   void recordPLT(ResolveInfo *, x86_64PLT *);
 

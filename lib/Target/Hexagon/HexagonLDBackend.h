@@ -75,7 +75,7 @@ public:
 
   void initTargetSections(ObjectBuilder &pBuilder) override;
 
-  void initDynamicSections(ELFObjectFile &) override;
+  void initDynamicSections(InputFile &) override;
 
   void initTargetSymbols() override;
 
@@ -218,7 +218,7 @@ public:
   void recordTLSStub(std::string stubName, HexagonTLSStub *T);
 
   // ---  GOT Support ------
-  HexagonGOT *createGOT(GOT::GOTType T, ELFObjectFile *Obj, ResolveInfo *sym);
+  HexagonGOT *createGOT(GOT::GOTType T, ResolveInfo *sym);
 
   void recordGOT(ResolveInfo *, HexagonGOT *);
 
@@ -227,7 +227,7 @@ public:
   HexagonGOT *findEntryInGOT(ResolveInfo *) const;
 
   // ---  PLT Support ------
-  HexagonPLT *createPLT(ELFObjectFile *Obj, ResolveInfo *sym);
+  HexagonPLT *createPLT(ResolveInfo *sym);
 
   void recordPLT(ResolveInfo *, HexagonPLT *);
 

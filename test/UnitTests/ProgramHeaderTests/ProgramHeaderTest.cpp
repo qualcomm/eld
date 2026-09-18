@@ -12,7 +12,6 @@
 #include "eld/Core/LinkerScript.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
-#include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/Input.h"
 #include "eld/Input/InputFile.h"
 #include "eld/Input/ZOption.h"
@@ -47,12 +46,7 @@ public:
 
 class FakeBackend final : public GNULDBackend {
 public:
-  FakeBackend(Module &M, TargetInfo *Info) : GNULDBackend(M, Info) {
-    m_DynamicSectionHeadersInputFile =
-        llvm::dyn_cast<ELFObjectFile>(m_Module.createInternalInputFile(
-            make<Input>("Dynamic section headers", config().getDiagEngine()),
-            /*CreateElfObjectFile=*/true));
-  }
+  FakeBackend(Module &M, TargetInfo *Info) : GNULDBackend(M, Info) {}
 
   bool finalizeTargetSymbols() override { return true; }
   Relocator *getRelocator() const override { return nullptr; }
