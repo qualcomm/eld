@@ -43,7 +43,7 @@
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/ErrorHandling.h"
-
+#include "llvm/Support/ThreadPool.h"
 using namespace llvm;
 using namespace llvm::ELF;
 using namespace eld;
@@ -237,29 +237,58 @@ ELFObjectWriter::writeObject(llvm::FileOutputBuffer &CurOutput) {
                          ThisModule.getConfig().options().printTimingStats());
     // Write out regular ELF sections
     Module::iterator Sect, SectEnd = ThisModule.end();
-    for (Sect = ThisModule.begin(); Sect != SectEnd; ++Sect) {
-      OutputSectionEntry *E = (*Sect)->getOutputSection();
-      for (auto &InputRule : *E) {
-        eld::Expected<void> ExpWrite =
-            writeSection(CurOutput, InputRule->getSection());
+    if (ThisModule.getConfig().options().numThreads() <= 1 ||
+        !ThisModule.getConfig().isEmitOutputMultiThreaded()) {
+      if (ThisModule.getPrinter()->traceThreads())
+        ThisModule.getConfig().raise(Diag::threads_disabled) << "EmitOutput";
+      for (Sect = ThisModule.begin(); Sect != SectEnd; ++Sect) {
+        OutputSectionEntry *E = (*Sect)->getOutputSection();
+        for (auto &InputRule : *E) {
+          eld::Expected<void> ExpWrite =
+              writeSection(CurOutput, InputRule->getSection());
+          if (!ExpWrite) {
+            ThisModule.getConfig().raiseDiagEntry(std::move(ExpWrite.error()));
+            return make_error_code(std::errc::not_supported);
+          }
+        }
+      }
+      for (Sect = ThisModule.begin(); Sect != SectEnd; ++Sect) {
+        eld::Expected<void> ExpWrite = writeSection(CurOutput, *Sect);
         if (!ExpWrite) {
           ThisModule.getConfig().raiseDiagEntry(std::move(ExpWrite.error()));
-          // FIXME: Change return type of this function from std::error_code
-          // to eld::Expected<void>.
-          // Return generic error-code. The actual error is already reported.
           return make_error_code(std::errc::not_supported);
         }
       }
-    }
-    for (Sect = ThisModule.begin(); Sect != SectEnd; ++Sect) {
-      eld::Expected<void> ExpWrite = writeSection(CurOutput, *Sect);
-      if (!ExpWrite) {
-        ThisModule.getConfig().raiseDiagEntry(std::move(ExpWrite.error()));
-        // FIXME: Change return type of this function from std::error_code
-        // to eld::Expected<void>.
-        // Return generic error-code. The actual error is already reported.
-        return make_error_code(std::errc::not_supported);
+    } else {
+      if (ThisModule.getPrinter()->traceThreads())
+        ThisModule.getConfig().raise(Diag::threads_enabled)
+            << "EmitOutput" << ThisModule.getConfig().options().numThreads();
+      llvm::ThreadPoolInterface *Pool = ThisModule.getThreadPool();
+      for (Sect = ThisModule.begin(); Sect != SectEnd; ++Sect) {
+        Pool->async([this, Sect, &CurOutput] {
+          OutputSectionEntry *E = (*Sect)->getOutputSection();
+          for (auto &InputRule : *E) {
+            eld::Expected<void> ExpWrite =
+                writeSection(CurOutput, InputRule->getSection());
+            if (!ExpWrite)
+              ThisModule.getConfig().raiseDiagEntry(
+                  std::move(ExpWrite.error()));
+          }
+        });
       }
+      Pool->wait();
+      if (!ThisModule.getConfig().getDiagEngine()->diagnose())
+        return make_error_code(std::errc::not_supported);
+      for (Sect = ThisModule.begin(); Sect != SectEnd; ++Sect) {
+        Pool->async([this, Sect, &CurOutput] {
+          eld::Expected<void> ExpWrite = writeSection(CurOutput, *Sect);
+          if (!ExpWrite)
+            ThisModule.getConfig().raiseDiagEntry(std::move(ExpWrite.error()));
+        });
+      }
+      Pool->wait();
+      if (!ThisModule.getConfig().getDiagEngine()->diagnose())
+        return make_error_code(std::errc::not_supported);
     }
 
     emitShStrTab(ThisModule.getBackend().getShStrTab(), CurOutput);
