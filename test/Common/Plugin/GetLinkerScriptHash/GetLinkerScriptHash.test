@@ -1,0 +1,41 @@
+REQUIRES: shell
+#---GetLinkerScriptHash.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Tests plugin::LinkerScript::getHash(). Hashing is enabled by
+# --flto-options=cache. The combined hash is a 40-character SHA1 hex string of
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+
+## Same script, two links: identical 40-hex hash, on stdout and in the map file.
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t.same1.out --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache 2>&1 | %filecheck %s --check-prefix=HASH
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t.same2.out --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache -Map %t.same2.map > %t.hash1 2>&1
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t.same3.out --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache -Map %t.same3.map > %t.hash2 2>&1
+RUN: %diff %t.hash1 %t.hash2
+RUN: %grep "Linker script hash:" %t.same2.map | %filecheck %s --check-prefix=MAPHASH
+RUN: %grep "Linker script hash:" %t.same3.map > %t.maphash1
+RUN: %grep "Linker script hash:" %t.same2.map > %t.maphash2
+RUN: %diff %t.maphash1 %t.maphash2
+
+## Different contents at the same script path: different hashes, on stdout and
+## in the map file.
+RUN: %cp %p/Inputs/script.t %t.script
+RUN: %link %linkopts %t1.o -T %t.script -o %t.diff1.out --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache -Map %t.diff1.map > %t.hashA 2>&1
+RUN: %cp %p/Inputs/script.Other.t %t.script
+RUN: %link %linkopts %t1.o -T %t.script -o %t.diff2.out --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache -Map %t.diff2.map > %t.hashB 2>&1
+RUN: %not %diff %t.hashA %t.hashB
+RUN: %grep "Linker script hash:" %t.diff1.map > %t.mapHashA
+RUN: %grep "Linker script hash:" %t.diff2.map > %t.mapHashB
+RUN: %not %diff %t.mapHashA %t.mapHashB
+
+## INCLUDE file contents participate in the hash.
+RUN: %mkdir %t.incdir
+RUN: %cp %p/Inputs/script.WithInclude.t %t.incdir/script.t
+RUN: %cp %p/Inputs/extra.t %t.incdir/extra.t
+RUN: %link %linkopts %t1.o -T %t.incdir/script.t -L %t.incdir -o %t.inc1.out --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache > %t.hashInc1 2>&1
+RUN: %cp %p/Inputs/extra.Other.t %t.incdir/extra.t
+RUN: %link %linkopts %t1.o -T %t.incdir/script.t -L %t.incdir -o %t.inc2.out --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache > %t.hashInc2 2>&1
+RUN: %not %diff %t.hashInc1 %t.hashInc2
+#HASH: linker script hash: {{([0-9A-F]{40})}}
+#MAPHASH: Linker script hash: {{([0-9A-F]{40})}}
+#END_TEST
