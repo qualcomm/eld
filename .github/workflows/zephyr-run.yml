@@ -30,6 +30,11 @@ on:
         required: false
         type: string
         default: "tests"
+      quarantine_verify:
+        description: "Run quarantined scenarios and require every selected result to fail"
+        required: false
+        type: boolean
+        default: false
       toolset_run_id:
         description: "Workflow run id to download the ELD toolset artifact from"
         required: true
@@ -291,27 +296,53 @@ jobs:
           BOARD: ${{ inputs.board }}
           TEST_SCOPE: ${{ inputs.test_scope }}
           EXTRA_ARGS: ${{ inputs.extra_args }}
+          QUARANTINE_LIST: ${{ github.workspace }}/llvm-project/llvm/tools/eld/.github/zephyr-quarantine.yml
+          QUARANTINE_VERIFY: ${{ inputs.quarantine_verify }}
         run: |
           cd zephyr
           source zephyr-env.sh
           export ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/
           export LLVM_TOOLCHAIN_PATH=${CPULLVM_DIR}
-          west twister -W -p "$BOARD" \
-            -T "$TEST_SCOPE" \
-            --quarantine-list "$GITHUB_WORKSPACE/llvm-project/llvm/tools/eld/.github/zephyr-quarantine.yml" \
-            -M pass \
-            --inline-logs \
-            --timestamps \
-            -j 3 \
-            -v \
-            --retry-failed 2 \
-            --retry-interval 10 \
-            -x=ZEPHYR_TOOLCHAIN_VARIANT=${TOOLCHAIN_VARIANT} \
-            $ELD_SELECT_TWISTER_ARGS \
-            ${ARM_SYSROOT:+-x=SYSROOT_DIR=$ARM_SYSROOT} \
-            ${ARM_SYSROOT:+-x=CMAKE_C_FLAGS=$ARM_CFLAGS} \
-            ${ARM_SYSROOT:+-x=CMAKE_CXX_FLAGS=$ARM_CFLAGS} \
-            ${EXTRA_ARGS:+-x="$EXTRA_ARGS"}
+          run_twister() {
+            west twister -W -p "$BOARD" \
+              -T "$TEST_SCOPE" \
+              --quarantine-list "$QUARANTINE_LIST" \
+              -M pass \
+              --inline-logs \
+              --timestamps \
+              -j 3 \
+              -v \
+              --retry-failed 2 \
+              --retry-interval 10 \
+              -x=ZEPHYR_TOOLCHAIN_VARIANT=${TOOLCHAIN_VARIANT} \
+              $ELD_SELECT_TWISTER_ARGS \
+              ${ARM_SYSROOT:+-x=SYSROOT_DIR=$ARM_SYSROOT} \
+              ${ARM_SYSROOT:+-x=CMAKE_C_FLAGS=$ARM_CFLAGS} \
+              ${ARM_SYSROOT:+-x=CMAKE_CXX_FLAGS=$ARM_CFLAGS} \
+              ${EXTRA_ARGS:+-x="$EXTRA_ARGS"} \
+              "$@"
+          }
+
+          run_twister
+
+          if [ "$QUARANTINE_VERIFY" = "true" ]; then
+            run_twister \
+              -O twister-quarantine-verify-out \
+              --quarantine-verify \
+              || true
+
+            python3 - <<'PY'
+          import json
+          import sys
+          suites = json.load(open("twister-quarantine-verify-out/twister.json"))["testsuites"]
+          unexpected = [s for s in suites if s.get("status") not in {"failed", "error"}]
+          print(f"Quarantine verification: {len(suites)} suites, {len(unexpected)} unexpected")
+          for suite in unexpected:
+              print(f"::error::Quarantined test did not fail: {suite.get('name')} "
+                    f"on {suite.get('platform')}: {suite.get('status')}")
+          sys.exit(bool(unexpected))
+          PY
+          fi
 
       - name: Upload twister results
         if: always()
@@ -323,6 +354,8 @@ jobs:
           path: |
             zephyr/twister-out/twister.log
             zephyr/twister-out/twister.json
+            zephyr/twister-quarantine-verify-out/twister.log
+            zephyr/twister-quarantine-verify-out/twister.json
 
       - name: ccache stats (after build)
         if: always()
