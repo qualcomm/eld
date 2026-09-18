@@ -14,6 +14,8 @@
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
 
+#include <algorithm>
+#include <limits>
 using namespace eld;
 
 //===--------------------------------------------------------------------===//
@@ -570,19 +572,35 @@ Relocator::Result VerifyRelocAsNeededHelper(
 void x86_64Relocator::computeTLSOffsets() {
   std::vector<ELFSegment *> tlsSegments =
       getTarget().elfSegmentTable().getSegments(llvm::ELF::PT_TLS);
-
-  if (tlsSegments.empty()) {
+  if (tlsSegments.empty())
     return;
+
+  // The x86-64 TPOFF value is relative to the thread pointer.  With TLS
+  // Variant 2, the thread pointer is placed after the complete TLS image,
+  // rounded up to the required alignment.  A linker script may produce more
+  // than one PT_TLS segment, so use the complete span rather than one
+  // segment's memsz.  Empty PT_TLS segments do not contribute to the image.
+  bool hasNonEmptySegment = false;
+  uint64_t lo = std::numeric_limits<uint64_t>::max();
+  uint64_t hi = 0;
+  uint64_t alignment = 1;
+  for (ELFSegment *Segment : tlsSegments) {
+    if (Segment->memsz() == 0)
+      continue;
+
+    const uint64_t segmentEnd = Segment->vaddr() + Segment->memsz();
+    lo = std::min(lo, Segment->vaddr());
+    hi = std::max(hi, segmentEnd);
+    alignment = std::max(alignment, Segment->align());
+    hasNonEmptySegment = true;
   }
 
-  ASSERT(tlsSegments.size() == 1,
-         "Multiple TLS segments not supported in x86_64 backend");
+  if (!hasNonEmptySegment)
+    return;
 
-  ELFSegment *tlsSegment = tlsSegments[0];
-  uint64_t templateSize = tlsSegment->memsz();
-  uint64_t alignment = tlsSegment->align();
-  templateSize = llvm::alignTo(templateSize, alignment);
-  GNULDBackend::setTLSTemplateSize(templateSize);
+  const uint64_t alignedEnd = llvm::alignTo(hi, alignment);
+  const uint64_t threadPointerOffset = alignedEnd - lo;
+  GNULDBackend::setTLSTemplateSize(threadPointerOffset);
 }
 
 template <typename T>
