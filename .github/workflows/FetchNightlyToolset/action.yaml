@@ -12,24 +12,89 @@ runs:
           const workflowId = 'nightly-test.yml';
           const owner = context.repo.owner;
           const repo = context.repo.repo;
-          const status = 'success';
-          const resp = await github.rest.actions.listWorkflowRuns({
+          const artifactName = 'install-nightly-toolchain.tar.xz';
+          let selectedRun;
+
+          # Prefer the durable pointer published by nightly-test.yml. This
+          # identifies the intended run even when artifact/workflow listings
+          # are temporarily incomplete; discovery below remains a fallback
+          # for older runs created before the pointer existed.
+          try {
+            const variable = await github.rest.actions.getRepoVariable({
+              owner,
+              repo,
+              name: 'NIGHTLY_TOOLSET_RUN_ID',
+            });
+            const runId = Number(variable.data.value);
+            core.info(`Found published nightly toolset run id: ${runId}`);
+            const run = await github.rest.actions.getWorkflowRun({
+              owner,
+              repo,
+              run_id: runId,
+            });
+
+            if (
+              run.data.path === `.github/workflows/${workflowId}` &&
+              run.data.conclusion === 'success' &&
+              run.data.head_branch === 'main'
+            ) {
+              core.info(`Using published nightly run id: ${run.id}, run_number: ${run.data.run_number}`);
+              core.setOutput('run_id', String(run.id));
+              return;
+            }
+
+            core.warning(`Published nightly run ${runId} is not a successful main-branch ${workflowId} run; falling back to discovery.`);
+          } catch (error) {
+            if (error.status === 404) {
+              core.info('No published nightly toolset run id found; falling back to discovery.');
+            } else {
+              core.warning(`Could not read the published nightly toolset run id: ${error.message}; falling back to discovery.`);
+            }
+          }
+
+          # Fallback
+          for (let attempt = 1; attempt <= 5 && !selectedRun; attempt++) {
+            const resp = await github.rest.actions.listWorkflowRuns({
               owner,
               repo,
               workflow_id: workflowId,
-              status,
-              per_page: 1, // we only need the latest
-              page: 1
+              branch: 'main',
+              status: 'completed',
+              per_page: 100,
+              page: 1,
             });
-          if (!resp.data.workflow_runs || resp.data.workflow_runs.length === 0) {
-              core.setFailed(`No runs found for workflow "${workflowId}" on
-                branch "${branch}" with status "${status}".`);
-              return;
+
+            const successfulRuns = (resp.data.workflow_runs || [])
+              .filter(run => run.conclusion === 'success')
+              .sort((a, b) => b.run_number - a.run_number);
+
+            for (const run of successfulRuns) {
+              const artifacts = await github.paginate(
+                github.rest.actions.listWorkflowRunArtifacts,
+                { owner, repo, run_id: run.id, per_page: 100 }
+              );
+              const artifact = artifacts.find(
+                candidate => candidate.name === artifactName && !candidate.expired
+              );
+              if (artifact) {
+                selectedRun = run;
+                break;
+              }
             }
-            const run = resp.data.workflow_runs[0];
-            core.info(`Latest run id: ${run.id}, run_number: ${run.run_number},
-              conclusion: ${run.conclusion}`);
-            core.setOutput('run_id', String(run.id));
+
+            if (!selectedRun && attempt < 5) {
+              core.info(`No usable successful nightly run found on attempt ${attempt}; retrying.`);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          }
+
+          if (!selectedRun) {
+            core.setFailed(`No successful ${workflowId} run on main contains artifact "${artifactName}".`);
+            return;
+          }
+
+          core.info(`Using nightly run id: ${selectedRun.id}, run_number: ${selectedRun.run_number}, branch: ${selectedRun.head_branch}`);
+          core.setOutput('run_id', String(selectedRun.id));
 
     - name: Download toolset
       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c #v8.0.1

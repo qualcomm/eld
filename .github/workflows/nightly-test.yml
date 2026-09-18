@@ -308,6 +308,41 @@ jobs:
           arch-name: "all"
           branch-name: "${{env.BUILD_BRANCH}}"
 
+      # Publish a durable pointer after the toolset has been built, tested, and
+      # the build status has been recorded. Consumers can use this exact run
+      # instead of relying on the workflow-runs API listing being complete.
+      - name: Publish nightly toolset run id
+        if: github.ref == 'refs/heads/main'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const name = 'NIGHTLY_TOOLSET_RUN_ID';
+            const value = String(context.runId);
+            const { owner, repo } = context.repo;
+
+            try {
+              await github.rest.actions.updateRepoVariable({
+                owner,
+                repo,
+                name,
+                value,
+              });
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+
+              await github.rest.actions.createRepoVariable({
+                owner,
+                repo,
+                name,
+                value,
+              });
+            }
+
+            core.info(`Published ${name}=${value}`);
+
       - name: Delete older nightly toolchains
         continue-on-error: true
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts
