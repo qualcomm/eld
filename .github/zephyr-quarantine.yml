@@ -41,6 +41,11 @@
     Forces rv32imafdc / -mabi=ilp32d and we have no matching multilib (yet).
 - scenarios:
   - filesystem.lib_link
+  platforms:
+  - qemu_riscv32/.*
+  - qemu_riscv32_xip/.*
+  - qemu_riscv64/.*
+  - qemu_cortex_a53/.*
   comment: >-
     zephyr/subsys/fs/ext2/ext2_impl.c declares `strchrnul` static, colliding
     with picolibc <string.h>'s non-static declaration.
@@ -68,19 +73,6 @@
     These tests require PICOLIBC_USE_MODULE=y but our `-x` merges last and
     forces PICOLIBC_USE_TOOLCHAIN. TODO: apply the libc `-x` per board
     instead of globally, then drop this entry.
-
-- scenarios:
-  - net.socket.offload.dispatcher
-  - net.socket.register.tls
-  - net.socket.tls
-  - net.socket.tls.no_dtls_cid
-  - net.socket.tls.preempt
-  - net.socket.tls.sendmsg_no_buf
-  - net.tls_credentials.volatile.parse_crt
-  platforms:
-  - qemu_riscv64/.*
-  comment: >-
-    -Werror,-Wuninitialized-const-pointer
 
 - scenarios:
   - arch.riscv.fpu_sharing
@@ -121,21 +113,10 @@
   comment: >-
     This checks for modules we don't install/test.
 
-- scenarios:
-  - buildsystem.app_dev.code_relocation.no_itcm
-  platforms:
-  - qemu_cortex_m3/.*
-  comment: >-
-    `linker_arm_sram2.ld:42:10: fatal error: 'linker.ld' file not found`. The
-    ELD support patch's configure_linker_script does not pass the SOC linker
-    script's directory as an include path the way cmake/linker/ld/target.cmake
-    does, so the preprocessor cannot resolve `#include <linker.ld>`. Fix belongs
-    in the ELD support patch.
-
 # Lookaheads exclude the variants that pass. They are tied to the ARM job's
 # libc config, so recheck them if that changes.
 - scenarios:
-  - logging\.deferred\.api\.(?!.*(?:rt_filter|rt_filtering)).*
+  - logging\.deferred\.api\.(?!.*(?:rt_filter|rt_filtering))(?!printk(?:_cpp)?(?:\.tagged_args)?$).*
   - logging\.frontend(?!.*(?:rt_filter|rt_filtering|immediate)).*
   platforms:
   - qemu_cortex_m3/.*
@@ -153,7 +134,8 @@
     GCC+ELD passes.
 
 - scenarios:
-  - libraries\.heap_stats_log(\..*)?
+  - libraries\.heap_stats_log(?:\.(?!no_thread_stats$).*)?$
+  - libraries\.heap_stats_log\.no_thread_stats
   platforms:
   - qemu_cortex_m3/.*
   comment: >-
