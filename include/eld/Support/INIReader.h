@@ -26,12 +26,6 @@ public:
   INIReaderSection(std::string SectionName) : sectionName(SectionName) {}
   ~INIReaderSection() = default;
 
-  std::string &operator[](std::string item) { // TODO make this private
-    if (section.find(item) == section.end())
-      section[item] = "";
-    return section[item];
-  }
-
   friend std::ostream &operator<<(std::ostream &os, INIReaderSection const &m) {
     for (auto pair : m.section)
       os << pair.first << '=' << pair.second << "\n";
@@ -46,6 +40,20 @@ public:
 
   /// \returns a vector of all key value pairs in this section
   std::vector<std::pair<std::string, std::string>> getItems();
+
+  /// Returns the value associated with an existing item.
+  const std::string &getItem(const std::string &item) const {
+    return section.at(item);
+  }
+
+private:
+  // Keep mutation through the named addItem API rather than exposing the
+  // underlying map-like interface.
+  std::string &operator[](std::string item) {
+    if (section.find(item) == section.end())
+      section[item] = "";
+    return section[item];
+  }
 
 private:
   std::unordered_map<std::string, std::string> section;

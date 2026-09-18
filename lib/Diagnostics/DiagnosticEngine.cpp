@@ -210,13 +210,21 @@ plugin::DiagnosticEntry::Severity DiagnosticEngine::getDiagEntrySeverity(
     ADD_CASE(Warning);
     ADD_CASE(Error);
     ADD_CASE(Fatal);
-  default:
-    // FIXME: This is required because currently there are fewer diagnostic
-    // severity in DiagnosticEntry::Severity than the
-    // DiagnosticEngine::Severity.
-    llvm_unreachable("Unexpected severity!");
 #undef ADD_CASE
+  case eld::DiagnosticEngine::Debug:
+  case eld::DiagnosticEngine::Trace:
+    return plugin::DiagnosticEntry::Severity::Verbose;
+  case eld::DiagnosticEngine::CriticalWarning:
+    return plugin::DiagnosticEntry::Severity::Warning;
+  case eld::DiagnosticEngine::Remark:
+    return plugin::DiagnosticEntry::Severity::Note;
+  case eld::DiagnosticEngine::Ignore:
+    return plugin::DiagnosticEntry::Severity::None;
+  case eld::DiagnosticEngine::InternalError:
+  case eld::DiagnosticEngine::Unreachable:
+    return plugin::DiagnosticEntry::Severity::Fatal;
   }
+  llvm_unreachable("Unexpected severity!");
 }
 
 void DiagnosticEngine::ignoreLLVMError(llvm::Error E) {
