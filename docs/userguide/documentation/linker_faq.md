@@ -328,6 +328,7 @@ hexagon-link 1.o 2.o --allow-multiple-definition
 - Initialising the value of linker symbol "start"
 - Specifying the start address for the first input section in linker script
   (eg: .text : AT(0))
+- When multiple -e options are given, the last one takes effect.
 
 ### How to obtain a non-executable stack
 
