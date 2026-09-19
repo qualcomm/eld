@@ -40,7 +40,7 @@ class LinkerScript;
 } // namespace eld
 
 // Create OptTable class for parsing actual command line arguments
-class OPT_GnuLdOptTable : public llvm::opt::GenericOptTable {
+class OPT_GnuLdOptTable : public llvm::opt::OptTable {
 public:
   enum {
     INVALID = 0,

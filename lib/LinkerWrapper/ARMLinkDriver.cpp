@@ -21,46 +21,11 @@ using namespace llvm;
 using namespace llvm::opt;
 using namespace eld;
 
-#define OPTTABLE_STR_TABLE_CODE
+#define OPTTABLE_CODE
 #include "eld/Driver/ARMLinkerOptions.inc"
-#undef OPTTABLE_STR_TABLE_CODE
-
-#define OPTTABLE_PREFIXES_TABLE_CODE
-#include "eld/Driver/ARMLinkerOptions.inc"
-#undef OPTTABLE_PREFIXES_TABLE_CODE
-
-static constexpr llvm::opt::OptTable::Info infoTable[] = {
-#define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
-               ALIASARGS, FLAGS, VISIBILITY, PARAM, HELPTEXT,                  \
-               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)                          \
-  LLVM_CONSTRUCT_OPT_INFO(                                                     \
-      PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ARMLinkOptTable::ID, KIND,        \
-      ARMLinkOptTable::GROUP, ARMLinkOptTable::ALIAS, ALIASARGS, FLAGS,        \
-      VISIBILITY, PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET),
-#include "eld/Driver/ARMLinkerOptions.inc"
-#undef OPTION
-};
-
-std::optional<Triple>
-ARMLinkDriver::ParseEmulation(std::string pEmulation,
-                              DiagnosticEngine *DiagEngine) {
-  // armelf_linux_androideabi -- used for android emulation.
-  std::optional<Triple> result =
-      StringSwitch<std::optional<Triple>>(pEmulation)
-          .Case("aarch64linux", Triple("aarch64", "", "linux", "gnu"))
-          .Case("aarch64linux_androideabi",
-                Triple("aarch64", "", "linux", "androideabi"))
-          .Case("armelf_linux_eabi", Triple("arm", "", "linux", "gnueabi"))
-          .Case("armelf_linux_androideabi",
-                Triple("arm", "", "linux", "androideabi"))
-          .Case("armelf", Triple("arm", "", "", ""))
-          .Case("aarch64elf", Triple("aarch64", "", "", ""))
-          .Default(std::nullopt);
-  return result;
-}
 
 OPT_ARMLinkOptTable::OPT_ARMLinkOptTable()
-    : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
+    : OptTable(optionTables()) {}
 
 ARMLinkDriver *ARMLinkDriver::Create(eld::LinkerConfig &C,
                                      std::string InferredArch) {
