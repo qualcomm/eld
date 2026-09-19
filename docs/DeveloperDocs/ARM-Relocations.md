@@ -78,8 +78,11 @@ movt r0, #:upper16:symbol   @ R_ARM_THM_MOVT_ABS
 | `R_ARM_LDR_PC_G2` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
 | `R_ARM_LDR_PC_G0` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
 | `R_ARM_THM_PC8` | `S + A - Pa` | imm8:00 (bits 7:0) | [0, 1023], 4-byte aligned |
+| `R_ARM_THM_PC12` | `((S + A) \| T) - Pa` | U:imm12 | [-4095, 4095] |
 
 `R_ARM_THM_PC8` uses `Pa = (P + 4) & ~3` — the Thumb instruction address aligned to the next 4-byte boundary — instead of `P`.
+
+`R_ARM_THM_PC12` uses `Pa = P & ~3`. The sign is encoded with the U bit and the magnitude in imm12.
 
 `R_ARM_SBREL32` uses the same handler as `R_ARM_REL32` but produces a segment-base-relative offset. `R_ARM_PREL31` is used in ARM exception table entries.
 
@@ -164,7 +167,6 @@ The table below lists every relocation that ELD's ARM backend maps to the `unsup
 | 39 | `R_ARM_SBREL31` | Deprecated 31-bit section-relative | |
 | 52 | `R_ARM_THM_JUMP6` | Thumb 6-bit branch (CBZ/CBNZ) | |
 | 53 | `R_ARM_THM_ALU_PREL_11_0` | Thumb-2 ALU PC-relative 11:0 | |
-| 54 | `R_ARM_THM_PC12` | Thumb-2 LDR/STR 12-bit PC-relative | |
 | 55 | `R_ARM_ABS32_NOI` | 32-bit absolute, no interworking bit | |
 | 56 | `R_ARM_REL32_NOI` | 32-bit PC-relative, no interworking bit | |
 | 62 | `R_ARM_LDR_PC_G1` | Group reloc — LDR PC-relative G1 | Implement LDR PC-group |

@@ -1,0 +1,14 @@
+#---R_ARM_THM_PC12.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify R_ARM_THM_PC12 relocation is supported and correctly applied.
+# Formula: S + A - Pa where Pa = P & ~3
+# Thumb-2 32-bit LDR literal instruction, signed range [-4095, 4095]
+# U bit (bit23) controls add/subtract, imm12 in bits[11:0]
+#END_COMMENT
+#START_TEST
+RUN: llvm-mc --triple=thumbv7m-none-eabi --arm-add-build-attributes \
+RUN:   -filetype=obj %p/Inputs/main.s -o %t.o
+RUN: %link %linkopts -march arm %t.o -o %t.out
+RUN: %readelf -x .text %t.out | %filecheck %s
+CHECK: dff804f0
+#END_TEST
