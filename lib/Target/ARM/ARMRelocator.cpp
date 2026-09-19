@@ -1044,6 +1044,64 @@ Relocator::Result thm_pc8(Relocation &pReloc, ARMRelocator &pParent) {
   return Relocator::OK;
 }
 
+Relocator::Result thm_pc12(Relocation &pReloc, ARMRelocator &pParent) {
+  Relocator::Address S = pParent.getSymValue(&pReloc);
+  Relocator::Address P = pReloc.place(pParent.module());
+  Relocator::Address Pa = P & ~3;
+
+  // 32-bit Thumb instruction stored as two 16-bit halfwords.
+  uint16_t upper_inst =
+      *(reinterpret_cast<uint16_t *>(&pReloc.target()));
+  uint16_t lower_inst =
+      *(reinterpret_cast<uint16_t *>(&pReloc.target()) + 1);
+
+  // LDR (literal) T2:
+  // U bit is bit[7] of the upper halfword.
+  // imm12 is bits[11:0] of the lower halfword.
+  bool u = upper_inst & 0x0080;
+  uint32_t imm12 = lower_inst & 0x0fff;
+
+  // Extract the implicit signed addend from the instruction.
+  int64_t A = u ? static_cast<int64_t>(imm12)
+                : -static_cast<int64_t>(imm12);
+  A += pReloc.addend();
+
+  // Thumb state bit.
+  Relocator::DWord T =
+      getThumbBit(pParent, pReloc, /*IsJump*/ false);
+
+  // R_ARM_THM_PC12:
+  // X = ((S + A) | T) - Pa
+  int64_t val =
+      static_cast<int64_t>((S + A) | T) -
+      static_cast<int64_t>(Pa);
+
+  // Match LLD: ignore Thumb bit after forming the displacement.
+  if (T)
+    val &= ~0x1;
+
+  uint16_t u_bit = 0x0080;
+  if (val < 0) {
+    val = -val;
+    u_bit = 0;
+  }
+
+  // imm12 must fit in 12 bits.
+  if (val > 0xfff) {
+    pReloc.issueUnsignedOverflow(pParent, val, 0, 0xfff);
+    return ARMRelocator::Overflow;
+  }
+
+  // Encode U and imm12 back into the Thumb-32 instruction.
+  upper_inst = (upper_inst & 0xff7f) | u_bit;
+  lower_inst = (lower_inst & 0xf000) | static_cast<uint16_t>(val);
+
+  *(reinterpret_cast<uint16_t *>(&pReloc.target())) = upper_inst;
+  *(reinterpret_cast<uint16_t *>(&pReloc.target()) + 1) = lower_inst;
+
+  return Relocator::OK;
+}
+
 // R_ARM_ABS32: (S + A) | T
 Relocator::Result abs32(Relocation &pReloc, ARMRelocator &pParent) {
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
