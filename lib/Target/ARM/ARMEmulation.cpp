@@ -13,8 +13,10 @@
 #include "ARM.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Core/LinkerScript.h"
+#include "eld/Input/ELDDirectory.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/Target/ELFEmulation.h"
+#include "llvm/Support/FileSystem.h"
 
 namespace eld {
 
@@ -23,7 +25,27 @@ static bool ELDEmulateARMELF(LinkerScript &pScript, LinkerConfig &pConfig) {
   pConfig.targets().setEndian(TargetOptions::Little);
   pConfig.targets().setBitClass(32);
 
-  return (ELDEmulateELF(pScript, pConfig));
+  if (!ELDEmulateELF(pScript, pConfig))
+    return false;
+
+  if (pConfig.options().nostdlib())
+    return true;
+
+  auto Sysroot = pConfig.directories().hasSysRoot()
+                     ? pConfig.directories().sysroot().native()
+                     : "";
+
+  static const char *ARMDirs[] = {
+      "=/usr/local/lib/arm-linux-gnueabihf",
+      "=/lib/arm-linux-gnueabihf",
+      "=/usr/lib/arm-linux-gnueabihf",
+  };
+  for (const char *Dir : ARMDirs) {
+    auto EldDir = ELDDirectory(Dir, Sysroot);
+    if (llvm::sys::fs::is_directory(EldDir.name()))
+      pConfig.directories().insert(Dir);
+  }
+  return true;
 }
 
 //===----------------------------------------------------------------------===//
