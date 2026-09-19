@@ -56,28 +56,11 @@ using namespace llvm;
 using namespace llvm::opt;
 using namespace eld;
 
-#define OPTTABLE_STR_TABLE_CODE
+#define OPTTABLE_CODE
 #include "eld/Driver/GnuLinkerOptions.inc"
-#undef OPTTABLE_STR_TABLE_CODE
-
-#define OPTTABLE_PREFIXES_TABLE_CODE
-#include "eld/Driver/GnuLinkerOptions.inc"
-#undef OPTTABLE_PREFIXES_TABLE_CODE
-
-static constexpr llvm::opt::OptTable::Info infoTable[] = {
-#define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
-               ALIASARGS, FLAGS, VISIBILITY, PARAM, HELPTEXT,                  \
-               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)                          \
-  LLVM_CONSTRUCT_OPT_INFO(                                                     \
-      PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, GnuLdOptTable::ID, KIND,          \
-      GnuLdOptTable::GROUP, GnuLdOptTable::ALIAS, ALIASARGS, FLAGS,            \
-      VISIBILITY, PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET),
-#include "eld/Driver/GnuLinkerOptions.inc"
-#undef OPTION
-};
 
 OPT_GnuLdOptTable::OPT_GnuLdOptTable()
-    : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
+    : OptTable(optionTables()) {}
 
 GnuLdDriver::GnuLdDriver(LinkerConfig &C, DriverFlavor F)
     : Config(C), DiagEngine(C.getDiagEngine()), m_Script(DiagEngine),

@@ -20,41 +20,11 @@ using namespace llvm;
 using namespace llvm::opt;
 using namespace eld;
 
-#define OPTTABLE_STR_TABLE_CODE
+#define OPTTABLE_CODE
 #include "eld/Driver/TemplateLinkerOptions.inc"
-#undef OPTTABLE_STR_TABLE_CODE
-
-#define OPTTABLE_PREFIXES_TABLE_CODE
-#include "eld/Driver/TemplateLinkerOptions.inc"
-#undef OPTTABLE_PREFIXES_TABLE_CODE
-
-static constexpr llvm::opt::OptTable::Info infoTable[] = {
-#define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
-               ALIASARGS, FLAGS, VISIBILITY, PARAM, HELPTEXT,                  \
-               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)    \
-  LLVM_CONSTRUCT_OPT_INFO(                                                     \
-      PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, TemplateLinkOptTable::ID, KIND,   \
-      TemplateLinkOptTable::GROUP, TemplateLinkOptTable::ALIAS, ALIASARGS,     \
-      FLAGS, VISIBILITY, PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR,       \
-      VALUES, SUBCOMMANDIDS_OFFSET),
-#include "eld/Driver/TemplateLinkerOptions.inc"
-#undef OPTION
-};
-
-static Triple ParseEmulation(std::string pEmulation, Triple &triple,
-                             DiagnosticEngine *DiagEngine) {
-  Triple result = StringSwitch<Triple>(pEmulation)
-                      .Case("elf32lriscv", Triple("riscv32", "", "", ""))
-                      .Case("elf64lriscv", Triple("riscv64", "", "", ""))
-                      .Default(Triple("unknown", "", "", ""));
-  // Report invalid emulation error for unknown emulation.
-  if (result.getArchName() == "unknown")
-    DiagEngine->raise(Diag::err_invalid_emulation) << pEmulation << "\n";
-  return result;
-}
 
 OPT_TemplateLinkOptTable::OPT_TemplateLinkOptTable()
-    : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
+    : OptTable(optionTables()) {}
 
 TemplateLinkDriver *TemplateLinkDriver::Create(eld::LinkerConfig &C,
                                                std::string InferredArch) {
