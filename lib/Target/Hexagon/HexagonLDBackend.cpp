@@ -54,27 +54,6 @@
 using namespace eld;
 using namespace llvm;
 
-namespace {
-// It should only be used for emitting diagnostics in
-// HexagonLDBackend::allocateMemoryBlock function.
-static DiagnosticEngine *sDiagEngine = nullptr;
-class PrepareStaticDiagEngine {
-public:
-  PrepareStaticDiagEngine(DiagnosticEngine *diagEngine) {
-    m_Mutex.lock();
-    sDiagEngine = diagEngine;
-  }
-  ~PrepareStaticDiagEngine() {
-    sDiagEngine = nullptr;
-    m_Mutex.unlock();
-  }
-
-private:
-  std::mutex m_Mutex;
-};
-
-} // namespace
-
 //===----------------------------------------------------------------------===//
 // HexagonLDBackend
 //===----------------------------------------------------------------------===//
