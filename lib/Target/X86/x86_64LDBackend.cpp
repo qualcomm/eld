@@ -14,11 +14,9 @@
 #include "eld/Object/ObjectLinker.h"
 #include "eld/Support/MemoryArea.h"
 #include "eld/Support/RegisterTimer.h"
-#include "eld/Support/TargetRegistry.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/ELFDynamic.h"
 #include "eld/Target/ELFSegmentFactory.h"
-#include "x86_64.h"
 #include "x86_64Relocator.h"
 #include "x86_64StandaloneInfo.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -538,12 +536,3 @@ GNULDBackend *createx86_64LDBackend(Module &pModule) {
 }
 
 } // namespace eld
-
-//===----------------------------------------------------------------------===//
-// Force static initialization.
-//===----------------------------------------------------------------------===//
-extern "C" void ELDInitializeX86LDBackend() {
-  // Register the linker backend
-  eld::TargetRegistry::RegisterGNULDBackend(Thex86_64Target,
-                                            createx86_64LDBackend);
-}
