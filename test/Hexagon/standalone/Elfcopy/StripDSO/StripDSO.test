@@ -6,11 +6,34 @@
 RUN: %clang %clangopts -c %p/Inputs/1.c %clangg0opts -fpic -g -o %t1.o
 RUN: %link %linkopts -shared %t1.o -o %t.so
 RUN: %link %linkopts -mtriple=hexagon-unknown-linux  -shared %t1.o -o %t.linux.so
-RUN: %readelf -l %t.so | %grep -v None > %tunstripped
+RUN: %readelf -l %t.so | %filecheck %s
 RUN: %strip %t.so
-RUN: %readelf -l %t.so | %grep -v None > %tstripped
-RUN: diff %tunstripped %tstripped
-RUN: %readelf -l %t.linux.so | %grep -v None > %t.linux.unstripped
+RUN: %readelf -l %t.so | %filecheck %s
+RUN: %readelf -l %t.linux.so | %filecheck --check-prefix="CHECK-LINUX" %s
 RUN: %strip %t.linux.so
-RUN: %readelf -l %t.linux.so | %grep -v None > %t.linux.stripped
-RUN: diff %t.linux.unstripped %t.linux.stripped
+RUN: %readelf -l %t.linux.so | %filecheck --check-prefix="CHECK-LINUX" %s
+
+CHECK: Program Headers:
+CHECK:   Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+CHECK:   LOAD           0x000000 0x00000000 0x00000000 0x000f4 0x000f4 R E 0x1000
+CHECK:   LOAD           0x001000 0x00001000 0x00001000 0x00078 0x00078 RW  0x1000
+CHECK:   DYNAMIC        0x001000 0x00001000 0x00001000 0x00078 0x00078 RW  0x4
+
+CHECK:  Section to Segment mapping:
+CHECK:   Segment Sections...
+CHECK:    00     .dynsym .dynstr .hash .text
+CHECK:    01     .dynamic
+CHECK:    02     .dynamic
+
+
+CHECK-LINUX: Program Headers:
+CHECK-LINUX:   Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+CHECK-LINUX:   LOAD           0x000000 0x00000000 0x00000000 0x000f4 0x000f4 R E 0x10000
+CHECK-LINUX:   LOAD           0x010000 0x00010000 0x00010000 0x00078 0x00078 RW  0x10000
+CHECK-LINUX:   DYNAMIC        0x010000 0x00010000 0x00010000 0x00078 0x00078 RW  0x4
+
+CHECK-LINUX:  Section to Segment mapping:
+CHECK-LINUX:   Segment Sections...
+CHECK-LINUX:    00     .dynsym .dynstr .hash .text
+CHECK-LINUX:    01     .dynamic
+CHECK-LINUX:    02     .dynamic

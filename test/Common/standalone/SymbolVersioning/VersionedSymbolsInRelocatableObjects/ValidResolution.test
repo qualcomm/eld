@@ -5,7 +5,7 @@ REQUIRES: symbol_versioning
 # Each case builds only the objects it needs, links its own tmp .so / .exe,
 # and pipes the resulting symbol tables through FileCheck with a distinct
 # prefix.
-# For every multi-object case, we also link with -Map and grep the map's
+# For every multi-object case, we also link with -Map and inspect the map's
 # `#<Pattern: bar>` section to assert *which* input actually won the
 # resolution — the dyn-syms table shows only the resolved name, not the
 # owning input.
