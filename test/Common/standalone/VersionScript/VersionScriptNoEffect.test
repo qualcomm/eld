@@ -1,0 +1,18 @@
+#---VersionScriptNoEffect.test--- Standalone ---#
+#BEGIN_COMMENT
+# Test that version scripts emit warnings when they have no effect
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -O2 %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c -fpic -O2 %p/Inputs/1.c -o %t1_pic.o
+RUN: %link %linkopts -Wlinker-script -static --entry=main --version-script=%p/Inputs/vs1 -o %t_static.out %t1.o 2>&1 | FileCheck %s --check-prefix=CHECK-WARN
+RUN: %link -Wlinker-script -r --version-script=%p/Inputs/vs1 -o %t_reloc.o %t1.o 2>&1 | FileCheck %s --check-prefix=CHECK-WARN
+RUN: %link -Wlinker-script -pie --entry=main --version-script=%p/Inputs/vs1 -o %t_pie.out %t1_pic.o 2>&1 | FileCheck %s --check-prefix=CHECK-WARN
+RUN: %link -Wlinker-script -static -pie --entry=main --version-script=%p/Inputs/vs1 -o %t_static_pie.out %t1_pic.o 2>&1 | FileCheck %s --check-prefix=CHECK-WARN
+RUN: %link -Wlinker-script -shared -pie --version-script=%p/Inputs/vs1 -o %t_shared_pie.so %t1_pic.o 2>&1 | FileCheck %s --check-prefix=CHECK-WARN
+RUN: %link -Wlinker-script -shared --version-script=%p/Inputs/vs1 -o %t_shared.so %t1_pic.o 2>&1 | FileCheck %s --check-prefix=CHECK-NO-WARN --allow-empty
+RUN: %link -Wlinker-script -static --force-dynamic --entry=main --version-script=%p/Inputs/vs1 -o %t_force.out %t1.o 2>&1 | FileCheck %s --check-prefix=CHECK-NO-WARN --allow-empty
+RUN: %link -Wlinker-script -pie --export-dynamic --entry=main --version-script=%p/Inputs/vs1 -o %t_pie_ed.out %t1_pic.o 2>&1 | FileCheck %s --check-prefix=CHECK-NO-WARN --allow-empty
+#END_TEST
+#CHECK-WARN: {{.*}}vs1: version script has no effect
+#CHECK-NO-WARN-NOT: warning
