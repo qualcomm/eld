@@ -38,7 +38,7 @@ public:
 
   Size getSize(Relocation::Type pType) const override;
 
-  uint32_t getAddend(const Relocation *R) const override {
+  int64_t getAddend(const Relocation *R) const override {
     if (R->symInfo()->isSection())
       return R->target();
     return 0;

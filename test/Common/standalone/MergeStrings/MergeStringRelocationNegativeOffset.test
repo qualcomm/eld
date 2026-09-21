@@ -1,0 +1,13 @@
+UNSUPPORTED: arm
+#---MergeStringRelocationNegativeOffset.test-------- Executable ----------------#
+#BEGIN_COMMENT
+# Relocations to merge-string section symbols with a negative target offset
+# must be diagnosed as an error.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/reloc-negative.s -o %t.reloc-negative.o
+RUN: %not %link %linkopts -o %t.reloc-negative.out %t.reloc-negative.o 2>&1 \
+RUN:   | %filecheck %s --check-prefix=NEG-ERR
+#END_TEST
+
+NEG-ERR: Error: {{.*}}reloc-negative.o:(.data): relocation {{.*}} has negative target offset -4 into {{.*}}reloc-negative.o:(.rodata.str1.1)
