@@ -147,14 +147,14 @@ jobs:
           sudo apt install -y bison flex libssl-dev libelf-dev bc \
             qemu-system-misc qemu-system-x86 qemu-system-arm opensbi cpio ccache
 
-      - name: Use stable Clang with nightly ELD
+      - name: Use stable Clang
         if: inputs.enabled == 1 && inputs.stable_llvm
         uses: egor-tensin/setup-clang@23bc15cd4207e45f1566447deb48f4ff3ef932cb #v2.3
         with:
           version: "23"
           platform: x64
 
-      - name: Configure stable Clang with nightly ELD
+      - name: Configure stable Clang
         if: inputs.enabled == 1 && inputs.stable_llvm
         run: |
           echo "/usr/lib/llvm-23/bin" >> "$GITHUB_PATH"

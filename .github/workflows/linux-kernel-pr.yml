@@ -202,7 +202,7 @@ jobs:
       linker_flags: ${{ github.event.inputs.linker_flags }}
       artifact-workflow-id: linux-kernel-pr.yml
       artifact-pull-request-number: ${{ needs.resolve.outputs.pr_number }}
-      stable_llvm: false
+      stable_llvm: true
 
   # Post the aggregate matrix result on the PR.
   status:
