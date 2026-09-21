@@ -821,7 +821,7 @@ bool GNULDBackend::canSkipSymbolFromExport(ResolveInfo *R, bool isEntry) const {
   if (config().options().isPIE() && !isEntry &&
       !config().options().exportDynamic())
     return true;
-  if (R->isAbsolute())
+  if (R->isAbsolute() && found == SymbolScopes.end())
     return true;
   if (R->isLocal() || R->isDyn() || R->isHidden())
     return true;

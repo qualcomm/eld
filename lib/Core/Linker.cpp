@@ -404,6 +404,8 @@ bool Linker::normalize() {
     }
   }
 
+  ObjLinker->assignVersionNodesToSymbols();
+
   // LTO Specific Steps
   if (ThisModule->needLTOToBeInvoked() || ThisConfig->options().hasLTO()) {
     LinkerProgress->addMoreTicks(3);

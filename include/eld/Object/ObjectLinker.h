@@ -98,6 +98,12 @@ public:
 
   bool parseVersionScript();
 
+  /// Assigns version nodes to symbols with GNU ld semantics:
+  /// - Pass 1: Exact matches (forward order, first wins, warns on reassign)
+  /// - Pass 2: Non-* wildcards (reverse order, last wins)
+  /// - Pass 3: * wildcard (reverse order, last wins, lowest priority)
+  void assignVersionNodesToSymbols();
+
   /// linkable - check the linkability of current LinkerConfig
   ///  Check list:
   ///  - check the Attributes are not violate the constaint
@@ -405,12 +411,6 @@ public:
   bool emitArchiveMemberReport(llvm::StringRef Filename) const;
 
 private:
-  /// Assigns version nodes to symbols with GNU ld semantics:
-  /// - Pass 1: Exact matches (forward order, first wins, warns on reassign)
-  /// - Pass 2: Non-* wildcards (reverse order, last wins)
-  /// - Pass 3: * wildcard (reverse order, last wins, lowest priority)
-  void assignVersionNodesToSymbols();
-
   /// Validates and registers every node of a single parsed VersionScript
   /// DecoratedPath is used only for diagnostics.
   bool registerVersionScriptNodes(const VersionScript *VS,

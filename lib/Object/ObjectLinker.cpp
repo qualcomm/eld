@@ -407,7 +407,6 @@ bool ObjectLinker::parseVersionScript() {
       return false;
   }
 
-  assignVersionNodesToSymbols();
   return true;
 }
 
