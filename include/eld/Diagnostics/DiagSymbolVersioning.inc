@@ -23,6 +23,8 @@ DIAG(error_missing_version_node, DiagnosticEngine::Error,
 DIAG(error_undefined_version, DiagnosticEngine::Error,
      "version script assignment of '%0' to symbol '%1' failed: symbol not "
      "defined")
+DIAG(error_unknown_version_node_dependency, DiagnosticEngine::Error,
+     "%2: version node '%0' depends on unknown version node '%1'")
 DIAG(trace_assign_output_version_ids, DiagnosticEngine::Trace,
      "Assigning version IDs to output symbols")
 DIAG(trace_adding_verneed_entry, DiagnosticEngine::Trace,
