@@ -565,7 +565,8 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
       ThisConfig.raise(Diag::threads_enabled)
           << "AssignOutputSections" << ThisConfig.options().numThreads();
     llvm::ThreadPoolInterface *Pool = ThisModule.getThreadPool();
-    for (auto &Obj : Inputs) {
+    llvm::ThreadPoolTaskGroup Group(*Pool);
+    for (InputFile *Obj : Inputs) {
       if (IsPostLtoPhase && Obj->isBitcode())
         continue;
       /// Internal common sections are assigned output sections later.
@@ -575,11 +576,9 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
       if (ObjFile && HasSectionsCommand && ObjFile->hasHighSectionCount())
         ThisConfig.raise(Diag::more_sections)
             << Obj->getInput()->decoratedPath();
-      Pool->async([&] {
-        assignInputFromOutput(Obj);
-      });
+      Group.async([this, Obj] { assignInputFromOutput(Obj); });
     }
-    Pool->wait();
+    Group.wait();
   }
 
   assignOutputSectionsToCommonSymbols();
