@@ -1,0 +1,15 @@
+#--TLSGDRelax_NoPLT.test----------Static Executable--------#
+# GD→LE relaxation when the companion is R_X86_64_GOTPCRELX (-fno-plt).
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_gd_gotpcrelx_companion.s -o %t.o
+RUN: %link %linkopts -static -e get_tls_noplt -o %t.eld %t.o
+RUN: %objdump -d %t.eld | %filecheck %s
+RUN: %readelf -r %t.eld | %filecheck %s --check-prefix=NORELOC
+#END_TEST
+
+CHECK: <get_tls_noplt>:
+CHECK-NEXT: {{[0-9a-f]+}}: 64 48 8b 04 25 {{.*}} movq
+CHECK-NEXT: {{[0-9a-f]+}}: 48 8d 80 {{.*}} leaq
+
+NORELOC-NOT: R_X86_64_DTPMOD64
+NORELOC-NOT: R_X86_64_DTPOFF64

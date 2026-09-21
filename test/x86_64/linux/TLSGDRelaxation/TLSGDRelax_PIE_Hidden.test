@@ -1,0 +1,15 @@
+#--TLSGDRelax_PIE_Hidden.test----------PIE--------#
+# GD→LE relaxation for a non-preemptible hidden symbol in PIE.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_gd_hidden.s -o %t.o
+RUN: %link %linkopts -pie -e get_tls -o %t.pie %t.o
+RUN: %objdump -d %t.pie | %filecheck %s
+RUN: %readelf -r %t.pie | %filecheck %s --check-prefix=NORELOC
+#END_TEST
+
+CHECK: <get_tls>:
+CHECK-NEXT: {{[0-9a-f]+}}: 64 48 8b 04 25 {{.*}} movq
+CHECK-NEXT: {{[0-9a-f]+}}: 48 8d 80 {{.*}} leaq
+
+NORELOC-NOT: R_X86_64_DTPMOD64
+NORELOC-NOT: R_X86_64_DTPOFF64
