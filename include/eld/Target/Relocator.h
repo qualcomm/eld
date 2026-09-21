@@ -97,7 +97,9 @@ public:
   /// an addend is not required.
   virtual void adjustAddend(Relocation *R) const { R->setAddend(0); }
 
-  virtual uint32_t getAddend(const Relocation *R) const { return R->addend(); }
+  virtual int64_t getAddend(const Relocation *R) const {
+    return static_cast<int64_t>(R->addend());
+  }
 
   virtual void traceMergeStrings(const ELFSection *RelocationSection,
                                  const Relocation *R,

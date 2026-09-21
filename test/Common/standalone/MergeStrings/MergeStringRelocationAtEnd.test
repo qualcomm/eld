@@ -1,0 +1,17 @@
+#---MergeStringRelocationAtEnd.test-------------- Executable ------------------#
+#BEGIN_COMMENT
+# A relocation target at exactly the input merge-string section end is valid.
+# It must use the existing end-of-section clamp path without calling string
+# lookup with an offset equal to the section size.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/reloc-at-end.s -o %t.o
+RUN: %link %linkopts --section-start=.rodata=0x10000 -o %t.out %t.o 2>&1 \
+RUN:   | %filecheck %s --check-prefix=CHECK --allow-empty
+RUN: %readelf -x .data %t.out | %filecheck %s --check-prefix=DATA
+#END_TEST
+
+CHECK-NOT: has target offset
+CHECK-NOT: clamped the value
+
+DATA: 0x{{[0-9a-f]+}} 04000100
