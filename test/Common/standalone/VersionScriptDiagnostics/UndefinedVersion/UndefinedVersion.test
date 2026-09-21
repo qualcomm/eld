@@ -1,0 +1,18 @@
+#---UndefinedVersion.test---------------- VersionScript ----------------#
+#BEGIN_COMMENT
+# This test verifies --[no-]undefined-version handling for anonymous version
+# scripts without symbol versioning support.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/undefined.c -fPIC
+RUN: %link %linkopts -o %t1.default.so %t1.o -shared --version-script %p/Inputs/global.t
+RUN: %link %linkopts -o %t1.allow.so %t1.o -shared --version-script %p/Inputs/global.t --undefined-version
+RUN: %not %link %linkopts -o %t1.global.so %t1.o -shared --version-script %p/Inputs/global.t --no-undefined-version 2>&1 | %filecheck %s --check-prefix=GLOBAL
+RUN: %link %linkopts -o %t1.last-allow.so %t1.o -shared --version-script %p/Inputs/global.t --no-undefined-version --undefined-version
+RUN: %not %link %linkopts -o %t1.last-strict.so %t1.o -shared --version-script %p/Inputs/global.t --undefined-version --no-undefined-version 2>&1 | %filecheck %s --check-prefix=GLOBAL
+RUN: %not %link %linkopts -o %t1.local.so %t1.o -shared --version-script %p/Inputs/local.t --no-undefined-version 2>&1 | %filecheck %s --check-prefix=LOCAL
+RUN: %link %linkopts -o %t1.wildcard.so %t1.o -shared --version-script %p/Inputs/wildcard.t --no-undefined-version
+#END_TEST
+
+GLOBAL: Error: version script assignment of 'VER_NDX_GLOBAL' to symbol 'missing' failed: symbol not defined
+LOCAL: Error: version script assignment of 'VER_NDX_LOCAL' to symbol 'missing' failed: symbol not defined

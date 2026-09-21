@@ -1,0 +1,6 @@
+{
+  global:
+    missing*;
+  local:
+    absent*;
+};
