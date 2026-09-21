@@ -1,0 +1,18 @@
+#---MergeStringRelocationBeyondEnd.test----------- Executable -----------------#
+#BEGIN_COMMENT
+# Relocations to merge-string sections must not name bytes past the input
+# section end, whether the offset comes from a section-symbol addend or from a
+# named symbol's value.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/reloc-beyond.s -o %t.reloc-beyond.o
+RUN: %not %link %linkopts -o %t.reloc-beyond.out %t.reloc-beyond.o 2>&1 \
+RUN:   | %filecheck %s --check-prefix=RELOC-ERR
+
+RUN: %clang %clangopts -c %p/Inputs/reloc-symbol-beyond.s -o %t.reloc-symbol-beyond.o
+RUN: %not %link %linkopts -o %t.reloc-symbol-beyond.out %t.reloc-symbol-beyond.o 2>&1 \
+RUN:   | %filecheck %s --check-prefix=SYMBOL-ERR
+#END_TEST
+
+RELOC-ERR: Error: {{.*}}reloc-beyond.o:(.data): relocation {{.*}} has target offset 40 past the {{.*}}reloc-beyond.o:(.rodata.str1.1) section size (4)
+SYMBOL-ERR: Error: {{.*}}reloc-symbol-beyond.o:(.data): relocation {{.*}} has target offset 40 past the {{.*}}reloc-symbol-beyond.o:(.rodata.str1.1) section size (4)

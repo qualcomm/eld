@@ -93,6 +93,8 @@ Relocator::findFragmentForMergeStr(const ELFSection *RelocationSection,
                                    const Relocation *R,
                                    MergeStringFragment *F) const {
   uint32_t Addend = getAddend(R);
+  if (Addend >= F->getOwningSection()->size())
+    return {F, Addend};
   const MergeableString *String = F->findString(Addend);
   if (!String)
     return {nullptr, 0};
