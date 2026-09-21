@@ -21,29 +21,10 @@
 using namespace llvm;
 using namespace llvm::opt;
 
-#define OPTTABLE_STR_TABLE_CODE
+#define OPTTABLE_CODE
 #include "eld/Driver/HexagonLinkerOptions.inc"
-#undef OPTTABLE_STR_TABLE_CODE
 
-#define OPTTABLE_PREFIXES_TABLE_CODE
-#include "eld/Driver/HexagonLinkerOptions.inc"
-#undef OPTTABLE_PREFIXES_TABLE_CODE
-
-static constexpr llvm::opt::OptTable::Info infoTable[] = {
-#define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
-               ALIASARGS, FLAGS, VISIBILITY, PARAM, HELPTEXT,                  \
-               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)                          \
-  LLVM_CONSTRUCT_OPT_INFO(                                                     \
-      PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, HexagonLinkOptTable::ID, KIND,    \
-      HexagonLinkOptTable::GROUP, HexagonLinkOptTable::ALIAS, ALIASARGS,       \
-      FLAGS, VISIBILITY, PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR,       \
-      VALUES, SUBCOMMANDIDS_OFFSET),
-#include "eld/Driver/HexagonLinkerOptions.inc"
-#undef OPTION
-};
-
-OPT_HexagonLinkOptTable::OPT_HexagonLinkOptTable()
-    : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
+OPT_HexagonLinkOptTable::OPT_HexagonLinkOptTable() : OptTable(optionTables()) {}
 
 HexagonLinkDriver *HexagonLinkDriver::Create(eld::LinkerConfig &C,
 

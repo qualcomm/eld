@@ -14,7 +14,7 @@
 #include "llvm/ADT/StringRef.h"
 
 // Create OptTable class for parsing actual command line arguments
-class OPT_HexagonLinkOptTable : public llvm::opt::GenericOptTable {
+class OPT_HexagonLinkOptTable : public llvm::opt::OptTable {
 public:
   // Create enum with OPT_xxx values for each option in DarwinLdOptions.td
   enum {
