@@ -774,12 +774,14 @@ uint64_t GNULDBackend::finalizeTLSSymbol(LDSymbol *pSymbol) {
     config().raise(Diag::no_pt_tls_segment);
     return false;
   }
+  // TLS symbol values are relative to the beginning of the complete TLS
+  // image. PHDRS order is not necessarily virtual-address order.
   ELFSegment *tls_seg = nullptr;
-  for (auto &seg : tls_segs) {
-    if (seg->size()) {
+  for (ELFSegment *seg : tls_segs) {
+    if (seg->memsz() == 0)
+      continue;
+    if (!tls_seg || seg->vaddr() < tls_seg->vaddr())
       tls_seg = seg;
-      break;
-    }
   }
   if (!tls_seg) {
     config().raise(Diag::error_empty_pt_tls_segment);
