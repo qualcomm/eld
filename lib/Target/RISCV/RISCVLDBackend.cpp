@@ -2454,16 +2454,16 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                                     ResolveInfo *R) {
 
   traceGOTCreation(T, R);
-  // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->hasFragments()) {
-    LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
-    // TODO: This should be GOT0, not GOTPLT0.
-    RISCVGOT::CreateGOT0(getGOT(), Dynamic ? Dynamic->resolveInfo() : nullptr,
-                         config().targets().is32Bits());
-    RISCVGOT::CreateGOTPLT0(getGOTPLT(), nullptr,
-                            config().targets().is32Bits());
+  // Create GOT0 in .got only when a real GOT entry is needed,
+  // not for PLT-related GOT entries.
+  if (T != GOT::GOTPLT0 && T != GOT::GOTPLTN) {
+    if (auto *GOTSec = getGOT())
+      if (!GOTSec->hasFragments()) {
+        LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
+        RISCVGOT::CreateGOT0(GOTSec, Dynamic ? Dynamic->resolveInfo() : nullptr,
+                             config().targets().is32Bits());
+      }
   }
-
   RISCVGOT *G = nullptr;
   bool GOT = true;
   switch (T) {
@@ -2471,6 +2471,10 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     G = RISCVGOT::Create(getGOT(), R, config().targets().is32Bits());
     break;
   case GOT::GOTPLT0:
+    // Create GOTPLT0 in .got.plt only when PLT is actually needed.
+    if (!getGOTPLT()->hasFragments())
+      RISCVGOT::CreateGOTPLT0(getGOTPLT(), nullptr,
+                              config().targets().is32Bits());
     G = llvm::dyn_cast<RISCVGOT>(*getGOTPLT()->getFragmentList().begin());
     GOT = false;
     break;
@@ -2538,8 +2542,10 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
   // PLT0 must be created before the first PLTN since insertion order into the
   // shared .plt is emission order.
   bool NeedsLazy = !config().options().hasNow();
+  // GOTPLT0 is required whenever a PLT entry is needed.
+  RISCVGOT *GOTPLT0 = createGOT(GOT::GOTPLT0, Obj, nullptr);
   if (NeedsLazy && !getPLT()->hasFragments())
-    RISCVPLT::CreatePLT0(*this, createGOT(GOT::GOTPLT0, Obj, nullptr), getPLT(),
+    RISCVPLT::CreatePLT0(*this, GOTPLT0, getPLT(),
                          is32Bits);
 
   RISCVGOT *G = createGOT(GOT::GOTPLTN, Obj, R);
