@@ -24,10 +24,16 @@ runs:
       env:
         WORKSPACE: ${{ inputs.workspace }}
         ASSETS: ${{ inputs.assets }}
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         api_url="https://api.github.com/repos/cross-tools/clang-cross/releases/latest"
-        release_json="$(curl -fsSL "${api_url}")"
+        github_headers=(
+          -H "Accept: application/vnd.github+json"
+          -H "Authorization: Bearer ${GITHUB_TOKEN}"
+          -H "X-GitHub-Api-Version: 2026-03-10"
+        )
+        release_json="$(curl -fsSL "${github_headers[@]}" "${api_url}")"
         tag="$(printf '%s' "${release_json}" | jq -r '.tag_name')"
 
         root_dir="${WORKSPACE}/clang-cross"
@@ -76,7 +82,7 @@ runs:
 
           tmp_tar="${base_dir}/${asset}"
           echo "Downloading ${asset}..."
-          curl -fsSL -o "${tmp_tar}" "${url}"
+          curl -fsSL "${github_headers[@]}" -o "${tmp_tar}" "${url}"
 
           echo "Extracting ${asset}..."
           tar -xJf "${tmp_tar}" -C "${base_dir}"
