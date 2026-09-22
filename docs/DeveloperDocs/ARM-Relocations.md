@@ -13,6 +13,9 @@ ARM (32-bit) supports two instruction set architectures: the 32-bit ARM ISA and 
 | `P` | Address of the relocation site (place) |
 | `Pa` | `(P + 4) & ~3` — Thumb aligned PC (address of the place, PC-biased and aligned to 4 bytes) |
 | `T` | 1 if the target symbol is a Thumb function, 0 otherwise |
+| `U` | Add/subtract bit in the instruction encoding; 1 for a positive offset, 0 for a negative offset |
+| `imm4H` | High 4 bits of an 8-bit immediate, encoded in instruction bits `[11:8]` |
+| `imm4L` | Low 4 bits of an 8-bit immediate, encoded in instruction bits `[3:0]` |
 | `B(S)` | Base address of the segment containing symbol `S` |
 | `GOT_ORG` | Address of the Global Offset Table |
 | `GOT(S)` | Address of the GOT entry for symbol `S` |
@@ -78,6 +81,7 @@ movt r0, #:upper16:symbol   @ R_ARM_THM_MOVT_ABS
 | `R_ARM_LDR_PC_G0` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
 | `R_ARM_LDR_PC_G1` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
 | `R_ARM_LDR_PC_G2` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
+| `R_ARM_LDRS_PC_G0` | `((S + A) \| T) - P` | U bit + imm4H:imm4L | [0, 255] |
 | `R_ARM_THM_PC8` | `S + A - Pa` | imm8:00 (bits 7:0) | [0, 1023], 4-byte aligned |
 | `R_ARM_THM_PC12` | `((S + A) \| T) - Pa` | U:imm12 | [-4095, 4095] |
 
@@ -170,7 +174,6 @@ The table below lists every relocation that ELD's ARM backend maps to the `unsup
 | 53 | `R_ARM_THM_ALU_PREL_11_0` | Thumb-2 ALU PC-relative 11:0 | |
 | 55 | `R_ARM_ABS32_NOI` | 32-bit absolute, no interworking bit | |
 | 56 | `R_ARM_REL32_NOI` | 32-bit PC-relative, no interworking bit | |
-| 64 | `R_ARM_LDRS_PC_G0` | Group reloc — LDRD/STRD PC-relative G0 | Implement LDRS PC-group |
 | 65 | `R_ARM_LDRS_PC_G1` | Group reloc — LDRD/STRD PC-relative G1 | Implement LDRS PC-group |
 | 66 | `R_ARM_LDRS_PC_G2` | Group reloc — LDRD/STRD PC-relative G2 | Implement LDRS PC-group |
 | 67 | `R_ARM_LDC_PC_G0` | Group reloc — LDC/STC PC-relative G0 | |
