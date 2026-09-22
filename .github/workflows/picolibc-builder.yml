@@ -1,7 +1,10 @@
 name: nightly picolibc builder
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request:
+    paths:
+      - '.github/workflows/picolibc-builder.yml'
+
   workflow_run:
     # Runs after the nightly toolchain build ("Nightly check" =
     # nightly-test.yml) finishes, so we always consume a freshly built
@@ -17,12 +20,6 @@ permissions:
 jobs:
   build-and-test:
     name: ${{ matrix.arch.name }}
-    # Only run on the canonical repo, and (for workflow_run) only when the
-    # triggering nightly toolchain build succeeded. Manual dispatch always runs.
-    if: >-
-      github.repository == 'qualcomm/eld' &&
-      (github.event_name == 'workflow_dispatch' ||
-       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
