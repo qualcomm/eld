@@ -9,5 +9,5 @@ RUN: %not %link %linkopts %t1.o -T %p/Inputs/script.t -o %t.out 2>&1 | %filechec
 RUN: %link %linkopts %t1.o -T %p/Inputs/script_no_error.t -o %t.out
 #END_TEST
 
-#DIAG: Error: {{.*script.t}}: Section .text assigned to segment missing_phdr
+#DIAG: Error: {{.*script.t.*}}: Section .text assigned to segment missing_phdr
 #DIAG: but PHDRS not specified

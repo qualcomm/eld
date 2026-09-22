@@ -25,10 +25,10 @@ CHECK-NEXT: Pattern: NoGC
 CHECK-NEXT: #{{.*}}NoGC{{.*}}1.o
 
 SCRIPTCHECK: Extern list files
-SCRIPTCHECK-NEXT: {{.*}}Inputs{{[/\\]}}ExternScript.t
+SCRIPTCHECK-NEXT: {{.*}}Inputs{{[/\\]}}ExternScript.t{{.*}}
 SCRIPTCHECK-NEXT: Pattern: commonSym
-SCRIPTCHECK-NEXT: #{{.*}}commonSym{{.*}}3.o
-SCRIPTCHECK-NEXT: Pattern: NoGC
+SCRIPTCHECK-NEXT:	#{{.*}}commonSym{{.*}}3.o
+SCRIPTCHECK: Pattern: NoGC
 SCRIPTCHECK-NEXT: #{{.*}}NoGC{{.*}}1.o
 
 INCLUDECHECK: Extern list files
@@ -46,6 +46,6 @@ INCLUDECHECK-NEXT: #{{.*}}NoGC{{.*}}1.o
 INCLUDESCRIPTCHECK: Linker scripts used (including INCLUDE command)
 INCLUDESCRIPTCHECK-NEXT: {{.*}}Inputs{{[/\\]}}ExtList.t
 INCLUDESCRIPTCHECK-NEXT: {{.*}}Inputs{{[/\\]}}IncludeExtList.t
-INCLUDESCRIPTCHECK-NEXT:     {{.*}}Inputs{{[/\\]}}IncludeScript.t
-INCLUDESCRIPTCHECK-NEXT:     nonexistent.t(NOTFOUND)
+INCLUDESCRIPTCHECK-NEXT:     {{.*}}Inputs{{[/\\]}}IncludeScript.t{{.*}}
+INCLUDESCRIPTCHECK-NEXT:     nonexistent.t{{.*}}(NOTFOUND)
 

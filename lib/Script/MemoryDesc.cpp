@@ -25,6 +25,8 @@ void MemoryDesc::dump(llvm::raw_ostream &Outs) const {
   InputSpec.getOrigin()->dump(Outs);
   Outs << " , " << " LENGTH = ";
   InputSpec.getLength()->dump(Outs);
+  if (hasLineNumberInContext())
+    Outs << " # " << getContext();
   Outs << "\n";
 }
 

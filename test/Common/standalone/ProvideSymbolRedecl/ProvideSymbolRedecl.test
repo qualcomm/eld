@@ -10,7 +10,7 @@ RUN: %link %linkg0opts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Wlinker-scrip
 RUN: %readelf -Ss %t1.1.out 2>&1 | %filecheck %s --check-prefix=READELF
 #END_TEST
 NO_LS_WARN-NOT: Ignoring provide symbol
-CHECK: Warning: {{.*}}/script.t: Ignoring provide symbol 'bar' redeclaration
-CHECK: Warning: {{.*}}/script.t: Ignoring provide symbol 'bar' redeclaration
-CHECK: Warning: {{.*}}/script.t: Ignoring provide symbol 'bar' redeclaration
+CHECK: Warning: {{.*}}/script.t:{{.*}}: Ignoring provide symbol 'bar' redeclaration
+CHECK: Warning: {{.*}}/script.t:{{.*}}: Ignoring provide symbol 'bar' redeclaration
+CHECK: Warning: {{.*}}/script.t:{{.*}}: Ignoring provide symbol 'bar' redeclaration
 READELF: 03 0 NOTYPE GLOBAL DEFAULT 1 bar

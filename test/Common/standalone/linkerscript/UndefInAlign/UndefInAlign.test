@@ -8,4 +8,4 @@ RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
 RUN: %not %link %linkopts -o %t1/1.out %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s
 #END_TEST
 
-CHECK: Fatal: {{.*}}script.t: Error: undefined symbol 'undef_sym' referenced in expression
+CHECK: Fatal: {{.*}}script.t:{{.*}}: Error: undefined symbol 'undef_sym' referenced in expression
