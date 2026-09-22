@@ -108,7 +108,7 @@ bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I,
   // Binary inputs do not carry ARM EABI information.
   if (I->isBinaryFile()) {
     if (!OutputFlags)
-      OutputFlags = Flags;
+      OutputFlags = llvm::ELF::EF_ARM_EABI_UNKNOWN;
     return true;
   }
 
