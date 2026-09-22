@@ -525,9 +525,18 @@ bool ARMGNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
     }
     AttributeFragment->updateAttributes(
         Region, m_Module, llvm::dyn_cast<ObjectFile>(&pInput), config());
+    updateFloatABIFlag();
     return m_pARMAttributeSection;
   }
   return GNULDBackend::readSection(pInput, S);
+}
+
+void ARMGNULDBackend::updateFloatABIFlag() {
+  uint64_t Flag = llvm::ELF::EF_ARM_ABI_FLOAT_SOFT;
+  if (AttributeFragment->getVFPArgKind() == ARMVFPArgKind::VFP)
+    Flag = llvm::ELF::EF_ARM_ABI_FLOAT_HARD;
+
+  static_cast<ARMInfo &>(getInfo()).setFloatABIFlag(Flag);
 }
 
 void ARMGNULDBackend::doPostLayout() {

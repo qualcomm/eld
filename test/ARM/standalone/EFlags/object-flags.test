@@ -84,7 +84,7 @@
 
 #VER3: Flags: 0x3000000
 #VER4: Flags: 0x4000000
-#VER5: Flags: 0x5000000
+#VER5: Flags: 0x5000200
 #MISMATCH35: Error: Incompatible object files when reading {{.*}}ver5.o, mixing EABI5 and EABI3
 #MISMATCH53: Error: Incompatible object files when reading {{.*}}ver3.o, mixing EABI3 and EABI5
 #NOERR35: Note: Incompatible object files when reading {{.*}}ver5.o, mixing EABI5 and EABI3

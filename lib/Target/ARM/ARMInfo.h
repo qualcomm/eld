@@ -39,6 +39,11 @@ public:
 
   uint64_t flags() const override;
 
+  /// Records the float ABI derived from Tag_ABI_VFP_args. These
+  /// e_flags bits are an output property and are not inherited
+  /// from input files.
+  void setFloatABIFlag(uint64_t Flag) { FloatABIFlag = Flag; }
+
   uint64_t startAddr(bool linkerScriptHasSectionsCommand, bool isDynExec,
                      bool loadPhdr) const override {
     // When linker script presents, the start address is 0x0
@@ -79,6 +84,7 @@ public:
 
 private:
   std::optional<uint64_t> OutputFlags;
+  uint64_t FloatABIFlag = llvm::ELF::EF_ARM_ABI_FLOAT_SOFT;
 };
 
 } // namespace eld

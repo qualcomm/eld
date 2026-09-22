@@ -233,6 +233,10 @@ public:
   void setDefaultConfigs() override;
 
 private:
+  /// Derives the output float ABI e_flags bits from the merged
+  /// Tag_ABI_VFP_args build attribute.
+  void updateFloatABIFlag();
+
   void createAttributeSection(uint32_t Flag, uint32_t Align);
 
 private:
