@@ -1362,6 +1362,58 @@ Relocator::Result thm_jump19(Relocation &pReloc, ARMRelocator &pParent) {
   return Relocator::OK;
 }
 
+// R_ARM_LDRS_PC_Gn: ((S + A) | T) - P
+static Relocator::Result ldrs_pc_group(Relocation &pReloc,
+                                       ARMRelocator &pParent, unsigned pGroup) {
+  Relocator::Address S = pParent.getSymValue(&pReloc);
+  Relocator::Address P = pReloc.place(pParent.module());
+  Relocator::DWord T = getThumbBit(pParent, pReloc, /*IsJump*/ false);
+
+  uint32_t I = pReloc.target();
+
+  // LDRD/LDRH/LDRSB/LDRSH literal: U is bit 23 and the immediate is
+  // split as imm4H:imm4L.
+  bool U = I & 0x00800000;
+  uint32_t imm8 = ((I & 0x00000f00) >> 4) | (I & 0xf);
+
+  // Recover the implicit signed addend.
+  int64_t A = U ? static_cast<int64_t>(imm8) : -static_cast<int64_t>(imm8);
+  A += pReloc.addend();
+
+  // Match LLD: form the PC-relative displacement before ignoring the
+  // Thumb bit for function symbols.
+  int64_t X = ((static_cast<int64_t>(S) + A) | static_cast<int64_t>(T)) -
+              static_cast<int64_t>(P);
+
+  if (T)
+    X &= ~int64_t{1};
+
+  uint32_t UBit = 0x00800000;
+  uint64_t Magnitude = X;
+  if (X < 0) {
+    UBit = 0;
+    Magnitude = static_cast<uint64_t>(-X);
+  }
+
+  // Select the residual for the requested group.
+  uint32_t Imm =
+      helper_get_rem_for_group(pGroup, static_cast<uint32_t>(Magnitude));
+
+  // LDRS group relocations encode an 8-bit magnitude in imm4H:imm4L.
+  if (!llvm::isUInt<8>(Imm))
+    return reportUnsignedOverflow(pReloc, pParent, Imm, 8);
+
+  I = (I & 0xff7ff0f0) | UBit | ((Imm & 0xf0) << 4) | (Imm & 0xf);
+
+  pReloc.target() = I;
+  return Relocator::OK;
+}
+
+// R_ARM_LDRS_PC_G0: ((S + A) | T) - P
+Relocator::Result ldrs_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldrs_pc_group(pReloc, pParent, /*pGroup=*/0);
+}
+
 // R_ARM_ALU_PC_Gn / R_ARM_ALU_PC_Gn_NC: ((S + A) | T) - P
 // Shared worker for the whole ALU_PC group family. pGroup selects which
 // group's residual to encode and pCheck selects whether encoding failure is
