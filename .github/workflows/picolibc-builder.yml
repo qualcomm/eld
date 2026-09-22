@@ -112,43 +112,30 @@ jobs:
           # The nightly toolchain (clang/clang++) is already on PATH via
           # FetchNightlyToolset; derive its install root from the clang binary.
           TOOLCHAIN_INSTALL="$(dirname "$(dirname "$(command -v clang)")")"
-          if [ ${{ matrix.arch.name }} = "hexagon" ]; then
-            cmake -G Ninja \
-              -DCMAKE_C_COMPILER:STRING=`which clang` \
-              -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
-              -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DLLVM_CMAKE_DIR:PATH="$TOOLCHAIN_INSTALL" \
-              -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
-              -DCMAKE_ASM_COMPILER_TARGET=${{ matrix.arch.triple }} \
-              -C ${{ github.workspace }}/llvm-project/compiler-rt/cmake/caches/hexagon-builtins-baremetal.cmake \
-              -B build-${{ matrix.arch.triple }}-builtins/ \
-              -S ${{ github.workspace }}/llvm-project/compiler-rt/
-          else
-            cmake -G Ninja \
-              -DCMAKE_C_COMPILER:STRING=`which clang` \
-              -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
-              -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
-              -DCOMPILER_RT_BAREMETAL_BUILD=ON \
-              -DCOMPILER_RT_BUILD_BUILTINS=ON \
-              -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
-              -DCOMPILER_RT_BUILD_XRAY=OFF \
-              -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
-              -DCOMPILER_RT_BUILD_PROFILE=OFF \
-              -DCMAKE_C_COMPILER_TARGET=${{ matrix.arch.triple }} \
-              -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
-              -DCMAKE_C_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding ${{ matrix.arch.extra-c-flags }}" \
-              -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding -nostdinc++ ${{ matrix.arch.extra-cxx-flags }}" \
-              -DCMAKE_ASM_FLAGS="--target=${{ matrix.arch.triple }} ${{ matrix.arch.extra-cxx-flags }}" \
-              -DCMAKE_C_COMPILER_FORCED=ON \
-              -DCMAKE_CXX_COMPILER_FORCED=ON \
-              -DCMAKE_CROSSCOMPILING=ON \
-              -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
-              -B build-${{ matrix.arch.triple }}-builtins/ \
-              -S ${{ github.workspace }}/llvm-project/compiler-rt/
-          fi
+          cmake -G Ninja \
+            -DCMAKE_C_COMPILER:STRING=`which clang` \
+            -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
+            -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
+            -DCOMPILER_RT_BAREMETAL_BUILD=ON \
+            -DCOMPILER_RT_BUILD_BUILTINS=ON \
+            -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
+            -DCOMPILER_RT_BUILD_XRAY=OFF \
+            -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+            -DCOMPILER_RT_BUILD_PROFILE=OFF \
+            -DCMAKE_C_COMPILER_TARGET=${{ matrix.arch.triple }} \
+            -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
+            -DCMAKE_C_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding ${{ matrix.arch.extra-c-flags }}" \
+            -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding -nostdinc++ ${{ matrix.arch.extra-cxx-flags }}" \
+            -DCMAKE_ASM_FLAGS="--target=${{ matrix.arch.triple }} ${{ matrix.arch.extra-cxx-flags }}" \
+            -DCMAKE_C_COMPILER_FORCED=ON \
+            -DCMAKE_CXX_COMPILER_FORCED=ON \
+            -DCMAKE_CROSSCOMPILING=ON \
+            -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
+            -DCMAKE_SYSTEM_NAME="Generic" \
+            -B build-${{ matrix.arch.triple }}-builtins/ \
+            -S ${{ github.workspace }}/llvm-project/compiler-rt/
           cmake --build ${{ github.workspace }}/build-${{ matrix.arch.triple }}-builtins/ -- install-builtins
 
       - name: Install Meson
