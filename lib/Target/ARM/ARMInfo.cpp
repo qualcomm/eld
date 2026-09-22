@@ -112,9 +112,10 @@ bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I,
     return true;
   }
 
-  // The first object establishes the output flags, matching ld.bfd.
+  // The first object establishes the output EABI version. Other ARM e_flags
+  // are output properties and must not be inherited implicitly from inputs.
   if (!OutputFlags) {
-    OutputFlags = Flags;
+    OutputFlags = getEABIVersion(Flags);
     return true;
   }
 
@@ -136,7 +137,7 @@ bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I,
   // UNKNOWN may be superseded by the first known EABI version.
   if (getEABIVersion(*OutputFlags) == llvm::ELF::EF_ARM_EABI_UNKNOWN &&
       getEABIVersion(Flags) != llvm::ELF::EF_ARM_EABI_UNKNOWN)
-    OutputFlags = Flags;
+    OutputFlags = getEABIVersion(Flags);
 
   return true;
 }

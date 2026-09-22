@@ -10,12 +10,13 @@
 #RUN: %yaml2obj --docnum=4 %s -o %t.unknown.o
 #RUN: %yaml2obj --docnum=5 %s -o %t.ver4soft.o
 #RUN: %yaml2obj --docnum=6 %s -o %t.data3.o
+#RUN: %yaml2obj --docnum=7 %s -o %t.shared5vfp.so
 #
 #RUN: %link %emulation %t.ver4.o -o %t.ver4.out
 #RUN: %readelf -h %t.ver4.out | %filecheck %s --check-prefix=VER4
 #
-# EABI4 and EABI5 are compatible. Keep the flags established by the
-# first input, matching ld.bfd behavior.
+# EABI4 and EABI5 are compatible. Keep the EABI version established by
+# the first input, matching ld.bfd behavior.
 #RUN: %link %emulation %t.ver4.o %t.ver5.o -o %t.ver45.out
 #RUN: %readelf -h %t.ver45.out | %filecheck %s --check-prefix=VER4
 #
@@ -47,10 +48,15 @@
 #RUN: %not %link %emulation --warn-mismatch %t.ver5.o %t.unknown.o \
 #RUN:   -o %t.ver50.out 2>&1 | %filecheck %s --check-prefix=MISMATCH50
 #
-# Preserve non-EABI bits from the object that establishes the output state.
-# EF_ARM_SOFT_FLOAT is a valid legacy flag for EABI4.
+# Only inherit the EABI version from input e_flags. Non-EABI bits must not
+# be propagated implicitly to the output.
 #RUN: %link %emulation %t.ver4soft.o %t.ver5.o -o %t.ver4soft5.out
-#RUN: %readelf -h %t.ver4soft5.out | %filecheck %s --check-prefix=VER4SOFT
+#RUN: %readelf -h %t.ver4soft5.out | %filecheck %s --check-prefix=VER4
+#
+# Shared objects can also carry non-EABI flags. Do not inherit those flags
+# implicitly when a shared object establishes the output EABI version.
+#RUN: %link %emulation %t.shared5vfp.so %t.ver5.o -o %t.shared5vfp.out
+#RUN: %readelf -h %t.shared5vfp.out | %filecheck %s --check-prefix=VER5
 #
 # Once output flags have been established, a later data-only object does not
 # participate in EABI compatibility checking.
@@ -58,7 +64,7 @@
 #RUN:   -o %t.ver5data3.out
 #RUN: %readelf -h %t.ver5data3.out | %filecheck %s --check-prefix=VER5
 #
-# A data-only object can still establish the initial output state. A later
+# A data-only object can still establish the initial output EABI state. A later
 # executable EABI5 object is therefore incompatible with that EABI3 state.
 #RUN: %not %link %emulation --warn-mismatch %t.data3.o %t.ver5.o \
 #RUN:   -o %t.data3ver5.out 2>&1 | %filecheck %s --check-prefix=MISMATCH35
@@ -78,7 +84,6 @@
 
 #VER3: Flags: 0x3000000
 #VER4: Flags: 0x4000000
-#VER4SOFT: Flags: 0x4000200
 #VER5: Flags: 0x5000000
 #MISMATCH35: Error: Incompatible object files when reading {{.*}}ver5.o, mixing EABI5 and EABI3
 #MISMATCH53: Error: Incompatible object files when reading {{.*}}ver3.o, mixing EABI3 and EABI5
@@ -197,3 +202,30 @@ Symbols:
   - Name:            data3
     Section:         .data
     Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_DYN
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER5, EF_ARM_VFP_FLOAT ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+  - Name:            .dynstr
+    Type:            SHT_STRTAB
+    Flags:           [ SHF_ALLOC ]
+    AddressAlign:    1
+    Content:         00
+  - Name:            .dynamic
+    Type:            SHT_DYNAMIC
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    4
+    Link:            .dynstr
+    Entries:
+      - Tag:             DT_NULL
+        Value:           0
