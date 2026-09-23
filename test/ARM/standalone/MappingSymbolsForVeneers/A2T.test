@@ -8,6 +8,8 @@ RUN: %link %linkopts %t1.a2t.1.o  -o %t2.a2t.1.out --defsym bar=0x80000001
 RUN: %objdump -d %t2.a2t.1.out | %filecheck %s -check-prefix=STATIC
 RUN: %link %linkopts %t1.a2t.1.o  -o %t2.a2t.2.out --defsym bar=0x80000001 -shared
 RUN: %objdump -d %t2.a2t.2.out | %filecheck %s -check-prefix=SHARED
+RUN: %link %linkopts %t1.a2t.1.o  -o %t2.a2t.3.out --defsym bar=0x80000001 --pic-veneer
+RUN: %objdump -d %t2.a2t.3.out | %filecheck %s -check-prefix=PICVENEER
 
 #STATIC: {{.*}} <__bar_A2T_veneer@island-1>:
 #STATIC:       {{.*}}: e59fc000      ldr     r12, [pc]
@@ -19,5 +21,11 @@ RUN: %objdump -d %t2.a2t.2.out | %filecheck %s -check-prefix=SHARED
 #SHARED:      {{.*}}: e08fc00c      add     r12, pc, r12
 #SHARED:      {{.*}}: e12fff1c      bx      r12
 #SHARED:      178:        d4 ff ff ff     .word   {{.*}}
+
+#PICVENEER: {{.*}} <__bar_A2T_veneer@island-1>:
+#PICVENEER:      {{.*}}: e59fc004      ldr     r12, [pc, #0x4]
+#PICVENEER:      {{.*}}: e08fc00c      add     r12, pc, r12
+#PICVENEER:      {{.*}}: e12fff1c      bx      r12
+#PICVENEER:      {{.*}}:       {{.*}}     .word   {{.*}}
 
 #END_TEST

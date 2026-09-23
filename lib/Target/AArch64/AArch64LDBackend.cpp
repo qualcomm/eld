@@ -72,8 +72,8 @@ bool AArch64LDBackend::initBRIslandFactory() {
 
 bool AArch64LDBackend::initStubFactory() {
   if (nullptr == m_pStubFactory)
-    m_pStubFactory =
-        make<StubFactory>(make<AArch64FarcallStub>(config().options().isPIE()));
+    m_pStubFactory = make<StubFactory>(make<AArch64FarcallStub>(
+        config().options().isPIE() || config().options().getPicVeneer()));
   if (nullptr == m_pErrata843419Factory)
     m_pErrata843419Factory =
         make<AArch64ErrataFactory>(make<AArch64Errata843419Stub>());

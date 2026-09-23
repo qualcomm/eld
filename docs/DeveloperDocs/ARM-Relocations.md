@@ -263,7 +263,7 @@ The linker selects a veneer template based on link-time options and the target C
 | Template | Selected when | Instruction sequence |
 |----------|--------------|----------------------|
 | ABS (default) | Static link, no `-fPIC` | `ldr ip, [pc, #0]; bx ip; dcd target` |
-| PIC | Position-independent code (`-fPIC` / `-fPIE`) | `ldr ip, [pc, #4]; add ip, pc, ip; bx ip; dcd offset` |
+| PIC | Position-independent code (`-fPIC` / `-fPIE`) or `--pic-veneer` | `ldr ip, [pc, #4]; add ip, pc, ip; bx ip; dcd offset` |
 | MOV | `--use-mov-veneer` or microcontroller with MOVT/MOVW support | `movw ip, #lo16; movt ip, #hi16; bx ip` |
 | THUMB1 | Microcontroller without MOVT/MOVW | `push {r0,r1}; ldr r0, [pc, #4]; str r0, [sp,#4]; pop {r0,pc}; dcd target` |
 

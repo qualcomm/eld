@@ -900,7 +900,7 @@ bool ARMGNULDBackend::initTargetStubs() {
   StubFactory *factory = getStubFactory();
   if (nullptr != factory) {
     uint32_t type = VENEER_ABS;
-    if (config().isCodeIndep())
+    if (config().isCodeIndep() || config().options().getPicVeneer())
       type = VENEER_PIC;
     else if (config().options().getUseMovVeneer())
       type = VENEER_MOV;
