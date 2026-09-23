@@ -487,6 +487,11 @@ public:
 
   bool getUseMovVeneer() const { return BUseMovVeneer; }
 
+  // --pic-veneer
+  void setPicVeneer(bool PEnable = true) { BPicVeneer = PEnable; }
+
+  bool getPicVeneer() const { return BPicVeneer; }
+
   // -M, --print-map
   void setPrintMap(bool PEnable = true) { BPrintMap = PEnable; }
 
@@ -1304,6 +1309,7 @@ private:
   bool BCref = false;                // --cref
   bool BBuildCref = false;           // noflag, buildCRef
   bool BUseMovVeneer = false;        // --use-mov-veneer
+  bool BPicVeneer = false;           // --pic-veneer
   bool BNoDelete = false;            // -z nodelete
   bool BNewDTags = false;            //--enable(disable)-new-dtags
   bool BWarnOnce = false;            // --warn-once

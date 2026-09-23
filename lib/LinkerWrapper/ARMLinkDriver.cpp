@@ -125,6 +125,10 @@ ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
   if (ArgList.hasArg(OPT_ARMLinkOptTable::use_mov_veneer))
     Config.options().setUseMovVeneer(true);
 
+  // --pic-veneer
+  if (ArgList.hasArg(OPT_ARMLinkOptTable::pic_veneer))
+    Config.options().setPicVeneer(true);
+
   // -frwpi
   if (ArgList.hasArg(OPT_ARMLinkOptTable::frwpi))
     Config.options().setRWPI();

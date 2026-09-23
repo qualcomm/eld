@@ -33,6 +33,8 @@
   \- Don't convert BSS to NonBSS when BSS/NonBSS sections are mixed
 - **--use-mov-veneer**
   \- Use movt/movw to load address in veneers with absolute relocation
+- **--pic-veneer**
+  \- Force PIC/PC-relative branch veneers even in a non-PIC/non-PIE link
 
 ## AArch64
 
@@ -48,6 +50,8 @@
   \- Use movt/movw to load address in veneers with absolute relocation
 - **-z nognustack**
   \- Do not create a `GNU_STACK` segment
+- **--pic-veneer**
+  \- Force PIC/PC-relative branch veneers even in a non-PIC/non-PIE link
 
 ## RISCV
 
