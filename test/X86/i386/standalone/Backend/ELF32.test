@@ -1,0 +1,16 @@
+#---ELF32.test---------------------------- Backend ------------------#
+#BEGIN_COMMENT
+# Verify that the X86 family constructs an ELF32 i386 backend and that the
+# input ELF machine can select it without an explicit architecture option.
+#END_COMMENT
+#
+# RUN: %clang -c %S/Inputs/label.s -o %t.o
+# RUN: %link -m elf_i386 %t.o -o %t.explicit
+# RUN: %readelf -h %t.explicit | %filecheck %s --check-prefix=EXPLICIT
+# RUN: %link %t.o -o %t.inferred
+# RUN: %readelf -h %t.inferred | %filecheck %s --check-prefix=INFERRED
+#
+# EXPLICIT: Class: ELF32
+# EXPLICIT: Machine: Intel 80386
+# INFERRED: Class: ELF32
+# INFERRED: Machine: Intel 80386
