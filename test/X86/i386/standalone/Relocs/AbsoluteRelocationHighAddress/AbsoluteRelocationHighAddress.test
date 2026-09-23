@@ -1,0 +1,12 @@
+#---AbsoluteRelocationHighAddress.test--- i386 ELF32 relocations ----------#
+#BEGIN_COMMENT
+# Verify R_386_32 accepts a valid full-width 32-bit address with bit 31 set.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/high-address.s -o %t.high-address.o
+RUN: %link %linkopts -m elf_i386 -T %p/Inputs/high-address.t %t.high-address.o -o %t.high-address.out
+RUN: %readelf -x .text %t.high-address.out | %filecheck %s --check-prefix=HIGH-ADDRESS
+
+HIGH-ADDRESS:      Hex dump of section '.text':
+HIGH-ADDRESS-NEXT: 0x00000000 0000ffff
+#END_TEST
