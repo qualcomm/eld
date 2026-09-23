@@ -1,0 +1,11 @@
+#---AbsoluteRelocationOverflow.test------ i386 ELF32 relocations ----------#
+#BEGIN_COMMENT
+# Verify an absolute relocation is rejected when its value does not fit in
+# the narrow relocation field.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/overflow.s -o %t.overflow.o
+RUN: %not %link %linkopts -m elf_i386 -T %p/Inputs/overflow.t %t.overflow.o -o %t.overflow.out 2>&1 | %filecheck %s --check-prefix=OVERFLOW
+
+OVERFLOW: {{.*}}R_386_8{{.*}}out of range{{.*}}
+#END_TEST
