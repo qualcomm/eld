@@ -1,0 +1,15 @@
+#---EntryCmdInSections.test--------------------- Executable,LS-----------------#
+#BEGIN_COMMENT
+# This test checks that when ENTRY is specified inside the SECTIONS command,
+# the entry symbol's section is treated as a garbage-collection root and is
+# kept, while other unreferenced sections are still collected as usual.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out --gc-sections \
+RUN:   --print-gc-sections 2>&1 | %filecheck %s
+RUN: %readelf -h %t2.out | %filecheck %s --check-prefix=ENTRY
+#CHECK: GC : {{.*}}1.o[.text.unused]
+#CHECK-NOT: GC : {{.*}}1.o[.text.foo]
+#ENTRY: Entry point address: 0x1000
+#END_TEST

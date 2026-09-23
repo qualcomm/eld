@@ -81,8 +81,7 @@ public:
     ShowTiming = 0x20,
     ShowDebugStrings = 0x40,
     ShowRelativePath = 0x80,
-    ShowInitialLayout = 0x100,
-    ShowSymbolResolution = 0x200
+    ShowInitialLayout = 0x100
   };
 
   enum InputKindPrefix {
@@ -150,6 +149,9 @@ public:
       PluginOpsMapT;
 
   typedef llvm::DenseMap<const ResolveInfo *, PluginOp *> RemoveSymbolOpsMapT;
+
+  typedef llvm::DenseMap<const ResolveInfo *, PluginOp *>
+      SetSymbolAddressOpsMapT;
 
   typedef llvm::DenseMap<ELFSection *, std::vector<PluginOp *>> SectionOpsMapT;
 
@@ -309,6 +311,9 @@ public:
 
   void recordRemoveSymbol(plugin::LinkerWrapper *W, RemoveSymbolPluginOp *O);
 
+  void recordSetSymbolAddress(plugin::LinkerWrapper *W,
+                              SetSymbolAddressPluginOp *O);
+
   void recordRelocationData(plugin::LinkerWrapper *W,
                             RelocationDataPluginOp *O);
 
@@ -357,6 +362,10 @@ public:
   llvm::DenseSet<plugin::LinkerWrapper *> &getPlugins() { return Plugins; }
 
   const RemoveSymbolOpsMapT &getRemovedSymbols() { return RemovedSymbols; }
+
+  const SetSymbolAddressOpsMapT &getSetSymbolAddressOps() {
+    return SetSymbolAddressOps;
+  }
 
   ChunkOpsMapT &getChunkOps() { return ChunkOps; }
 
@@ -419,10 +428,6 @@ public:
 
   void printStats(void *H, llvm::raw_ostream &OS) const;
 
-  bool showSymbolResolution() const {
-    return LayoutDetail & LayoutDetail::ShowSymbolResolution;
-  }
-
 private:
   Stats LinkStats;
   std::vector<std::string> Features;
@@ -431,6 +436,8 @@ private:
   SectionOpsMapT ChangeOutputSectionOps;
   ChunkOpsMapT ChunkOps;
   RemoveSymbolOpsMapT RemovedSymbols;
+
+  SetSymbolAddressOpsMapT SetSymbolAddressOps;
   llvm::DenseSet<plugin::LinkerWrapper *> Plugins;
   // FIXME: Why do member names here start from underscore?
   // Names starting from an underscore is generally used to

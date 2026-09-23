@@ -1,0 +1,136 @@
+name: DeleteOldArtifacts
+description: Delete older artifacts after a replacement artifact is ready
+
+inputs:
+  artifact-names:
+    description: Newline-separated artifact names whose older versions should be deleted
+    required: true
+  pull-request-number:
+    description: Restrict deletion to artifacts produced by this pull request
+    required: false
+    default: ""
+  workflow-id:
+    description: Restrict deletion to artifacts from this workflow file
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Delete older artifacts
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+      with:
+        github-token: ${{ github.token }}
+        script: |
+          // Convert the newline-separated action input into the list of artifact
+          // names that will be searched. Empty lines are ignored.
+          const names = process.env.ARTIFACT_NAMES
+            .split(/\r?\n/)
+            .map(name => name.trim())
+            .filter(Boolean);
+          const pullRequestNumber = process.env.PULL_REQUEST_NUMBER;
+          const workflowId = process.env.WORKFLOW_ID;
+          const currentRunId = context.runId;
+
+          // Workflow-run lookups are repeated for every matching artifact. Keep
+          // the results so each run is fetched from GitHub at most once.
+          const workflowRunCache = new Map();
+          let workflowFileId = null;
+
+          if (workflowId) {
+            // The input may be a workflow file name or ID. Resolve it to the
+            // numeric workflow ID used by the workflow-run API.
+            const { data } = await github.rest.actions.getWorkflow({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: workflowId
+            });
+            workflowFileId = String(data.id);
+          }
+
+          async function workflowRun(runId) {
+            // An artifact can lack its originating run, so treat that case as
+            // outside the requested scope instead of making an invalid request.
+            if (!runId) {
+              return null;
+            }
+            if (!workflowRunCache.has(runId)) {
+              const { data } = await github.rest.actions.getWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: runId
+              });
+              workflowRunCache.set(runId, data);
+            }
+            return workflowRunCache.get(runId);
+          }
+
+          async function belongsToScope(runId) {
+            // Apply the optional workflow and pull-request filters to the run
+            // that produced an artifact.
+            const run = await workflowRun(runId);
+            if (!run) {
+              return false;
+            }
+            if (workflowFileId && String(run.workflow_id) !== workflowFileId) {
+              return false;
+            }
+            if (pullRequestNumber &&
+                !(run.pull_requests || []).some(pullRequest =>
+                  String(pullRequest.number) === pullRequestNumber)) {
+              return false;
+            }
+            return true;
+          }
+
+          for (const name of names) {
+            const artifacts = [];
+            let page = 1;
+
+            // The API returns at most 100 artifacts per page. Continue until a
+            // short page indicates that all artifacts with this name were read.
+            while (true) {
+              const response = await github.rest.actions.listArtifactsForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name,
+                per_page: 100,
+                page
+              });
+              artifacts.push(...(response.data.artifacts || []));
+
+              if ((response.data.artifacts || []).length < 100) {
+                break;
+              }
+              page += 1;
+            }
+
+            for (const artifact of artifacts) {
+              const artifactRunId = artifact.workflow_run?.id;
+
+              // Never delete the artifact created by this run, and do not issue
+              // a redundant delete request for an artifact already expired.
+              if (String(artifactRunId) === String(currentRunId) ||
+                  artifact.expired) {
+                continue;
+              }
+
+              // Without either filter, every non-current artifact with this
+              // name is eligible. Otherwise, retain only artifacts in scope.
+              if ((pullRequestNumber || workflowId) &&
+                  !(await belongsToScope(artifactRunId))) {
+                continue;
+              }
+
+              core.info(`Deleting ${name} artifact ${artifact.id}`);
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id
+              });
+            }
+          }
+      env:
+        ARTIFACT_NAMES: ${{ inputs.artifact-names }}
+        PULL_REQUEST_NUMBER: ${{ inputs.pull-request-number }}
+        WORKFLOW_ID: ${{ inputs.workflow-id }}

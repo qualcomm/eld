@@ -35,10 +35,12 @@ class ELFSection;
 class Assignment : public ScriptCommand {
 public:
   enum Level {
-    BEFORE_SECTIONS, // Assignments before SECTIONS command
-    AFTER_SECTIONS,  // Assignments after SECTIONS command
-    INPUT_SECTION,   // related to an input section
-    SECTIONS_END
+    Unknown,
+    BeforeSections,     // Assignments before any SECTIONS command
+    AfterInputSectDesc, // Assignments inside output section body (with input
+                        // rules)
+    AfterOutputSection, // Assignments between output sections inside SECTIONS
+    AfterSections       // Assignments after SECTIONS command
   };
 
   enum Type { DEFAULT, HIDDEN, PROVIDE, PROVIDE_HIDDEN, FILL, ASSERT, PRINT };
@@ -91,12 +93,12 @@ public:
 
   /// Query functions on Assignment Kinds.
   bool isOutsideSections() const {
-    return AssignmentLevel == BEFORE_SECTIONS ||
-           AssignmentLevel == AFTER_SECTIONS;
+    return AssignmentLevel == BeforeSections ||
+           AssignmentLevel == AfterSections;
   }
 
   bool isInsideOutputSection() const {
-    return AssignmentLevel == INPUT_SECTION;
+    return AssignmentLevel == AfterInputSectDesc;
   }
 
   bool isHidden() const { return ThisType == HIDDEN; }

@@ -14,28 +14,10 @@
 using namespace llvm;
 using namespace llvm::opt;
 
-#define OPTTABLE_STR_TABLE_CODE
+#define OPTTABLE_CODE
 #include "eld/Driver/x86_64LinkerOptions.inc"
-#undef OPTTABLE_STR_TABLE_CODE
 
-#define OPTTABLE_PREFIXES_TABLE_CODE
-#include "eld/Driver/x86_64LinkerOptions.inc"
-#undef OPTTABLE_PREFIXES_TABLE_CODE
-
-static constexpr llvm::opt::OptTable::Info infoTable[] = {
-#define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
-               ALIASARGS, FLAGS, VISIBILITY, PARAM, HELPTEXT,                  \
-               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)                          \
-  LLVM_CONSTRUCT_OPT_INFO(                                                     \
-      PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, x86_64LinkOptTable::ID, KIND,     \
-      x86_64LinkOptTable::GROUP, x86_64LinkOptTable::ALIAS, ALIASARGS, FLAGS,  \
-      VISIBILITY, PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET),
-#include "eld/Driver/x86_64LinkerOptions.inc"
-#undef OPTION
-};
-
-OPT_x86_64LinkOptTable::OPT_x86_64LinkOptTable()
-    : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
+OPT_x86_64LinkOptTable::OPT_x86_64LinkOptTable() : OptTable(optionTables()) {}
 
 x86_64LinkDriver *x86_64LinkDriver::Create(eld::LinkerConfig &C,
                                            std::string InferredArch) {
@@ -79,9 +61,12 @@ x86_64LinkDriver::parseOptions(ArrayRef<const char *> Args,
                      /*ShowAllAliases=*/true);
     return LINK_SUCCESS;
   }
-  if (ArgList.hasArg(OPT_x86_64LinkOptTable::version)) {
-    printVersionInfo();
-    return LINK_SUCCESS;
+  if (llvm::opt::Arg *Arg = ArgList.getLastArg(
+          OPT_x86_64LinkOptTable::v, OPT_x86_64LinkOptTable::version)) {
+    if (Arg->getOption().matches(OPT_x86_64LinkOptTable::version)) {
+      printVersionInfo();
+      return LINK_SUCCESS;
+    }
   }
   // --about
   if (ArgList.hasArg(OPT_x86_64LinkOptTable::about)) {
@@ -96,6 +81,12 @@ x86_64LinkDriver::parseOptions(ArrayRef<const char *> Args,
 
   Config.options().setUnknownOptions(
       ArgList.getAllArgValues(OPT_x86_64LinkOptTable::UNKNOWN));
+
+  // --relax/--no-relax: enable/disable GOTPCRELX relaxation (disabled by
+  // default)
+  Config.options().setRelax(ArgList.hasFlag(OPT_x86_64LinkOptTable::relax,
+                                            OPT_x86_64LinkOptTable::no_relax,
+                                            /*default=*/false));
 
   return {};
 }

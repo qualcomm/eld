@@ -182,7 +182,6 @@ LayoutInfo::setLayoutDetail(llvm::StringRef Option,
           .Case("show-timing", ShowTiming)
           .Case("show-debug-strings", ShowDebugStrings)
           .Case("show-initial-layout", ShowInitialLayout)
-          .Case("show-symbol-resolution", ShowSymbolResolution)
           .StartsWith(ShowRelativePathOptionStr, ShowRelativePath)
           .Default(0);
   LayoutDetail |= OptionLayoutDetail;
@@ -460,6 +459,13 @@ void LayoutInfo::recordRemoveSymbol(plugin::LinkerWrapper *W,
   PluginOps[W].push_back(O);
   Plugins.insert(W);
   RemovedSymbols[O->getRemovedSymbol()] = O;
+}
+
+void LayoutInfo::recordSetSymbolAddress(plugin::LinkerWrapper *W,
+                                        SetSymbolAddressPluginOp *O) {
+  PluginOps[W].push_back(O);
+  Plugins.insert(W);
+  SetSymbolAddressOps[O->getSymbol()] = O;
 }
 
 LayoutInfo::ResolveInfoVectorT

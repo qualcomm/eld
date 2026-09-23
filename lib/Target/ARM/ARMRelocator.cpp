@@ -23,6 +23,7 @@
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/MathExtras.h"
+#include <array>
 
 // ApplyReloc Mutex.
 namespace {
@@ -61,6 +62,18 @@ static inline void helper_clear_thumb_bit(Relocator::Address &pValue) {
   pValue &= (~0x1);
 }
 
+static uint32_t helper_get_rem_for_group(unsigned pGroup, uint32_t pValue) {
+  uint32_t Rem;
+  do {
+    uint32_t LZ = llvm::countl_zero(pValue) & ~1;
+    Rem = pValue;
+    if (LZ == 32)
+      break;
+    pValue &= 0xffffff >> LZ;
+  } while (pGroup--);
+  return Rem;
+}
+
 // Get an relocation entry in .rel.dyn and set its type to pType,
 // its FragmentRef to pReloc->targetFrag() and its ResolveInfo to
 // pReloc->symInfo()
@@ -68,7 +81,7 @@ static Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
                                       ResolveInfo *pSym, Fragment *F,
                                       uint32_t pOffset, Relocator::Type pType,
                                       ARMGNULDBackend &B) {
-  Relocation *rel_entry = Obj->getRelaDyn()->createOneReloc();
+  Relocation *rel_entry = B.getRelaDyn()->createOneReloc();
   rel_entry->setType(pType);
   rel_entry->setTargetRef(make<FragmentRef>(*F, pOffset));
   rel_entry->setSymInfo(pSym);
@@ -91,12 +104,17 @@ static ARMGOT *CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
                          ARMGNULDBackend &B, bool isExec) {
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
-  ARMGOT *G = B.createGOT(GOT::Regular, Obj, rsym);
+  ARMGOT *G = B.createGOT(GOT::Regular, rsym);
 
   if (!pHasRel) {
     G->setValueType(GOT::SymbolValue);
     return G;
   }
+
+  // A non-default-visibility weak undefined symbol resolves to 0; no dynamic
+  // relocation needed.
+  if ((rsym->isHidden() || rsym->isProtected()) && rsym->isWeakUndef())
+    return G;
 
   // If the symbol is not preemptible and we are not building an executable,
   // then try to use a relative reloc. We use a relative reloc if the symbol is
@@ -213,12 +231,11 @@ ARMGOT *ARMRelocator::getTLSModuleID(ResolveInfo *R, bool isStatic) {
     return G;
   }
 
-  G = m_Target.createGOT(GOT::TLS_LD, nullptr, nullptr);
+  G = m_Target.createGOT(GOT::TLS_LD, nullptr);
 
   if (!isStatic)
-    helper_DynRel_init(m_Target.getDynamicSectionHeadersInputFile(), nullptr,
-                       nullptr, G, 0x0, llvm::ELF::R_ARM_TLS_DTPMOD32,
-                       m_Target);
+    helper_DynRel_init(nullptr, nullptr, nullptr, G, 0x0,
+                       llvm::ELF::R_ARM_TLS_DTPMOD32, m_Target);
 
   m_Target.recordGOT(R, G);
   return G;
@@ -233,16 +250,36 @@ DECL_ARM_APPLY_RELOC_FUNCS
 typedef Relocator::Result (*ApplyFunctionType)(Relocation &pReloc,
                                                ARMRelocator &pParent);
 
-// the table entry of applying functions
-struct ApplyFunctionTriple {
+// The table entry of applying functions.
+struct ApplyFunctionEntry {
+  ApplyFunctionEntry() : func(nullptr), name(nullptr) {}
+  ApplyFunctionEntry(ApplyFunctionType pFunc, const char *pName)
+      : func(pFunc), name(pName) {}
   ApplyFunctionType func;
-  unsigned int type;
   const char *name;
 };
 
-// declare the table of applying functions
-static const ApplyFunctionTriple ApplyFunctions[] = {
-    DECL_ARM_APPLY_RELOC_FUNC_PTRS};
+static constexpr size_t ARM_MAXRELOCS = llvm::ELF::R_ARM_TLS_IE32_FDPIC + 1;
+
+static std::array<ApplyFunctionEntry, ARM_MAXRELOCS> createApplyFunctions() {
+  std::array<ApplyFunctionEntry, ARM_MAXRELOCS> Functions{};
+
+  // ARM.def is the source of truth for public relocation names and values.
+#define ELF_RELOC(Name, Value)                                                 \
+  Functions[Value] = ApplyFunctionEntry(&unsupport, #Name);
+#include "llvm/BinaryFormat/ELFRelocs/ARM.def"
+#undef ELF_RELOC
+
+  // Replace the default handler for relocations implemented by ELD.
+#define ADD_ARM_RELOC_OVERRIDE(Type, Func, Name)                               \
+  Functions[Type] = ApplyFunctionEntry(&Func, Name);
+  DECL_ARM_APPLY_RELOC_FUNC_OVERRIDES(ADD_ARM_RELOC_OVERRIDE)
+#undef ADD_ARM_RELOC_OVERRIDE
+
+  return Functions;
+}
+
+static const auto ApplyFunctions = createApplyFunctions();
 
 //===--------------------------------------------------------------------===//
 // ARMRelocator
@@ -274,7 +311,7 @@ bool ARMRelocator::isPICRelocTypeSupported(const Relocation &reloc) const {
 
 Relocator::Result ARMRelocator::applyRelocation(Relocation &pRelocation) {
   Relocation::Type type = pRelocation.type();
-  if (type > 133) { // 131-255 doesn't noted in ARM spec
+  if (type >= ApplyFunctions.size() || !ApplyFunctions[type].func) {
     return Relocator::Unknown;
   }
 
@@ -297,10 +334,12 @@ Relocator::Result ARMRelocator::applyRelocation(Relocation &pRelocation) {
 }
 
 const char *ARMRelocator::getName(Relocator::Type pType) const {
-  return ApplyFunctions[pType].name;
+  return pType >= ApplyFunctions.size() || !ApplyFunctions[pType].name
+             ? "INVALID_RELOC"
+             : ApplyFunctions[pType].name;
 }
 
-uint32_t ARMRelocator::getNumRelocs() const { return ARM_MAXRELOCS; }
+uint32_t ARMRelocator::getNumRelocs() const { return ApplyFunctions.size(); }
 
 Relocator::Size ARMRelocator::getSize(Relocation::Type pType) const {
   return 32;
@@ -417,7 +456,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
       return;
 
     // set up a pair of got entries and a pair of dyn rel
-    ARMGOT *G = m_Target.createGOT(GOT::TLS_GD, Obj, rsym);
+    ARMGOT *G = m_Target.createGOT(GOT::TLS_GD, rsym);
     if (config().isCodeStatic()) {
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       G->getFirst()->setReservedValue(1);
@@ -460,7 +499,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
       return;
 
     // set up the got and the corresponding rel entry
-    ARMGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    ARMGOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     if (config().isCodeStatic() || config().isBuildingExecutable()) {
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       G->setValueType(GOT::TLSStaticSymbolValue);
@@ -510,7 +549,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
         // Symbol needs PLT entry, we need to reserve a PLT entry
         // and the corresponding GOT and dynamic relocation entry
         // in .got and .rel.plt.
-        m_Target.createPLT(Obj, rsym);
+        m_Target.createPLT(rsym);
         // set PLT bit
         rsym->setReserved(rsym->reserved() | ReservePLT);
       }
@@ -651,7 +690,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
     // Symbol needs PLT entry, we need to reserve a PLT entry
     // and the corresponding GOT and dynamic relocation entry
     // in .got and .rel.plt.
-    m_Target.createPLT(Obj, rsym);
+    m_Target.createPLT(rsym);
     // set PLT bit
     rsym->setReserved(rsym->reserved() | ReservePLT);
     return;
@@ -694,7 +733,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
       return;
 
     // set up a pair of got entries and a pair of dyn rel
-    ARMGOT *G = m_Target.createGOT(GOT::TLS_GD, Obj, rsym);
+    ARMGOT *G = m_Target.createGOT(GOT::TLS_GD, rsym);
 
     if (config().isCodeStatic()) {
       rsym->setReserved(rsym->reserved() | ReserveGOT);
@@ -738,7 +777,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
       return;
 
     // set up the got and the corresponding rel entry
-    ARMGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    ARMGOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     if (config().isCodeStatic() || (config().isBuildingExecutable() &&
                                     !m_Target.isSymbolPreemptible(*rsym))) {
       rsym->setReserved(rsym->reserved() | ReserveGOT);
@@ -853,7 +892,7 @@ void ARMRelocator::handleScanForNonPreemptibleIFunc(Relocation &R,
 
   if (RI->reserved() & ReservePLT)
     return;
-  m_Target.createPLT(Obj, RI, /*isIRelative=*/true);
+  m_Target.createPLT(RI, /*isIRelative=*/true);
   RI->setReserved(RI->reserved() | ReservePLT);
 }
 
@@ -894,9 +933,7 @@ void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
     }
   }
 
-  ELFSection *section = pSection.getLink()
-                            ? pSection.getLink()
-                            : pReloc.targetRef()->frag()->getOwningSection();
+  ELFSection *section = pSection.getLink();
 
   if (!section->isAlloc())
     return;
@@ -942,6 +979,124 @@ void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
 
 // R_ARM_NONE
 Relocator::Result none(Relocation &pReloc, ARMRelocator &pParent) {
+  return Relocator::OK;
+}
+
+static Relocator::Result ldr_pc_group(Relocation &pReloc, ARMRelocator &pParent,
+                                      unsigned pGroup) {
+  Relocator::Address S = pParent.getSymValue(&pReloc);
+  Relocator::Address P = pReloc.place(pParent.module());
+  if (getThumbBit(pParent, pReloc, /*IsJump*/ false))
+    helper_clear_thumb_bit(S);
+
+  // Extract the signed addend encoded by the LDR literal immediate.
+  // Bit 23 is the U bit: set means +imm12, clear means -imm12.
+  Relocator::DWord I = pReloc.target();
+  Relocator::DWord U = 0x00800000;
+  Relocator::DWord A = (I & U) ? (I & 0xfff) : -static_cast<int64_t>(I & 0xfff);
+  A += pReloc.addend();
+
+  // Compute the PC-relative displacement, then choose the output U bit from
+  // its sign while encoding the absolute magnitude.
+  Relocator::DWord X = S + A - P;
+  if (static_cast<int64_t>(X) < 0) {
+    U = 0x0;
+    X = -static_cast<int64_t>(X);
+  }
+
+  // R_ARM_LDR_PC_Gn encodes the group residual in the imm12 field.
+  uint32_t Imm = helper_get_rem_for_group(pGroup, X);
+  if (!llvm::isUInt<12>(Imm))
+    return reportUnsignedOverflow(pReloc, pParent, Imm, 12);
+
+  // Preserve the instruction opcode/register fields and replace only U+imm12.
+  pReloc.target() = (I & 0xff7ff000) | U | Imm;
+  return Relocator::OK;
+}
+
+// R_ARM_LDR_PC_G0: S + A - P
+Relocator::Result ldr_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldr_pc_group(pReloc, pParent, 0);
+}
+
+// R_ARM_LDR_PC_G1: S + A - P
+Relocator::Result ldr_pc_g1(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldr_pc_group(pReloc, pParent, 1);
+}
+
+// R_ARM_LDR_PC_G2: S + A - P
+Relocator::Result ldr_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldr_pc_group(pReloc, pParent, 2);
+}
+
+Relocator::Result thm_pc8(Relocation &pReloc, ARMRelocator &pParent) {
+  Relocator::Address S = pParent.getSymValue(&pReloc);
+  Relocator::Address P = pReloc.place(pParent.module());
+  // Pa = (PC + 4) & ~3 per ARM ABI for Thumb PC8 relocation
+  Relocator::Address Pa = (P + 4) & ~3;
+  Relocator::DWord A = pReloc.addend();
+  if (getThumbBit(pParent, pReloc, /*IsJump*/ false))
+    helper_clear_thumb_bit(S);
+  int64_t val = (int64_t)(S + A) - (int64_t)Pa;
+  if (val < 0 || val > 0x3ff) {
+    pReloc.issueUnsignedOverflow(pParent, val, 0, 0x3ff);
+    return ARMRelocator::Overflow;
+  }
+  if (val & 0x3)
+    return ARMRelocator::BadReloc;
+  pReloc.target() = (pReloc.target() & 0xff00) | ((val & 0x3fc) >> 2);
+  return Relocator::OK;
+}
+
+Relocator::Result thm_pc12(Relocation &pReloc, ARMRelocator &pParent) {
+  Relocator::Address S = pParent.getSymValue(&pReloc);
+  Relocator::Address P = pReloc.place(pParent.module());
+  Relocator::Address Pa = P & ~3;
+
+  // 32-bit Thumb instruction stored as two 16-bit halfwords.
+  uint16_t upper_inst = *(reinterpret_cast<uint16_t *>(&pReloc.target()));
+  uint16_t lower_inst = *(reinterpret_cast<uint16_t *>(&pReloc.target()) + 1);
+
+  // LDR (literal) T2:
+  // U bit is bit[7] of the upper halfword.
+  // imm12 is bits[11:0] of the lower halfword.
+  bool u = upper_inst & 0x0080;
+  uint32_t imm12 = lower_inst & 0x0fff;
+
+  // Extract the implicit signed addend from the instruction.
+  int64_t A = u ? static_cast<int64_t>(imm12) : -static_cast<int64_t>(imm12);
+  A += pReloc.addend();
+
+  // Thumb state bit.
+  Relocator::DWord T = getThumbBit(pParent, pReloc, /*IsJump*/ false);
+
+  // R_ARM_THM_PC12:
+  // X = ((S + A) | T) - Pa
+  int64_t val = static_cast<int64_t>((S + A) | T) - static_cast<int64_t>(Pa);
+
+  // Match LLD: ignore Thumb bit after forming the displacement.
+  if (T)
+    val &= ~0x1;
+
+  uint16_t u_bit = 0x0080;
+  if (val < 0) {
+    val = -val;
+    u_bit = 0;
+  }
+
+  // imm12 must fit in 12 bits.
+  if (val > 0xfff) {
+    pReloc.issueUnsignedOverflow(pParent, val, 0, 0xfff);
+    return ARMRelocator::Overflow;
+  }
+
+  // Encode U and imm12 back into the Thumb-32 instruction.
+  upper_inst = (upper_inst & 0xff7f) | u_bit;
+  lower_inst = (lower_inst & 0xf000) | static_cast<uint16_t>(val);
+
+  *(reinterpret_cast<uint16_t *>(&pReloc.target())) = upper_inst;
+  *(reinterpret_cast<uint16_t *>(&pReloc.target()) + 1) = lower_inst;
+
   return Relocator::OK;
 }
 
@@ -1207,9 +1362,12 @@ Relocator::Result thm_jump19(Relocation &pReloc, ARMRelocator &pParent) {
   return Relocator::OK;
 }
 
-// R_ARM_ALU_PC_G0: ((S + A) | T) - P
-Relocator::Result alu_pc(Relocation &pReloc, ARMRelocator &pParent) {
-  // perform static relocation
+// R_ARM_ALU_PC_Gn / R_ARM_ALU_PC_Gn_NC: ((S + A) | T) - P
+// Shared worker for the whole ALU_PC group family. pGroup selects which
+// group's residual to encode and pCheck selects whether encoding failure is
+// reported (false for the _NC variants, which silently truncate instead).
+static Relocator::Result alu_pc_group(Relocation &pReloc, ARMRelocator &pParent,
+                                      unsigned pGroup, bool pCheck) {
   Relocator::Address S = pParent.getSymValue(&pReloc);
   Relocator::DWord T = getThumbBit(pParent, pReloc, /*IsJump*/ false);
   Relocator::Address P = pReloc.place(pParent.module());
@@ -1238,25 +1396,45 @@ Relocator::Result alu_pc(Relocation &pReloc, ARMRelocator &pParent) {
     Imm = -Imm;
   }
 
-  if (X) {
-    // Find the current value bit length and the value K_n.
-    unsigned L = llvm::bit_width<uint32_t>(X);
-    unsigned K = (L < 8 ? 0 : L - 7) >> 1;
-    // Encode the shifted immediate.
-    I |= ((X >> (K * 2)) & 0xff) | ((16 - K) & 0xf) << 8;
-    // Mask off used bits, the residual will be needed for other groups.
-    X &= llvm::maskTrailingOnes<uint32_t>(K * 2);
-    // For higher groups, the above is repeated.
-    // If there is still residual, the value cannot be represented.
-    if (X) {
-      pReloc.issueUnencodableImmediate(pParent, Imm);
-      return Relocator::BadImm;
-    }
+  // R_ARM_ALU_PC_Gn encodes the group residual as a modified immediate
+  // (4-bit even rotate + 8-bit constant).
+  uint32_t Rem = helper_get_rem_for_group(pGroup, X);
+  unsigned LZ = llvm::countl_zero(Rem) & ~1u;
+  uint32_t RotImm = Rem;
+  uint32_t Rot = 0;
+  if (LZ < 24) {
+    RotImm = llvm::rotr<uint32_t>(Rem, 24 - LZ);
+    Rot = (LZ + 8) << 7;
   }
 
-  pReloc.target() = I;
+  if (pCheck && RotImm > 0xff) {
+    pReloc.issueUnencodableImmediate(pParent, Imm);
+    return Relocator::BadImm;
+  }
+
+  pReloc.target() = I | Rot | (RotImm & 0xff);
 
   return Relocator::OK;
+}
+
+Relocator::Result alu_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
+  return alu_pc_group(pReloc, pParent, /*pGroup=*/0, /*pCheck=*/true);
+}
+
+Relocator::Result alu_pc_g0_nc(Relocation &pReloc, ARMRelocator &pParent) {
+  return alu_pc_group(pReloc, pParent, /*pGroup=*/0, /*pCheck=*/false);
+}
+
+Relocator::Result alu_pc_g1(Relocation &pReloc, ARMRelocator &pParent) {
+  return alu_pc_group(pReloc, pParent, /*pGroup=*/1, /*pCheck=*/true);
+}
+
+Relocator::Result alu_pc_g1_nc(Relocation &pReloc, ARMRelocator &pParent) {
+  return alu_pc_group(pReloc, pParent, /*pGroup=*/1, /*pCheck=*/false);
+}
+
+Relocator::Result alu_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
+  return alu_pc_group(pReloc, pParent, /*pGroup=*/2, /*pCheck=*/true);
 }
 
 // R_ARM_PC24: ((S + A) | T) - P

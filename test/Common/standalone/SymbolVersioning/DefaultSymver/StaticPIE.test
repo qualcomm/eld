@@ -1,0 +1,28 @@
+REQUIRES: symbol_versioning
+#---StaticPIE.test-------------------------------------------- SymbolVersioning ------#
+#BEGIN_COMMENT
+# This test verifies that --default-symver creates a default version node for
+# static PIE outputs. Without -E the node is still created without exporting
+# regular symbols; with -E exported executable symbols use the default version.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.noexport.o %p/Inputs/no-export.c -c
+RUN: %clang %clangopts -o %t1.main.o %p/Inputs/main.c -c
+
+RUN: %link %linkopts -o %t1.staticpie %t1.noexport.o -static -pie --default-symver
+RUN: %readelf --dyn-syms --version-info %t1.staticpie | %filecheck %s --check-prefix=STATICPIE
+
+RUN: %link %linkopts -o %t1.staticpieE %t1.main.o -static -pie -E --default-symver
+RUN: %readelf --dyn-syms --version-info %t1.staticpieE | %filecheck %s --check-prefix=STATICPIE-E
+#END_TEST
+
+STATICPIE: Symbol table '.dynsym' contains 1 entries:
+STATICPIE: '.gnu.version_d' contains 2 entries:
+STATICPIE: Name: {{.*}}staticpie
+STATICPIE: Name: {{.*}}staticpie
+
+STATICPIE-E: foo@@{{.*}}staticpieE
+STATICPIE-E: main@@{{.*}}staticpieE
+STATICPIE-E: '.gnu.version_d' contains 2 entries:
+STATICPIE-E: Name: {{.*}}staticpieE
+STATICPIE-E: Name: {{.*}}staticpieE

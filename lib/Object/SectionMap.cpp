@@ -43,7 +43,9 @@ SectionMap::SectionMap(LinkerScript &L, const LinkerConfig &Config,
     : MLinkerScript(L), ThisConfig(Config),
       IsSectionTracingRequested(Config.options().isSectionTracingRequested()),
       MLayoutInfo(LayoutInfo) {
-  insert("", "");
+  auto SentinelResult = insert("", "");
+  SentinelResult.first.second->setRuleHash(
+      llvm::hash_combine(std::string(""), std::string(""), uint64_t(0)));
   MPrinter = Config.getPrinter();
 }
 SectionMap::~SectionMap() {
@@ -436,7 +438,7 @@ bool SectionMap::matchedSections(
   bool Match = matched(Pattern, CurInputSection, InputSectionHash);
   if (Match) {
     if (!EF.empty()) {
-      for (const auto &Elem : EF) {
+      for (auto *Elem : EF.patterns()) {
         const WildcardPattern *ArchivePattern = Elem->archive();
         bool ArchiveMatchWithFileName = false;
         if (ArchivePattern) {

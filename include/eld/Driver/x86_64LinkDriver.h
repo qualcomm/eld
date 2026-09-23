@@ -16,7 +16,7 @@
 #include "llvm/ADT/StringRef.h"
 
 // Create OptTable class for parsing actual command line arguments
-class OPT_x86_64LinkOptTable : public llvm::opt::GenericOptTable {
+class OPT_x86_64LinkOptTable : public llvm::opt::OptTable {
 public:
   enum {
     INVALID = 0,

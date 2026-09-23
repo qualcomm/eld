@@ -1,0 +1,23 @@
+## Checks that an absolute symbol emitted into .dynsym is counted when
+## computing sh_info.
+
+# RUN: split-file %s %t
+# RUN: %clang %clangopts -c -fPIC %t/a.c -o %t/a.o
+# RUN: %link %linkopts %t/a.o -T %t/script.t --export-dynamic-symbol myabs \
+# RUN:   -pie -o %t.out
+# RUN: %readelf --dyn-syms -S -W %t.out | %filecheck %s
+
+## sh_info must be 1, not 0: the absolute symbol counts as non-local.
+# CHECK: .dynsym DYNSYM {{[0-9a-f]+}} {{[0-9a-f]+}} {{[0-9a-f]+}} {{[0-9a-f]+}} {{[A-Zx]+}} {{[0-9]+}} 1 {{[0-9]+}}
+
+## The absolute symbol is the first non-null .dynsym entry.
+# CHECK:      Symbol table '.dynsym' contains 2 entries:
+# CHECK:      0: {{0+}}     0 NOTYPE  LOCAL  DEFAULT   UND
+# CHECK-NEXT: 1: {{0*}}abc     0 NOTYPE  GLOBAL DEFAULT   ABS myabs
+
+#--- a.c
+int real1 = 1;
+int mainish(void) { return real1; }
+
+#--- script.t
+myabs = 0xabc;

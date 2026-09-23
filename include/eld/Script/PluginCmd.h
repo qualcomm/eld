@@ -30,6 +30,8 @@ public:
 
   Plugin *getPlugin() const { return plugin; }
 
+  plugin::Plugin::Type getPluginType() const { return T; }
+
   static bool classof(const ScriptCommand *LinkerScriptCommand) {
     return LinkerScriptCommand->getKind() == ScriptCommand::PLUGIN;
   }
@@ -43,7 +45,7 @@ public:
   void setHasOutputSection() { PluginHasOutputSection = true; }
 
 private:
-  std::string getPluginType() const;
+  std::string getPluginDirectiveName() const;
 
 private:
   plugin::Plugin::Type T;

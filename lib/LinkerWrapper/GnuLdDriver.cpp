@@ -21,6 +21,7 @@
 #include "eld/Driver/TemplateLinkDriver.h"
 #endif
 #ifdef ELD_ENABLE_TARGET_X86
+#include "eld/Driver/x86_32LinkDriver.h"
 #include "eld/Driver/x86_64LinkDriver.h"
 #endif
 #include "eld/Config/LinkerConfig.h"
@@ -55,28 +56,10 @@ using namespace llvm;
 using namespace llvm::opt;
 using namespace eld;
 
-#define OPTTABLE_STR_TABLE_CODE
+#define OPTTABLE_CODE
 #include "eld/Driver/GnuLinkerOptions.inc"
-#undef OPTTABLE_STR_TABLE_CODE
 
-#define OPTTABLE_PREFIXES_TABLE_CODE
-#include "eld/Driver/GnuLinkerOptions.inc"
-#undef OPTTABLE_PREFIXES_TABLE_CODE
-
-static constexpr llvm::opt::OptTable::Info infoTable[] = {
-#define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
-               ALIASARGS, FLAGS, VISIBILITY, PARAM, HELPTEXT,                  \
-               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)                          \
-  LLVM_CONSTRUCT_OPT_INFO(                                                     \
-      PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, GnuLdOptTable::ID, KIND,          \
-      GnuLdOptTable::GROUP, GnuLdOptTable::ALIAS, ALIASARGS, FLAGS,            \
-      VISIBILITY, PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET),
-#include "eld/Driver/GnuLinkerOptions.inc"
-#undef OPTION
-};
-
-OPT_GnuLdOptTable::OPT_GnuLdOptTable()
-    : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
+OPT_GnuLdOptTable::OPT_GnuLdOptTable() : OptTable(optionTables()) {}
 
 GnuLdDriver::GnuLdDriver(LinkerConfig &C, DriverFlavor F)
     : Config(C), DiagEngine(C.getDiagEngine()), m_Script(DiagEngine),
@@ -107,6 +90,8 @@ GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, uint8_t Machine,
 #ifdef ELD_ENABLE_TARGET_X86
   case llvm::ELF::EM_X86_64:
     return x86_64LinkDriver::Create(C, is64bit);
+  case llvm::ELF::EM_386:
+    return x86_32LinkDriver::Create(C, is64bit);
 #endif
   default:
     break;
@@ -136,6 +121,8 @@ GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, DriverFlavor F,
 #ifdef ELD_ENABLE_TARGET_X86
   case DriverFlavor::x86_64:
     return x86_64LinkDriver::Create(C, InferredArch);
+  case DriverFlavor::x86_32:
+    return x86_32LinkDriver::Create(C, InferredArch);
 #endif
   default:
     return eld::make<GnuLdDriver>(C, F);
@@ -191,8 +178,13 @@ void GnuLdDriver::printAboutInfo() const {
 }
 
 void GnuLdDriver::printVersionInfo() const {
-  outs() << "eld " << eld::getELDVersion() << " (GNU Compatible linker)"
-         << "\n";
+  // The first line's first two words are deliberately "GNU"/"ld", ending in
+  // nothing but the bare version number. Build systems that identify the
+  // linker by parsing --version output (e.g. the Linux kernel's
+  // scripts/ld-version.sh) look for a first line whose first two words are
+  // exactly "GNU"/"ld" and take the last word on that line as the version;
+  // without this, such scripts reject eld as an "unknown linker".
+  outs() << "GNU ld compatible linker - eld " << eld::getELDVersion() << "\n";
   outs() << "Supported Targets: ";
   for (const auto &x : m_SupportedTargets)
     outs() << x << " ";
@@ -587,6 +579,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   Config.options().setWarnSharedTextrel(Args.hasFlag(
       T::warn_shared_textrel, T::no_warn_shared_textrel, /*default=*/false));
 
+  // --[no-]warn-rwx-segments
+  Config.options().setWarnRWXSegments(Args.hasFlag(
+      T::warn_rwx_segments, T::no_warn_rwx_segments, /*default=*/true));
+
   // --warn-common
   if (Args.hasArg(T::warn_common))
     Config.options().setWarnCommon();
@@ -882,6 +878,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().getVersionScripts().emplace(Arg->getValue());
   if (Config.options().getVersionScripts().size())
     Config.options().setVersionScript();
+
+  // --default-symver
+  if (Args.hasArg(T::default_symver))
+    Config.options().setDefaultSymver();
 
   // --extern-list
   for (auto *Arg : Args.filtered(T::extern_list))
@@ -1324,6 +1324,11 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setArchiveMemberReportFile(A->getValue());
   }
 
+  // --emit-symbol-resolution-report=<file>
+  if (llvm::opt::Arg *A = Args.getLastArg(T::SymbolResolutionReportFile)) {
+    Config.options().setSymbolResolutionReportFile(A->getValue());
+  }
+
   if (Args.hasArg(T::use_old_rule_matching))
     Config.options().setUseOldRuleMatching(true);
 
@@ -1338,6 +1343,7 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
   size_t input_num = 0;
   int GroupMatchCount = 0;
   int LibMatchCount = 0;
+  bool HasVersionAction = false;
 
   for (llvm::opt::Arg *arg : Args) {
     switch (arg->getOption().getID()) {
@@ -1502,6 +1508,14 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
       ++input_num;
     } break;
 
+    // -v prints the version banner and lets linking continue. Unlike
+    // --version, -v only short-circuits when there are no real inputs.
+    case T::v: {
+      actions.push_back(eld::make<eld::VersionAction>(m_SupportedTargets,
+                                                      Config.getPrinter()));
+      HasVersionAction = true;
+    } break;
+
     default:
       break;
     }
@@ -1519,7 +1533,7 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
     return false;
   }
 
-  if (input_num == 0) {
+  if (input_num == 0 && !HasVersionAction) {
     Config.raise(Diag::err_no_inputs);
     Config.raise(Diag::linking_had_errors) << getOutputFileName();
     return false;
@@ -1662,6 +1676,36 @@ bool GnuLdDriver::processReproduceOption(
   if (!Config.options().getDumpResponse())
     os << getProgramName() << " ";
   size_t lastNamespecId = -1;
+  size_t lastInputFileId = -1;
+  size_t lastScriptId = -1;
+  size_t lastJustSymbolsId = -1;
+
+  auto getRewrittenActionInputPath =
+      [&](eld::InputAction::InputActionKind kind, size_t &lastActionId,
+          llvm::StringRef fallback) -> std::optional<std::string> {
+    for (size_t i = lastActionId + 1; i < actions.size(); ++i) {
+      auto action = actions[i];
+      if (action->getInputActionKind() != kind)
+        continue;
+      lastActionId = i;
+      auto ipt = action->getInput();
+      if (!ipt)
+        return std::nullopt;
+      std::string key = fallback.str();
+      if (ipt->getInputFile() && ipt->getInputFile()->hasMappedPath())
+        key = ipt->getInputFile()->getMappedPath();
+      else if (!ipt->getName().empty())
+        key = ipt->getName();
+      return outputTar->rewritePath(key);
+    }
+    return outputTar->rewritePath(fallback);
+  };
+
+  auto getRewrittenRemappedPath = [&](llvm::StringRef path) -> std::string {
+    if (auto replacement = Config.options().findRemapInput(path))
+      return outputTar->rewritePath(*replacement);
+    return outputTar->rewritePath(path);
+  };
 
   auto zArgsRange = Args.filtered(T::dash_z);
   auto zArgIt = zArgsRange.begin();
@@ -1695,9 +1739,14 @@ bool GnuLdDriver::processReproduceOption(
       }
       break;
     }
-    case T::INPUT:
-      os << outputTar->rewritePath(arg->getValue()) << ' ';
+    case T::INPUT: {
+      auto path = getRewrittenActionInputPath(eld::InputAction::InputFile,
+                                              lastInputFileId, arg->getValue());
+      if (!path)
+        return false;
+      os << *path << ' ';
       break;
+    }
     case T::plugin_config: {
       const eld::sys::fs::Path *P = Config.directories().findFile(
           "plugin configuration file", arg->getValue(), "");
@@ -1709,21 +1758,45 @@ bool GnuLdDriver::processReproduceOption(
     }
     case T::output_file:
     case T::Map:
-    case T::T:
-    case T::R:
+      os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
+         << ' ';
+      break;
     case T::dynamic_list:
     case T::extern_list:
     case T::version_script:
-      os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
-         << ' ';
+    case T::copy_farcalls_from_file:
+    case T::no_reuse_trampolines_file:
+      os << arg->getSpelling() << ' '
+         << getRewrittenRemappedPath(arg->getValue()) << ' ';
       break;
+    case T::T: {
+      auto path = getRewrittenActionInputPath(eld::InputAction::Script,
+                                              lastScriptId, arg->getValue());
+      if (!path)
+        return false;
+      os << arg->getSpelling() << ' ' << *path << ' ';
+      break;
+    }
+    case T::R: {
+      auto path = getRewrittenActionInputPath(
+          eld::InputAction::JustSymbols, lastJustSymbolsId, arg->getValue());
+      if (!path)
+        return false;
+      os << arg->getSpelling() << ' ' << *path << ' ';
+      break;
+    }
     case T::remap_inputs:
       os << arg->getSpelling() << ' ' << arg->getValue() << ' ';
       break;
-    case T::remap_inputs_file:
+    case T::remap_inputs_file: {
+      const eld::sys::fs::Path *P = Config.directories().findFile(
+          "remap input file", arg->getValue(), "");
+      outputTar->createAndAddConfigFile(arg->getValue(),
+                                        P ? P->getFullPath() : "");
       os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
          << ' ';
       break;
+    }
     case T::dash_z: {
       ASSERT(zArgIt != zArgsRange.end(), "Expected valid z argument iterator!");
       os << arg->getSpelling() << ' ';
@@ -1846,7 +1919,14 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
           << Arg->getOption().getPrefixedName() << S;
       return false;
     }
+
+    // This pattern of setting optimization options is based on code in lld
+    // createConfig().
     Conf.OptLevel = Value;
+    Conf.CGOptLevel =
+        static_cast<CodeGenOptLevel>(std::min<uint64_t>(Value, 3));
+    Conf.PTO.LoopVectorization = Value > 1;
+    Conf.PTO.SLPVectorization = Value > 1;
   }
 
   return true;
@@ -1950,6 +2030,12 @@ eld::Module *GnuLdDriver::ThisModule = nullptr;
 template <class T>
 bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
                          std::vector<eld::InputAction *> &actions) {
+  // Bare -v (no real inputs): print the banner and exit immediately.
+  if (Args.hasArg(T::v) && !Args.hasArg(T::INPUT)) {
+    printVersionInfo();
+    return true;
+  }
+
   const eld::Target *ELDTarget = nullptr;
   if (!isDriverFlavorUnknown()) {
     // Get the target specific parser.
@@ -2013,6 +2099,8 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
         linkStatus = linker.link();
       // llvm::errs() << "link: linkStatus: " << linkStatus << "\n";
       linker.printLayout();
+      if (Config.options().shouldEmitSymbolResolutionReport())
+        linkStatus &= linker.emitSymbolResolutionReport();
     }
     if (!linkStatus || Config.options().getRecordInputFiles())
       handleReproduce<T>(Args, actions, true);
@@ -2077,6 +2165,8 @@ std::string GnuLdDriver::getDriverFlavorName() const {
     return "template";
   case DriverFlavor::x86_64:
     return "x86_64";
+  case DriverFlavor::x86_32:
+    return "i386";
   case DriverFlavor::Unknown:
     return "Unknown";
   case DriverFlavor::Invalid:
@@ -2131,9 +2221,12 @@ std::optional<int> GnuLdDriver::parseOptions(ArrayRef<const char *> Args,
                      /*ShowAllAliases=*/true);
     return LINK_SUCCESS;
   }
-  if (ArgList.hasArg(OPT_GnuLdOptTable::version)) {
-    printVersionInfo();
-    return LINK_SUCCESS;
+  if (llvm::opt::Arg *Arg = ArgList.getLastArg(OPT_GnuLdOptTable::v,
+                                               OPT_GnuLdOptTable::version)) {
+    if (Arg->getOption().matches(OPT_GnuLdOptTable::version)) {
+      printVersionInfo();
+      return LINK_SUCCESS;
+    }
   }
   // --about
   if (ArgList.hasArg(OPT_GnuLdOptTable::about)) {

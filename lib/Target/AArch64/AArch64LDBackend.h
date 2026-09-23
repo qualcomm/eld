@@ -43,7 +43,7 @@ public:
   void initTargetSections(ObjectBuilder &pBuilder) override;
 
   /// Create dynamic input sections in an input file.
-  void initDynamicSections(ELFObjectFile &) override;
+  void initDynamicSections(InputFile &) override;
 
   /// initTargetSymbols - initialize target dependent symbols in output.
   void initTargetSymbols() override;
@@ -89,7 +89,7 @@ public:
   Relocation::Type getCopyRelType() const override;
 
   // ---  GOT Support ------
-  AArch64GOT *createGOT(GOT::GOTType T, ELFObjectFile *Obj, ResolveInfo *sym,
+  AArch64GOT *createGOT(GOT::GOTType T, ResolveInfo *sym,
                         bool SkipPLTRef = false);
 
   void recordGOT(ResolveInfo *, AArch64GOT *);
@@ -99,8 +99,7 @@ public:
   AArch64GOT *findEntryInGOT(ResolveInfo *) const;
 
   // ---  PLT Support ------
-  AArch64PLT *createPLT(ELFObjectFile *Obj, ResolveInfo *sym,
-                        bool isIRelative = false);
+  AArch64PLT *createPLT(ResolveInfo *sym, bool isIRelative = false);
 
   void recordPLT(ResolveInfo *, AArch64PLT *);
 

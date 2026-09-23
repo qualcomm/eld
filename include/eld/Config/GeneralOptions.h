@@ -152,6 +152,8 @@ public:
 
   bool traceReloc(std::string const &RelocName) const;
 
+  bool tracePlugin(std::string const &PluginName) const;
+
   bool traceLTO(void) const;
 
   bool codegenOpts(void) const;
@@ -343,6 +345,11 @@ public:
 
   bool warnSharedTextrel() const { return BWarnSharedTextrel; }
 
+  // --no-warn-rwx-segments
+  void setWarnRWXSegments(bool V = true) { BWarnRWXSegments = V; }
+
+  bool warnRWXSegments() const { return BWarnRWXSegments; }
+
   void setDefineCommon(bool PEnable = true) { BDefineCommon = PEnable; }
 
   bool isDefineCommon() const { return BDefineCommon; }
@@ -517,6 +524,19 @@ public:
     return ArchiveMemberReportFile;
   }
 
+  // --emit-symbol-resolution-report
+  void setSymbolResolutionReportFile(llvm::StringRef File) {
+    SymbolResolutionReportFile = File.str();
+  }
+
+  const std::optional<std::string> &getSymbolResolutionReportFile() const {
+    return SymbolResolutionReportFile;
+  }
+
+  bool shouldEmitSymbolResolutionReport() const {
+    return SymbolResolutionReportFile.has_value();
+  }
+
   // --ld-generated-unwind-info
   void setGenUnwindInfo(bool PEnable = true) { BGenUnwindInfo = PEnable; }
 
@@ -550,6 +570,10 @@ public:
   void setVersionScript() { BVersionScript = true; }
 
   bool hasVersionScript() const { return BVersionScript; }
+
+  void setDefaultSymver() { BDefaultSymver = true; }
+
+  bool hasDefaultSymver() const { return BDefaultSymver; }
 
   unsigned int getHashStyle() const { return HashStyle; }
 
@@ -924,6 +948,10 @@ public:
 
   bool getRISCVRelax() const { return BRiscvRelax; }
 
+  void setRelax(bool Value) { ShouldRelax = Value; }
+
+  bool getRelax() const { return ShouldRelax; }
+
   void setRISCVZeroRelax(bool Relax) { RiscvZeroRelax = Relax; }
 
   bool getRISCVZeroRelax() const { return RiscvZeroRelax; }
@@ -1027,6 +1055,10 @@ public:
   void setSectionTracingRequested() { SectionTracingRequested = true; }
 
   bool isSectionTracingRequested() const { return SectionTracingRequested; }
+
+  void setPluginTracingRequested() { PluginTracingRequested = true; }
+
+  bool isPluginTracingRequested() const { return PluginTracingRequested; }
 
   // --------------Dynamic Linker-------------------------
   bool hasDynamicLinker() const { return BDynamicLinker; }
@@ -1189,13 +1221,6 @@ public:
 
   llvm::StringRef getBuildID() const { return BuildIDValue.value(); }
 
-  // --patch-enable support
-  void setPatchEnable() { PatchEnable = true; }
-  bool isPatchEnable() const { return PatchEnable; }
-
-  void setPatchBase(const std::string &Value) { PatchBase = Value; }
-  const std::optional<std::string> &getPatchBase() const { return PatchBase; }
-
   void setIgnoreUnknownOptions() { IgnoreUnknownOptions = true; }
 
   bool shouldIgnoreUnknownOptions() const { return IgnoreUnknownOptions; }
@@ -1251,6 +1276,7 @@ private:
   bool BStripDebug = false;        // -S, --strip-debug
   bool BExportDynamic = false;     //-E, --export-dynamic
   bool BWarnSharedTextrel = false; // --warn-shared-textrel
+  bool BWarnRWXSegments = true;    // --no-warn-rwx-segments
   bool BWarnCommon = false;        // --warn-common
   bool BDefineCommon = false;      // -d, -dc, -dp
   bool BFatalWarnings = false;     // --fatal-warnings
@@ -1267,6 +1293,7 @@ private:
   bool BForceDynamic = false;        // --force-dynamic
   bool BDynamicList = false;         // --dynamic-list flag
   bool BVersionScript = false;       // --version-script
+  bool BDefaultSymver = false;       // --default-symver
   bool BHasDyld = false;             // user set dynamic linker ?
   bool NoInhibitExec = false;        //--noinhibit-exec
   bool NoGnuStack = false;           //--nognustack
@@ -1323,6 +1350,7 @@ private:
   bool DisableGuardForWeakUndefs = false; // hexagon specific option to
                                           // disable guard functionality.
   bool BRiscvRelax = true;                // enable riscv relaxation
+  bool ShouldRelax = false; // x86-64 GOTPCRELX relaxation (opt-in via --relax)
   bool RiscvZeroRelax = true;             // Zero-page relaxation
   bool RiscvGPRelax = true;               // GP relaxation
   bool BRiscvRelaxToC = true; // enable riscv relax to compressed code
@@ -1360,6 +1388,8 @@ private:
   std::optional<std::string> PluginActivityLogFile; // --plugin-activity-file output path
   std::optional<std::string>
       ArchiveMemberReportFile;           // --archive-member-report output path
+  std::optional<std::string>
+      SymbolResolutionReportFile; // --emit-symbol-resolution-report output path
   std::string MappingFileName;           // --Mapping-file
   std::string MappingDumpFile;           // --dump-mapping-file
   std::string ResponseDumpFile;          // --dump-response-file
@@ -1367,9 +1397,11 @@ private:
   std::vector<llvm::Regex> SymbolTrace;
   std::vector<llvm::Regex> RelocTrace;
   std::vector<llvm::Regex> SectionTrace;
+  std::vector<llvm::Regex> PluginTrace;
   std::vector<std::string> SymbolsToTrace;
   std::vector<std::string> SectionsToTrace;
   std::vector<std::string> RelocsToTrace;
+  std::vector<std::string> PluginsToTrace;
   std::vector<llvm::Regex> MergeStrSectionsToTrace;
   MergeStrTraceType MergeStrTraceValue = MergeStrTraceType::NONE;
   std::set<std::string> RelocVerify;
@@ -1410,6 +1442,7 @@ private:
   llvm::StringRef TrampolineMapFile; // TrampolineMap
   bool SymbolTracingRequested = false;
   bool SectionTracingRequested = false;
+  bool PluginTracingRequested = false;
   std::vector<llvm::StringRef> RequestedTimeRegions;
   DiagnosticEngine *DiagEngine = nullptr;
   bool BDynamicLinker = true;
@@ -1427,8 +1460,6 @@ private:
   std::vector<llvm::Regex> RelaxSections;
   bool BuildID = false;
   std::optional<llvm::StringRef> BuildIDValue;
-  bool PatchEnable = false;
-  std::optional<std::string> PatchBase;
   bool IgnoreUnknownOptions = false;
   std::vector<std::string> UnknownOptions;
   std::string LinkLaunchDirectory;

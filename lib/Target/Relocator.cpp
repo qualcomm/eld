@@ -359,8 +359,9 @@ Relocator::Result eld::checkSignedRange(Relocation &Rel, Relocator &R,
   return Relocator::Overflow;
 }
 
-Relocator::Result eld::checkUnsignedRange(Relocation &Rel, Relocator &R,
-                                          uint64_t Value, unsigned int Bits) {
+Relocator::Result eld::reportUnsignedOverflow(Relocation &Rel, Relocator &R,
+                                              uint64_t Value,
+                                              unsigned int Bits) {
 
   if (Bits == 64 || Value >> Bits == 0)
     return Relocator::OK;

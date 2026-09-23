@@ -14,6 +14,8 @@
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
 
+#include <algorithm>
+#include <limits>
 using namespace eld;
 
 //===--------------------------------------------------------------------===//
@@ -144,9 +146,7 @@ void x86_64Relocator::scanRelocation(Relocation &pReloc,
       }
     }
   }
-  ELFSection *section = pSection.getLink()
-                            ? pSection.getLink()
-                            : pReloc.targetRef()->frag()->getOwningSection();
+  ELFSection *section = pSection.getLink();
 
   if (!section->isAlloc())
     return;
@@ -162,7 +162,7 @@ namespace {
 Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
                                ResolveInfo *pSym, Fragment *F, uint32_t pOffset,
                                Relocator::Type pType, x86_64LDBackend &B) {
-  Relocation *rela_entry = Obj->getRelaDyn()->createOneReloc();
+  Relocation *rela_entry = B.getRelaDyn()->createOneReloc();
 
   rela_entry->setType(pType);
   rela_entry->setTargetRef(make<FragmentRef>(*F, pOffset));
@@ -206,12 +206,17 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
 x86_64GOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
                      x86_64LDBackend &B) {
   ResolveInfo *rsym = pReloc.symInfo();
-  x86_64GOT *G = B.createGOT(GOT::Regular, Obj, rsym);
+  x86_64GOT *G = B.createGOT(GOT::Regular, rsym);
   if (!pHasRel) {
     // Write link-time content into GOT for static/non-dynamic case.
     G->setValueType(GOT::SymbolValue);
     return *G;
   }
+  // A non-default-visibility weak undefined symbol resolves to 0; no dynamic
+  // relocation needed.
+  if ((rsym->isHidden() || rsym->isProtected()) && rsym->isWeakUndef())
+    return *G;
+
   bool useRelative = !B.isSymbolPreemptible(*rsym);
   helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
                      useRelative ? llvm::ELF::R_X86_64_RELATIVE
@@ -229,15 +234,15 @@ x86_64GOT *x86_64Relocator::getTLSModuleID(ResolveInfo *R, bool isStatic) {
     return G;
   }
 
-  G = m_Target.createGOT(GOT::TLS_LD, nullptr, nullptr);
+  G = m_Target.createGOT(GOT::TLS_LD, nullptr);
 
   ASSERT(!isStatic,
          "We always need to relax if -static because libc.a doesn't "
          "contain__tls_get_addr(). Relaxations are currently unsupported");
 
   if (!isStatic)
-    helper_DynRel_init(m_Target.getDynamicSectionHeadersInputFile(), nullptr,
-                       nullptr, G, 0x0, llvm::ELF::R_X86_64_DTPMOD64, m_Target);
+    helper_DynRel_init(nullptr, nullptr, nullptr, G, 0x0,
+                       llvm::ELF::R_X86_64_DTPMOD64, m_Target);
 
   m_Target.recordGOT(R, G);
   return G;
@@ -273,7 +278,7 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->reserved() & ReserveGOT)
       return;
-    x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     // For executables, the symbol's offset from the thread pointer is fixed at
     // link time. For shared objects, the dynamic loader must compute the offset
     // at load time, so emit R_X86_64_TPOFF64.
@@ -284,6 +289,25 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
                          llvm::ELF::R_X86_64_TPOFF64, m_Target);
       m_Target.setHasStaticTLS();
     }
+    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
+  }
+  case llvm::ELF::R_X86_64_GOTPCRELX: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    // Relaxability is decided per relocation (it inspects this reference's own
+    // opcode bytes), so it must be checked before the per-symbol ReserveGOT
+    // short-circuit: a non-relaxable reference to the same symbol may have
+    // reserved a GOT slot first. With --relax, local symbols are always
+    // non-preemptible; skip the GOT slot for the relaxable reference and record
+    // it so postProcessing can patch it without re-walking.
+    if (config().options().getRelax() &&
+        m_Target.isGOTPCRELXRelaxable(&pReloc)) {
+      m_Target.recordGOTPCRELXRelaxCandidate(&pReloc);
+      return;
+    }
+    if (rsym->reserved() & ReserveGOT)
+      return;
+    CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
@@ -374,13 +398,14 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     return;
   }
   case llvm::ELF::R_X86_64_PLT32: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     // return if we already create plt for this symbol
     if (rsym->reserved() & ReservePLT)
       return;
 
     // create IRELATIVE for IFUNC symbol
     if (rsym->type() == ResolveInfo::IndirectFunc && config().isCodeStatic()) {
-      m_Target.createPLT(Obj, rsym, true);
+      m_Target.createPLT(rsym, true);
       rsym->setReserved(rsym->reserved() | ReservePLT);
       return;
     }
@@ -393,13 +418,38 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     // Symbol needs PLT entry, we need to reserve a PLT entry
     // and the corresponding GOT and dynamic relocation entry
     // in .got and .rel.plt.
-    m_Target.createPLT(Obj, rsym);
+    m_Target.createPLT(rsym);
     rsym->setReserved(rsym->reserved() | ReservePLT);
     return;
   }
-
-  case llvm::ELF::R_X86_64_GOTPCREL:
-  case llvm::ELF::R_X86_64_GOTPCRELX:
+  case llvm::ELF::R_X86_64_GOTPCRELX: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    // Relaxability is decided per relocation (it inspects this reference's own
+    // opcode bytes), so it must be checked before the per-symbol ReserveGOT
+    // short-circuit: a non-relaxable reference to the same symbol may have
+    // reserved a GOT slot first. With --relax, non-preemptible non-IFUNC
+    // symbols with a relaxable opcode are handled by postProcessing: no GOT
+    // slot is needed and an out-of-range displacement is a link error. An
+    // addend != -4 or an unknown opcode keeps the GOT slot.
+    if (config().options().getRelax() &&
+        m_Target.isGOTPCRELXRelaxable(&pReloc)) {
+      m_Target.recordGOTPCRELXRelaxCandidate(&pReloc);
+      return;
+    }
+    if (rsym->reserved() & ReserveGOT)
+      return;
+    CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
+    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
+  }
+  case llvm::ELF::R_X86_64_GOTPCREL: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (rsym->reserved() & ReserveGOT)
+      return;
+    CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
+    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
+  }
   case llvm::ELF::R_X86_64_REX_GOTPCRELX: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->reserved() & ReserveGOT)
@@ -412,7 +462,7 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->reserved() & ReserveGOT)
       return;
-    x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     const bool isExec = config().isBuildingExecutable();
     const bool preemptible = m_Target.isSymbolPreemptible(*rsym);
     if (isExec && !preemptible) {
@@ -431,7 +481,7 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
       return;
 
     // Create GD GOT pair (x86_64GDGOT creates both entries)
-    x86_64GOT *G = m_Target.createGOT(GOT::TLS_GD, Obj, rsym);
+    x86_64GOT *G = m_Target.createGOT(GOT::TLS_GD, rsym);
 
     // Always emit DTPMOD64 for first entry (module ID unknown for DSO)
     helper_DynRel_init(Obj, &pReloc, rsym, G->getFirst(), 0x0,
@@ -508,7 +558,7 @@ Relocator::Result VerifyRelocAsNeededHelper(
         getNumberOfBits(RelocInfo.EncType) + RelocInfo.Shift;
     if (RelocInfo.IsSigned)
       return checkSignedRange(pReloc, Parent, PreShift, EffectiveBits);
-    return checkUnsignedRange(pReloc, Parent, PreShift, EffectiveBits);
+    return reportUnsignedOverflow(pReloc, Parent, PreShift, EffectiveBits);
   }
 
   if ((pRelocDesc.forceVerify) && (isTruncatedX86_64(RelocInfo, Result))) {
@@ -522,19 +572,35 @@ Relocator::Result VerifyRelocAsNeededHelper(
 void x86_64Relocator::computeTLSOffsets() {
   std::vector<ELFSegment *> tlsSegments =
       getTarget().elfSegmentTable().getSegments(llvm::ELF::PT_TLS);
-
-  if (tlsSegments.empty()) {
+  if (tlsSegments.empty())
     return;
+
+  // The x86-64 TPOFF value is relative to the thread pointer.  With TLS
+  // Variant 2, the thread pointer is placed after the complete TLS image,
+  // rounded up to the required alignment.  A linker script may produce more
+  // than one PT_TLS segment, so use the complete span rather than one
+  // segment's memsz.  Empty PT_TLS segments do not contribute to the image.
+  bool hasNonEmptySegment = false;
+  uint64_t lo = std::numeric_limits<uint64_t>::max();
+  uint64_t hi = 0;
+  uint64_t alignment = 1;
+  for (ELFSegment *Segment : tlsSegments) {
+    if (Segment->memsz() == 0)
+      continue;
+
+    const uint64_t segmentEnd = Segment->vaddr() + Segment->memsz();
+    lo = std::min(lo, Segment->vaddr());
+    hi = std::max(hi, segmentEnd);
+    alignment = std::max(alignment, Segment->align());
+    hasNonEmptySegment = true;
   }
 
-  ASSERT(tlsSegments.size() == 1,
-         "Multiple TLS segments not supported in x86_64 backend");
+  if (!hasNonEmptySegment)
+    return;
 
-  ELFSegment *tlsSegment = tlsSegments[0];
-  uint64_t templateSize = tlsSegment->memsz();
-  uint64_t alignment = tlsSegment->align();
-  templateSize = llvm::alignTo(templateSize, alignment);
-  GNULDBackend::setTLSTemplateSize(templateSize);
+  const uint64_t alignedEnd = llvm::alignTo(hi, alignment);
+  const uint64_t threadPointerOffset = alignedEnd - lo;
+  GNULDBackend::setTLSTemplateSize(threadPointerOffset);
 }
 
 template <typename T>
@@ -683,6 +749,11 @@ Relocator::Result eld::relocGOTRelative(Relocation &pReloc,
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   ResolveInfo *symInfo = pReloc.symInfo();
   const GeneralOptions &options = pParent.config().options();
+
+  // For relaxable GOTPCRELX relocations, postProcessing handles the opcode
+  // patch and displacement. Skip apply here to avoid a null GOT entry lookup.
+  if (pParent.getTarget().isGOTPCRELXRelaxCandidate(&pReloc))
+    return Relocator::OK;
 
   Relocator::DWord A = pReloc.addend();
   Relocator::DWord P = pReloc.place(pParent.module());

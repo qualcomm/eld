@@ -41,7 +41,6 @@ std::string buildLinkerVersionString() {
 OutputSectData *OutputSectData::create(uint32_t ID, OutputSectDesc &OutSectDesc,
                                        OSDKind Kind, Expression &Expr) {
   InputSectDesc::Spec Spec;
-  Spec.initialize();
   InputSectDesc::Policy Policy = InputSectDesc::Policy::Keep;
   OutputSectData *OSD =
       eld::make<OutputSectData>(ID, Policy, Spec, OutSectDesc, Kind, Expr);
@@ -51,7 +50,6 @@ OutputSectData *OutputSectData::create(uint32_t ID, OutputSectDesc &OutSectDesc,
 OutputSectData *OutputSectData::create(uint32_t ID, OutputSectDesc &OutSectDesc,
                                        std::string Str) {
   InputSectDesc::Spec Spec;
-  Spec.initialize();
   InputSectDesc::Policy Policy = InputSectDesc::Policy::Keep;
   OutputSectData *OSD =
       eld::make<OutputSectData>(ID, Policy, Spec, OutSectDesc, Str);
@@ -203,7 +201,6 @@ void OutputSectData::dumpOnlyThis(llvm::raw_ostream &Outs) const {
 LinkerVersionOutputData *LinkerVersionOutputData::create(uint32_t ID,
                                                          OutputSectDesc &Out) {
   InputSectDesc::Spec Spec;
-  Spec.initialize();
   return eld::make<LinkerVersionOutputData>(ID, InputSectDesc::Policy::Keep,
                                             Spec, Out);
 }

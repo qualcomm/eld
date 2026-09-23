@@ -1,4 +1,5 @@
-#UNSUPPORTED: windows
+#UNSUPPORTED: windows, darwin
+# Mach-O libLW has no ELF .comment section.
 #---LinkerWrapperCommentSectionTest.test--------------------------- Executable -----------------#
 
 #BEGIN_COMMENT

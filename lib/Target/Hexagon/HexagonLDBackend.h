@@ -27,7 +27,6 @@ enum {
 
 class LinkerConfig;
 class HexagonInfo;
-class RegionFragmentEx;
 
 //===----------------------------------------------------------------------===//
 /// HexagonLDBackend - linker backend of Hexagon target of GNU ELF format
@@ -76,7 +75,7 @@ public:
 
   void initTargetSections(ObjectBuilder &pBuilder) override;
 
-  void initDynamicSections(ELFObjectFile &) override;
+  void initDynamicSections(InputFile &) override;
 
   void initTargetSymbols() override;
 
@@ -219,7 +218,7 @@ public:
   void recordTLSStub(std::string stubName, HexagonTLSStub *T);
 
   // ---  GOT Support ------
-  HexagonGOT *createGOT(GOT::GOTType T, ELFObjectFile *Obj, ResolveInfo *sym);
+  HexagonGOT *createGOT(GOT::GOTType T, ResolveInfo *sym);
 
   void recordGOT(ResolveInfo *, HexagonGOT *);
 
@@ -228,7 +227,7 @@ public:
   HexagonGOT *findEntryInGOT(ResolveInfo *) const;
 
   // ---  PLT Support ------
-  HexagonPLT *createPLT(ELFObjectFile *Obj, ResolveInfo *sym);
+  HexagonPLT *createPLT(ResolveInfo *sym);
 
   void recordPLT(ResolveInfo *, HexagonPLT *);
 
@@ -279,24 +278,11 @@ public:
 
   bool finalizeLayout() override;
 
-  // --- Relaxed Relocations support ---
-  bool isRelocationRelaxed(Relocation *R) const override;
-
   std::size_t PLTEntriesCount() const override { return m_PLTMap.size(); }
 
   std::size_t GOTEntriesCount() const override { return m_GOTMap.size(); }
 
 private:
-  // Do relaxation on Hexagon!
-  bool canSectionBeRelaxed(InputFile &pInput, ELFSection *S) const;
-
-  // Can fragment be relaxed ?
-  bool canFragmentBeRelaxed(Fragment *F) const;
-
-  bool
-  haslinkerRelaxed(const std::vector<RegionFragmentEx *> &FragsForRelaxation);
-
-  /// If a common symbol has a small common section index
   /// SHN_HEXAGON_SCOMMON_X, then returns the corresponding small common section
   /// name
   /// '.scommon.x.SymbolName'.
@@ -344,8 +330,6 @@ private:
   llvm::DenseMap<ResolveInfo *, HexagonPLT *> m_PLTMap;
   llvm::StringMap<HexagonTLSStub *> m_TLSStubMap;
   llvm::StringMap<ELFSection *> m_TLSStubs;
-  // Relocations discarded because of relaxation
-  std::unordered_set<Relocation *> m_RelaxedRelocs;
   std::mutex Mutex;
 };
 } // namespace eld

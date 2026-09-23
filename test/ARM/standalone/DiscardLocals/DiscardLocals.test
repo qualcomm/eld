@@ -1,0 +1,31 @@
+#---DiscardLocals.test--------------------------- Executable ------------------#
+#BEGIN_COMMENT
+# This checks that -X/--discard-locals strips assembler-generated .L-prefixed
+# local temporaries, while leaving ordinary local symbols intact.
+# --discard-all/-x continues to strip all local symbols regardless of name.
+# It also checks that symbols are preserved when --emit-relocs is present
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/g.s -o %t.1.o
+
+RUN: %link %linkopts --emit-relocs -X %t.1.o -o %t.discardlocals.out
+RUN: %readelf -s %t.discardlocals.out | %filecheck %s -check-prefix=BASE
+
+RUN: %link %linkopts -X %t.1.o -o %t.discardlocals.out
+RUN: %readelf -s %t.discardlocals.out | %filecheck %s -check-prefix=DISCARDLOCALS
+
+RUN: %link %linkopts --emit-relocs -x %t.1.o -o %t.discardall.out
+RUN: %readelf -s %t.discardall.out | %filecheck %s -check-prefix=BASE
+
+RUN: %link %linkopts -x %t.1.o -o %t.discardall.out
+RUN: %readelf -s %t.discardall.out | %filecheck %s -check-prefix=DISCARDALL
+
+#BASE-DAG: LOCAL DEFAULT {{[0-9]+}} .L_temp_end
+#BASE-DAG: LOCAL DEFAULT {{[0-9]+}} ordinary_local
+
+#DISCARDLOCALS-NOT: LOCAL DEFAULT {{[0-9]+}} .L_temp_end
+#DISCARDLOCALS: LOCAL DEFAULT {{[0-9]+}} ordinary_local
+
+#DISCARDALL-NOT: LOCAL DEFAULT {{[0-9]+}} .L_temp_end
+#DISCARDALL-NOT: LOCAL DEFAULT {{[0-9]+}} ordinary_local
+#END_TEST

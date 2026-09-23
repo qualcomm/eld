@@ -17,6 +17,7 @@ enum DriverFlavor {
   RISCV32_RISCV64, // RISCV32
   Template,        // Template
   x86_64,          // x86_64
+  x86_32,          // i386
   Unknown          // Unknown
 };
 

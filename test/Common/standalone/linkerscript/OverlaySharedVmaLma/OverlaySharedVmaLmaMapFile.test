@@ -1,0 +1,16 @@
+#---OverlaySharedVmaLmaMapFile.test--------- Executable,LS------------------#
+# OVERLAY with linker map file verification
+
+RUN: %clang %clangopts -c %p/Inputs/input.s -o %t.o
+RUN: %link %linkopts %t.o -o %t.elf -T %p/Inputs/overlay.lds -Map %t.map
+RUN: %filecheck %s -check-prefix=MAP < %t.map
+
+#MAP: OVERLAY 0x2000 : AT(0x0)
+#MAP: {
+#MAP: 	.small
+#MAP: 	.large
+#MAP: 	.tiny
+#MAP: }
+#CHECK: .small {{0*}}2000 {{0*}}20
+#CHECK: .large {{0*}}2000 {{0*}}100
+#CHECK: .tiny {{0*}}2000 {{0*}}10

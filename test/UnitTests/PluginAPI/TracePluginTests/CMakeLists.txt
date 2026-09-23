@@ -1,0 +1,2 @@
+add_eld_unittest(TracePluginTests TracePluginTest.cpp)
+target_link_libraries(TracePluginTests PRIVATE ELDCore ELDConfig ELDScript ELDDiagnostics LW)

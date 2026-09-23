@@ -37,6 +37,10 @@ public:
 
   bool matched(const ResolveInfo &Sym, llvm::StringRef demangledName) const;
 
+  bool matches(const ResolveInfo &Sym) const;
+
+  bool matches(llvm::StringRef demangledName) const;
+
   void addResolveInfoToContainer(const ResolveInfo *Info) const;
 
 private:

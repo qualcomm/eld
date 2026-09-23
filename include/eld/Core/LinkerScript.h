@@ -145,6 +145,14 @@ public:
 
   bool linkerScriptHasSectionsCommand() const { return HasSectionsCmd; }
 
+  bool hasSeenSectionsForAssignmentLevels() const {
+    return SeenSectionsForAssignmentLevels;
+  }
+
+  void setSeenSectionsForAssignmentLevels() {
+    SeenSectionsForAssignmentLevels = true;
+  }
+
   bool hasExternCommand() const { return HasExternCmd; }
 
   bool linkerScriptHasRules() const { return RuleCount > 0; };
@@ -264,6 +272,9 @@ public:
 
   void removeSymbolOp(plugin::LinkerWrapper *W, eld::Module *M,
                       const ResolveInfo *S);
+
+  void setSymbolAddressOp(plugin::LinkerWrapper *W, eld::Module *M,
+                          const ResolveInfo *S, uint64_t Addr);
 
   void updateRuleOp(plugin::LinkerWrapper *W, eld::Module *M, RuleContainer *R,
                     ELFSection *S, const std::string &Annotation = "");
@@ -392,6 +403,7 @@ private:
   bool HasProgramHeader;
   bool HasError;
   bool HasSectionsCmd;
+  bool SeenSectionsForAssignmentLevels = false;
   bool HasExternCmd;
   PluginVectorT MPlugins;
   std::atomic<uint64_t> NumWildCardPatterns;

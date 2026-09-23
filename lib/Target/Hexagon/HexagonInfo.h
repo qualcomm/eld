@@ -10,8 +10,6 @@
 #include "eld/Target/TargetInfo.h"
 #include "llvm/BinaryFormat/ELF.h"
 
-#define HEXAGON_JUMP_INSTRUCTION 0x5800c000
-
 namespace eld {
 
 class HexagonInfo : public TargetInfo {

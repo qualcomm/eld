@@ -249,6 +249,10 @@ const eld::sys::fs::Path *SearchDirs::findInRPath(llvm::StringRef Type,
     std::string CRPath = R.str();
     eld::string::ReplaceString(CRPath, "$ORIGIN",
                                SearchDirs::MainExecutablePath);
+    eld::string::ReplaceString(CRPath, "@loader_path",
+                               SearchDirs::MainExecutablePath);
+    eld::string::ReplaceString(CRPath, "@executable_path",
+                               SearchDirs::MainExecutablePath);
     const std::string FileName = CRPath + "/" + LibraryName.str();
     if (checkLibraryOrConfigFile(Type, LibraryName, FileName, "rpath",
                                  DiagEngine))
@@ -285,10 +289,21 @@ SearchDirs::findInPath(llvm::StringRef Type,
     return nullptr;
   PathSplit = eld::string::split(*Path, ';');
 #else
+  std::string Combined;
+#ifdef __APPLE__
+  Path = llvm::sys::Process::GetEnv("DYLD_LIBRARY_PATH");
+  if (Path && !Path->empty())
+    Combined = *Path;
+#endif
   Path = llvm::sys::Process::GetEnv("LD_LIBRARY_PATH");
-  if (!Path)
+  if (Path && !Path->empty()) {
+    if (!Combined.empty())
+      Combined += ":";
+    Combined += *Path;
+  }
+  if (Combined.empty())
     return nullptr;
-  PathSplit = eld::string::split(*Path, ':');
+  PathSplit = eld::string::split(Combined, ':');
 #endif
   for (auto R : PathSplit) {
     const std::string FileName = R + "/" + LibraryName.str();

@@ -78,7 +78,8 @@ void LinkerScript::unloadPlugins(Module *Module) {
       continue;
     // Run the cleanup function
     H.second->cleanup();
-    Plugin::unload(H.first, H.second->getLibraryHandle(), Module);
+    Plugin::unload(H.first, H.second->getLibraryHandle(), Module,
+                   H.second->isTraced());
     if (Module->getPrinter()->isVerbose())
       Diag->raise(Diag::unloaded_plugin) << H.first;
   }
@@ -232,6 +233,17 @@ void LinkerScript::removeSymbolOp(plugin::LinkerWrapper *W, eld::Module *M,
   if (!layoutInfo)
     return;
   layoutInfo->recordRemoveSymbol(W, Op);
+}
+
+void LinkerScript::setSymbolAddressOp(plugin::LinkerWrapper *W, eld::Module *M,
+                                      const ResolveInfo *S, uint64_t Addr) {
+  SetSymbolAddressPluginOp *Op = make<SetSymbolAddressPluginOp>(W, S, Addr);
+  LayoutInfo *layoutInfo = M->getLayoutInfo();
+  if (auto &PluginActLog = M->getPluginActivityLog())
+    PluginActLog->addPluginOperation(*Op);
+  if (!layoutInfo)
+    return;
+  layoutInfo->recordSetSymbolAddress(W, Op);
 }
 
 void LinkerScript::clearAllSectionOverrides() { OverrideSectionMatch.clear(); }
@@ -574,7 +586,7 @@ bool LinkerScript::loadPlugin(Plugin &P, Module &M) {
   void *Handle = nullptr;
   auto &PAL = M.getPluginActivityLog();
   if (I == MLibraryToPluginMap.end()) {
-    Handle = Plugin::loadPlugin(ResolvedPath, &M);
+    Handle = Plugin::loadPlugin(ResolvedPath, &M, P.isTraced());
     MLibraryToPluginMap.insert(std::make_pair(ResolvedPath, &P));
   } else {
     Handle = I->second->getLibraryHandle();

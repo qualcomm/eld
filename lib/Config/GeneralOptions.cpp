@@ -210,6 +210,13 @@ eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {
     std::string Sym = TraceType.substr(Pos + 1).str();
     SectionTrace.emplace_back(llvm::Regex(Sym));
     SectionsToTrace.emplace_back(Sym);
+  } else if (TraceType.starts_with("plugin") && TraceType.contains('=')) {
+    setPluginTracingRequested();
+    TraceMe = DiagEngine->getPrinter()->TracePlugin;
+    size_t Pos = TraceType.find_last_of('=');
+    std::string PluginName = TraceType.substr(Pos + 1).str();
+    PluginTrace.emplace_back(llvm::Regex(PluginName));
+    PluginsToTrace.emplace_back(PluginName);
   } else if (TraceType.starts_with("merge-strings")) {
     size_t Pos = TraceType.find_last_of('=');
     std::string Arg = TraceType.substr(Pos + 1).str();
@@ -235,6 +242,7 @@ eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {
             .Case("lto", DiagEngine->getPrinter()->TraceLTO)
             .Case("merge-strings", DiagEngine->getPrinter()->TraceMergeStrings)
             .Case("plugin", DiagEngine->getPrinter()->TracePlugin)
+            .Case("relax", DiagEngine->getPrinter()->TraceRelax)
             .Case("threads", DiagEngine->getPrinter()->TraceThreads)
             .Case("trampolines", DiagEngine->getPrinter()->TraceTrampolines)
             .Case("wrap-symbols", DiagEngine->getPrinter()->TraceWrap)
@@ -398,6 +406,20 @@ bool GeneralOptions::traceReloc(std::string const &RelocName) const {
                       [&](const std::string &S) { return S == RelocName; }) ||
          llvm::any_of(RelocTrace, [&](const llvm::Regex &Regex) {
            return Regex.match(RelocRef);
+         });
+}
+
+bool GeneralOptions::tracePlugin(std::string const &PluginName) const {
+  if (!DiagEngine->getPrinter()->tracePlugins())
+    return false;
+  // Bare "--trace=plugin" (no scoped names given): trace every plugin.
+  if (!PluginTracingRequested)
+    return true;
+  StringRef PluginRef(PluginName);
+  return llvm::any_of(PluginsToTrace,
+                      [&](const std::string &S) { return S == PluginName; }) ||
+         llvm::any_of(PluginTrace, [&](const llvm::Regex &Regex) {
+           return Regex.match(PluginRef);
          });
 }
 

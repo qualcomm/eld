@@ -80,24 +80,9 @@ bool AArch64LDBackend::initStubFactory() {
   return true;
 }
 
-void AArch64LDBackend::initDynamicSections(ELFObjectFile &InputFile) {
-  InputFile.setDynamicSections(
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got.plt",
-          llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
-          8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".plt", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 16),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.dyn",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC, 8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.plt",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC, 8));
+void AArch64LDBackend::initDynamicSections(InputFile &InputFile) {
+  GNULDBackend::initDynamicSections(InputFile,
+                                    {llvm::ELF::SHT_RELA, 8, 8, 8, 16});
 }
 
 void AArch64LDBackend::initTargetSections(ObjectBuilder &pBuilder) {
@@ -534,21 +519,24 @@ bool AArch64LDBackend::finalizeScanRelocations() {
   if (!config().isCodeStatic())
     return true;
 
-  ELFObjectFile *Obj = getDynamicSectionHeadersInputFile();
-  if (!Obj)
+  if (!getPLT())
     return true;
 
-  for (auto &[symInfo, plt] : m_PLTMap) {
-    if (!symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
+  for (Fragment *F : getPLT()->getFragmentList()) {
+    auto *plt = llvm::dyn_cast<AArch64PLT>(F);
+    if (!plt)
+      continue;
+    ResolveInfo *symInfo = plt->symInfo();
+    if (!symInfo || !symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
         !symInfo->hasIFuncNeedsGOT())
       continue;
 
-    AArch64GOT *G = AArch64GOT::Create(Obj->getGOT(), symInfo);
+    AArch64GOT *G = AArch64GOT::Create(getGOT(), symInfo);
 
     FragmentRef *PLTFragRef = make<FragmentRef>(*plt, 0);
     Relocation *r = Relocation::Create(llvm::ELF::R_AARCH64_ABS64, 64,
                                        make<FragmentRef>(*G, 0), 0);
-    Obj->getGOT()->addRelocation(r);
+    getGOT()->addRelocation(r);
     r->modifyRelocationFragmentRef(PLTFragRef);
 
     recordGOT(symInfo, G);
@@ -668,16 +656,10 @@ bool AArch64LDBackend::ltoCallExternalAssembler(
 }
 
 // Create GOT entry.
-AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
-                                               ELFObjectFile *Obj,
-                                               ResolveInfo *R,
-                                               bool SkipPLTRef) {
+AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T, ResolveInfo *R,
+                                        bool SkipPLTRef) {
 
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_got_entry)
-        << GOT::getGOTTypeAsStr(T) << R->name();
+  traceGOTCreation(T, R);
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->hasFragments()) {
     // TODO: This should be GOT0, not GOTPLT0.
@@ -690,7 +672,7 @@ AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
   bool GOT = true;
   switch (T) {
   case GOT::Regular:
-    G = AArch64GOT::Create(Obj->getGOT(), R);
+    G = AArch64GOT::Create(getGOT(), R);
     break;
   case GOT::GOTPLT0:
     G = llvm::dyn_cast<AArch64GOT>(*getGOTPLT()->getFragmentList().begin());
@@ -702,16 +684,16 @@ AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
     // TODO: PLT0 seems to get created even with -znow.
     Fragment *PLT0 =
         SkipPLTRef ? nullptr : *getPLT()->getFragmentList().begin();
-    G = AArch64GOTPLTN::Create(Obj->getGOTPLT(), R, PLT0);
+    G = AArch64GOTPLTN::Create(getGOTPLT(), R, PLT0);
     GOT = false;
     break;
   }
   // It seems, there are no global TLS GOT slots on aarch64.
   case GOT::TLS_DESC:
-    G = AArch64TLSDESCGOT::Create(Obj->getGOTPLT(), R);
+    G = AArch64TLSDESCGOT::Create(getGOTPLT(), R);
     break;
   case GOT::TLS_IE:
-    G = AArch64IEGOT::Create(Obj->getGOT(), R);
+    G = AArch64IEGOT::Create(getGOT(), R);
     break;
   default:
     assert(0);
@@ -748,26 +730,21 @@ AArch64GOT *AArch64LDBackend::findEntryInGOT(ResolveInfo *I) const {
 }
 
 // Create PLT entry.
-AArch64PLT *AArch64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
-                                        bool isIRelative) {
+AArch64PLT *AArch64LDBackend::createPLT(ResolveInfo *R, bool isIRelative) {
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_plt_entry) << R->name();
+  tracePLTCreation(R);
 
   reportErrorIfPLTIsDiscarded(R);
 
   if (!getPLT()->hasFragments()) {
     AArch64PLT0::Create(*m_Module.getIRBuilder(),
-                        createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
-                        nullptr);
+                        createGOT(GOT::GOTPLT0, nullptr), getPLT(), nullptr);
   }
-  AArch64PLT *P = AArch64PLTN::Create(
-      *m_Module.getIRBuilder(), createGOT(GOT::GOTPLTN, Obj, R, isIRelative),
-      Obj->getPLT(), R);
+  AArch64PLT *P =
+      AArch64PLTN::Create(*m_Module.getIRBuilder(),
+                          createGOT(GOT::GOTPLTN, R, isIRelative), getPLT(), R);
   // init the corresponding rel entry in .rela.plt
-  Relocation &rela_entry = *Obj->getRelaPLT()->createOneReloc();
+  Relocation &rela_entry = *getRelaPLT()->createOneReloc();
   rela_entry.setType(isIRelative ? llvm::ELF::R_AARCH64_IRELATIVE
                                  : llvm::ELF::R_AARCH64_JUMP_SLOT);
   rela_entry.setTargetRef(make<FragmentRef>(*P->getGOT(), 0));

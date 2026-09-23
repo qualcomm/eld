@@ -1,0 +1,39 @@
+#---DashV.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Checks GNU ld/ld.lld compatible semantics for -v and --version:
+# - Bare `-v` (no inputs) prints the version banner and exits successfully,
+#   instead of erroring with "no inputs". This matters for tools like the
+#   Linux kernel's scripts/mkcompile_h, which runs `$LD -v` to capture the
+#   linker version string.
+# - `-v` combined with real inputs prints the banner but does not
+#   short-circuit: the link still proceeds and produces output.
+# - `--version` always short-circuits and exits successfully, with or
+#   without inputs.
+# - `-v` and `--version` conflict with each other and the last one on the
+#   command line wins
+#END_COMMENT
+#START_TEST
+RUN: %link -v 2>&1 | %filecheck %s --check-prefixes=BANNER,NOERROR
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %link %linkopts -v %t.1.o -o %t.1.out 2>&1 | %filecheck %s --check-prefix=BANNER
+RUN: %readelf -h %t.1.out | %filecheck %s --check-prefix=ELFHEADER
+
+RUN: %link --version 2>&1 | %filecheck %s --check-prefix=BANNER
+RUN: %link %linkopts --version %t.1.o -o %t.2.out 2>&1 | %filecheck %s --check-prefix=BANNER
+
+# `--version` last wins: short-circuits, no output produced.
+RUN: %rm -f %t.3.out
+RUN: %link %linkopts -v --version %t.1.o -o %t.3.out 2>&1 | %filecheck %s --check-prefix=SINGLEBANNER
+RUN: %not ls %t.3.out
+
+# `-v` last wins: link proceeds, output produced, banner printed once.
+RUN: %link %linkopts --version -v %t.1.o -o %t.4.out 2>&1 | %filecheck %s --check-prefix=SINGLEBANNER
+RUN: %readelf -h %t.4.out | %filecheck %s --check-prefix=ELFHEADER
+
+#BANNER: GNU ld compatible linker - eld {{.*}}
+#NOERROR-NOT: no inputs
+#ELFHEADER: ELF Header
+#SINGLEBANNER-COUNT-1: GNU ld compatible linker - eld {{.*}}
+#SINGLEBANNER-NOT: GNU ld compatible linker - eld {{.*}}
+#END_TEST

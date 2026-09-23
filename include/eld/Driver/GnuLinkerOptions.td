@@ -208,49 +208,6 @@ multiclass mDashCompAlias<string opt, string realopt, string help> {
                  HelpText<"Compatibility alias for --" # opt>;
 }
 
-// Single and multiple dash options combined
-multiclass smDashWithOpt<string opt1, string realopt, string help> {
-  // Option
-  def "" : Separate<["-"], opt1>, HelpText<help>;
-  def opt1_eq : Joined<["-"], opt1 #"=">, Alias<!cast<Option>(realopt)>;
-  // Compatibility aliases
-  def opt1_dashdash : Separate<["--"], opt1>, Alias<!cast<Option>(realopt)>;
-  def opt1_dashdash_eq : JJ<opt1 #"=">, Alias<!cast<Option>(realopt)>;
-}
-
-// Single and multiple dash options combined
-// -opt1 <x>
-// -opt1<x>
-// --opt2 x
-// --opt2=x
-// -opt2=x
-// -opt2 <x>
-multiclass
-    smDashTwoWithOpt<string opt1, string opt2, string realopt, string help> {
-  // Option
-  def "" : Separate<["-"], opt1>, HelpText<help>;
-  def opt1_eq : Joined<["-"], opt1 #"=">, Alias<!cast<Option>(realopt)>;
-  def opt2_joined_dash : Separate<["-"], opt2>, Alias<!cast<Option>(realopt)>;
-  def opt1_joined : Joined<["-"], opt1>, Alias<!cast<Option>(realopt)>;
-  // Compatibility aliases
-  def opt1_dashdash : Separate<["--"], opt1>, Alias<!cast<Option>(realopt)>;
-  def opt2_dashdash : Separate<["--"], opt2>,
-                      HelpText<help>,
-                      Alias<!cast<Option>(realopt)>;
-  def opt2_dashdash_eq : JJ<opt2 #"=">,
-                         Alias<!cast<Option>(realopt)>;
-  def opt2_joined_dash_eq : Joined<["-"], opt2 #"=">,
-                            Alias<!cast<Option>(realopt)>;
-}
-
-// Support -<option>,-<option>=
-multiclass dashEq<string opt1, string opt2, string help> {
-  // Option
-  def "" : Separate<["-"], opt1>, HelpText<help>;
-  // Compatibility aliases
-  def opt2_eq : Joined<["-"], opt2 #"=">, Alias<!cast<Option>(opt1)>;
-}
-
 // Support --<option>,--<option>=
 multiclass mDashEq<string opt1, string realopt, string help> {
   // Option
@@ -266,15 +223,6 @@ multiclass EEq<string name, string help> {
     HelpText<help>;
 }
 
-// Support -<option>,-<option>=
-multiclass
-    dashEqWithOpt<string opt1, string opt2, string realopt, string help> {
-  // Option
-  def "" : Separate<["-"], opt1>, HelpText<help>;
-  // Compatibility aliases
-  def opt2_eq : Joined<["-"], opt2 #"=">, Alias<!cast<Option>(realopt)>;
-}
-
 // Support -<option></b><value>,-<option><value>,-<option>=
 multiclass
     dashEqWithJoinedOpt<string opt1, string opt2, string realopt, string help> {
@@ -283,22 +231,6 @@ multiclass
   // Compatibility aliases
   def opt1_joined : Joined<["-"], opt1>, Alias<!cast<Option>(realopt)>;
   def opt2_eq : Joined<["-"], opt2 #"=">, Alias<!cast<Option>(realopt)>;
-}
-
-// Support -<option>=,--<option>=
-multiclass smDashOnlyEq<string opt1, string realopt, string help> {
-  def "" : Joined<["-"], opt1 #"=">, HelpText<help>;
-  def opt1_eq : JJ<opt1 #"=">, Alias<!cast<Option>(realopt)>;
-}
-
-// Support -<option>=,--<option>= aliases
-multiclass smDashOnlyEqAlias<string opt1, string realopt, string help> {
-  def "" : Joined<["-"], opt1#"=">,
-           Alias<!cast<Option>(realopt)>,
-           HelpText<help>;
-  def opt1_eq : JJ<opt1#"=">,
-                Alias<!cast<Option>(realopt)>,
-                HelpText<help>;
 }
 
 //===----------------------------------------------------------------------===//
@@ -315,6 +247,11 @@ defm sysroot : mDashDeprEq<"sysroot", "Set the system root">,
 def version : FF<"version">,
               HelpText<"Print the Linker version">,
               Group<grp_general>;
+// Unlike --version, -v prints the version banner but does not short-circuit
+// if input files are present.
+def v : Flag<["-"], "v">,
+       HelpText<"Print the Linker version and continue processing">,
+       Group<grp_general>;
 def repository_version : FF<"repository-version">,
                          HelpText<"Print the Linker Repository version">,
                          Group<grp_general>;
@@ -398,11 +335,6 @@ defm default_script : mDashDeprEqWithOpt<"default-script", "default_script",
 defm Ttext : mDashCompEq<"Ttext", "Specify an address for the .text section">,
              MetaVarName<"<address>">,
              Group<grp_scriptopts>;
-defm Ttext_segment : mDashCompEqWithOpt<"Ttext-segment", "Ttext_segment",
-                                          "Specify an address for the "
-                                          ".text-segment segment">,
-                     MetaVarName<"<address>">,
-                     Group<grp_scriptopts>;
 defm Tdata : mDashCompEq<"Tdata", "Specify an address for the .data section">,
              MetaVarName<"<address>">,
              Group<grp_scriptopts>;
@@ -418,11 +350,6 @@ defm extern_list : mDashDeprEqWithOpt<"extern-list", "extern_list",
                                       "Specify a list of symbols that exists "
                                       "as external dependencies">,
                    MetaVarName<"<list-of-symbols>">,
-                   Group<grp_scriptopts>;
-defm map_section : mDashEq<"map-section", "map_section",
-                           "Specify a input section that maps to a output "
-                           "section">,
-                   MetaVarName<"<section>">,
                    Group<grp_scriptopts>;
 defm section_start : mDashDeprEqWithOpt<"section-start", "section_start",
                                         "Specify a virtual output section "
@@ -521,10 +448,15 @@ def namespec : JJ<"library=">,
                MetaVarName<"<namespec>">,
                HelpText<"library to use">,
                Group<grp_main>;
-defm library_path : mDashEq<"library-path", "library_path",
-                            "Path to search for libraries or linker scripts">,
-                    MetaVarName<"<path>">,
-                    Group<grp_main>;
+def library_path : Separate<["--"], "library-path">,
+                   MetaVarName<"<path>">,
+                   HelpText<"Path to search for libraries or linker scripts">,
+                   Alias<L>,
+                   Group<grp_main>;
+def library_path_eq : JJ<"library-path=">,
+                      MetaVarName<"<path>">,
+                      Alias<L>,
+                      Group<grp_main>;
 defm Y : sDashDeprEq<"Y", "Add path to the default library search path">,
          MetaVarName<"<path>">,
          Group<grp_main>;
@@ -593,10 +525,6 @@ defm rpath : mDashCompEq<"rpath",
                          "Add a path to the runtime library search path">,
              MetaVarName<"<path>">,
              Group<grp_dynlibexec>;
-defm rpath_link : mDashCompEqWithOpt<"rpath-link", "rpath_link",
-                                     "Specifies the path to search">,
-                  MetaVarName<"<path>">,
-                  Group<grp_dynlibexec>;
 defm export_dynamic : mDashDeprWithOpt<"export-dynamic", "export_dynamic",
                                        "Add all symbols to the dynamic symbol "
                                        "table when creating executables">,
@@ -621,6 +549,10 @@ defm no_dynamic_linker
                        "The program does not need a dynamic linker when "
                        "creating static PIE executables">,
       Group<grp_dynlibexec>;
+def default_symver : FF<"default-symver">,
+                      HelpText<"Create a default symbol version node, that is "
+                               "used for unversioned exported symbols">,
+                      Group<grp_dynlibexec>;
 
 //===----------------------------------------------------------------------===//
 /// Dynamic Library Options
@@ -636,15 +568,6 @@ def soname_h : JoinedOrSeparate<["-"], "h">,
                Alias<soname>,
                MetaVarName<"<name>">,
                Group<grp_dynlib>;
-def dash_g : Flag<["-"], "g">,
-             HelpText<"Enable debug output when building shared libraries or "
-                      "executables">,
-             Group<grp_dynlib>;
-defm hash_size : mDashEq<"hash-size", "hash_size",
-                         "Specify a hash size when creating the hash sections "
-                         "for the dynamic loader">,
-                 MetaVarName<"<size>">,
-                 Group<grp_dynlib>;
 defm hash_style : mDashDeprEqWithOpt<"hash-style", "hash_style",
                                      "Specify a hash style when creating the "
                                      "hash sections for the dynamic loader">,
@@ -657,6 +580,14 @@ def no_warn_shared_textrel : FF<"no-warn-shared-textrel">,
                              HelpText<"Don't Warn if the linker adds a "
                                       "DT_TEXTREL">,
                              Group<grp_dynlib>;
+def warn_rwx_segments : FF<"warn-rwx-segments">,
+                        HelpText<"Warn if the linker creates a segment with "
+                                 "RWX permissions (default)">,
+                        Group<grp_general>;
+def no_warn_rwx_segments : FF<"no-warn-rwx-segments">,
+                           HelpText<"Silence warnings for segments with RWX "
+                                    "permissions">,
+                           Group<grp_general>;
 defm Bsymbolic : mDashComp<"Bsymbolic", "Bind references to global symbols to "
                            "the definition within the shared library">,
                  Group<grp_dynlib>;
@@ -727,15 +658,6 @@ def push_state : FF<"push-state">,
 def pop_state : FF<"pop-state">,
                 HelpText<"Restore previously saved input handling flags">,
                 Group<grp_resolveropt>;
-defm allow_shlib_undefs
-    : mDashDeprWithOpt<"allow-shlib-undefined", "allow_shlib_undefs",
-                       "Allow undefined symbols from dynamic library when "
-                       "creating executables">,
-      Group<grp_resolveropt>;
-def use_shlib_undefs
-    : FF<"use-shlib-undefines">,
-      HelpText<"Resolve undefined symbols from dynamic libraries">,
-      Group<grp_resolveropt>;
 def allow_multiple_definition : FF<"allow-multiple-definition">,
                                 HelpText<"Allow multiple definitions">,
                                 Group<grp_resolveropt>;
@@ -849,6 +771,7 @@ defm trace
           "\t\t\t --trace=garbage-collection : trace linker garbage "
           "collection\n"
           "\t\t\t --trace=plugin : trace plugin\n"
+          "\t\t\t --trace=plugin=<plugin-name> : trace a single plugin\n"
           "\t\t\t --trace=threads : trace threads\n"
           "\t\t\t --trace=assignments : trace symbol assignments\n"
           "\t\t\t --trace=command-line : trace header info\n"
@@ -1253,6 +1176,38 @@ def thin_archive_rule_matching_compatibility
       HelpText<"Provides rule-matching compatibility when fat archives are\n"
                "\t\t\tconverted to thin archives">,
       Group<grp_compatorignoredopts>;
+defm allow_shlib_undefs
+    : mDashDeprWithOpt<"allow-shlib-undefined", "allow_shlib_undefs",
+                       "Allow undefined symbols from dynamic library when "
+                       "creating executables">,
+      Group<grp_compatorignoredopts>;
+def use_shlib_undefs
+    : FF<"use-shlib-undefines">,
+      HelpText<"Resolve undefined symbols from dynamic libraries">,
+      Group<grp_compatorignoredopts>;
+defm rpath_link : mDashCompEqWithOpt<"rpath-link", "rpath_link",
+                                     "Specifies the path to search">,
+                  MetaVarName<"<path>">,
+                  Group<grp_compatorignoredopts>;
+defm Ttext_segment : mDashCompEqWithOpt<"Ttext-segment", "Ttext_segment",
+                                          "Specify an address for the "
+                                          ".text-segment segment">,
+                     MetaVarName<"<address>">,
+                     Group<grp_compatorignoredopts>;
+defm map_section : mDashEq<"map-section", "map_section",
+                           "Specify a input section that maps to a output "
+                           "section">,
+                   MetaVarName<"<section>">,
+                   Group<grp_compatorignoredopts>;
+defm hash_size : mDashEq<"hash-size", "hash_size",
+                         "Specify a hash size when creating the hash sections "
+                         "for the dynamic loader">,
+                 MetaVarName<"<size>">,
+                 Group<grp_compatorignoredopts>;
+def dash_g : Flag<["-"], "g">,
+             HelpText<"Enable debug output when building shared libraries or "
+                      "executables">,
+             Group<grp_compatorignoredopts>;
 
 //===----------------------------------------------------------------------===//
 /// LTO options
@@ -1540,6 +1495,12 @@ defm ArchiveMemberReportFile
     : mDashDeprEqWithOpt<"archive-member-report", "ArchiveMemberReportFile",
                          "Emit JSON report for archive members pulled in by "
                          "symbols">,
+      MetaVarName<"<filename>">,
+      Group<grp_miscfeatures>;
+
+defm SymbolResolutionReportFile
+    : mDashEq<"emit-symbol-resolution-report", "SymbolResolutionReportFile",
+              "Emit JSON symbol resolution report">,
       MetaVarName<"<filename>">,
       Group<grp_miscfeatures>;
 

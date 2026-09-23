@@ -1,0 +1,16 @@
+REQUIRES: run_test
+#---R_ARM_LDR_PC_G0.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Test the ARM R_ARM_LDR_PC_G0 relocation at runtime.
+# Verifies that the relocation correctly encodes the PC-relative offset
+# to target, and the value 42 can be loaded via the relocation slot.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc -nostdlib -c -o %t.main.o %p/Inputs/main.s
+RUN: %readelf -r %t.main.o | %filecheck %s --check-prefix RELOCS
+RUN: %run_cc -c -o %t.driver.o %p/Inputs/main.c
+RUN: %run_cc -static -o %t.static.out %t.main.o %t.driver.o
+RUN: %run %t.static.out | %filecheck %s
+RELOCS: R_ARM_LDR_PC_G0 {{.*}} target
+CHECK: target = 42
+#END_TEST

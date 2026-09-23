@@ -17,6 +17,7 @@ DLL_A_EXPORT DiagnosticEntry::DiagIDType warn_no_section_overrides_found();
 DLL_A_EXPORT DiagnosticEntry::DiagIDType error_failed_to_register_reloc();
 DLL_A_EXPORT DiagnosticEntry::DiagIDType error_failed_to_add_sym_to_chunk();
 DLL_A_EXPORT DiagnosticEntry::DiagIDType error_failed_to_reset_symbol();
+DLL_A_EXPORT DiagnosticEntry::DiagIDType error_failed_to_set_symbol_address();
 DLL_A_EXPORT DiagnosticEntry::DiagIDType error_failed_to_insert_rule();
 DLL_A_EXPORT DiagnosticEntry::DiagIDType error_invalid_use();
 DLL_A_EXPORT DiagnosticEntry::DiagIDType error_empty_data();

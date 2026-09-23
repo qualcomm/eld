@@ -1,0 +1,16 @@
+#---TLSSymbolPTTLSOrder.test----------------------------------- Executable,LS -#
+#BEGIN_COMMENT
+# Check that TLS symbol values use the lowest-address PT_TLS segment, rather
+# than the first PT_TLS entry in PHDRS order.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts -o %t.out %t.o -T %p/Inputs/script.t
+RUN: %readelf -l %t.out | %filecheck %s --check-prefix=READELF
+RUN: %objdump -d %t.out | %filecheck %s --check-prefix=OBJDUMP
+#END_TEST
+
+# T1 appears first in PHDRS but is at the higher address.
+READELF: TLS {{.*}}0x0000000000005000{{.*}}0x100
+READELF-NEXT: TLS {{.*}}0x0000000000004000{{.*}}0x100
+OBJDUMP: leaq -0x1100

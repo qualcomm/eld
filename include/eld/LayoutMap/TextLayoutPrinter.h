@@ -170,8 +170,6 @@ public:
   void printFragments(Module &Module, ELFSection &OutSect, RuleContainer &R,
                       bool UseColor);
 
-  void printSymbolResolution(Module &Module);
-
   void printOffsetHelper(bool HasOffset, std::function<void()> F) const;
 
 private:

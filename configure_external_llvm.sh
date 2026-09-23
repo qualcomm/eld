@@ -165,6 +165,14 @@ fi
 # Create build directory (already created during canonicalization)
 cd "${BUILD_DIR}"
 
+# LLD is the default Linux linker for this script. Apple ld64 is used on
+# Darwin unless the caller passes -DLLVM_ENABLE_LLD=ON.
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  LINKER_CMAKE_ARGS=(-DLLVM_ENABLE_LLD:BOOL=OFF)
+else
+  LINKER_CMAKE_ARGS=(-DLLVM_ENABLE_LLD:BOOL=ON)
+fi
+
 # Configure with CMake
 cmake -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
@@ -172,7 +180,7 @@ cmake -G Ninja \
   -DCMAKE_CXX_COMPILER="${EXTERNAL_LLVM_ROOT}/bin/clang++" \
   -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
   -DLLVM_DIR="${EXTERNAL_LLVM_CMAKE}" \
-  -DLLVM_ENABLE_LLD:BOOL=ON \
+  "${LINKER_CMAKE_ARGS[@]}" \
   -DELD_USE_EXTERNAL_LLVM=ON \
   -DELD_TARGETS_TO_BUILD="Hexagon;AArch64;ARM;RISCV;X86" \
   -DLLVM_TABLEGEN_EXE="${EXTERNAL_LLVM_ROOT}/bin/llvm-tblgen" \

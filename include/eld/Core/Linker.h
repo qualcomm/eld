@@ -85,6 +85,11 @@ public:
 
   void printLayout();
 
+  /// Emits the JSON symbol resolution report. This function
+  /// must only be called if symbol resolution report is
+  /// requested.
+  bool emitSymbolResolutionReport();
+
   void unloadPlugins();
 
   // Set the GNU linker driver after sniffing
@@ -94,14 +99,14 @@ public:
 
   bool initializeTarget(uint16_t machine, bool is64bit);
 
-private:
   bool initBackend(const eld::Target *PTarget);
 
+  bool initializeInputTree(std::vector<InputAction *> &Actions);
+
+private:
   bool initEmulator(LinkerScript &CurScript, const eld::Target *PTarget);
 
   bool activateInputs(std::vector<InputAction *> &Actions);
-
-  bool initializeInputTree(std::vector<InputAction *> &Actions);
 
   bool emulate();
 

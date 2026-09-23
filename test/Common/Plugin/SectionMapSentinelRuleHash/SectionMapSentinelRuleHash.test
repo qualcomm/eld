@@ -1,0 +1,11 @@
+#---GetLinkerScriptRuleHash.test--------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Tests that the SectionMap sentinel's linker script rule has a valid hash.
+# The sentinel is the unnamed OutputSectionEntry always present as the first
+# entry in the SectionMap.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t1.out --plugin-config %p/Inputs/plugin.config 2>&1 | %filecheck %s
+#CHECK: sentinel rule hash: {{[0-9]+}}
+#END_TEST

@@ -59,6 +59,8 @@ public:
   void getTrampolineMap(eld::Module &Module,
                         std::vector<eld::LDYAML::TrampolineInfo> &R);
 
+  std::string getSetAddressByStr(const ResolveInfo *R) const;
+
 private:
   std::vector<CommandLineDefault> Defaults;
   std::string CommandLine;

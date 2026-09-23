@@ -11,6 +11,7 @@ E.g.
     Record: python record_builds.py --workflow musl --record --pass --run_id 1500
     Update: python record_builds.py --workflow musl --update --run_id 1650 --pass
     Emit: python record_builds.py --workflow musl --emit
+    Emit all: python record_builds.py --emit-all
 This tool needs no user invocation or intervention for generating data and displaying the dashboard.
 """
 
@@ -28,6 +29,11 @@ except Exception as e:
 # Global
 _build_status_db = "build-status.db"
 _build_status_db_connection = None
+
+
+# Allow hyphenated names e.g. linux-kernel
+def quote_workflow(workflow):
+    return '"' + workflow + '"'
 
 
 def close_connection():
@@ -54,7 +60,7 @@ def createBuildDataTables(workflow):
     # Set unique constraint on run_id and architecture.
     create_table = (
         " CREATE TABLE IF NOT EXISTS "
-        + workflow
+        + quote_workflow(workflow)
         + " (build_count INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, state TEXT, build_date TEXT, build_time TEXT, arch TEXT, branch TEXT, build_end_time TEXT, UNIQUE(run_id, arch));"
     )
     try:
@@ -70,10 +76,11 @@ def addNewBuildData(args):
     workflow_table = args.workflow_build.lower()
     conn = get_connection()
     cursor = conn.cursor()
+    workflow_table_quoted = quote_workflow(workflow_table)
     try:
         cursor.execute(
             "INSERT INTO "
-            + workflow_table
+            + workflow_table_quoted
             + " (run_id, state, build_date, build_time, arch, branch) VALUES (?, ?, ?, ?, ?, ?)",
             (
                 args.run_id,
@@ -107,10 +114,11 @@ def updateBuildData(args):
     conn = get_connection()
     cursor = conn.cursor()
     workflow_table = args.workflow_build.lower()
+    workflow_table_quoted = quote_workflow(workflow_table)
     try:
         cursor.execute(
             "UPDATE "
-            + workflow_table
+            + workflow_table_quoted
             + " SET state = ? WHERE run_id = ? AND arch = ?",
             (
                 "pass" if args.build_status else "fail",
@@ -144,8 +152,10 @@ def writeJSData(workflow, data):
     # that allows non-module JavaScript auto-import, without exporting JS variables
     # and without getting blocked by browser's CORS policy.
 
+    normalized_workflow = workflow.replace("-", "_")
     workflow_file_name = workflow + "_status_data.py"
-    workflow_javascript_var_assignment = workflow + "_build_states = "
+    # JS variable names cannot use hyphens, so use normalized workflow here.
+    workflow_javascript_var_assignment = normalized_workflow + "_build_states = "
     try:
         # Add JavaScript variable assignment.
         with open(workflow_file_name, "w") as file:
@@ -158,15 +168,18 @@ def writeJSData(workflow, data):
     print("\nBuild data written to " + workflow_file_name + "\n")
 
 
-def emitJSData(args):
-    workflow = args.workflow_build.lower()
+def emitJSDataForWorkflow(workflow):
+    workflow = workflow.lower()
     conn = get_connection()
     cursor = conn.cursor()
+    workflow_quoted = quote_workflow(workflow)
     all_data = []
     all_states_data = []
     try:
         cursor.execute(
-            "SELECT run_id, state, build_date, build_time, arch, branch FROM " + workflow + ";"
+            "SELECT run_id, state, build_date, build_time, arch, branch FROM "
+            + workflow_quoted
+            + ";"
         )
         all_data = cursor.fetchall()
     except Exception as e:
@@ -187,7 +200,31 @@ def emitJSData(args):
     writeJSData(workflow, all_states_data)
 
 
+def emitJSData(args):
+    emitJSDataForWorkflow(args.workflow_build)
+
+
+def getAllWorkflows():
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name;"
+        )
+        return [workflow[0] for workflow in cursor.fetchall()]
+    except Exception as e:
+        sys.exit("Error fetching workflow tables: " + str(e))
+
+
+def emitAllJSData():
+    for workflow in getAllWorkflows():
+        emitJSDataForWorkflow(workflow)
+
+
 def validateArgs(args):
+    if not args.emit_all_data and args.workflow_build is None:
+        sys.exit("Build workflow must be specified! E.g. --workflow <workflow>")
+
     # Record/update mode must have a run_id.
     if args.record_mode or args.update_mode:
         if args.run_id is None:
@@ -204,7 +241,7 @@ def handleArguments():
         "--workflow",
         "-w",
         dest="workflow_build",
-        required=True,
+        required=False,
         help="The workflow build name. E.g. picolibc, musl, nightly, etc. ",
     )
     parser.add_argument(
@@ -248,6 +285,12 @@ def handleArguments():
         action="store_true",
         help="Emit build data in JavaScript format.",
     )
+    record_mode_group.add_argument(
+        "--emit-all",
+        dest="emit_all_data",
+        action="store_true",
+        help="Emit build data in JavaScript format for all workflows.",
+    )
     # Create a build status flag group to make either flag required.
     status_group = parser.add_mutually_exclusive_group()
     status_group.add_argument(
@@ -278,6 +321,9 @@ def main():
     if args.emit_data:
         # For dashboard, emit data in JavaScript compatible variable declaration file.
         emitJSData(args)
+    elif args.emit_all_data:
+        # For dashboard, emit data for all workflows in JavaScript compatible variable declaration files.
+        emitAllJSData()
     else:
         # Insert or update build state data
         handleBuildData(args)

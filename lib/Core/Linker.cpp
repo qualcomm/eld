@@ -34,6 +34,8 @@
 #include "eld/Support/TargetRegistry.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/SymbolResolver/LDSymbol.h"
+#include "eld/SymbolResolver/NamePool.h"
+#include "eld/SymbolResolver/SymbolResolutionInfo.h"
 #include "eld/Target/GNULDBackend.h"
 #include "llvm/Object/ELFTypes.h"
 #include "llvm/Support/CommandLine.h"
@@ -169,13 +171,6 @@ bool Linker::link() {
       return false;
   }
 
-  // Init per-file synthetic dynamic sections.
-  if (LinkerConfig::Object != ThisConfig->codeGenType()) {
-    for (auto &Input : ThisModule->getObjectList())
-      if (ELFObjectFile *ELFObj = llvm::dyn_cast<ELFObjectFile>(Input))
-        Backend->initDynamicSections(*ELFObj);
-  }
-
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig->raise(Diag::merging_input_sections);
   {
@@ -258,6 +253,12 @@ void Linker::printLayout() {
   ObjLinker->printlayout();
 }
 
+bool Linker::emitSymbolResolutionReport() {
+  const GeneralOptions &Options = ThisConfig->options();
+  return ThisModule->getNamePool().getSRI().emitSymbolResolutionReport(
+      *ThisModule, *Options.getSymbolResolutionReportFile());
+}
+
 bool Linker::activateInputs(std::vector<InputAction *> &Actions) {
   LinkerProgress->incrementAndDisplayProgress();
   for (auto &Action : Actions) {
@@ -268,8 +269,9 @@ bool Linker::activateInputs(std::vector<InputAction *> &Actions) {
     }
     if (!Action->activate(IR->getInputBuilder()))
       return false;
-    if (!ObjLinker->readLinkerScript(
-            llvm::dyn_cast<eld::ScriptAction>(Action)->getLinkerScriptFile())) {
+    if (!ObjLinker->readAndActivateLinkerScript(
+            llvm::dyn_cast<eld::ScriptAction>(Action)->getLinkerScriptFile(),
+            ScriptFile::ScriptActivationKind::Early)) {
       ThisModule->setFailure(true);
       return false;
     }
@@ -373,13 +375,6 @@ bool Linker::normalize() {
     ThisConfig->setCodePosition(LinkerConfig::DynamicDependent);
   }
 
-  if ((ThisConfig->options().isPatchEnable() ||
-       ThisConfig->options().getPatchBase()) &&
-      !ThisConfig->isCodeStatic()) {
-    ThisConfig->raise(Diag::err_patch_not_static);
-    return false;
-  }
-
   setUnresolvePolicy(ThisConfig->options().reportUndefPolicy());
 
   {
@@ -472,11 +467,6 @@ bool Linker::resolve() {
         ThisConfig->options().printTimingStats());
     LinkerProgress->incrementAndDisplayProgress();
 
-    // Add dynamic section header inputs to the front of the input list.
-    ThisModule->getObjectList().insert(
-        ThisModule->getObjectList().begin(),
-        Backend->getDynamicSectionHeadersInputFile());
-
     // Add all internal inputs
     for (auto &Obj : ThisModule->getInternalFiles()) {
       ThisModule->getObjectList().push_back(Obj);
@@ -535,26 +525,6 @@ bool Linker::resolve() {
                          ThisConfig->options().printTimingStats("Plugin"));
     if (!ObjLinker->runSectionIteratorPlugin()) {
       return false;
-    }
-  }
-
-  // When linking the patch, most relocations need to resolve to the PLT stub
-  // from the base image. The address of the stub is communicated as the value
-  // of the `__llvm_patchable_` absolute symbol.
-  if (ThisConfig->options().getPatchBase()) {
-    for (auto &G : ThisModule->getNamePool().getGlobals()) {
-      ResolveInfo *SymInfo = G.getValue();
-      // We look for an alias for EVERY symbol, not only for the patchable ones
-      // because, during symbol resolution, if a patchable symbol is redefined
-      // in the patch, its patchable definition from the base will be replaced
-      // with the definition from the patch, which may not carry the patchable
-      // attribute. This much depends on the details of the symbol resolution.
-      // It may be possible to propagate the attribute during resolution.
-      if (LDSymbol *PatchableAlias = ThisModule->getNamePool().findSymbol(
-              std::string("__llvm_patchable_") + SymInfo->name())) {
-        Backend->recordAbsolutePLT(SymInfo, PatchableAlias->resolveInfo());
-        SymInfo->setReserved(SymInfo->reserved() | Relocator::ReservePLT);
-      }
     }
   }
 
@@ -649,7 +619,7 @@ bool Linker::layout() {
 
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig->raise(Diag::merging_strings);
-  {
+  if (!ThisConfig->isLinkPartial() && ThisConfig->options().mergeStrings()) {
     eld::RegisterTimer F("Merge strings", "Link Summary",
                          ThisConfig->options().printTimingStats());
     ObjLinker->doMergeStrings();
@@ -1015,6 +985,5 @@ bool Linker::initializeTarget(uint16_t machine, bool is64bit) {
   // Initialize all plugin configs
   ThisModule->getScript().initializePluginConfig(*ThisModule);
 
-  Backend->createInternalInputs();
   return true;
 }

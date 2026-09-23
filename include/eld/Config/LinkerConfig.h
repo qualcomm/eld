@@ -60,16 +60,19 @@ public:
     Unset             ///< Undetermine code position mode
   };
 
+  // FIXME: ARM/RISCV/X86 disable multithreading in ApplyRelocations by
+  // default, likely to avoid non-determinism. With dynsym order now fixed,
+  // revisit those defaults and whether per phase granularity is still needed.
   enum EnableThreadsOpt {
     NoThreads = 0,
     AssignOutputSections = 0x1,
-    ScanRelocations = 0x2,
     SyncRelocations = 0x4,
     CheckCrossRefs = 0x8,
     CreateOutputSections = 0x10,
     ApplyRelocations = 0x20,
     LinkerRelaxation = 0x40,
-    AllThreads = 0x1 | 0x2 | 0x4 | 0x8 | 0x10 | 0x20 | 0x40 | 0x80,
+    AssignVersionScriptNodes = 0x80,
+    AllThreads = 0x1 | 0x4 | 0x8 | 0x10 | 0x20 | 0x40 | 0x80,
   };
 
   enum SymDefStyle { Default, Provide, UnknownSymDefStyle };
@@ -147,10 +150,6 @@ public:
     return EnableThreads & LinkerConfig::AssignOutputSections;
   }
 
-  bool isScanRelocationsMultiThreaded() const {
-    return EnableThreads & LinkerConfig::ScanRelocations;
-  }
-
   bool isSyncRelocationsMultiThreaded() const {
     return EnableThreads & LinkerConfig::SyncRelocations;
   }
@@ -171,12 +170,14 @@ public:
     return EnableThreads & LinkerConfig::LinkerRelaxation;
   }
 
+  bool isAssignVersionScriptNodesMultiThreaded() const {
+    return EnableThreads & LinkerConfig::AssignVersionScriptNodes;
+  }
+
   void setThreadOptions(uint32_t EnableThreadsOpt) {
     EnableThreads = NoThreads;
     if (EnableThreadsOpt & AssignOutputSections)
       EnableThreads |= AssignOutputSections;
-    if (EnableThreadsOpt & ScanRelocations)
-      EnableThreads |= ScanRelocations;
     if (EnableThreadsOpt & SyncRelocations)
       EnableThreads |= SyncRelocations;
     if (EnableThreadsOpt & CheckCrossRefs)
@@ -187,6 +188,8 @@ public:
       EnableThreads |= ApplyRelocations;
     if (EnableThreadsOpt & LinkerRelaxation)
       EnableThreads |= LinkerRelaxation;
+    if (EnableThreadsOpt & AssignVersionScriptNodes)
+      EnableThreads |= AssignVersionScriptNodes;
   }
 
   void disableThreadOptions(uint32_t ThreadOptions) {

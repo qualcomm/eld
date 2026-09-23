@@ -28,7 +28,11 @@ and is designed for easy addition of more backends.
 
 ## Building ELD and running tests
 
-ELD supports building and running tests on Linux and Windows utilizing LLVM.
+ELD supports building and running tests on Linux, Windows, and macOS (Darwin)
+utilizing LLVM. macOS is supported as a **host** (Apple Silicon and Intel);
+ELD still produces ELF images and does not link Mach-O. On macOS the linker
+binary is built natively for the host architecture (`arm64` or `x86_64`);
+universal binaries are not required.
 
 ELD depends on LLVM. You can build ELD either:
 - Integrated into an `llvm-project` build (recommended for running tests), or

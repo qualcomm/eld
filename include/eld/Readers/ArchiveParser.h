@@ -115,7 +115,8 @@ private:
   /// It computes symbol information for the provided archive IR member symbols
   /// that are present in the archive symbol table.
   eld::Expected<bool>
-  computeSymInfoTableForIRMember(const llvm::object::IRObjectFile &IRObj,
+  computeSymInfoTableForIRMember(const ArchiveFile &archiveFile,
+                                 const llvm::object::IRObjectFile &IRObj,
                                  const llvm::object::Archive::Child &member,
                                  ArchiveSymbolInfoTable &symbolInfoTable) const;
 

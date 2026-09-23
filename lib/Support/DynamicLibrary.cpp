@@ -19,6 +19,8 @@ namespace DynamicLibrary {
 std::string getLibraryName(std::string Name) {
 #ifdef ELD_ON_MSVC
   return llvm::Twine(Name + ".dll").str();
+#elif defined(__APPLE__)
+  return llvm::Twine("lib" + Name + ".dylib").str();
 #else
   return llvm::Twine("lib" + Name + ".so").str();
 #endif

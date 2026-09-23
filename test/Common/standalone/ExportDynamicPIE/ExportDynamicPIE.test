@@ -1,0 +1,17 @@
+#---ExportDynamicPIE.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# --export-dynamic (-E) must export all global symbols to .dynsym for PIE
+# executables too, not just non-PIE ones. GNULDBackend::canSkipSymbolFromExport
+# used to unconditionally skip exporting non-entry globals for PIE output,
+# ignoring an explicit --export-dynamic request.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIC -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -pie -E %t1.o -o %t1.out
+RUN: %readelf --dyn-syms %t1.out | %filecheck %s --check-prefix=EXPORTED
+RUN: %link %linkopts -pie %t1.o -o %t2.out
+RUN: %readelf --dyn-syms %t2.out | %filecheck %s --check-prefix=NOTEXPORTED
+#END_TEST
+
+EXPORTED: foo
+NOTEXPORTED-NOT: foo

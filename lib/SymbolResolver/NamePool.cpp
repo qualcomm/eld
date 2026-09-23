@@ -107,8 +107,7 @@ bool NamePool::insertSymbol(
     ResolveInfo::Binding Binding, ResolveInfo::SizeType Size,
     LDSymbol::ValueType Value, ResolveInfo::Visibility Visibility,
     ResolveInfo *pOldInfo, Resolver::Result &PResult, bool IsPostLtoPhase,
-    bool IsBitCode, unsigned int PSymIdx, bool IsPatchable,
-    DiagnosticPrinter *Printer) {
+    bool IsBitCode, unsigned int PSymIdx, DiagnosticPrinter *Printer) {
   bool Exist = false;
   ResolveInfo *NewSymbol = nullptr;
   ResolveInfo *old_symbol = nullptr;
@@ -136,8 +135,6 @@ bool NamePool::insertSymbol(
     NewSymbol->setResolvedOrigin(Input);
   if (IsBitCode)
     NewSymbol->setInBitCode(IsBitCode);
-  if (IsPatchable)
-    NewSymbol->setPatchable();
 
   SymbolInfo SymInfo(Input, Size, Binding, Type, Visibility, Desc, IsBitCode);
   // We do not create input symbols for non object file symbols!
@@ -227,6 +224,16 @@ bool NamePool::insertSymbol(
 bool NamePool::getSymbolTracingRequested() const {
   return IsSymbolTracingRequested;
 }
+
+bool NamePool::resolvePair(ResolveInfo &OldRI, ResolveInfo &NewRI,
+                           bool IsPostLtoPhase) {
+  bool Override = false;
+  LDSymbol::ValueType Value =
+      NewRI.outSymbol() ? NewRI.outSymbol()->value() : NewRI.value();
+  SymbolResolver->resolve(OldRI, NewRI, Override, Value, &ThisConfig,
+                          IsPostLtoPhase);
+  return Override;
+}
 /// findInfo - find the resolved ResolveInfo
 ResolveInfo *NamePool::findInfo(const std::string &SymbolName) {
   auto I = GlobalSymbols.find(SymbolName);
@@ -271,8 +278,7 @@ void NamePool::setupNullSymbol() {
 
 /// createSymbol - create a symbol
 LDSymbol *NamePool::createPluginSymbol(InputFile *Input, std::string SymbolName,
-                                       Fragment *CurFragment, uint64_t Val,
-                                       LayoutInfo *layoutInfo) {
+                                       Fragment *CurFragment, uint64_t Val) {
   llvm::StringRef SymName = Saver.save(SymbolName);
   ResolveInfo *Info = make<ResolveInfo>(SymName);
   Info->setIsSymbol(true);
@@ -290,15 +296,6 @@ LDSymbol *NamePool::createPluginSymbol(InputFile *Input, std::string SymbolName,
   Sym->setFragmentRef(make<FragmentRef>(*CurFragment, Val));
   Info->setOutSymbol(Sym);
   LocalSymbols.push_back(Info);
-  if (layoutInfo && layoutInfo->showSymbolResolution())
-    getSRI().recordSymbolInfo(
-        Sym, SymbolInfo{Input, Info->size(),
-                        static_cast<ResolveInfo::Binding>(Info->binding()),
-                        static_cast<ResolveInfo::Type>(Info->type()),
-                        Info->visibility(),
-                        static_cast<ResolveInfo::Desc>(Info->desc()),
-                        /*isBitcode=*/false});
-
   return Sym;
 }
 
@@ -350,8 +347,7 @@ ResolveInfo NamePool::createInputSymbolRI(
     const std::string &SymName, InputFile &IF, bool IsDyn,
     ResolveInfo::Type SymType, ResolveInfo::Desc SymDesc,
     ResolveInfo::Binding SymBinding, ResolveInfo::SizeType SymSize,
-    ResolveInfo::Visibility SymVisibility, LDSymbol::ValueType SymValue,
-    bool IsPatchable) const {
+    ResolveInfo::Visibility SymVisibility, LDSymbol::ValueType SymValue) const {
   llvm::StringRef SymNameRef = Saver.save(SymName);
   ResolveInfo RI(SymNameRef);
   RI.setIsSymbol(true);
@@ -364,8 +360,6 @@ ResolveInfo NamePool::createInputSymbolRI(
   RI.setResolvedOrigin(&IF);
   RI.setValue(SymValue, /*isFinal=*/false);
   RI.setInBitCode(IF.isBitcode());
-  if (IsPatchable)
-    RI.setPatchable();
   if (IsDyn && RI.canBePreemptible())
     RI.setExportToDyn();
   return RI;
@@ -471,7 +465,7 @@ void NamePool::addUndefinedELFSymbol(InputFile *I, std::string SymbolName,
   insertSymbol(I, SymbolName, false, ResolveInfo::NoType,
                ResolveInfo::Undefined, ResolveInfo::Global, 0, 0, Vis, nullptr,
                Result, false /* postLTOPhase*/, false, 0,
-               false /* isPatchable */, ThisConfig.getPrinter());
+               ThisConfig.getPrinter());
   // create a output LDSymbol
   LDSymbol *OutputSym =
       make<LDSymbol>(Result.Info, ThisConfig.options().gcSections());

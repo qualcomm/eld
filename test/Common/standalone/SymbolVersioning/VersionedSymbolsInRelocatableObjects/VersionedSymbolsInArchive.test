@@ -1,0 +1,21 @@
+REQUIRES: symbol_versioning
+#---VersionedSymbolsInArchive.test------------------------------------------#
+#BEGIN_COMMENT
+# Validate versioned-symbol resolution when a weak default definition is in an
+# archive and a strong unversioned definition is linked directly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.strong_unversioned.o %p/Inputs/strong_unversioned.c -c -fPIC
+RUN: %clang %clangopts -o %t.weak_default.o %p/Inputs/weak_default.c -c -fPIC
+RUN: %ar rcs %t.weak_default.a %t.weak_default.o
+
+RUN: %link %linkopts -o %t.archive.so %t.strong_unversioned.o %t.weak_default.a \
+RUN:     -shared --version-script %p/Inputs/vs_v1.t -u bar -Map %t.archive.map.txt
+RUN: %readelf --dyn-syms --version-info %t.archive.so \
+RUN:   | %filecheck %s --check-prefix=Archive
+RUN: %filecheck %s --check-prefix=ArchiveMap < %t.archive.map.txt
+#END_TEST
+
+Archive-DAG:               bar@@V1
+ArchiveMap:      #{{[[:space:]]+}}bar{{[[:space:]]+}}{{.*}}strong_unversioned.o
+ArchiveMap-NOT:  #{{[[:space:]]+}}bar{{.*}}weak_default.o

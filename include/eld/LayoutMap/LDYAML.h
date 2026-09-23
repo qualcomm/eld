@@ -47,6 +47,7 @@ struct Symbol {
   SymbolScope Scope;
   llvm::yaml::Hex32 Size;
   llvm::yaml::Hex64 Value;
+  std::string SetAddressBy;
 };
 // Display Input file if it is used or not.
 struct InputFile {

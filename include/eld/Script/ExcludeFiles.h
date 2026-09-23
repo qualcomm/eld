@@ -8,6 +8,7 @@
 #define ELD_SCRIPT_EXCLUDEFILES_H
 
 #include "eld/Config/Config.h"
+#include "llvm/ADT/iterator_range.h"
 #include <cstdint>
 #include <vector>
 
@@ -45,10 +46,9 @@ public:
 class ExcludeFiles {
 public:
   typedef std::vector<ExcludePattern *> ExcludeFileList;
-  typedef ExcludeFileList::iterator iterator;
-  typedef ExcludeFileList::const_iterator const_iterator;
-  typedef ExcludeFileList::reference reference;
-  typedef ExcludeFileList::const_reference const_reference;
+  using ExcludePatternRange = llvm::iterator_range<ExcludeFileList::iterator>;
+  using ExcludePatternConstRange =
+      llvm::iterator_range<ExcludeFileList::const_iterator>;
 
   ExcludeFiles();
   /// Creates an ExcludeFiles object by joining ExcludeFiles EF1 and EF2.
@@ -56,15 +56,17 @@ public:
   ExcludeFiles(const ExcludeFiles &) = default;
 
 public:
-  const_iterator begin() const { return ExcludeFilesRule.begin(); }
-  iterator begin() { return ExcludeFilesRule.begin(); }
-  const_iterator end() const { return ExcludeFilesRule.end(); }
-  iterator end() { return ExcludeFilesRule.end(); }
+  ExcludePatternRange patterns() {
+    return llvm::make_range(ExcludeFilesRule.begin(), ExcludeFilesRule.end());
+  }
+  ExcludePatternConstRange patterns() const {
+    return llvm::make_range(ExcludeFilesRule.begin(), ExcludeFilesRule.end());
+  }
 
-  const_reference front() const { return ExcludeFilesRule.front(); }
-  reference front() { return ExcludeFilesRule.front(); }
-  const_reference back() const { return ExcludeFilesRule.back(); }
-  reference back() { return ExcludeFilesRule.back(); }
+  const ExcludePattern *front() const { return ExcludeFilesRule.front(); }
+  ExcludePattern *front() { return ExcludeFilesRule.front(); }
+  const ExcludePattern *back() const { return ExcludeFilesRule.back(); }
+  ExcludePattern *back() { return ExcludeFilesRule.back(); }
 
   bool empty() const { return ExcludeFilesRule.empty(); }
 

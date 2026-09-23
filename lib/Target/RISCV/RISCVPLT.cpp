@@ -52,7 +52,9 @@ eld::Expected<void> RISCVPLT0<T, Align, Size>::emit(MemoryRegion &mr,
   // l[wd] t0, Wordsize(t0); t0 = link_map
   // jr t3
   uint8_t *buf = mr.begin() + this->getOffset(M.getConfig().getDiagEngine());
-  uint32_t offset = m_Backend.getGOTPLT()->addr() - m_Backend.getPLT()->addr();
+  auto *DiagEngine = M.getConfig().getDiagEngine();
+  uint32_t offset =
+      this->getGOT()->getAddr(DiagEngine) - this->getAddr(DiagEngine);
   bool is32bit = (Align == 4);
   uint32_t load = is32bit ? LW : LD;
   llvm::support::endian::write32le(buf + 0, utype(AUIPC, X_T2, hi20(offset)));

@@ -6,5 +6,5 @@
 RUN: %link --version 2>&1 | %filecheck %s
 RUN: %link --about 2>&1 | %filecheck %s -check-prefix=ABOUT
 
-#CHECK: eld {{.*}} (GNU Compatible linker)
+#CHECK: GNU ld compatible linker - eld {{.*}}
 #ABOUT: Linker Plugin Interface Version {{[[:xdigit:]]+}}.{{[[:xdigit:]]+}}

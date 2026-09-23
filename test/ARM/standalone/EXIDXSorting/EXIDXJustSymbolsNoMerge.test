@@ -1,0 +1,30 @@
+#---EXIDXJustSymbolsNoMerge.test--------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify that .ARM.exidx sections from a just-symbols input (-R=) are not
+# merged into the output EXIDX table.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/exidx_cantunwind.s -o %t.cantunwind.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/exidx_sentinel.s   -o %t.sentinel.o
+RUN: %link %linkopts %t.cantunwind.o \
+RUN:   -T %p/Inputs/script.t \
+RUN:   --defsym=__aeabi_unwind_cpp_pr0=0 \
+RUN:   -o %t.cantunwind.out
+RUN: %link -MapStyle txt %linkopts %t.sentinel.o -R=%t.cantunwind.out \
+RUN:   -T %p/Inputs/script.t \
+RUN:   --defsym=__aeabi_unwind_cpp_pr0=0 \
+RUN:   -o %t.out -Map %t.map
+RUN: %readelf -S -W %t.out | %filecheck %s --check-prefix=SEC
+RUN: %filecheck %s --check-prefix=MAP < %t.map
+
+# Only sentinel.s entries (4 entries = 0x20) + the 8-byte sentinel = 0x28.
+# If cantunwind sections were incorrectly merged, the size would be larger.
+#SEC: .ARM.exidx{{[[:space:]]+}}ARM_EXIDX{{[[:space:]]}}{{.*}}000028
+
+# The cantunwind just-symbols input must not contribute any EXIDX sections.
+# The map lists it as a loaded input (LOAD line) but no .ARM.exidx entries
+# from it should appear as section content.
+#MAP-NOT: .ARM.exidx{{.*}}cantunwind.out
+# The sentinel must appear at the end of the table.
+#MAP: #EXIDX-sentinel
+#END_TEST

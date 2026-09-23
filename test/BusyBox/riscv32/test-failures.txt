@@ -1,0 +1,23 @@
+#BEGIN_COMMENT
+# BusyBox's awk_sub() implements gsub() by repeatedly calling regexec() while
+# advancing a pointer through the string. Correctly handling anchors like
+# \< (word start) on each iteration requires REG_STARTEND, a BSD/glibc regex
+# extension not present in POSIX. musl's regex.h defines no REG_STARTEND, so
+# the build falls back to the code path busybox's own source comments already
+# flag as buggy: it reruns regexec() on the advanced pointer, so the regex
+# engine treats that mid-string position as a word start too, and \<b* wrongly
+# matches the "b" in "abc". This is not a bug in BusyBox, the build, or the
+# linker, it is a missing non-POSIX regex extension (REG_STARTEND) in musl.
+#END_COMMENT
+CHECK: FAIL: awk gsub erroneous word start match
+
+#BEGIN_COMMENT
+# BusyBox's parse_datestr() parses this form via
+# strptime(date_str, "%Y-%m-%d %T %z", &tm). Accepting a bare 'Z' suffix as a
+# synonym for '+0000' in the %z conversion is a GNU libc extension, not POSIX
+# behavior. This is not a bug in BusyBox, the build, or the linker, it is a
+# glibc-vs-musl strptime behavioral difference.
+#END_COMMENT
+CHECK: FAIL: date-timezone
+
+CHECK-NOT: FAIL:

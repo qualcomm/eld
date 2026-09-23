@@ -22,6 +22,14 @@ DIAG(error_failed_to_add_sym_to_chunk, DiagnosticEngine::Error,
      "Failed to add symbol '%0' to chunk")
 DIAG(error_failed_to_reset_symbol, DiagnosticEngine::Error,
      "Failed to reset symbol '%0'")
+DIAG(error_failed_to_set_symbol_address, DiagnosticEngine::Error,
+     "Failed to set address of symbol '%0' defined in '%1'")
+DIAG(error_set_symbol_address_on_function, DiagnosticEngine::Error,
+     "Cannot set address of symbol '%0' defined in '%1' because it is a "
+     "function symbol; setSymbolAddress is only allowed on data symbols")
+DIAG(error_set_symbol_address_out_of_range, DiagnosticEngine::Error,
+     "Cannot set address of symbol '%0' defined in '%1' to 0x%2 because it "
+     "exceeds the maximum address 0x%3 supported by the target")
 DIAG(error_failed_to_insert_rule, DiagnosticEngine::Error,
      "Failed to insert rule")
 DIAG(error_invalid_use, DiagnosticEngine::Error, "Invalid Use")

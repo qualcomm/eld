@@ -69,7 +69,7 @@ public:
                       ELFSection *CurSection = nullptr,
                       ResolveInfo::Visibility Vis = ResolveInfo::Default,
                       bool IsPostLtoPhase = true, uint32_t Shndx = 0,
-                      uint32_t Idx = 0, bool IsPatchable = false);
+                      uint32_t Idx = 0);
 
   template <SymbolDefinePolicy POLICY, SymbolResolvePolicy RESOLVE>
   LDSymbol *
@@ -78,8 +78,7 @@ public:
             ResolveInfo::SizeType Size = 0, LDSymbol::ValueType Value = 0x0,
             FragmentRef *CurFragmentRef = FragmentRef::null(),
             ResolveInfo::Visibility Visibility = ResolveInfo::Default,
-            bool IsPostLtoPhase = true, bool IsBitCode = false,
-            bool IsPatchable = false);
+            bool IsPostLtoPhase = true, bool IsBitCode = false);
 
   static Relocation *addRelocation(const Relocator *CurRelocator,
                                    ELFSection *CurSection,
@@ -113,7 +112,7 @@ private:
                       ResolveInfo::Binding Binding, ResolveInfo::SizeType Size,
                       LDSymbol::ValueType Value, FragmentRef *CurFragmentRef,
                       ResolveInfo::Visibility Visibility, uint32_t Shndx,
-                      bool IsPostLtoPhase, uint32_t Idx, bool IsPatchable);
+                      bool IsPostLtoPhase, uint32_t Idx);
 
   LDSymbol *addSymbolFromDynObj(InputFile &Input, const std::string &SymbolName,
                                 ResolveInfo::Type Type, ResolveInfo::Desc Desc,
@@ -151,7 +150,7 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
     ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
     ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
     FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
-    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable);
+    bool IsPostLtoPhase, bool IsBitCode);
 
 template <>
 LDSymbol *IRBuilder::addSymbol<IRBuilder::AsReferred, IRBuilder::Unresolve>(
@@ -159,7 +158,7 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::AsReferred, IRBuilder::Unresolve>(
     ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
     ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
     FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
-    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable);
+    bool IsPostLtoPhase, bool IsBitCode);
 
 template <>
 LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
@@ -167,7 +166,7 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
     ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
     ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
     FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
-    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable);
+    bool IsPostLtoPhase, bool IsBitCode);
 
 template <>
 LDSymbol *IRBuilder::addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
@@ -175,7 +174,7 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
     ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
     ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
     FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
-    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable);
+    bool IsPostLtoPhase, bool IsBitCode);
 
 } // end of namespace eld
 

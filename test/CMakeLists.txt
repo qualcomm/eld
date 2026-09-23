@@ -24,6 +24,11 @@ if(test_riscv GREATER -1)
   set(TEST_TARGETS "${TEST_TARGETS};RISCV64")
 endif()
 
+list(FIND TEST_TARGETS "X86" test_x86)
+if(test_x86 GREATER -1)
+  set(TEST_TARGETS "${TEST_TARGETS};X86_32")
+endif()
+
 #Remove the Template backend from the testing infrastructure.
 list(REMOVE_ITEM TEST_TARGETS "Template")
 

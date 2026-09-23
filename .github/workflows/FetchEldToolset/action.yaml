@@ -31,8 +31,8 @@ runs:
       env:
         TARBALL: ${{ inputs.tarball }}
         STRIP_COMPONENTS: ${{ inputs.strip-components }}
-      run: |
+      run: | # zizmor: ignore[github-env] literal $(pwd)-derived path, not attacker-controlled
         mkdir -p inst
         tar -xf "$TARBALL" -C inst --strip-components="$STRIP_COMPONENTS"
         ls inst
-        echo "PATH=$(pwd)/inst/bin:$PATH" >> "$GITHUB_ENV"
+        echo "$(pwd)/inst/bin" >> "$GITHUB_PATH"

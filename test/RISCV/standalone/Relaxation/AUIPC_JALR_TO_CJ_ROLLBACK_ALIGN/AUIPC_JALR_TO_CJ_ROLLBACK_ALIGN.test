@@ -1,0 +1,31 @@
+#---AUIPC_JALR_TO_CJ_ROLLBACK_ALIGN.test---------- Executable ------------------#
+#START_TEST
+# This test exercises the C.JAL relaxation recording path introduced alongside
+# the JAL rollback mechanism.  The C.JAL instructions remain in range after the
+# small ALIGN(16) in the linker script, so no rollback occurs here; the test
+# verifies that recording does not corrupt the output.
+#
+# NOTE: constructing a test that actually triggers C.J/C.JAL rollback is
+# geometrically difficult.  The conservative MaxAlignment slack in
+# doRelaxationCall is derived from the ELF section sh_addralign, not from the
+# linker-script ALIGN() expression.  For C.JAL relaxation to fire the distance
+# including that slack must already be <2KB.  A linker-script ALIGN larger than
+# 2KB places the sections too far apart for C.JAL to be chosen at layout time;
+# an ALIGN smaller than 2KB adds <2KB of padding and the final distance stays
+# in range.  The rollback path does handle the case correctly but requires a
+# compound scenario (e.g. a prior JAL rollback inserting bytes between the two
+# sections) that is not easily reproduced in a standalone test.
+RUN: %clang -target riscv32-linux-gnu -c %p/Inputs/calls.s   -o %t.calls.o
+RUN: %clang -target riscv32-linux-gnu -c %p/Inputs/kobject.s -o %t.kobject.o
+RUN: %clang -target riscv32-linux-gnu -c %p/Inputs/exit.s    -o %t.exit.o
+RUN: %link %linkopts --image-base 0 -T %p/Inputs/ls.lds \
+RUN:   %t.calls.o %t.kobject.o %t.exit.o -o %t.out \
+RUN:   --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE
+RUN: %objdump -d %t.out 2>&1 | %filecheck %s --check-prefix=DUMP
+#END_TEST
+
+VERBOSE: RISCV_CALL_JAL : relaxing instruction {{.*}} to compressed instruction 0x2001 for symbol kobject_put in section .exit.text+0x0 file {{.*}}exit.o
+
+DUMP-LABEL: <exit_func>:
+DUMP:        jal
+DUMP-NEXT:   ret

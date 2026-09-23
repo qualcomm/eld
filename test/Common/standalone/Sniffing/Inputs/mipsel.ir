@@ -1,0 +1,9 @@
+; ModuleID = '1.o'
+source_filename = "1.c"
+target datalayout = "e-m:m-p:32:32-i8:8:32-i16:16:32-i64:64-n32-S64"
+target triple = "mipsel"
+
+; Function Attrs: noinline nounwind optnone uwtable
+define dso_local i32 @foo() #0 {
+  ret i32 0
+}

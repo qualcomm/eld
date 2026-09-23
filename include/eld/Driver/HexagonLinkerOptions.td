@@ -23,17 +23,3 @@ def disable_guard_for_weak_undef
     : Flag<["-", "--"], "disable-guard-for-weak-undef">,
       HelpText<"Disable guard for weak undefined symbols">,
       Group<grp_main>;
-
-//===----------------------------------------------------------------------===//
-/// Hexagon Linker Options (Experimental)
-//===----------------------------------------------------------------------===//
-def grp_hexagonexperimentalopts : OptionGroup<"opts">, HelpText<"Hexagon Linker experimental Options">;
-def relax : Flag<["--"], "relax">,
-                  HelpText<"Enable Hexagon Relaxation (default behavior)">,
-                  Group<grp_hexagonexperimentalopts>;
-defm relax_value
-    : smDashOnlyEq<
-          "relax", "relax_value",
-          "Restrict relaxation to only certain sections">,
-      MetaVarName<"<regex>">,
-      Group<grp_hexagonexperimentalopts>;

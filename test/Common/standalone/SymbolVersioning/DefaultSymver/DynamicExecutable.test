@@ -1,0 +1,28 @@
+REQUIRES: symbol_versioning
+#---DynamicExecutable.test------------------------------------ SymbolVersioning ------#
+#BEGIN_COMMENT
+# This test verifies that --default-symver creates a default version node for
+# dynamic executables. Without -E the node is still created without exporting
+# regular symbols; with -E exported executable symbols use the default version.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.noexport.o %p/Inputs/no-export.c -c
+RUN: %clang %clangopts -o %t1.main.o %p/Inputs/main.c -c
+
+RUN: %link %linkopts -o %t1.exe %t1.noexport.o --force-dynamic --default-symver
+RUN: %readelf --dyn-syms --version-info %t1.exe | %filecheck %s --check-prefix=EXEC
+
+RUN: %link %linkopts -o %t1.exeE %t1.main.o --force-dynamic -E --default-symver
+RUN: %readelf --dyn-syms --version-info %t1.exeE | %filecheck %s --check-prefix=EXEC-E
+#END_TEST
+
+EXEC: Symbol table '.dynsym' contains 1 entries:
+EXEC: '.gnu.version_d' contains 2 entries:
+EXEC: Name: {{.*}}exe
+EXEC: Name: {{.*}}exe
+
+EXEC-E: foo@@{{.*}}exeE
+EXEC-E: main@@{{.*}}exeE
+EXEC-E: '.gnu.version_d' contains 2 entries:
+EXEC-E: Name: {{.*}}exeE
+EXEC-E: Name: {{.*}}exeE

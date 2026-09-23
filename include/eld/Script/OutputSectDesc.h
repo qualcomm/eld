@@ -147,33 +147,20 @@ public:
       return true;
     }
 
-    void init() {
-      OutputSectionVMA = nullptr;
-      ThisType = OutputSectDesc::Type::DEFAULT_TYPE;
-      SectionFlag = OutputSectDesc::Permissions::DEFAULT_PERMISSIONS;
-      OutputSectionLMA = nullptr;
-      Alignment = nullptr;
-      OutputSectionSubaAlign = nullptr;
-      SectionConstraint = OutputSectDesc::Constraint::NO_CONSTRAINT;
-      PluginCmd = nullptr;
-      ThisPlugin = nullptr;
-      HasAlignWithInput = false;
-    }
-
     void setAlignWithInput() { HasAlignWithInput = true; }
 
     bool hasAlignWithInput() const { return HasAlignWithInput; }
 
-    Expression *OutputSectionVMA;
-    Type ThisType;
-    uint32_t SectionFlag;
-    Expression *OutputSectionLMA;
-    Expression *Alignment;
-    Expression *OutputSectionSubaAlign;
-    Constraint SectionConstraint;
-    eld::PluginCmd *PluginCmd;
-    eld::Plugin *ThisPlugin;
-    bool HasAlignWithInput;
+    Expression *OutputSectionVMA = nullptr;
+    Type ThisType = OutputSectDesc::Type::DEFAULT_TYPE;
+    uint32_t SectionFlag = OutputSectDesc::Permissions::DEFAULT_PERMISSIONS;
+    Expression *OutputSectionLMA = nullptr;
+    Expression *Alignment = nullptr;
+    Expression *OutputSectionSubaAlign = nullptr;
+    Constraint SectionConstraint = OutputSectDesc::Constraint::NO_CONSTRAINT;
+    eld::PluginCmd *PluginCmd = nullptr;
+    eld::Plugin *ThisPlugin = nullptr;
+    bool HasAlignWithInput = false;
   };
 
   struct Epilog {
@@ -338,8 +325,6 @@ public:
   Prolog &prolog() { return OutputSectDescProlog; }
 
   Epilog &epilog() { return OutputSectDescEpilog; }
-
-  void initialize();
 
   void dumpEpilogue(llvm::raw_ostream &Outs) const;
 

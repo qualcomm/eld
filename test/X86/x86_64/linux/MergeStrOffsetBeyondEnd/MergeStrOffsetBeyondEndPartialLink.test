@@ -1,0 +1,20 @@
+#--MergeStrOffsetBeyondEndPartialLink.test------------ Partial Link -----------#
+#BEGIN_COMMENT
+# Partial link (-r) of an object with a symbol whose value is at/beyond the end
+# of a SHF_MERGE|SHF_STRINGS section. String merging is not applied in a partial
+# link, so the out-of-range symbol keeps its input value. The linker must not
+# crash and must emit no clamp warning (no output layout exists yet).
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/beyond.s -o %t.beyond.o
+RUN: %link %linkopts -r -o %t.part.o %t.beyond.o 2>&1 \
+RUN:   | %filecheck %s --check-prefix=NOWARN --allow-empty
+RUN: %readelf -s -W %t.part.o | %filecheck %s --check-prefix=PART
+#END_TEST
+
+NOWARN-NOT: clamped the value to the output section
+
+# The out-of-range 'way_past' (input value 0x64) and in-range 'midsym' (0x2)
+# keep their input values in the relocatable output.
+PART-DAG: {{0*}}64 {{.*}} way_past
+PART-DAG: {{0*}}2 {{.*}} midsym

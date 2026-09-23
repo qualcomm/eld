@@ -1,0 +1,13 @@
+#---NoMergeStrings.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This tests that --no-merge-strings preserves duplicate merge strings.
+#END_COMMENT
+# START_TEST
+RUN: %clang %clangopts -c %p/Inputs/duplicate.s -o %t.o
+RUN: %link %linkopts %t.o -o %t.out --no-merge-strings
+RUN: %readelf -p .rodata %t.out | %filecheck %s
+# END_TEST
+
+CHECK: '.rodata':
+CHECK: merge-me
+CHECK: merge-me

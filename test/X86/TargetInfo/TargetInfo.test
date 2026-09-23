@@ -1,0 +1,9 @@
+#---TargetInfo.test---------------------- Driver ------------------#
+#BEGIN_COMMENT
+# Verify that the X86 target family registers both the 32-bit i386 target and
+# the existing 64-bit x86_64 target.
+#END_COMMENT
+# RUN: %link --about | %filecheck %s
+# CHECK: Supported Targets:
+# CHECK-SAME: i386
+# CHECK-SAME: x86_64

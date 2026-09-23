@@ -1,0 +1,12 @@
+#--GOTPCRELXRelax_Jmp.test----------Shared Library--------#
+# JMP rewrite: jmp *sym@GOTPCREL(%rip) (ff 25) -> jmpq sym; nop (e9 ... 90).
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/jmp.s -o %t.o
+RUN: %link %linkopts --relax -shared -o %t.so %t.o
+RUN: %objdump -d %t.so | %filecheck %s
+#END_TEST
+
+# Instruction must be rewritten to direct jmp (e9) followed by nop (90).
+CHECK: <h>:
+CHECK-NEXT: {{[0-9a-f]+}}: e9 {{.*}} jmp
+CHECK-NEXT: {{.*}}90{{.*}}nop

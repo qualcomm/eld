@@ -14,6 +14,7 @@
 #define ELD_OBJECT_OBJECTLINKER_H
 #include "eld/Core/Module.h"
 #include "eld/PluginAPI/Expected.h"
+#include "eld/Script/ScriptFile.h"
 #include "eld/Support/MappingFile.h"
 #include "eld/Support/Path.h"
 #include "eld/Target/Relocator.h"
@@ -55,6 +56,7 @@ class LibReader;
 class Input;
 class InputFile;
 class InputTree;
+class LinkerScriptFile;
 class IRBuilder;
 class LinkerConfig;
 class Module;
@@ -293,7 +295,10 @@ public:
   bool sortSections(RuleContainer *I, bool SortRule);
 
   // -------------------LinkerScript Support--------------------------------
-  bool readLinkerScript(InputFile *I);
+  bool parseLinkerScript(InputFile *I);
+
+  bool readAndActivateLinkerScript(InputFile *I,
+                                   ScriptFile::ScriptActivationKind Kind);
 
   bool readInputs(const std::vector<Node *> &N);
 
@@ -405,6 +410,13 @@ private:
   /// - Pass 2: Non-* wildcards (reverse order, last wins)
   /// - Pass 3: * wildcard (reverse order, last wins, lowest priority)
   void assignVersionNodesToSymbols();
+
+  /// Validates and registers every node of a single parsed VersionScript
+  /// DecoratedPath is used only for diagnostics.
+  bool registerVersionScriptNodes(const VersionScript *VS,
+                                  llvm::StringRef DecoratedPath);
+
+  void createDefaultSymverNode();
 
   std::unique_ptr<llvm::lto::LTO> ltoInit(llvm::lto::Config Conf,
                                           bool CompileToAssembly);

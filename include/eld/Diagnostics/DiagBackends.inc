@@ -90,6 +90,9 @@ DIAG(expected_group_section, DiagnosticEngine::InternalError,
      "Expected %0 to be a 'group' section.")
 DIAG(warn_ignore_reloc_addend, DiagnosticEngine::Warning,
      "%2: ignoring addend for relocation `%1' referring symbol %0")
+DIAG(error_x86_gotpcrelx_relax_overflow, DiagnosticEngine::Error,
+     "%0: relaxing relocation %1 out of range: %2 is not in [%3, %4]; "
+     "references '%5'; relink with --no-relax")
 DIAG(error_build_id_not_hex, DiagnosticEngine::Error,
     "build id specified is not hexadecimal : %0")
 DIAG(error_unknown_build_id, DiagnosticEngine::Error,

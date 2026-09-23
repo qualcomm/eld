@@ -18,7 +18,6 @@
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/FragUtils.h"
 #include "eld/Fragment/RegionFragment.h"
-#include "eld/Fragment/RegionFragmentEx.h"
 #include "eld/Fragment/Stub.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/LayoutMap/LayoutInfo.h"
@@ -231,24 +230,9 @@ HexagonLDBackend::getTargetSectionOrder(const ELFSection &pSectHdr) const {
   return SHO_UNDEFINED;
 }
 
-void HexagonLDBackend::initDynamicSections(ELFObjectFile &InputFile) {
-  InputFile.setDynamicSections(
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 4),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got.plt",
-          llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
-          8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".plt", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 16),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.dyn",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC, 4),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.plt",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC, 4));
+void HexagonLDBackend::initDynamicSections(InputFile &InputFile) {
+  GNULDBackend::initDynamicSections(InputFile,
+                                    {llvm::ELF::SHT_RELA, 4, 4, 8, 16});
 }
 
 void HexagonLDBackend::createAttributeSection() {
@@ -482,51 +466,6 @@ bool HexagonLDBackend::initStubFactory() {
   return true;
 }
 
-bool HexagonLDBackend::haslinkerRelaxed(
-    const std::vector<RegionFragmentEx *> &FragsForRelaxation) {
-  bool isFinished = true;
-  for (auto &F : FragsForRelaxation) {
-    for (auto &reloc : F->getOwningSection()->getRelocations()) {
-      // Addend needs to be 0.
-      if (reloc->addend() != 0)
-        continue;
-      // If the fragment cannot be relaxed, dont relax
-      if (!canFragmentBeRelaxed(F))
-        continue;
-      // If the relocation points to a fragment whose alignment is more than 4
-      // we may need to skip relaxation
-      LDSymbol *sym = reloc->symInfo()->outSymbol();
-      if (!sym || !sym->hasFragRefSection())
-        continue;
-      if (sym->fragRef()->frag()->getOwningSection()->getAddrAlign() > 4)
-        continue;
-      switch (reloc->type()) {
-      case llvm::ELF::R_HEX_B22_PCREL:
-        // If the last instruction in the section jumps to the
-        // next instruction, then we dont need this instruction.
-        if (reloc->getOffset() == F->size() - 4 &&
-            getRelocator()->getSymValue(reloc) == reloc->place(m_Module) + 4) {
-          reloc->setType(llvm::ELF::R_HEX_NONE);
-          m_RelaxedRelocs.insert(reloc);
-          F->deleteInstruction(reloc->getOffset(), 4);
-          // We are not done.
-          isFinished = false;
-          if (m_Module.getPrinter()->isVerbose())
-            config().raise(Diag::deleting_instructions)
-                << "B22_PCREL" << 4 << reloc->symInfo()->name()
-                << F->getOwningSection()->name()
-                << llvm::utohexstr(reloc->getOffset(), true)
-                << F->getOwningSection()
-                       ->getInputFile()
-                       ->getInput()
-                       ->decoratedPath();
-        }
-      }
-    }
-  }
-  return !isFinished;
-}
-
 void HexagonLDBackend::mayBeRelax(int, bool &pFinished) {
   if (config().options().noTrampolines()) {
     pFinished = true;
@@ -535,20 +474,10 @@ void HexagonLDBackend::mayBeRelax(int, bool &pFinished) {
   assert(nullptr != getStubFactory() && nullptr != getBRIslandFactory());
   pFinished = true;
   std::vector<OutputSectionEntry *> OutSections;
-  std::vector<RegionFragmentEx *> FragsForRelaxation;
-  bool isRelaxationEnabled = config().options().isLinkerRelaxationEnabled();
 
   for (auto &O : OutputSectionToFrags) {
     if (O.first && !O.first->getSection()->isCode())
       continue;
-    for (auto &F : O.second) {
-      if (!F->getOwningSection()->isCode())
-        continue;
-      if (isRelaxationEnabled) {
-        if (auto RelaxFrag = llvm::dyn_cast<eld::RegionFragmentEx>(F))
-          FragsForRelaxation.push_back(RelaxFrag);
-      }
-    }
     OutSections.push_back(O.first);
   }
 
@@ -625,11 +554,6 @@ void HexagonLDBackend::mayBeRelax(int, bool &pFinished) {
   } else {
     llvm::parallelFor((size_t)0, OutSections.size(),
                       InsertTrampolinesForOutputSection);
-  }
-  if (pFinished) {
-    // TODO : Multithread this code.
-    if (isRelaxationEnabled && haslinkerRelaxed(FragsForRelaxation))
-      pFinished = false;
   }
 }
 
@@ -944,14 +868,9 @@ void HexagonLDBackend::initializeAttributes() {
 }
 
 // Create GOT entry.
-HexagonGOT *HexagonLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
-                                        ResolveInfo *R) {
+HexagonGOT *HexagonLDBackend::createGOT(GOT::GOTType T, ResolveInfo *R) {
 
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_got_entry)
-        << GOT::getGOTTypeAsStr(T) << R->name();
+  traceGOTCreation(T, R);
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->hasFragments()) {
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
@@ -963,7 +882,7 @@ HexagonGOT *HexagonLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
   bool GOT = true;
   switch (T) {
   case GOT::Regular:
-    G = HexagonGOT::Create(Obj->getGOT(), R);
+    G = HexagonGOT::Create(getGOT(), R);
     break;
   case GOT::GOTPLT0:
     G = llvm::dyn_cast<HexagonGOT>(*getGOTPLT()->getFragmentList().begin());
@@ -974,18 +893,18 @@ HexagonGOT *HexagonLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     Fragment *PLT0 = config().options().hasNow()
                          ? nullptr
                          : *getPLT()->getFragmentList().begin();
-    G = HexagonGOTPLTN::Create(Obj->getGOTPLT(), R, PLT0);
+    G = HexagonGOTPLTN::Create(getGOTPLT(), R, PLT0);
     GOT = false;
     break;
   }
   case GOT::TLS_GD:
-    G = HexagonGDGOT::Create(Obj->getGOT(), R);
+    G = HexagonGDGOT::Create(getGOT(), R);
     break;
   case GOT::TLS_LD:
     G = HexagonLDGOT::Create(getGOT(), R);
     break;
   case GOT::TLS_IE:
-    G = HexagonIEGOT::Create(Obj->getGOT(), R);
+    G = HexagonIEGOT::Create(getGOT(), R);
     break;
   default:
     assert(0);
@@ -1022,26 +941,21 @@ HexagonGOT *HexagonLDBackend::findEntryInGOT(ResolveInfo *I) const {
 }
 
 // Create PLT entry.
-HexagonPLT *HexagonLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
+HexagonPLT *HexagonLDBackend::createPLT(ResolveInfo *R) {
   bool hasNow = config().options().hasNow();
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_plt_entry) << R->name();
+  tracePLTCreation(R);
 
   reportErrorIfPLTIsDiscarded(R);
 
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
   if (!hasNow && !getPLT()->hasFragments()) {
     HexagonPLT0::Create(*m_Module.getIRBuilder(),
-                        createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
-                        nullptr);
+                        createGOT(GOT::GOTPLT0, nullptr), getPLT(), nullptr);
   }
-  HexagonPLT *P =
-      HexagonPLTN::Create(*m_Module.getIRBuilder(),
-                          createGOT(GOT::GOTPLTN, Obj, R), Obj->getPLT(), R);
+  HexagonPLT *P = HexagonPLTN::Create(*m_Module.getIRBuilder(),
+                                      createGOT(GOT::GOTPLTN, R), getPLT(), R);
   // init the corresponding rel entry in .rela.plt
-  Relocation &rela_entry = *Obj->getRelaPLT()->createOneReloc();
+  Relocation &rela_entry = *getRelaPLT()->createOneReloc();
   rela_entry.setType(llvm::ELF::R_HEX_JMP_SLOT);
   Fragment *F = P->getGOT();
   rela_entry.setTargetRef(make<FragmentRef>(*F, 0));
@@ -1119,57 +1033,7 @@ bool HexagonLDBackend::readSection(InputFile &pInput, ELFSection *S) {
     break;
   }
 
-  // Support Hexagon relaxation
-  if (!canSectionBeRelaxed(pInput, S))
-    return GNULDBackend::readSection(pInput, S);
-
-  // Create a optimal fragment.
-  eld::LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
-  const char *Buf = pInput.getCopyForWrite(S->offset(), S->size());
-  eld::RegionFragmentEx *F =
-      make<RegionFragmentEx>(Buf, S->size(), S, S->getAddrAlign());
-  S->addFragment(F);
-  if (layoutInfo)
-    layoutInfo->recordFragment(&pInput, S, F);
-  return true;
-}
-
-bool HexagonLDBackend::canSectionBeRelaxed(InputFile &pInput,
-                                           ELFSection *S) const {
-  if (!config().options().isLinkerRelaxationEnabled(S->name()))
-    return false;
-
-  // Check if section is code.
-  if (!S->isCode())
-    return false;
-
-  // If the section size is less than a word
-  if (S->size() < sizeof(uint32_t))
-    return false;
-
-  llvm::StringRef SectionContents = pInput.getSlice(S->offset(), S->size());
-  uint32_t Word = 0;
-  // Extract the last word in the section
-  std::memcpy(
-      &Word,
-      (const char *)(SectionContents.data() + SectionContents.size() - 4),
-      sizeof(Word));
-  // if the last instruction in the section is a jump, we may be able to relax
-  // this section by deleting the instruction.
-  return (Word == HEXAGON_JUMP_INSTRUCTION);
-}
-
-bool HexagonLDBackend::canFragmentBeRelaxed(Fragment *F) const {
-  RegionFragmentEx *R = llvm::dyn_cast<RegionFragmentEx>(F);
-  if (!R || !R->size())
-    return false;
-  uint32_t Word = 0;
-  // Extract the last word in the section
-  std::memcpy(&Word, (const char *)(R->getRegion().data() + (R->size() - 4)),
-              sizeof(Word));
-  // if the last instruction in the section is a jump, we may be able to relax
-  // this section by deleting the instruction.
-  return (Word == HEXAGON_JUMP_INSTRUCTION);
+  return GNULDBackend::readSection(pInput, S);
 }
 
 bool HexagonLDBackend::addSymbols() {
@@ -1180,10 +1044,6 @@ bool HexagonLDBackend::addSymbols() {
           "__lw_image_layout_checksum", 4, 4))
     return false;
   return true;
-}
-
-bool HexagonLDBackend::isRelocationRelaxed(Relocation *R) const {
-  return m_RelaxedRelocs.count(R);
 }
 
 //===----------------------------------------------------------------------===//

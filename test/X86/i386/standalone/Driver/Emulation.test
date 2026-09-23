@@ -1,0 +1,6 @@
+#---Emulation.test------------------------ Driver ------------------#
+#BEGIN_COMMENT
+# Verify that the GNU elf_i386 emulation is recognized by the X86 driver.
+#END_COMMENT
+# RUN: %link -m elf_i386 --repository-version | %filecheck %s
+# CHECK: i386 eld repository revision:

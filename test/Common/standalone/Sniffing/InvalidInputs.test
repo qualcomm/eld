@@ -13,6 +13,14 @@ RUN: %not %eld %t1.ppc.o -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix
 # Sniff using LTO (PPC)
 RUN: %llvm-as %p/Inputs/ppc.ir -o %t1.ppc.bc.o
 RUN: %not %eld %t1.ppc.bc.o -o %t2.out 2>&1 | %filecheck %s -check-prefix=BC
+# Same big-endian bitcode, but as the only member of an archive with no
+# other ELF input and no -m, to exercise archive symbol-table sniffing
+RUN: %ar cr %t1.ppc.bc.a %t1.ppc.bc.o
+RUN: %not %eld %t1.ppc.bc.a -o %t2.out 2>&1 | %filecheck %s -check-prefix=ARCHIVEBC_BE
+# Unsupported little-endian target, as the only member of an archive
+RUN: %llvm-as %p/Inputs/mipsel.ir -o %t1.mipsel.bc.o
+RUN: %ar cr %t1.mipsel.bc.a %t1.mipsel.bc.o
+RUN: %not %eld %t1.mipsel.bc.a -o %t2.out 2>&1 | %filecheck %s -check-prefix=ARCHIVEBC_UNSUP
 # invalid ELF class
 RUN: %echo -e -n "\x7f\x45\x4c\x46\x00\x01\x01\x03\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00" > %t.invalid.o
 RUN: %not %eld %t.invalid.o -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=INVALIDFILECLASS
@@ -24,4 +32,6 @@ RUN: %not %eld %t.invalid.o -o %t2.out --verbose 2>&1 | %filecheck %s -check-pre
 #PPC: Target not registered : ppc
 #BE: big-endian targets are not supported: {{.*}}be.o
 #BC: Unsupported architecture powerpc in LLVM Bitcode file : {{.*}}bc.o
+#ARCHIVEBC_BE: big-endian targets are not supported: {{.*}}ppc.bc.a
+#ARCHIVEBC_UNSUP: Target not registered : mips
 #INVALIDFILECLASS: {{.*}}invalid.o : corrupted ELF file: invalid file class

@@ -1,0 +1,125 @@
+name: Monitor workflow failures
+
+on:
+  # A workflow_run trigger lets this workflow inspect the completed run without
+  # checking out or executing code from the monitored workflow.
+  workflow_run:
+    workflows:
+      - BusyBox
+      - Windows Arm64/x86_64 CI/Nightly
+      - Linux Kernel Boot Nightly with ELD
+      - Nightly builder for testing eld against musl-test-suite
+      - Nightly check
+      - nightly picolibc builder
+      - Nightly check using reverse iterators
+      - Nightly sanitizer check
+      - Hourly Build Status Dashboard Updater
+      - Zephyr Nightly with ELD
+    types: [completed]
+
+permissions: {}
+
+# Serialize duplicate deliveries for the same completed run. The second job
+# will observe the issue marker written by the first job and exit cleanly.
+concurrency:
+  group: scheduled-workflow-failure-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  report-failure:
+    # Only scheduled failures on the main eld repo are relevant. Manual,
+    # pull-request, cancelled, and skipped runs do not create issues, and
+    # forks should not create issues in their own copy of this workflow.
+    if: >-
+      github.repository == 'qualcomm/eld' &&
+      github.event.workflow_run.event == 'schedule' &&
+      github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      issues: write
+    steps:
+      - name: Create issue for a new failure
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const run = context.payload.workflow_run;
+
+            // This marker makes handling the same completed run idempotent. It
+            // protects against duplicate workflow_run deliveries and manual
+            // re-runs of this monitoring job.
+            const issueMarker = `<!-- scheduled-workflow-failure:${run.id} -->`;
+            let duplicateIssue = false;
+            for await (const response of github.paginate.iterator(
+              github.rest.issues.listForRepo,
+              {
+                ...context.repo,
+                state: 'all',
+                per_page: 100,
+              }
+            )) {
+              duplicateIssue = response.data.some(issue =>
+                issue.body && issue.body.includes(issueMarker)
+              );
+              if (duplicateIssue) break;
+            }
+            if (duplicateIssue) {
+              core.info(`An issue already exists for workflow run ${run.id}.`);
+              return;
+            }
+
+            // GitHub returns runs newest first. Find the newest *earlier*
+            // completed scheduled run whose conclusion changes the alert
+            // state. A success re-arms alerts; a failure keeps the current
+            // failure streak active. Cancelled, skipped, neutral, stale, and
+            // timed-out runs neither re-arm nor start a failure streak.
+            // Attempts of the same run are ignored because they do not
+            // represent a new schedule.
+            const workflowRuns = await github.paginate(
+              github.rest.actions.listWorkflowRuns,
+              {
+                ...context.repo,
+                workflow_id: run.workflow_id,
+                event: 'schedule',
+                status: 'completed',
+                per_page: 100,
+              }
+            );
+            const previousDecisiveRun = workflowRuns
+              .filter(candidate =>
+                candidate.id !== run.id &&
+                candidate.run_number < run.run_number &&
+                ['success', 'failure'].includes(candidate.conclusion)
+              )
+              .sort((first, second) => second.run_number - first.run_number)[0];
+
+            // A failure starts a new streak only after a successful scheduled
+            // run. If no earlier success or failure exists, report the first
+            // failure. A prior failure means no successful recovery has
+            // occurred, so no new issue is warranted.
+            if (previousDecisiveRun && previousDecisiveRun.conclusion === 'failure') {
+              core.info(
+                `Skipping issue: no successful scheduled run occurred after ` +
+                `failure #${previousDecisiveRun.run_number}.`
+              );
+              return;
+            }
+
+            const previousRunSummary = previousDecisiveRun
+              ? `[Run #${previousDecisiveRun.run_number}](${previousDecisiveRun.html_url}) passed.`
+              : 'No earlier successful or failed scheduled run was found.';
+
+            await github.rest.issues.create({
+              ...context.repo,
+              title: `${run.name} scheduled run #${run.run_number} failed`,
+              body: [
+                `The scheduled **${run.name}** workflow has a new failure.`,
+                '',
+                `- Failed run: [#${run.run_number} (attempt ${run.run_attempt})](${run.html_url})`,
+                `- Previous scheduled run: ${previousRunSummary}`,
+                `- Commit: \`${run.head_sha}\``,
+                '',
+                issueMarker,
+              ].join('\n'),
+            });

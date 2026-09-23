@@ -257,7 +257,7 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
                                Relocator::Type pType, RISCVLDBackend &B) {
   Relocation *rela_entry = nullptr;
 
-  rela_entry = Obj->getRelaDyn()->createOneReloc();
+  rela_entry = B.getRelaDyn()->createOneReloc();
   rela_entry->setType(pType);
   rela_entry->setTargetRef(make<FragmentRef>(*F, pOffset));
   rela_entry->setSymInfo(pSym);
@@ -280,7 +280,7 @@ RISCVGOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
                     RISCVLDBackend &B, bool isExec) {
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
-  RISCVGOT *G = B.createGOT(GOT::Regular, Obj, rsym);
+  RISCVGOT *G = B.createGOT(GOT::Regular, rsym);
 
   if (!pHasRel) {
     if (!rsym->isWeakUndef())
@@ -290,6 +290,12 @@ RISCVGOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
   uint8_t Reloc = llvm::ELF::R_RISCV_32;
   if (!B.config().targets().is32Bits())
     Reloc = llvm::ELF::R_RISCV_64;
+
+  // A non-default-visibility weak undefined symbol resolves to 0; no dynamic
+  // relocation needed.
+  if ((rsym->isHidden() || rsym->isProtected()) && rsym->isWeakUndef())
+    return *G;
+
   // If the symbol is not preemptible and we are not building an executable,
   // then try to use a relative reloc. We use a relative reloc if the symbol is
   // hidden otherwise.
@@ -368,7 +374,7 @@ RISCVGOT *RISCVRelocator::getTLSModuleID(ResolveInfo *R, bool isStatic) {
     m_Target.recordGOT(R, G);
     return G;
   }
-  G = m_Target.createGOT(GOT::TLS_LD, nullptr, nullptr);
+  G = m_Target.createGOT(GOT::TLS_LD, nullptr);
   m_Target.recordGOT(R, G);
   return G;
 }
@@ -442,9 +448,7 @@ void RISCVRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pLinker,
       }
     }
 
-    ELFSection *section = pSection.getLink()
-                              ? pSection.getLink()
-                              : pReloc.targetRef()->frag()->getOwningSection();
+    ELFSection *section = pSection.getLink();
 
     if (!section->isAlloc())
       return;
@@ -478,7 +482,7 @@ void RISCVRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pLinker,
         if (rsym->reserved() & ReserveGOT)
           return;
 
-        RISCVGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+        RISCVGOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
         G->setValueType(GOT::TLSStaticSymbolValue);
         helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
                            is32bit() ? llvm::ELF::R_RISCV_TLS_TPREL32
@@ -487,7 +491,7 @@ void RISCVRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pLinker,
       } else {
         if (rsym->reserved() & ReserveGOT)
           return;
-        RISCVGOT *G = m_Target.createGOT(GOT::TLS_DESC, Obj, rsym);
+        RISCVGOT *G = m_Target.createGOT(GOT::TLS_DESC, rsym);
         helper_DynRel_init(Obj, &pReloc, rsym, G->getFirst(), 0x0,
                            llvm::ELF::R_RISCV_TLSDESC, m_Target);
       }
@@ -563,7 +567,7 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
       return;
-    RISCVGOT *G = m_Target.createGOT(GOT::TLS_LD, Obj, rsym);
+    RISCVGOT *G = m_Target.createGOT(GOT::TLS_LD, rsym);
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     if (config().isCodeStatic()) {
       if (config().targets().is32Bits())
@@ -590,7 +594,7 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
           << (int)pReloc.type() << pReloc.symInfo()->name();
     if (rsym->reserved() & ReserveGOT)
       return;
-    RISCVGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    RISCVGOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     if (config().isCodeStatic() || config().isBuildingExecutable()) {
       G->setValueType(GOT::TLSStaticSymbolValue);
@@ -634,12 +638,10 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
 
     // Absolute relocation type, symbol may needs PLT entry or
     // dynamic relocation entry
-    if ((isSymbolPreemptible ||
-         (config().options().isPatchEnable() && rsym->isPatchable())) &&
-        (rsym->type() == ResolveInfo::Function)) {
+    if ((isSymbolPreemptible) && (rsym->type() == ResolveInfo::Function)) {
       // create PLT for this symbol if it does not have.
       if (!(rsym->reserved() & ReservePLT)) {
-        m_Target.createPLT(Obj, rsym);
+        m_Target.createPLT(rsym);
         rsym->setReserved(rsym->reserved() | ReservePLT);
       }
     }
@@ -699,9 +701,8 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->reserved() & ReservePLT)
       return;
-    if ((!config().isCodeStatic() && ld_backend.isSymbolPreemptible(*rsym)) ||
-        (config().options().isPatchEnable() && rsym->isPatchable())) {
-      m_Target.createPLT(Obj, rsym);
+    if (!config().isCodeStatic() && ld_backend.isSymbolPreemptible(*rsym)) {
+      m_Target.createPLT(rsym);
       rsym->setReserved(rsym->reserved() | ReservePLT);
     }
     return;
@@ -716,7 +717,7 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
       return;
-    RISCVGOT *G = m_Target.createGOT(GOT::TLS_GD, Obj, rsym);
+    RISCVGOT *G = m_Target.createGOT(GOT::TLS_GD, rsym);
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     if (config().isCodeStatic()) {
       if (is32bit())
@@ -747,7 +748,7 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
           << (int)pReloc.type() << pReloc.symInfo()->name();
     if (rsym->reserved() & ReserveGOT)
       return;
-    RISCVGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    RISCVGOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     if (config().isCodeStatic() || (config().isBuildingExecutable() &&
                                     !m_Target.isSymbolPreemptible(*rsym))) {
@@ -795,10 +796,9 @@ RISCVGOT *RISCVRelocator::getTLSModuleID(ResolveInfo *R) {
   }
 
   // Allocate 2 got entries and 1 dynamic reloc for R_HEX_LD_GOT*
-  G = m_Target.createGOT(GOT::TLS_LD, nullptr, nullptr);
+  G = m_Target.createGOT(GOT::TLS_LD, nullptr);
 
-  helper_DynRel_init(m_Target.getDynamicSectionHeadersInputFile(), nullptr,
-                     nullptr, G, 0x0,
+  helper_DynRel_init(nullptr, nullptr, nullptr, G, 0x0,
                      is32bit() ? llvm::ELF::R_RISCV_TLS_DTPMOD32
                                : llvm::ELF::R_RISCV_TLS_DTPMOD64,
                      m_Target);
@@ -834,7 +834,7 @@ VerifyRelocAsNeededHelper(Relocation &pReloc, T Result,
         getEncodingBitWidth(RelocInfo.EncType) + RelocInfo.Shift;
     if (RelocInfo.IsSigned)
       return checkSignedRange(pReloc, Parent, Result, EffectiveBits);
-    return checkUnsignedRange(pReloc, Parent, Result, EffectiveBits);
+    return reportUnsignedOverflow(pReloc, Parent, Result, EffectiveBits);
   }
 
   if ((pRelocDesc.forceVerify) && (isTruncatedRISCV(RelocInfo, Result))) {
@@ -879,20 +879,7 @@ RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVLDBackend &Backend,
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
 
-  // Normally, relocations are resolved to the PLT if it exists for a symbol.
-  // However, relocations in the patch table must be resolved to the real
-  // symbol, otherwise, they will point to themselves.
-  bool IsPatchSection = (pReloc.type() == llvm::ELF::R_RISCV_32 ||
-                         pReloc.type() == llvm::ELF::R_RISCV_64) &&
-                        pReloc.targetRef()
-                            ->frag()
-                            ->getOwningSection()
-                            ->getInputFile()
-                            ->getInput()
-                            ->getAttribute()
-                            .isPatchBase();
-  uint64_t S = IsPatchSection ? pReloc.symValue(Backend.getModule())
-                              : Backend.getSymbolValuePLT(pReloc);
+  uint64_t S = Backend.getSymbolValuePLT(pReloc);
   uint64_t A = pReloc.addend();
   int64_t Result = S + A;
 
@@ -1071,15 +1058,7 @@ RISCVRelocator::Result applyJumpOrCall(Relocation &pReloc,
 
   // Normally, relocations are resolved to the PLT if it exists for a symbol.
   // Direct calls can be optimized to use the real symbol.
-  bool IsPatchSection = pReloc.targetRef()
-                            ->frag()
-                            ->getOwningSection()
-                            ->getInputFile()
-                            ->getInput()
-                            ->getAttribute()
-                            .isPatchBase();
-  int64_t S = IsPatchSection ? pReloc.symValue(Backend.getModule())
-                             : Backend.getSymbolValuePLT(pReloc);
+  int64_t S = Backend.getSymbolValuePLT(pReloc);
   int64_t A = pReloc.addend();
   int64_t P = pReloc.place(Backend.getModule());
 
@@ -1223,7 +1202,7 @@ void RISCVRelocator::handleScanForNonPreemptibleIFunc(Relocation &R,
   if (RI->reserved() & Relocator::ReservePLT)
     return;
 
-  m_Target.createPLT(Obj, RI, /*isIRelative=*/true);
+  m_Target.createPLT(RI, /*isIRelative=*/true);
   RI->setReserved(RI->reserved() | Relocator::ReservePLT);
 }
 

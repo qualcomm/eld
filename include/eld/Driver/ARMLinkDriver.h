@@ -19,7 +19,7 @@ class DiagnosticEngine;
 }
 
 // Create OptTable class for parsing actual command line arguments
-class OPT_ARMLinkOptTable : public llvm::opt::GenericOptTable {
+class OPT_ARMLinkOptTable : public llvm::opt::OptTable {
 public:
   enum {
     INVALID = 0,

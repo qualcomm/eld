@@ -1,0 +1,9 @@
+## UNSUPPORTED: windows
+## Check that there is only ever one copy of LLVM globals.
+
+
+# RUN: %nm --defined-only %eld > %t.syms
+# RUN: FileCheck %s --input-file=%t.syms --implicit-check-not=StaticList \
+# RUN:   --implicit-check-not=llvm_shutdown --implicit-check-not=getDefaultExecutor
+
+# CHECK: main

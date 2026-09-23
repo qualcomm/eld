@@ -39,11 +39,7 @@ InputSectDesc::InputSectDesc(ScriptCommand::Kind Kind, uint32_t ID,
                              Policy Policy, const Spec &Spec,
                              OutputSectDesc &OutputDesc)
     : ScriptCommand(Kind), ThisRuleContainer(nullptr), InputSpecPolicy(Policy),
-      OutputSectionDescription(OutputDesc), ID(ID) {
-  InputSpec.initialize(Spec);
-}
-
-
+      InputSpec(Spec), OutputSectionDescription(OutputDesc), ID(ID) {}
 
 void InputSectDesc::dump(llvm::raw_ostream &Outs) const { dumpMap(Outs); }
 
@@ -98,13 +94,13 @@ void InputSectDesc::dumpSpec(llvm::raw_ostream &Outs) const {
       if (Wildcard->excludeFiles()) {
         const ExcludeFiles *List = Wildcard->excludeFiles();
         Outs << " EXCLUDE_FILE (";
-        for (const auto &ListIt : *List) {
-          if ((ListIt)->isArchive())
-            Outs << (ListIt)->archive()->getDecoratedName() << ":";
-          if (!((ListIt)->isFileInArchive()))
+        for (auto *ListIt : List->patterns()) {
+          if (ListIt->isArchive())
+            Outs << ListIt->archive()->getDecoratedName() << ":";
+          if (!(ListIt->isFileInArchive()))
             Outs << " ";
-          if ((ListIt)->isFile())
-            Outs << (ListIt)->file()->getDecoratedName() << " ";
+          if (ListIt->isFile())
+            Outs << ListIt->file()->getDecoratedName() << " ";
         }
         Outs << ")";
       }
@@ -137,13 +133,13 @@ void InputSectDesc::dumpMap(llvm::raw_ostream &Outs, bool UseColor,
   if (InputSpec.hasExcludeFiles()) {
     const ExcludeFiles *EF = InputSpec.getExcludeFiles();
     Outs << "EXCLUDE_FILE (";
-    for (const auto &It : *EF) {
-      if ((It)->isArchive())
-        Outs << (It)->archive()->getDecoratedName() << ":";
-      if (!((It)->isFileInArchive()))
+    for (auto *It : EF->patterns()) {
+      if (It->isArchive())
+        Outs << It->archive()->getDecoratedName() << ":";
+      if (!(It->isFileInArchive()))
         Outs << " ";
-      if ((It)->isFile())
-        Outs << (It)->file()->getDecoratedName() << " ";
+      if (It->isFile())
+        Outs << It->file()->getDecoratedName() << " ";
     }
     Outs << ") ";
   }
@@ -185,13 +181,13 @@ void InputSectDesc::dumpOnlyThis(llvm::raw_ostream &Outs) const {
   if (InputSpec.hasExcludeFiles()) {
     const ExcludeFiles *EF = InputSpec.getExcludeFiles();
     Outs << "EXCLUDE_FILE (";
-    for (const auto &It : *EF) {
-      if ((It)->isArchive())
-        Outs << (It)->archive()->getDecoratedName() << ":";
-      if (!((It)->isFileInArchive()))
+    for (auto *It : EF->patterns()) {
+      if (It->isArchive())
+        Outs << It->archive()->getDecoratedName() << ":";
+      if (!(It->isFileInArchive()))
         Outs << " ";
-      if ((It)->isFile())
-        Outs << (It)->file()->getDecoratedName() << " ";
+      if (It->isFile())
+        Outs << It->file()->getDecoratedName() << " ";
     }
     Outs << ") ";
   }

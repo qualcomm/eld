@@ -1,0 +1,11 @@
+#--GOTPCRELXRelax_Type9.test----------Shared Library--------#
+# Plain R_X86_64_GOTPCREL (type 9) must never be relaxed.
+# Only types 41/42 opt in to relaxation.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/gotpcrel.s -o %t.o
+RUN: %link %linkopts --relax -shared -o %t.so %t.o
+RUN: %objdump -d %t.so | %filecheck %s
+#END_TEST
+
+CHECK: <h>:
+CHECK-NEXT: {{[0-9a-f]+}}: 8b 05 {{.*}} movl

@@ -49,6 +49,9 @@ source_suffix = {
     ".md": "markdown",
 }
 master_doc = "index"
+myst_enable_extensions = [
+    "colon_fence",
+]
 
 language = "en"
 pygments_style = "sphinx"

@@ -155,6 +155,10 @@ bool Module::createInternalInputs() {
                       ThisConfig.getDiagEngine());
       break;
 
+    case Module::InternalInputType::DynamicSectionHeaders:
+      I = make<Input>("Dynamic section headers", ThisConfig.getDiagEngine());
+      break;
+
     case Module::InternalInputType::EhFrameFiller:
       I = make<Input>("EH Frame filler", ThisConfig.getDiagEngine());
       break;
@@ -250,16 +254,13 @@ bool Module::createInternalInputs() {
     InternalFiles[IType] = IF;
   }
 
-  if (L->getBackend())
-    getBackend().createInternalInputs();
-
   // Add implicit dot symbol
   Resolver::Result ResolvedResult;
   InputFile *I = getInternalInput(eld::Module::InternalInputType::Script);
-  getNamePool().insertSymbol(
-      I, ".", true, ResolveInfo::NoType, ResolveInfo::Define,
-      ResolveInfo::NoneBinding, 0, 0, ResolveInfo::Hidden, nullptr,
-      ResolvedResult, true, false, 0, false /* isPatchable */, getPrinter());
+  getNamePool().insertSymbol(I, ".", true, ResolveInfo::NoType,
+                             ResolveInfo::Define, ResolveInfo::NoneBinding, 0,
+                             0, ResolveInfo::Hidden, nullptr, ResolvedResult,
+                             true, false, 0, getPrinter());
   LDSymbol *DotSym = make<LDSymbol>(ResolvedResult.Info, true);
   DotSym->setFragmentRef(FragmentRef::null());
   DotSym->setValue(0);
@@ -378,28 +379,32 @@ bool Module::sortCommonSymbols() {
 }
 
 bool Module::sortSymbols() {
-  std::stable_sort(Symbols.begin(), Symbols.end(),
-                   static_cast<bool (*)(ResolveInfo *, ResolveInfo *)>(
-                       [](ResolveInfo *A, ResolveInfo *B) -> bool {
-                         // Section symbols always appear first.
-                         if (A->type() == ResolveInfo::Section &&
-                             (B->type() != ResolveInfo::Section))
-                           return true;
-                         if (A->type() != ResolveInfo::Section &&
-                             (B->type() == ResolveInfo::Section))
-                           return false;
-                         if (A->isLocal() && !B->isLocal())
-                           return true;
-                         if (!A->isLocal() && B->isLocal())
-                           return false;
-                         // All undefs appear after sections.
-                         if (A->isUndef() && !B->isUndef())
-                           return true;
-                         if (!A->isUndef() && B->isUndef())
-                           return false;
-                         return A->outSymbol()->value() <
-                                B->outSymbol()->value();
-                       }));
+  auto Cmp = [](ResolveInfo *A, ResolveInfo *B) -> bool {
+    // Section symbols always appear first.
+    if (A->type() == ResolveInfo::Section &&
+        (B->type() != ResolveInfo::Section))
+      return true;
+    if (A->type() != ResolveInfo::Section &&
+        (B->type() == ResolveInfo::Section))
+      return false;
+    // ELF requires all locals before all globals.
+    if (A->isLocal() != B->isLocal())
+      return A->isLocal();
+    // Deterministic order: by (input ordinal, input .symtab index).
+    auto OrdA = A->resolvedOrigin()->getInput()->getInputOrdinal();
+    auto OrdB = B->resolvedOrigin()->getInput()->getInputOrdinal();
+    if (OrdA != OrdB)
+      return OrdA < OrdB;
+    if (A->outSymbol()->getSymbolIndex() != B->outSymbol()->getSymbolIndex())
+      return A->outSymbol()->getSymbolIndex() <
+             B->outSymbol()->getSymbolIndex();
+    // Linker-created symbols share an input and carry no input .symtab index;
+    // break ties by final address then name to keep the order total.
+    if (A->outSymbol()->value() != B->outSymbol()->value())
+      return A->outSymbol()->value() < B->outSymbol()->value();
+    return A->getName() < B->getName();
+  };
+  llvm::stable_sort(Symbols, Cmp);
   return true;
 }
 
@@ -455,18 +460,24 @@ bool Module::readOnePluginConfig(llvm::StringRef CfgFile,
   }
 
   for (auto &G : Config.GlobalPlugins) {
+    bool PrintTimingStats =
+        ThisConfig.options().printTimingStats("Plugin") ||
+        ThisConfig.options().printTimingStats(G.PluginName.c_str()) ||
+        ThisConfig.options().allUserPluginStatsRequested();
     getScript().addPlugin(G.PluginType, G.LibraryName, G.PluginName, G.Options,
-                          ThisConfig.options().printTimingStats("Plugin"),
-                          IsDefaultConfig, *this);
+                          PrintTimingStats, IsDefaultConfig, *this);
     if (getPrinter()->isVerbose())
       ThisConfig.raise(Diag::verbose_initializing_plugin) << G.PluginName;
   }
 
   for (auto &O : Config.OutputSectionPlugins) {
+    bool PrintTimingStats =
+        ThisConfig.options().printTimingStats("Plugin") ||
+        ThisConfig.options().printTimingStats(O.PluginName.c_str()) ||
+        ThisConfig.options().allUserPluginStatsRequested();
     eld::Plugin *P = getScript().addPlugin(
-        O.PluginType, O.LibraryName, O.PluginName, O.Options,
-        ThisConfig.options().printTimingStats("Plugin"), IsDefaultConfig,
-        *this);
+        O.PluginType, O.LibraryName, O.PluginName, O.Options, PrintTimingStats,
+        IsDefaultConfig, *this);
     getScript().addPluginOutputSection(O.OutputSection, P);
     if (getPrinter()->isVerbose())
       ThisConfig.raise(Diag::adding_output_section_for_plugin)
@@ -505,12 +516,20 @@ llvm::StringRef Module::getStateStr() const {
 void Module::addSymbolCreatedByPluginToFragment(Fragment *F, std::string Symbol,
                                                 uint64_t Val,
                                                 const eld::Plugin *Plugin) {
-  LayoutInfo *layoutInfo = getLayoutInfo();
   LDSymbol *S = SymbolNamePool.createPluginSymbol(
-      getInternalInput(Module::InternalInputType::Plugin), Symbol, F, Val,
-      layoutInfo);
-  if (S && layoutInfo && layoutInfo->showSymbolResolution())
-    SymbolNamePool.getSRI().recordPluginSymbol(S, Plugin);
+      getInternalInput(Module::InternalInputType::Plugin), Symbol, F, Val);
+  if (S && ThisConfig.options().shouldEmitSymbolResolutionReport()) {
+    const ResolveInfo *Info = S->resolveInfo();
+    SymbolResolutionInfo &SRI = SymbolNamePool.getSRI();
+    SRI.recordSymbolInfo(
+        S, SymbolInfo{Info->resolvedOrigin(), Info->size(),
+                      static_cast<ResolveInfo::Binding>(Info->binding()),
+                      static_cast<ResolveInfo::Type>(Info->type()),
+                      Info->visibility(),
+                      static_cast<ResolveInfo::Desc>(Info->desc()),
+                      /*isBitcode=*/false});
+    SRI.recordPluginSymbol(S, Plugin);
+  }
   PluginFragmentToSymbols[F];
   PluginFragmentToSymbols[F].push_back(S);
   llvm::dyn_cast<eld::ObjectFile>(F->getOwningSection()->getInputFile())
@@ -659,7 +678,7 @@ LDSymbol *Module::addSymbolFromBitCode(
   } else {
     getNamePool().insertSymbol(&CurInput, Name, false, Type, Desc, Binding,
                                Size, 0, Visibility, nullptr, ResolvedResult,
-                               false /*isPostLTOPhase*/, true, PIdx, false,
+                               false /*isPostLTOPhase*/, true, PIdx,
                                getPrinter());
     if (!ThisConfig.options().renameMap().empty() &&
         Desc == ResolveInfo::Undefined) {
@@ -776,6 +795,18 @@ bool Module::resetSymbol(ResolveInfo *R, Fragment *F) {
   FragmentRef *FRef = eld::make<FragmentRef>(*F, 0);
   R->setDesc(ResolveInfo::Define);
   R->outSymbol()->setFragmentRef(FRef);
+  return true;
+}
+
+bool Module::setSymbolAddress(ResolveInfo *R, uint64_t Addr) {
+  if (!R || !R->outSymbol())
+    return false;
+  // Clearing the fragment ref (rather than setBinding(Absolute)) is what
+  // makes the symbol emit with SHN_ABS; see GNULDBackend::getSymbolShndx.
+  // The symbol's original binding (e.g. Local) is preserved.
+  R->outSymbol()->setFragmentRef(FragmentRef::null());
+  R->setDesc(ResolveInfo::Define);
+  R->setValue(Addr, /*IsFinal=*/true);
   return true;
 }
 

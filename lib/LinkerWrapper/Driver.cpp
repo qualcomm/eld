@@ -12,17 +12,63 @@
 #include "eld/Driver/HexagonLinkDriver.h"
 #include "eld/Driver/RISCVLinkDriver.h"
 #include "eld/Driver/TemplateLinkDriver.h"
+#include "eld/Driver/x86_32LinkDriver.h"
 #include "eld/Driver/x86_64LinkDriver.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/Support/TargetSelect.h"
 #include "eld/Target/TargetMachine.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/MC/TargetRegistry.h"
+#include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/Path.h"
+#include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/Process.h"
+#include "llvm/Support/Signals.h"
+#include "llvm/Support/StringSaver.h"
 #include <optional>
+
+// If a command line option starts with "@", the driver reads its suffix as a
+// file, parse its contents as a list of command line options, and insert them
+// at the original @file position. If file cannot be read, @file is not expanded
+// and left unmodified. @file can appear in a response file, so it's a recursive
+// process.
+static llvm::ArrayRef<const char *>
+maybeExpandResponseFiles(llvm::ArrayRef<const char *> Args,
+                         llvm::BumpPtrAllocator &Alloc) {
+  // Expand response files.
+  llvm::SmallVector<const char *, 256> SmallVec;
+  for (const char *Arg : Args)
+    SmallVec.push_back(Arg);
+  llvm::StringSaver Saver(Alloc);
+  llvm::cl::ExpandResponseFiles(Saver, llvm::cl::TokenizeGNUCommandLine,
+                                SmallVec);
+
+  // Pack the results to a C-array and return it.
+  const char **Copy = Alloc.Allocate<const char *>(SmallVec.size() + 1);
+  std::copy(SmallVec.begin(), SmallVec.end(), Copy);
+  Copy[SmallVec.size()] = nullptr;
+  return llvm::ArrayRef(Copy, SmallVec.size() + 1);
+}
+
+int Driver::main(int Argc, const char **Argv) {
+  // Standard set up, so program fails gracefully.
+  llvm::BumpPtrAllocator Alloc;
+  llvm::sys::PrintStackTraceOnErrorSignal(Argv[0]);
+  llvm::PrettyStackTraceProgram StackPrinter(Argc, Argv);
+  llvm::llvm_shutdown_obj Shutdown;
+
+  llvm::ArrayRef<const char *> Args =
+      maybeExpandResponseFiles({Argv, Argv + Argc}, Alloc);
+
+  Driver TheDriver;
+  if (!TheDriver.setDriverFlavorAndInferredArchFromLinkCommand(Args))
+    return LINK_FAIL;
+
+  return TheDriver.getLinkerDriver()->link(Args);
+}
 
 Driver::Driver(DriverFlavor F)
     : DiagEngine(new eld::DiagnosticEngine(shouldColorize())),
@@ -44,7 +90,8 @@ GnuLdDriver *Driver::getLinkerDriver() {
   case DriverFlavor::RISCV32_RISCV64:
   case DriverFlavor::Template:
   case DriverFlavor::Unknown:
-  case DriverFlavor::x86_64: {
+  case DriverFlavor::x86_64:
+  case DriverFlavor::x86_32: {
     LinkDriver = GnuLdDriver::Create(Config, m_DriverFlavor,
                                      InferredArchFromProgramName);
     break;
@@ -176,6 +223,9 @@ Driver::getDriverFlavorFromLinkCommand(llvm::ArrayRef<const char *> Args) {
           if (x86_64LinkDriver::isValidEmulation(Emulation)) {
         F = DriverFlavor::x86_64;
         InferredArch = x86_64LinkDriver::getInferredArch(Emulation);
+      } else if (x86_32LinkDriver::isValidEmulation(Emulation)) {
+        F = DriverFlavor::x86_32;
+        InferredArch = x86_32LinkDriver::getInferredArch(Emulation);
       } else
 #endif
         return std::make_unique<eld::DiagnosticEntry>(
@@ -209,6 +259,8 @@ Driver::getDriverFlavorFromLinkCommand(llvm::ArrayRef<const char *> Args) {
 #if defined(ELD_ENABLE_TARGET_X86)
     if (x86_64LinkDriver::isMyArch(MachineArch))
       F = DriverFlavor::x86_64;
+    else if (x86_32LinkDriver::isMyArch(MachineArch))
+      F = DriverFlavor::x86_32;
 #endif
     if (F == DriverFlavor::Invalid)
       return std::make_unique<eld::DiagnosticEntry>(

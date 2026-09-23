@@ -1,0 +1,17 @@
+UNSUPPORTED: symbol_versioning
+#---DefaultSymverUnsupported.test----------------------------- SymbolVersioning ------#
+#BEGIN_COMMENT
+# This test verifies that --default-symver warns and does not synthesize a
+# version node when symbol versioning support is disabled. The output must not
+# contain .gnu.version* sections.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.a.o %p/Inputs/default-symver.c -c -fPIC
+RUN: %link %linkopts -o %t1.libdefault.so %t1.a.o -shared --default-symver 2>&1 | %filecheck %s
+RUN: %readelf --sections %t1.libdefault.so | %filecheck %s --check-prefix=NOSECTIONS
+#END_TEST
+
+CHECK: Warning: Unrecognized option `--default-symver'
+
+NOSECTIONS: Section Headers:
+NOSECTIONS-NOT: .gnu.version

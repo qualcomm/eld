@@ -99,7 +99,10 @@ if(ELD_ON_UNIX)
   set_target_properties(
     LW PROPERTIES SOVERSION ${LINKER_PLUGIN_API_MAJOR_VERSION}
                   VERSION ${LINKER_PLUGIN_API_MAJOR_VERSION})
-  add_no_version_symbol_exports(LW ${CMAKE_CURRENT_SOURCE_DIR}/LW.exports)
+  # GNU ld version scripts are not supported by Apple ld64.
+  if(NOT APPLE)
+    add_no_version_symbol_exports(LW ${CMAKE_CURRENT_SOURCE_DIR}/LW.exports)
+  endif()
 endif(ELD_ON_UNIX)
 
 # Add each target as part of the link step.

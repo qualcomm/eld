@@ -21,29 +21,10 @@
 using namespace llvm;
 using namespace llvm::opt;
 
-#define OPTTABLE_STR_TABLE_CODE
+#define OPTTABLE_CODE
 #include "eld/Driver/HexagonLinkerOptions.inc"
-#undef OPTTABLE_STR_TABLE_CODE
 
-#define OPTTABLE_PREFIXES_TABLE_CODE
-#include "eld/Driver/HexagonLinkerOptions.inc"
-#undef OPTTABLE_PREFIXES_TABLE_CODE
-
-static constexpr llvm::opt::OptTable::Info infoTable[] = {
-#define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
-               ALIASARGS, FLAGS, VISIBILITY, PARAM, HELPTEXT,                  \
-               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)                          \
-  LLVM_CONSTRUCT_OPT_INFO(                                                     \
-      PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, HexagonLinkOptTable::ID, KIND,    \
-      HexagonLinkOptTable::GROUP, HexagonLinkOptTable::ALIAS, ALIASARGS,       \
-      FLAGS, VISIBILITY, PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR,       \
-      VALUES, SUBCOMMANDIDS_OFFSET),
-#include "eld/Driver/HexagonLinkerOptions.inc"
-#undef OPTION
-};
-
-OPT_HexagonLinkOptTable::OPT_HexagonLinkOptTable()
-    : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
+OPT_HexagonLinkOptTable::OPT_HexagonLinkOptTable() : OptTable(optionTables()) {}
 
 HexagonLinkDriver *HexagonLinkDriver::Create(eld::LinkerConfig &C,
 
@@ -89,9 +70,12 @@ HexagonLinkDriver::parseOptions(ArrayRef<const char *> Args,
                      /*ShowAllAliases=*/true);
     return LINK_SUCCESS;
   }
-  if (ArgList.hasArg(OPT_HexagonLinkOptTable::version)) {
-    printVersionInfo();
-    return LINK_SUCCESS;
+  if (llvm::opt::Arg *Arg = ArgList.getLastArg(
+          OPT_HexagonLinkOptTable::v, OPT_HexagonLinkOptTable::version)) {
+    if (Arg->getOption().matches(OPT_HexagonLinkOptTable::version)) {
+      printVersionInfo();
+      return LINK_SUCCESS;
+    }
   }
   // --about
   if (ArgList.hasArg(OPT_HexagonLinkOptTable::about)) {
@@ -111,17 +95,6 @@ HexagonLinkDriver::parseOptions(ArrayRef<const char *> Args,
   // --disable-guard-for-weak-undefs
   if (ArgList.hasArg(OPT_HexagonLinkOptTable::disable_guard_for_weak_undef))
     Config.options().setDisableGuardForWeakUndefs();
-
-  // --relax
-  if (ArgList.hasArg(OPT_HexagonLinkOptTable::relax))
-    Config.options().enableRelaxation();
-
-  // --relax=<regex>
-  for (auto *arg : ArgList.filtered(OPT_HexagonLinkOptTable::relax_value)) {
-    // Enable relaxation when a pattern is provided.
-    Config.options().enableRelaxation();
-    Config.options().addRelaxSection(arg->getValue());
-  }
 
   Config.options().setUnknownOptions(
       ArgList.getAllArgValues(OPT_HexagonLinkOptTable::UNKNOWN));

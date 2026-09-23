@@ -1,106 +1,91 @@
 name: Zephyr on ELD PR
 
-# Run Zephyr against a PR's own ELD build. Opt-in via the `zephyr-check` label:
-# ci.yml uploads the `pr-eld-toolset` artifact only when the PR carries it, and
-# that artifact's presence gates this workflow. Triggers:
-#   - workflow_run: auto-fires when CI completes; skips if there's no artifact.
-#   - workflow_dispatch: manual. Give a PR number or an explicit ci_run_id.
-#     NOTE: workflow_run only fires from the default-branch copy, so the auto
-#     path can't be exercised pre-merge.
+# Run Zephyr against a PR's own ELD build. Opt-in via the `zephyr-check` label,
+# or manually with a PR number.
 
 on:
-  workflow_run:
-    workflows: ["CI"]   # ci.yml's `name:`
+  workflow_run: # zizmor: ignore[dangerous-triggers] read-only token, no secrets, ephemeral runner
+    workflows: [CI]
     types: [completed]
   workflow_dispatch:
     inputs:
       pr_number:
-        description: "PR number (auto-discovers the latest successful CI run for its head commit)"
-        required: false
-      ci_run_id:
-        description: "CI (ci.yml) run id to pull ld.eld from (overrides auto-discovery)"
-        required: false
-  # pull_request: {} # Uncomment only to test this WF file update.
+        description: "PR number (discovers the latest ci.yml run whose pr-eld-toolset artifact is still available)"
+        required: true
 
-# A newer CI completion for the same branch supersedes the previous run.
+# A newer run for the same PR supersedes the previous one.
 concurrency:
-  group: zephyr-pr-${{ github.event.workflow_run.head_branch || github.event.inputs.pr_number || github.run_id }}
+  group: zephyr-pr-${{ github.event.inputs.pr_number || github.event.workflow_run.head_branch }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  actions: read       # needed to list/download artifacts from the ci.yml run
-  pull-requests: read # needed to resolve a PR number's head SHA
+permissions: {}
 
 jobs:
   resolve:
-    if: github.repository == 'qualcomm/eld' || github.event_name == 'workflow_dispatch'
+    if: |
+      github.repository == 'qualcomm/eld' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pull-requests: read
     outputs:
       run_id: ${{ steps.find.outputs.run_id }}
-      should_run: ${{ steps.find.outputs.should_run }}
+      head_sha: ${{ steps.find.outputs.head_sha }}
+      pr_number: ${{ steps.find.outputs.pr_number }}
     steps:
       - name: Resolve ci.yml run id
         id: find
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
         env:
-          CI_RUN_ID: ${{ github.event.inputs.ci_run_id }}
           PR_NUMBER: ${{ github.event.inputs.pr_number }}
-          # Fallback for the `pull_request:` test trigger (empty on dispatch).
-          EVENT_PR_NUMBER: ${{ github.event.pull_request.number }}
         with:
           github-token: ${{ github.token }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            // Auto path: chained off a completed CI run. A missing
-            // pr-eld-toolset artifact means the PR isn't labeled, so skip.
-            if (context.eventName === 'workflow_run') {
-              const wr = context.payload.workflow_run;
-              core.info(`workflow_run: id=${wr.id} event=${wr.event} conclusion=${wr.conclusion} branch=${wr.head_branch}`);
-              if (wr.conclusion !== 'success' || wr.event !== 'pull_request') {
-                core.info('Not a successful pull_request CI run; skipping.');
-                core.setOutput('should_run', 'false');
-                return;
-              }
-              const { data: { artifacts } } = await github.rest.actions.listWorkflowRunArtifacts({
-                owner, repo, run_id: wr.id, per_page: 100,
+            const liveToolset = async (runId) => {
+              const { data } = await github.rest.actions.listWorkflowRunArtifacts({
+                owner, repo, run_id: runId, name: 'pr-eld-toolset',
               });
-              if (!artifacts.some(a => a.name === 'pr-eld-toolset' && !a.expired)) {
-                core.info('No pr-eld-toolset artifact (PR not labeled zephyr-check); skipping.');
-                core.setOutput('should_run', 'false');
-                return;
+              return data.artifacts.some(a => !a.expired);
+            };
+
+            const wr = context.payload.workflow_run;
+            if (wr) {
+              if (await liveToolset(wr.id)) {
+                const headOwner = wr.head_repository?.full_name?.split('/')[0];
+                const { data: pullRequests } = await github.rest.pulls.list({
+                  owner,
+                  repo,
+                  state: 'all',
+                  head: `${headOwner}:${wr.head_branch}`,
+                  per_page: 100,
+                });
+                const pullRequest = pullRequests.find(pr => pr.head.sha === wr.head_sha);
+                if (!pullRequest) {
+                  core.setFailed(`Workflow run ${wr.id} is not associated with a pull request.`);
+                  return;
+                }
+                core.setOutput('run_id', String(wr.id));
+                core.setOutput('head_sha', wr.head_sha);
+                core.setOutput('pr_number', String(pullRequest.number));
               }
-              core.info(`Using CI run ${wr.id}`);
-              core.setOutput('run_id', String(wr.id));
-              core.setOutput('should_run', 'true');
               return;
             }
 
-            // Manual path: workflow_dispatch.
-            const ciRunId = (process.env.CI_RUN_ID || '').trim();
-            const prNumber = (process.env.PR_NUMBER || process.env.EVENT_PR_NUMBER || '').trim();
-
-            if (ciRunId) {
-              core.info(`Using explicit ci_run_id: ${ciRunId}`);
-              core.setOutput('run_id', ciRunId);
-              core.setOutput('should_run', 'true');
-              return;
-            }
-
+            // Manual path: newest ci.yml run for the PR head that still has one.
+            const prNumber = (process.env.PR_NUMBER || '').trim();
             if (!prNumber) {
-              core.setFailed('Provide either pr_number or ci_run_id.');
+              core.setFailed('Provide a pr_number.');
               return;
             }
-
-            // Find the newest successful ci.yml run for the PR's head SHA.
             const pr = await github.rest.pulls.get({
               owner, repo, pull_number: Number(prNumber),
             });
             const headSha = pr.data.head.sha;
-            core.info(`PR #${prNumber} head SHA: ${headSha}`);
-
             const runs = await github.paginate(
               github.rest.actions.listWorkflowRuns,
               {
@@ -111,45 +96,27 @@ jobs:
                 per_page: 100,
               }
             );
-
-            const success = runs
-              .filter(r => r.conclusion === 'success')
-              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-            if (success.length === 0) {
-              core.setFailed(
-                `No successful ci.yml run found for PR #${prNumber} (SHA ${headSha}). ` +
-                `Ensure CI passed for the PR's latest commit.`);
-              return;
+            runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            for (const run of runs) {
+              if (await liveToolset(run.id)) {
+                core.setOutput('run_id', String(run.id));
+                core.setOutput('head_sha', headSha);
+                core.setOutput('pr_number', String(prNumber));
+                return;
+              }
             }
-
-            const run = success[0];
-            core.info(`Latest successful ci.yml run: id=${run.id}, run_number=${run.run_number}`);
-
-            // Fail with a clear message if the run predates the label, rather
-            // than letting the later download-artifact fail cryptically.
-            const { data: { artifacts } } = await github.rest.actions.listWorkflowRunArtifacts({
-              owner, repo, run_id: run.id, per_page: 100,
-            });
-            if (!artifacts.some(a => a.name === 'pr-eld-toolset' && !a.expired)) {
-              core.setFailed(
-                `ci.yml run ${run.id} did not upload a pr-eld-toolset artifact ` +
-                `(or it has expired). Add the \`zephyr-check\` label to PR ` +
-                `#${prNumber} and re-run CI, then dispatch this workflow again.`);
-              return;
-            }
-
-            core.setOutput('run_id', String(run.id));
-            core.setOutput('should_run', 'true');
+            core.setFailed(
+              `No ci.yml run for SHA ${headSha} has an available ` +
+              `pr-eld-toolset artifact. Add the \`zephyr-check\` label and ` +
+              `re-run CI (the artifact has retention-days: 7), then dispatch ` +
+              `this workflow again.`);
 
   zephyr:
     needs: resolve
-    if: needs.resolve.outputs.should_run == 'true'
+    if: needs.resolve.outputs.run_id != ''
     permissions:
-      # Must be >= zephyr-run.yml's declared contents: write; GitHub rejects
-      # the call otherwise. The write is only exercised on the nightly path.
-      contents: write
-      actions: read
+      contents: read
+      actions: write
     strategy:
       fail-fast: false
       matrix:
@@ -157,16 +124,45 @@ jobs:
           - { board: qemu_riscv32,     arch: riscv32,  extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y }
           - { board: qemu_riscv32_xip, arch: riscv32,  extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y }
           - { board: qemu_riscv64,     arch: riscv64,  extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y }
-          # cpullvm ARM picolibc is missing a _nopic version, so its objects
-          # have GOT relocations that fail when .got is discarded.
-          - { board: qemu_cortex_m3,   arch: arm,      extra_args: CONFIG_PICOLIBC_USE_MODULE=y }
+          - { board: qemu_cortex_m3,   arch: arm,      extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y }
           - { board: qemu_cortex_a53,  arch: aarch64,  extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y }
+          - { board: qemu_x86_64,      arch: x86_64,   toolchain: zephyr-sdk, extra_args: "" }
     uses: ./.github/workflows/zephyr-run.yml
     with:
       board: ${{ matrix.target.board }}
       arch: ${{ matrix.target.arch }}
+      toolchain: ${{ matrix.target.toolchain || 'cpullvm' }}
       extra_args: ${{ matrix.target.extra_args }}
       test_scope: tests/kernel
       toolset_run_id: ${{ needs.resolve.outputs.run_id }}
       toolset_artifact: pr-eld-toolset
       toolset_tarball: install-pr-toolset.tar.xz
+      artifact-workflow-id: zephyr-pr.yml
+      artifact-pull-request-number: ${{ needs.resolve.outputs.pr_number }}
+
+  # Post the result on the PR.
+  status:
+    needs: [resolve, zephyr]
+    if: |
+      always() && needs.resolve.outputs.run_id != '' &&
+      needs.zephyr.result != 'cancelled'
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - name: Report Zephyr result on the PR
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        env:
+          HEAD_SHA: ${{ needs.resolve.outputs.head_sha }}
+          RESULT: ${{ needs.zephyr.result }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: process.env.HEAD_SHA,
+              context: 'zephyr (informational)',
+              state: process.env.RESULT === 'success' ? 'success' : 'failure',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });

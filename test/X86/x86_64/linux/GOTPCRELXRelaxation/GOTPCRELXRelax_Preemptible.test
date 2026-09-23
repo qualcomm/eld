@@ -1,0 +1,11 @@
+#--GOTPCRELXRelax_Preemptible.test----------Shared Library--------#
+# Default-visible symbol in DSO must not relax.
+# Preemptible symbols require GOT indirection for runtime interposition.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/mov.s -o %t.o
+RUN: %link %linkopts --relax -shared -o %t.so %t.o
+RUN: %objdump -d %t.so | %filecheck %s
+#END_TEST
+
+CHECK: <h_default>:
+CHECK-NEXT: {{[0-9a-f]+}}: 8b 05 {{.*}} movl

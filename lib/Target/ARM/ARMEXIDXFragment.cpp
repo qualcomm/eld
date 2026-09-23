@@ -155,6 +155,8 @@ eld::Expected<void> EXIDXFragment::emit(MemoryRegion &Mr, Module &M) {
 // EXIDXSentinelFragment
 
 eld::Expected<void> EXIDXSentinelFragment::emit(MemoryRegion &Mr, Module &M) {
+  if (!Active)
+    return {};
   DiagnosticEngine *Diag = M.getConfig().getDiagEngine();
   uint8_t *Buf = Mr.begin() + getOffset(Diag);
   uint64_t SentinelAddr = getAddr(Diag);

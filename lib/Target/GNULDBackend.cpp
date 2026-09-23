@@ -27,6 +27,8 @@
 #include "eld/Fragment/EhFrameFragment.h"
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/GNUHashFragment.h"
+#include "eld/Fragment/GOT.h"
+#include "eld/Script/OverlayDesc.h"
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "eld/Fragment/GNUVerDefFragment.h"
 #include "eld/Fragment/GNUVerNeedFragment.h"
@@ -98,6 +100,7 @@
 #include <chrono>
 #include <climits>
 #include <cstring>
+#include <limits>
 #include <map>
 #include <string>
 #include <vector>
@@ -771,12 +774,14 @@ uint64_t GNULDBackend::finalizeTLSSymbol(LDSymbol *pSymbol) {
     config().raise(Diag::no_pt_tls_segment);
     return false;
   }
+  // TLS symbol values are relative to the beginning of the complete TLS
+  // image. PHDRS order is not necessarily virtual-address order.
   ELFSegment *tls_seg = nullptr;
-  for (auto &seg : tls_segs) {
-    if (seg->size()) {
+  for (ELFSegment *seg : tls_segs) {
+    if (seg->memsz() == 0)
+      continue;
+    if (!tls_seg || seg->vaddr() < tls_seg->vaddr())
       tls_seg = seg;
-      break;
-    }
   }
   if (!tls_seg) {
     config().raise(Diag::error_empty_pt_tls_segment);
@@ -811,7 +816,10 @@ bool GNULDBackend::canSkipSymbolFromExport(ResolveInfo *R, bool isEntry) const {
     return false;
   // For PIE, only symbols that really need to be exported are the only ones
   // that can be exported. Dynamic List will control this as well.
-  if (config().options().isPIE() && !isEntry)
+  // --export-dynamic is an explicit request to export all globals, so it
+  // overrides this default restriction.
+  if (config().options().isPIE() && !isEntry &&
+      !config().options().exportDynamic())
     return true;
   if (R->isAbsolute())
     return true;
@@ -941,6 +949,25 @@ void GNULDBackend::sizeDynNamePools() {
 
     // Copy all the DynamicSymbols.
     std::copy(PartitionBegin, RVect.end(), std::back_inserter(DynamicSymbols));
+
+    // Deterministic .dynsym order: undefined symbols first, then defined;
+    // within each group by (input ordinal, input .symtab index).
+    auto Cmp = [](const ResolveInfo *A, const ResolveInfo *B) -> bool {
+      bool UndA = A->isUndef() || A->isDyn();
+      bool UndB = B->isUndef() || B->isDyn();
+      if (UndA != UndB)
+        return UndA;
+      auto OrdA = A->resolvedOrigin()->getInput()->getInputOrdinal();
+      auto OrdB = B->resolvedOrigin()->getInput()->getInputOrdinal();
+      if (OrdA != OrdB)
+        return OrdA < OrdB;
+      return A->outSymbol()->getSymbolIndex() <
+             B->outSymbol()->getSymbolIndex();
+    };
+    // Skip the null symbol at index 0.
+    llvm::stable_sort(
+        llvm::make_range(DynamicSymbols.begin() + 1, DynamicSymbols.end()),
+        Cmp);
   }
 
   {
@@ -1167,16 +1194,27 @@ void GNULDBackend::sizeSymTab() {
     return;
 
   bool isStripLocal = (S == GeneralOptions::StripLocals);
+  bool isStripTemporaries = (S == GeneralOptions::StripTemporaries);
 
   size_t strtab = 1;
   std::vector<ResolveInfo *> &RVect = m_Module.getSymbols();
   uint64_t NumSymbols = 0;
   for (auto &Sym : RVect) {
     if ((isStripLocal && NumSymbols && Sym->isLocal()) ||
+        (isStripTemporaries && Sym->isLocal() &&
+         llvm::StringRef(Sym->name()).starts_with(".L")) ||
         m_SymbolsToRemove.count(Sym)) {
       continue;
     }
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    // Suppressed non-canonical versioned aliases are filtered upstream by
+    // ObjectLinker::addSymbolToOutput and must not reach here.
+    assert(!isNonCanonicalVersionedSym(Sym) &&
+           "non-canonical versioned sym leaked past addSymbolToOutput");
+    std::string symName = getSymbolTableName(*Sym);
+#else
     std::string symName = Sym->outSymbol()->name();
+#endif
     strtab += symName.size() + 1;
     ++NumSymbols;
   }
@@ -1248,7 +1286,12 @@ void GNULDBackend::emitSymbol32(llvm::ELF::Elf32_Sym &pSym, LDSymbol *pSymbol,
       pSym.st_name = optSymNameOffset.value();
     } else {
       pSym.st_name = pStrtabsize;
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+      std::string SymtabName = getSymbolTableName(*pSymbol->resolveInfo());
+      strcpy((pStrtab + pStrtabsize), SymtabName.c_str());
+#else
       strcpy((pStrtab + pStrtabsize), pSymbol->name());
+#endif
     }
   }
   if ((pSymbol->resolveInfo()->isUndef()) || (pSymbol->isDyn()))
@@ -1280,7 +1323,12 @@ void GNULDBackend::emitSymbol64(llvm::ELF::Elf64_Sym &pSym, LDSymbol *pSymbol,
       pSym.st_name = optSymNameOffset.value();
     } else {
       pSym.st_name = pStrtabsize;
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+      std::string SymtabName = getSymbolTableName(*pSymbol->resolveInfo());
+      strcpy((pStrtab + pStrtabsize), SymtabName.c_str());
+#else
       strcpy((pStrtab + pStrtabsize), std::string(pSymbol->name()).data());
+#endif
     }
   }
   if ((pSymbol->resolveInfo()->isUndef()) || (pSymbol->isDyn()))
@@ -1323,6 +1371,7 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
     return {};
 
   bool isStripLocal = (S == GeneralOptions::StripLocals);
+  bool isStripTemporaries = (S == GeneralOptions::StripTemporaries);
 
   // Check if we have symbol tables
   if (!getSymTab())
@@ -1367,19 +1416,33 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
   for (auto &S : symbols) {
     m_pSymIndexMap[S->outSymbol()] = symIdx;
     // Null symbol is already emitted.
-    if ((isStripLocal && S->isLocal()) || m_SymbolsToRemove.count(S)) {
+    if ((isStripLocal && S->isLocal()) ||
+        (isStripTemporaries && S->isLocal() &&
+         llvm::StringRef(S->name()).starts_with(".L")) ||
+        m_SymbolsToRemove.count(S)) {
       config().raise(Diag::stripping_symbol) << S->name();
       continue;
     }
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    // Suppressed non-canonical versioned aliases are filtered upstream by
+    // ObjectLinker::addSymbolToOutput and must not reach here.
+    assert(!isNonCanonicalVersionedSym(S) &&
+           "non-canonical versioned sym leaked past addSymbolToOutput");
+#endif
     if (config().targets().is32Bits())
       emitSymbol32(symtab32[symIdx], S->outSymbol(), strtab, strtabsize, symIdx,
                    /*IsDynSymTab=*/false);
     else
       emitSymbol64(symtab64[symIdx], S->outSymbol(), strtab, strtabsize, symIdx,
                    /*IsDynSymTab=*/false);
-    if ((S->isGlobal() || S->isWeak()) && !firstNonLocal)
+    if (getSymbolBinding(S->outSymbol()) != llvm::ELF::STB_LOCAL &&
+        !firstNonLocal)
       firstNonLocal = symIdx;
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    std::string symName = getSymbolTableName(*S);
+#else
     std::string symName = std::string(S->name());
+#endif
     strtabsize += symName.length() + 1;
     ++symIdx;
   }
@@ -1510,6 +1573,15 @@ unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
     return SHO_UNDEFINED;
 
   case LDFileFormat::NamePool:
+    // .gnu.version/.gnu.version_d/.gnu.version_r are ALLOC read-only sections
+    // that belong with the dynamic name-pool region next to .dynsym, matching
+    // GNU ld/lld. Without this case they fall through to SHO_UNDEFINED and get
+    // placed after .data/.bss, stranding a read-only LOAD segment past the last
+    // writable segment and corrupting the program break / load layout in the
+    // older qemu versions.
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  case LDFileFormat::SymbolVersion:
+#endif
     return SHO_NAMEPOOL;
   case LDFileFormat::Relocation:
   case LDFileFormat::DynamicRelocation:
@@ -1580,15 +1652,6 @@ bool GNULDBackend::isGOTAndGOTPLTMerged() const {
           (GOTPLT->getOutputSection() == GOT->getOutputSection()));
 }
 
-void GNULDBackend::createInternalInputs() {
-  // Create a special global input file for dynamic section headers, e.g.
-  // GOT0, PLT0. This input file must be inserted before real inputs.
-  m_DynamicSectionHeadersInputFile =
-      llvm::dyn_cast<ELFObjectFile>(m_Module.createInternalInputFile(
-          make<Input>("Dynamic section headers", config().getDiagEngine()),
-          true));
-}
-
 /// getSymbolSize
 uint64_t GNULDBackend::getSymbolSize(LDSymbol *pSymbol) const {
   // undefined and dynamic symbols should have zero size.
@@ -1601,9 +1664,11 @@ Relocation::Type GNULDBackend::getCopyRelType() const {
   return m_pInfo->getTargetRelocationType().CopyRelocType;
 }
 
-/// getSymbolInfo
-uint64_t GNULDBackend::getSymbolInfo(LDSymbol *pSymbol) const {
-  // set binding
+/// getSymbolBinding - compute the ELF st_info binding a symbol is emitted with.
+/// sh_info of a symbol table must equal the index of the first symbol whose
+/// emitted binding is not STB_LOCAL, so the scan that sets sh_info must use
+/// this same classification (e.g. Absolute symbols emit as STB_GLOBAL).
+uint8_t GNULDBackend::getSymbolBinding(LDSymbol *pSymbol) const {
   uint8_t bind = 0x0;
   if (pSymbol->resolveInfo()->isLocal())
     bind = llvm::ELF::STB_LOCAL;
@@ -1612,13 +1677,22 @@ uint64_t GNULDBackend::getSymbolInfo(LDSymbol *pSymbol) const {
   else if (pSymbol->resolveInfo()->isWeak())
     bind = llvm::ELF::STB_WEAK;
   else if (pSymbol->resolveInfo()->isAbsolute()) {
-    // (Luba) Is a absolute but not global (weak or local) symbol meaningful?
+    // eld's ResolveInfo binding enum stores "absolute-valued" as a distinct
+    // binding, so isGlobal()/isWeak() are false here. In ELF this is really a
+    // global symbol with SHN_ABS section, so emit STB_GLOBAL.
     bind = llvm::ELF::STB_GLOBAL;
   }
 
   if (config().codeGenType() != LinkerConfig::Object &&
       pSymbol->visibility() == llvm::ELF::STV_INTERNAL)
     bind = llvm::ELF::STB_LOCAL;
+
+  return bind;
+}
+
+/// getSymbolInfo
+uint64_t GNULDBackend::getSymbolInfo(LDSymbol *pSymbol) const {
+  uint8_t bind = getSymbolBinding(pSymbol);
 
   uint32_t type = pSymbol->resolveInfo()->type();
   // if the IndirectFunc symbol (i.e., STT_GNU_IFUNC) is from dynobj, change
@@ -1636,25 +1710,51 @@ uint64_t GNULDBackend::getSymbolValue(LDSymbol *pSymbol) const {
   return pSymbol->value();
 }
 
-ELFSection *GNULDBackend::getGOT() const {
-  return m_DynamicSectionHeadersInputFile->getGOT();
+ELFSection *GNULDBackend::getGOT() const { return GOTSection; }
+
+ELFSection *GNULDBackend::getGOTPLT() const { return GOTPLTSection; }
+
+ELFSection *GNULDBackend::getPLT() const { return PLTSection; }
+
+void GNULDBackend::initDynamicSections(InputFile &InputFile,
+                                       const DynamicSectionLayout &Layout) {
+  if (GOTSection)
+    return;
+
+  bool IsRela = Layout.RelType == llvm::ELF::SHT_RELA;
+  RelDynSection = m_Module.createInternalSection(
+      InputFile, LDFileFormat::DynamicRelocation,
+      IsRela ? ".rela.dyn" : ".rel.dyn", Layout.RelType, llvm::ELF::SHF_ALLOC,
+      Layout.RelAlign);
+  RelPLTSection = m_Module.createInternalSection(
+      InputFile, LDFileFormat::DynamicRelocation,
+      IsRela ? ".rela.plt" : ".rel.plt", Layout.RelType, llvm::ELF::SHF_ALLOC,
+      Layout.RelAlign);
+
+  auto Create = [&](std::string Name, uint32_t Flags, uint32_t Align) {
+    return m_Module.createInternalSection(InputFile, LDFileFormat::Internal,
+                                          Name, llvm::ELF::SHT_PROGBITS, Flags,
+                                          Align);
+  };
+  GOTSection = Create(".got", llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
+                      Layout.GOTAlign);
+  GOTPLTSection =
+      Create(".got.plt", llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
+             Layout.GOTPLTAlign);
+  PLTSection = Create(".plt", llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR,
+                      Layout.PLTAlign);
+
+  RelPLTSection->setLink(GOTPLTSection);
+  GOTSection->setExcludedFromGC();
+  GOTPLTSection->setExcludedFromGC();
+  PLTSection->setExcludedFromGC();
+  RelDynSection->setExcludedFromGC();
+  RelPLTSection->setExcludedFromGC();
 }
 
-ELFSection *GNULDBackend::getGOTPLT() const {
-  return m_DynamicSectionHeadersInputFile->getGOTPLT();
-}
+ELFSection *GNULDBackend::getRelaDyn() const { return RelDynSection; }
 
-ELFSection *GNULDBackend::getPLT() const {
-  return m_DynamicSectionHeadersInputFile->getPLT();
-}
-
-ELFSection *GNULDBackend::getRelaDyn() const {
-  return m_DynamicSectionHeadersInputFile->getRelaDyn();
-}
-
-ELFSection *GNULDBackend::getRelaPLT() const {
-  return m_DynamicSectionHeadersInputFile->getRelaPLT();
-}
+ELFSection *GNULDBackend::getRelaPLT() const { return RelPLTSection; }
 
 void GNULDBackend::reportErrorIfGOTIsDiscarded(ResolveInfo *R) const {
   ELFSection *GOT = getGOT();
@@ -1687,27 +1787,24 @@ void GNULDBackend::reportErrorIfGOTPLTIsDiscarded(ResolveInfo *R) const {
   }
 }
 
-// Patching sections.
-ELFSection *GNULDBackend::getGOTPatch() const {
-  return m_DynamicSectionHeadersInputFile->getGOTPatch();
+void GNULDBackend::traceGOTCreation(GOT::GOTType T,
+                                    const ResolveInfo *R) const {
+  if (R == nullptr)
+    return;
+  if ((config().options().isSymbolTracingRequested() &&
+       config().options().traceSymbol(*R)) ||
+      m_Module.getPrinter()->traceDynamicLinking())
+    config().raise(Diag::create_got_entry)
+        << GOT::getGOTTypeAsStr(T) << R->name();
 }
 
-ELFSection *GNULDBackend::getRelaPatch() const {
-  return m_DynamicSectionHeadersInputFile->getRelaPatch();
-}
-
-// Record an absolute PLT entry, which is used in the patch image for symbol
-// resolution to PLTs located in the base image.
-void GNULDBackend::recordAbsolutePLT(ResolveInfo *I, const ResolveInfo *P) {
-  m_AbsolutePLTMap[I] = P;
-}
-
-// Find an entry in the PLT
-const ResolveInfo *GNULDBackend::findAbsolutePLT(ResolveInfo *I) const {
-  auto Entry = m_AbsolutePLTMap.find(I);
-  if (Entry == m_AbsolutePLTMap.end())
-    return nullptr;
-  return Entry->second;
+void GNULDBackend::tracePLTCreation(const ResolveInfo *R) const {
+  if (R == nullptr)
+    return;
+  if ((config().options().isSymbolTracingRequested() &&
+       config().options().traceSymbol(*R)) ||
+      m_Module.getPrinter()->traceDynamicLinking())
+    config().raise(Diag::create_plt_entry) << R->name();
 }
 
 /// getSymbolShndx - this function is called after layout()
@@ -2078,25 +2175,21 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out) {
     auto &fvector = m_PaddingMap[OutSection];
     for (auto &f : fvector) {
       if (f.Exp)
-        f.Exp->dump(llvm::outs(), true);
+        f.Exp->dump(llvm::errs(), true);
       config().raise(Diag::padding_map)
           << llvm::utostr(f.startOffset) << llvm::utostr(f.endOffset);
     }
   }
 }
 
-void GNULDBackend::evaluateAssignmentsAtEndOfOutputSection(
+void GNULDBackend::evaluatePostOutputSectionAssignments(
     OutputSectionEntry *out) {
   eld::RegisterTimer T("Evaluate Expressions", "Establish Layout",
                        m_Module.getConfig().options().printTimingStats());
   if (m_Module.getPrinter()->traceAssignments())
     config().raise(Diag::output_section_eval)
         << (out->name().empty() ? "<nullptr>" : out->name()) << "\n";
-  // Evaluate all assignments at the end of the output section.
-  for (OutputSectionEntry::sym_iterator it = out->sectionendsymBegin(),
-                                        ie = out->sectionendsymEnd();
-       it != ie; ++it) {
-    Assignment *assign = (*it);
+  for (auto *assign : out->getPostOutputSectionAssignments()) {
     // We do not need to evaluate PROVIDE expressions for PROVIDE
     // symbols that are not being used in the link.
     if (assign->isProvideOrProvideHidden() && !isProvideSymBeingUsed(assign))
@@ -2111,7 +2204,7 @@ void GNULDBackend::evaluateAssignmentsAtEndOfOutputSection(
       }
       continue;
     }
-    (*it)->assign(m_Module, nullptr);
+    assign->assign(m_Module, nullptr);
   }
 }
 
@@ -2544,10 +2637,21 @@ bool GNULDBackend::setupProgramHdrs() {
         elfSegmentTable().getSegments(llvm::ELF::PT_TLS);
     if (!tls_segs.size())
       return true;
-    uint64_t memsz = 0;
-    for (auto &seg : tls_segs)
-      memsz += seg->memsz();
-    setTLSTemplateSize(memsz);
+    // The TLS template size is the memory span covered by all PT_TLS
+    // segments, i.e. from the lowest segment vaddr to the highest
+    // (vaddr + memsz). This must include any alignment padding *between*
+    // segments (e.g. between .tdata and an over-aligned .tbss placed in a
+    // separate PT_TLS segment). Simply summing each segment's memsz would
+    // drop that inter-segment padding and produce a TLS template size that
+    // disagrees with the runtime thread-pointer setup, corrupting every
+    // TP-relative (TPREL) relocation.
+    uint64_t lo = std::numeric_limits<uint64_t>::max();
+    uint64_t hi = 0;
+    for (auto &seg : tls_segs) {
+      lo = std::min(lo, seg->vaddr());
+      hi = std::max(hi, seg->vaddr() + seg->memsz());
+    }
+    setTLSTemplateSize(hi - lo);
   }
   return true;
 }
@@ -2589,6 +2693,7 @@ bool GNULDBackend::setOutputSectionOffset() {
   // Set initial dot symbol value.
   LDSymbol *dotSymbol = m_Module.getNamePool().findSymbol(".");
 
+  evaluateBeforeSectionsAssignments();
   while (out != outEnd) {
     ELFSection *cur = (*out)->getSection();
 
@@ -2620,7 +2725,7 @@ bool GNULDBackend::setOutputSectionOffset() {
     if (isCurAlloc && cur->size())
       changeSymbolsFromAbsoluteToGlobal(*out);
     prev = cur;
-    evaluateAssignmentsAtEndOfOutputSection(*out);
+    evaluatePostOutputSectionAssignments(*out);
     ++out;
   }
   return true;
@@ -3031,7 +3136,7 @@ bool GNULDBackend::placeOutputSections() {
         // Behavior seen from GNU.
         if ((out != sectionMap.begin() && ((*cur)->getSection()->getFlags() ==
                                            (*prev)->getSection()->getFlags())))
-          (*cur)->moveSectionAssignments(*prev);
+          (*cur)->movePostOutputSectionAssignments(*prev);
       }
     }
   }
@@ -3121,14 +3226,6 @@ bool GNULDBackend::layout() {
     if (m_Module.getPrinter()->isVerbose())
       config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
-  }
-
-  // Evaluate all assignments.
-  {
-    eld::RegisterTimer T("Evaluate Script Assignments and Asserts",
-                         "Establish Layout",
-                         m_Module.getConfig().options().printTimingStats());
-    evaluateScriptAssignments();
   }
 
   if (!config().getDiagEngine()->diagnose()) {
@@ -3471,6 +3568,15 @@ void GNULDBackend::checkOverlap(llvm::StringRef name,
     SectionOffset b = sections[i];
     if (b.offset >= a.offset + a.sec->size())
       continue;
+
+    // OVERLAY members intentionally share a VMA; permit that overlap only for
+    // sections belonging to the same overlay.
+    OutputSectionEntry *A = a.sec->getOutputSection();
+    OutputSectionEntry *B = b.sec->getOutputSection();
+    if (isVirtualAddr && A && B && A->hasOverlayDesc() &&
+        A->getOverlayDesc() == B->getOverlayDesc())
+      continue;
+
     config().raise(Diag::error_section_overlap)
         << a.sec->name() << std::string(name) << b.sec->name() << a.sec->name()
         << rangeToString(a.offset, a.sec->size()) << b.sec->name()
@@ -3846,8 +3952,9 @@ bool GNULDBackend::canIssueUndef(const ResolveInfo *pSym) {
       isSectionMagicSymbol(pSym->name()) || isStandardSymbol(pSym->name());
 
   // Visibility trumps --unresolved-symbols behavior. Dont check Unresolved
-  // symbol policy here.
-  if (!MagicSym && pSym->isUndef() &&
+  // symbol policy here. Weak undefined symbols with hidden/protected visibility
+  // are valid in shared objects — they resolve to 0 at runtime.
+  if (!MagicSym && pSym->isUndef() && !pSym->isWeak() &&
       pSym->visibility() != ResolveInfo::Default &&
       LinkerConfig::DynObj == config().codeGenType())
     return true;
@@ -4178,6 +4285,10 @@ bool GNULDBackend::relax() {
   // Print memory regions
   printMemoryRegionsUsage();
 
+  // Warn about RWX segments after the final layout is known.
+  if (LinkerConfig::Object != config().codeGenType())
+    warnRWXSegments();
+
   // Verify memory regions
   verifyMemoryRegions();
 
@@ -4194,11 +4305,12 @@ MemoryRegion GNULDBackend::getFileOutputRegion(llvm::FileOutputBuffer &pBuffer,
   return MemoryRegion(pBuffer.getBufferStart() + pOffset, pLength);
 }
 
-void GNULDBackend::evaluateScriptAssignments(bool evaluateAsserts) {
+void GNULDBackend::evaluateBeforeSectionsAssignments(bool evaluateAsserts) {
   for (auto &assign : m_Module.getScript().assignments()) {
-    // Evaluate assignments outside SECTIONS both before and after layout.
-    if (!(assign->level() == Assignment::BEFORE_SECTIONS ||
-          assign->level() == Assignment::AFTER_SECTIONS))
+    // Only evaluate BeforeSections assignments here.
+    // AfterSections and AfterOutputSection assignments are evaluated
+    // per-OutputSectionEntry in evaluatePostOutputSectionAssignments().
+    if (assign->level() != Assignment::BeforeSections)
       continue;
     if (shouldskipAssert(assign)) {
       if (m_Module.getPrinter()->isVerbose()) {
@@ -4550,7 +4662,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
         return false;
       }
 
-      if (m_Module.getPrinter()->tracePlugins())
+      if (O->prolog().getPlugin()->isTraced())
         config().raise(Diag::allocating_memory) << S->size() << S->name();
 
       MemoryRegion mr(reinterpret_cast<uint8_t *>(MB.base()),
@@ -4563,10 +4675,10 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
           return false;
         }
       }
-      if (m_Module.getPrinter()->tracePlugins())
+      if (O->prolog().getPlugin()->isTraced())
         config().raise(Diag::applying_relocations) << S->name();
       m_Module.getLinker()->getObjLinker()->relocation(false);
-      if (m_Module.getPrinter()->tracePlugins())
+      if (O->prolog().getPlugin()->isTraced())
         config().raise(Diag::syncing_relocations) << S->name();
       m_Module.getLinker()->getObjLinker()->syncRelocations(
           reinterpret_cast<uint8_t *>(MB.base()));
@@ -4592,7 +4704,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
       B.Name = std::string(S->name());
 
       // Add the Memory Block.
-      if (m_Module.getPrinter()->tracePlugins())
+      if (O->prolog().getPlugin()->isTraced())
         config().raise(Diag::adding_memory_blocks) << S->name();
 
       // Add Memory Blocks.
@@ -4601,7 +4713,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
       else
         FOP->AddBlocks(std::move(B));
 
-      if (m_Module.getPrinter()->tracePlugins())
+      if (O->prolog().getPlugin()->isTraced())
         config().raise(Diag::calling_handler) << S->name();
 
       // Run the algorithm.
@@ -4613,7 +4725,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
 
       auto RB = MatchSections ? VAP->GetBlocks() : FOP->GetBlocks();
 
-      if (m_Module.getPrinter()->tracePlugins())
+      if (O->prolog().getPlugin()->isTraced())
         config().raise(Diag::plugin_returned_blocks) << RB.size() << S->name();
 
       ELFSection *OutputSection = S;
@@ -4795,7 +4907,6 @@ LDSymbol *GNULDBackend::canProvideSymbol(llvm::StringRef symName) {
   auto P = ProvideMap.find(symName.str());
   auto PSymDef = m_SymDefProvideMap.find(symName);
   bool isPSymDef = PSymDef != m_SymDefProvideMap.end();
-  bool Patchable = false;
   if (P != ProvideMap.end()) {
     if (P->second->isProvideHidden())
       V = ResolveInfo::Hidden;
@@ -4811,7 +4922,6 @@ LDSymbol *GNULDBackend::canProvideSymbol(llvm::StringRef symName) {
     resolverType = std::get<0>(PSymDef->second);
     symVal = std::get<1>(PSymDef->second);
     file = std::get<2>(PSymDef->second);
-    Patchable = std::get<3>(PSymDef->second);
   } else
     return nullptr;
 
@@ -4822,7 +4932,7 @@ LDSymbol *GNULDBackend::canProvideSymbol(llvm::StringRef symName) {
           0x0,                 // size
           symVal,              // value
           FragmentRef::null(), // FragRef
-          V, /* isPostLTOPhase */ false, /* isBitCode */ false, Patchable);
+          V, /* isPostLTOPhase */ false, /* isBitCode */ false);
   if (provided_sym != nullptr) {
     provided_sym->setShouldIgnore(false);
     provided_sym->setScriptDefined();
@@ -5398,6 +5508,30 @@ void GNULDBackend::initSymbolVersioningSections() {
 #endif
 
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
+std::string GNULDBackend::getSymbolTableName(const ResolveInfo &R) const {
+  if (R.isLocal())
+    return std::string(R.getName());
+
+  if (!R.hasVersionInName())
+    return std::string(R.getName());
+
+  // Shared-library origin: keep the canonical single-`@` form. The
+  // .gnu.version index conveys default-ness for DSO symbols, so dyn-test
+  // goldens stay byte-identical.
+  InputFile *Origin = R.resolvedOrigin();
+  if (Origin && llvm::isa<ELFDynObjectFile>(Origin))
+    return std::string(R.getName());
+
+  // Object origin: reconstruct the GNU-visible form from the canonical
+  // single-`@` name plus the default-version flag.
+  ParsedVersionedName P = parseVersionedName(R.getName());
+  if (P.IsMalformed || P.Version.empty())
+    return std::string(R.getName());
+  if (R.isDefaultVersion())
+    return (P.Base + "@@" + P.Version).str();
+  return (P.Base + "@" + P.Version).str();
+}
+
 void GNULDBackend::assignOutputVersionIDs() {
   bool shouldTraceSymbolVersioning =
       m_Module.getPrinter()->traceSymbolVersioning();
@@ -5464,8 +5598,8 @@ void GNULDBackend::assignOutputVersionIDs() {
       VernID = it->second;
     }
 
-    isDefaultVersionSymbol = (Pos == std::string::npos ||
-                              (FullName.find("@@") != std::string::npos));
+    isDefaultVersionSymbol =
+        (Pos == std::string::npos) || R->isDefaultVersion();
 
     if (!isDefaultVersionSymbol)
       VernID |= llvm::ELF::VERSYM_HIDDEN;
@@ -5504,3 +5638,18 @@ void GNULDBackend::assignOutputVersionIDs() {
   }
 }
 #endif
+
+void GNULDBackend::warnRWXSegments() {
+  if (!config().options().warnRWXSegments())
+    return;
+  for (auto *Seg : elfSegmentTable()) {
+    if (!Seg->isLoadSegment())
+      continue;
+    uint32_t f = Seg->flag();
+    if ((f & llvm::ELF::PF_W) && (f & llvm::ELF::PF_X)) {
+      config().raise(Diag::warn_rwx_segment)
+          << config().options().outputFileName();
+      return;
+    }
+  }
+}

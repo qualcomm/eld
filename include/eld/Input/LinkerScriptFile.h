@@ -35,6 +35,14 @@ public:
 
   void setParsed() { Parsed = true; }
 
+  bool isEarlyActivated() const { return EarlyActivated; }
+
+  void setEarlyActivated() { EarlyActivated = true; }
+
+  bool isFullyActivated() const { return FullyActivated; }
+
+  void setFullyActivated() { FullyActivated = true; }
+
   // -------------- process assignments in link order------------
   bool isAssignmentsProcessed() const { return ProcessAssignments; }
 
@@ -54,6 +62,8 @@ private:
   ScriptFile *Script = nullptr;
   std::vector<Node *> Nodes;
   bool Parsed = false;
+  bool EarlyActivated = false;
+  bool FullyActivated = false;
   bool ProcessAssignments = false;
 };
 

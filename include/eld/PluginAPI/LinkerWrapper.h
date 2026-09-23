@@ -571,6 +571,34 @@ public:
   /// be reset is a defined symbol with an initial value.
   eld::Expected<void> resetSymbol(plugin::Symbol S, Chunk C);
 
+  /// Detach symbol S from its current fragment (if any) and make it an
+  /// absolute symbol with value Addr. The symbol's output section index
+  /// becomes SHN_ABS, and its value is no longer derived from any chunk's
+  /// placement.
+  ///
+  /// Unlike resetSymbol(), this works on already-defined symbols.
+  ///
+  /// \param S Symbol whose address is to be set.
+  /// \param Addr Absolute value to assign to the symbol.
+  ///
+  /// \note This function must only be used in the \em AfterLayout link
+  /// state, i.e. after layout, garbage-collection, and relaxation have
+  /// converged, and before the symbol table and relocations are finalized
+  /// and emitted.
+  ///
+  /// \note Reassigning a symbol's address this way does not change the
+  /// address range that the linker's virtual-address overlap check
+  /// associates with the symbol's original output section. If the new
+  /// address could fall inside another section's address range, declare
+  /// the symbol's output section with the \c INFO, \c COPY, \c DSECT, or
+  /// \c OVERLAY linker script section type. These types are equivalent in
+  /// ELD: each removes the section from PT_LOAD segment placement by
+  /// clearing \c SHF_ALLOC on the section, which is recommended whenever
+  /// the section content addresses are meant to be referenced by the code
+  /// at runtime (e.g. debug strings) but not actually dereferenced or
+  /// loaded into memory at runtime.
+  eld::Expected<void> setSymbolAddress(plugin::Symbol S, uint64_t Addr);
+
   /// Create and return a Use for a Chunk, and add it to the Chunk.
   eld::Expected<Use> createAndAddUse(Chunk C, off_t Offset,
                                      uint32_t RelocationType, plugin::Symbol S,
@@ -714,6 +742,11 @@ public:
   /// Returns true if user has requested verbose diagnostics.
   bool isVerbose() const;
 
+  /// Returns true if this plugin is being traced, i.e. --trace=plugin
+  /// was given without a scope, or with a scope (--trace=plugin=<name>)
+  /// that matches this plugin's name.
+  bool isTraced() const;
+
   eld::Expected<std::vector<plugin::OutputSection>>
   getAllOutputSections() const;
 
@@ -732,7 +765,8 @@ public:
   /// Return a handle to the library `LibraryName` or an error.
   /// `LibraryName` will be searched using the linker search path
   /// including -L directories. First the file called `LibraryName` will be
-  /// searched. If it is not found, `libLibraryName.so` or `libraryName.dll` on
+  /// searched. If it is not found, `libLibraryName.so` (Linux),
+  /// `libLibraryName.dylib` (macOS), or `libraryName.dll` on
   /// windows will be searched. If neither are found an error is returned.
   eld::Expected<DynamicLibrary> loadLibrary(const std::string &LibraryName);
 

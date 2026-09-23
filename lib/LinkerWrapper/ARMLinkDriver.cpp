@@ -21,25 +21,8 @@ using namespace llvm;
 using namespace llvm::opt;
 using namespace eld;
 
-#define OPTTABLE_STR_TABLE_CODE
+#define OPTTABLE_CODE
 #include "eld/Driver/ARMLinkerOptions.inc"
-#undef OPTTABLE_STR_TABLE_CODE
-
-#define OPTTABLE_PREFIXES_TABLE_CODE
-#include "eld/Driver/ARMLinkerOptions.inc"
-#undef OPTTABLE_PREFIXES_TABLE_CODE
-
-static constexpr llvm::opt::OptTable::Info infoTable[] = {
-#define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
-               ALIASARGS, FLAGS, VISIBILITY, PARAM, HELPTEXT,                  \
-               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)                          \
-  LLVM_CONSTRUCT_OPT_INFO(                                                     \
-      PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ARMLinkOptTable::ID, KIND,        \
-      ARMLinkOptTable::GROUP, ARMLinkOptTable::ALIAS, ALIASARGS, FLAGS,        \
-      VISIBILITY, PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET),
-#include "eld/Driver/ARMLinkerOptions.inc"
-#undef OPTION
-};
 
 std::optional<Triple>
 ARMLinkDriver::ParseEmulation(std::string pEmulation,
@@ -59,8 +42,7 @@ ARMLinkDriver::ParseEmulation(std::string pEmulation,
   return result;
 }
 
-OPT_ARMLinkOptTable::OPT_ARMLinkOptTable()
-    : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
+OPT_ARMLinkOptTable::OPT_ARMLinkOptTable() : OptTable(optionTables()) {}
 
 ARMLinkDriver *ARMLinkDriver::Create(eld::LinkerConfig &C,
                                      std::string InferredArch) {
@@ -106,9 +88,12 @@ ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
                      /*ShowAllAliases=*/true);
     return LINK_SUCCESS;
   }
-  if (ArgList.hasArg(OPT_ARMLinkOptTable::version)) {
-    printVersionInfo();
-    return LINK_SUCCESS;
+  if (llvm::opt::Arg *Arg = ArgList.getLastArg(OPT_ARMLinkOptTable::v,
+                                               OPT_ARMLinkOptTable::version)) {
+    if (Arg->getOption().matches(OPT_ARMLinkOptTable::version)) {
+      printVersionInfo();
+      return LINK_SUCCESS;
+    }
   }
   // --about
   if (ArgList.hasArg(OPT_ARMLinkOptTable::about)) {

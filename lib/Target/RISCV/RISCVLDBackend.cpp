@@ -69,8 +69,6 @@ Relocation::Address RISCVLDBackend::getSymbolValuePLT(const Relocation &R) {
   if (rsym && (rsym->reserved() & Relocator::ReservePLT)) {
     if (const Fragment *S = findEntryInPLT(rsym))
       return S->getAddr(config().getDiagEngine());
-    if (const ResolveInfo *S = findAbsolutePLT(rsym))
-      return S->value();
   }
   return getRelocator()->getSymValue(&R);
 }
@@ -79,8 +77,6 @@ Relocation::Address RISCVLDBackend::getSymbolValuePLT(ResolveInfo &Sym) {
   if (Sym.reserved() & Relocator::ReservePLT) {
     if (const Fragment *S = findEntryInPLT(&Sym))
       return S->getAddr(config().getDiagEngine());
-    if (const ResolveInfo *S = findAbsolutePLT(&Sym))
-      return S->value();
   }
 
   if (const LDSymbol *Out = Sym.outSymbol())
@@ -92,28 +88,11 @@ Relocation::Type RISCVLDBackend::getCopyRelType() const {
   return llvm::ELF::R_RISCV_COPY;
 }
 
-void RISCVLDBackend::initDynamicSections(ELFObjectFile &InputFile) {
-  InputFile.setDynamicSections(
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
-          config().targets().is32Bits() ? 4 : 8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got.plt",
-          llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
-          config().targets().is32Bits() ? 4 : 8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".plt", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR,
-          config().targets().is32Bits() ? 4 : 16),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.dyn",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC,
-          config().targets().is32Bits() ? 4 : 8),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rela.plt",
-          llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC,
-          config().targets().is32Bits() ? 4 : 8));
+void RISCVLDBackend::initDynamicSections(InputFile &InputFile) {
+  bool Is32 = config().targets().is32Bits();
+  uint32_t Align = Is32 ? 4 : 8;
+  GNULDBackend::initDynamicSections(
+      InputFile, {llvm::ELF::SHT_RELA, Align, Align, Align, Is32 ? 4u : 16u});
 }
 
 void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
@@ -141,17 +120,6 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
       layoutInfo->recordFragment(m_pRISCVTableJumpSection->getInputFile(),
                                  m_pRISCVTableJumpSection, TableJumpFragment);
   }
-}
-
-void RISCVLDBackend::initPatchSections(ELFObjectFile &InputFile) {
-  InputFile.setPatchSections(
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".pgot", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
-          config().targets().is32Bits() ? 4 : 8),
-      *m_Module.createInternalSection(InputFile, LDFileFormat::Relocation,
-                                      ".rela.pgot", llvm::ELF::SHT_RELA, 0,
-                                      config().targets().is32Bits() ? 4 : 8));
 }
 
 void RISCVLDBackend::initTargetSymbols() {
@@ -187,10 +155,6 @@ void RISCVLDBackend::initTargetSymbols() {
         ResolveInfo::Local, /*Size=*/0, /*Value=*/0,
         make<FragmentRef>(*TableJumpFragment, 0x0), ResolveInfo::Default);
   }
-
-  // Do not create another __global_pointer$ when linking a patch.
-  if (config().options().getPatchBase())
-    return;
 
   if (m_Module.getScript().linkerScriptHasSectionsCommand()) {
     m_pGlobalPointer = m_Module.getNamePool().findSymbol("__global_pointer$");
@@ -316,6 +280,150 @@ void RISCVLDBackend::reportMissedRelaxation(StringRef Name,
   recordRelaxationStats(Section, 0, NumBytes);
 }
 
+void RISCVLDBackend::recordCallRelaxation(RegionFragmentEx &Region,
+                                          Relocation *Reloc, uint64_t Offset,
+                                          uint32_t AuipcBytes,
+                                          uint32_t JalrBytes,
+                                          uint32_t RelaxedSize) {
+  m_CallRelaxRecords.push_back(
+      {&Region, Reloc, Offset, AuipcBytes, JalrBytes, RelaxedSize});
+}
+
+// After the ALIGN pass commits all deferred deletions, re-verify every
+// AUIPC+JALR→JAL relaxation using the final post-ALIGN symbol addresses.
+// Any relaxation whose final distance exceeds the ±1MB JAL range is undone:
+// the deleted JALR bytes are reinserted, the AUIPC is restored, and the
+// relocation type is changed back to R_RISCV_CALL_PLT.
+void RISCVLDBackend::verifyAndRollbackCallRelaxations(bool &pFinished) {
+  for (auto &R : m_CallRelaxRecords) {
+    if (R.rolledBack)
+      continue;
+
+    uint64_t relocOffset = R.reloc->targetRef()->offset();
+
+    Relocator::DWord S = getSymbolValuePLT(*R.reloc);
+    Relocator::DWord A = R.reloc->addend();
+    Relocator::DWord P = R.reloc->place(m_Module);
+    int64_t X = static_cast<int64_t>(S + A - P);
+
+    if (R.relaxedSize == 2) {
+      // C.J/C.JAL path: check if still within ±2KB (12-bit) range.
+      if (llvm::isInt<12>(X))
+        continue;
+
+      unsigned rd = (R.jalrBytes >> 7) & 0x1fu;
+
+      if (llvm::isInt<21>(X)) {
+        // Out of C.J range but still within JAL range: expand C.J → JAL.
+        // C.J is 2B; JAL is 4B. Insert 2 bytes then overwrite with JAL.
+        R.region->insertInstruction(relocOffset + 2, 2);
+        uint32_t jal = 0x6fu | rd << 7;
+        R.region->replaceInstruction(relocOffset, R.reloc,
+                                     reinterpret_cast<uint8_t *>(&jal), 4);
+        R.reloc->setTargetData(jal);
+        R.reloc->setType(llvm::ELF::R_RISCV_JAL);
+        R.rolledBack = true;
+
+        if (m_Module.getPrinter()->isVerbose())
+          config().raise(Diag::relax_cj_rolled_back_to_jal)
+              << R.reloc->symInfo()->name()
+              << R.region->getOwningSection()->name()
+              << llvm::utohexstr(relocOffset)
+              << R.region->getOwningSection()
+                     ->getInputFile()
+                     ->getInput()
+                     ->decoratedPath();
+      } else {
+        // Out of JAL range too: expand C.J → AUIPC+JALR.
+        // C.J is 2B; AUIPC+JALR is 8B. Insert 6 bytes, then restore both.
+        R.region->insertInstruction(relocOffset + 2, 6);
+        uint32_t auipcCopy = R.auipcBytes;
+        R.region->replaceInstruction(
+            relocOffset, R.reloc, reinterpret_cast<uint8_t *>(&auipcCopy), 4);
+        uint32_t jalrCopy = R.jalrBytes;
+        std::memcpy(const_cast<char *>(R.region->getRegion().data()) +
+                        relocOffset + 4,
+                    &jalrCopy, 4);
+        R.reloc->setTargetData(R.auipcBytes);
+        R.reloc->setType(llvm::ELF::R_RISCV_CALL_PLT);
+        R.rolledBack = true;
+
+        if (m_Module.getPrinter()->isVerbose())
+          config().raise(Diag::relax_cj_rolled_back_to_call)
+              << R.reloc->symInfo()->name()
+              << R.region->getOwningSection()->name()
+              << llvm::utohexstr(relocOffset)
+              << R.region->getOwningSection()
+                     ->getInputFile()
+                     ->getInput()
+                     ->decoratedPath();
+      }
+
+      undoAlignRelaxations();
+      pFinished = false;
+      continue;
+    }
+
+    // JAL path (relaxedSize == 4): check if still within ±1MB (21-bit) range.
+    if (llvm::isInt<21>(X))
+      continue; // still in range, keep the JAL relaxation
+
+    // Out of range: undo the JAL relaxation.
+    // The JALR bytes were deleted (committed) after the AUIPC.
+    // Reinsert 4 bytes at that position and restore original instructions.
+    R.region->insertInstruction(relocOffset + 4, 4);
+
+    // Restore AUIPC at its current offset.
+    uint32_t auipcCopy = R.auipcBytes;
+    R.region->replaceInstruction(relocOffset, R.reloc,
+                                 reinterpret_cast<uint8_t *>(&auipcCopy), 4);
+    // Write JALR bytes into the reinserted space.
+    uint32_t jalrCopy = R.jalrBytes;
+    std::memcpy(const_cast<char *>(R.region->getRegion().data()) + relocOffset +
+                    4,
+                &jalrCopy, 4);
+
+    R.reloc->setTargetData(R.auipcBytes);
+    R.reloc->setType(llvm::ELF::R_RISCV_CALL_PLT);
+    R.rolledBack = true;
+
+    if (m_Module.getPrinter()->isVerbose())
+      config().raise(Diag::relax_call_rolled_back)
+          << R.reloc->symInfo()->name() << R.region->getOwningSection()->name()
+          << llvm::utohexstr(relocOffset)
+          << R.region->getOwningSection()
+                 ->getInputFile()
+                 ->getInput()
+                 ->decoratedPath();
+
+    undoAlignRelaxations();
+    pFinished = false;
+  }
+}
+
+void RISCVLDBackend::undoAlignRelaxations() {
+  for (auto &A : llvm::reverse(m_AlignRelaxRecords)) {
+    if (A.bytesDeleted) {
+      uint32_t nopOffset = A.alignReloc->targetRef()->offset();
+      uint32_t insertOffset = nopOffset + A.nopsAdded;
+      A.region->insertInstruction(insertOffset, A.bytesDeleted);
+      A.region->addRequiredNops(insertOffset, A.bytesDeleted);
+      A.alignReloc->targetRef()->setOffset(nopOffset);
+    }
+    A.alignReloc->setType(llvm::ELF::R_RISCV_ALIGN);
+    if (m_Module.getPrinter()->isVerbose())
+      config().raise(Diag::relax_align_undone)
+          << A.nopsAdded << A.bytesDeleted
+          << A.region->getOwningSection()->name()
+          << llvm::utohexstr(A.alignReloc->targetRef()->offset(), true)
+          << A.region->getOwningSection()
+                 ->getInputFile()
+                 ->getInput()
+                 ->decoratedPath();
+  }
+  m_AlignRelaxRecords.clear();
+  m_NeedsAlignRerun = true;
+}
 // Select the matching JVT entry lookup for rd.
 // x0 uses the jump-only table instruction.
 // x1 uses the normal link-register table instruction.
@@ -358,33 +466,6 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
   Relocator::DWord P = reloc->place(m_Module);
   Relocator::DWord X = S + A - P;
 
-  // Be conservative when relaxing CALL into JAL/C.J/C.JAL: later relaxations
-  // (notably R_RISCV_ALIGN) can increase the final PC-relative distance due
-  // to changes in required alignment padding. Add a max alignment "slack" to
-  // the offset for the range check so we only relax when the shortened form is
-  // guaranteed to remain in-range.
-  int64_t XForRangeCheck = static_cast<int64_t>(X);
-  if (llvm::isInt<21>(XForRangeCheck)) {
-    uint64_t MaxAlignment = 0;
-    ELFSection *CallOutputSection = reloc->targetRef()->getOutputELFSection();
-    FragmentRef *SymRef = reloc->symInfo()->outSymbol()->fragRef();
-    ELFSection *SymOutputSection =
-        SymRef ? SymRef->getOutputELFSection() : nullptr;
-
-    if (CallOutputSection && SymOutputSection) {
-      if (CallOutputSection == SymOutputSection)
-        MaxAlignment = CallOutputSection->getAddrAlign();
-      else
-        MaxAlignment = std::max<uint64_t>(CallOutputSection->getAddrAlign(),
-                                          SymOutputSection->getAddrAlign());
-    }
-
-    if (MaxAlignment)
-      XForRangeCheck += (XForRangeCheck < 0)
-                            ? -static_cast<int64_t>(MaxAlignment)
-                            : static_cast<int64_t>(MaxAlignment);
-  }
-
   uint64_t offset = reloc->targetRef()->offset();
 
   // extract the next instruction
@@ -400,13 +481,11 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
   // For `C.J`/`C.JAL`, we have to have C relaxations enabled,
   // and be within 12 bits, and have a destination of `x0` or `ra`
   bool canRelaxCJ = config().options().getRISCVRelax() &&
-                    config().options().getRISCVRelaxToC() &&
-                    isInt<12>(XForRangeCheck) &&
+                    config().options().getRISCVRelaxToC() && isInt<12>(X) &&
                     (rd == 0 || (rd == 1 && config().targets().is32Bits()));
 
   // For `JAL`, the offset needs to be 21 bits.
-  bool canRelaxJal =
-      config().options().getRISCVRelax() && llvm::isInt<21>(XForRangeCheck);
+  bool canRelaxJal = config().options().getRISCVRelax() && llvm::isInt<21>(X);
 
   // For `QC.E.J` and `QC.E.JAL`, we have to have xqci relaxations enabled,
   // and be on 32-bit, and the destination must be either `x0` or `ra`.
@@ -418,6 +497,7 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
   const char *msgC = (rd == 1) ? "RISCV_CALL_JAL" : "RISCV_CALL_J";
   if (canRelaxCJ) {
     uint16_t c_j = (rd == 1) ? 0x2001u : 0xa001;
+    uint32_t auipcBytes = static_cast<uint32_t>(reloc->target());
 
     if (m_Module.getPrinter()->isVerbose())
       config().raise(Diag::relax_to_compress)
@@ -436,6 +516,8 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
     reloc->setType(llvm::ELF::R_RISCV_RVC_JUMP);
     relaxDeleteBytes("RISCV_CALL_C", *region, offset + 2, 6,
                      reloc->symInfo()->name());
+
+    recordCallRelaxation(*region, reloc, offset, auipcBytes, jalr_instr, 2);
 
     return true;
   }
@@ -461,15 +543,22 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
   }
 
   if (canRelaxJal) {
+    // Save original bytes before we overwrite them, so we can roll back
+    // this relaxation post-ALIGN if the final distance exceeds ±1MB.
+    uint32_t auipcBytes = static_cast<uint32_t>(reloc->target());
+
     // Replace the instruction to JAL
     uint32_t jal = 0x6fu | rd << 7;
 
     region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&jal), 4);
     reloc->setTargetData(jal);
     reloc->setType(llvm::ELF::R_RISCV_JAL);
-    // Delete the next instruction
+    // Delete the next instruction (deferred)
     relaxDeleteBytes("RISCV_CALL", *region, offset + 4, 4,
                      reloc->symInfo()->name());
+
+    // Record this relaxation for post-ALIGN reverification.
+    recordCallRelaxation(*region, reloc, offset, auipcBytes, jalr_instr, 4);
 
     // Report missed relaxation as we could still do a `C.J`/`C.JAL`
     reportMissedRelaxation("RISCV_CALL_C", *region, offset, 2,
@@ -1310,8 +1399,10 @@ bool RISCVLDBackend::doRelaxationAlign(Relocation *pReloc) {
   uint64_t TargetAddress = SymValue;
   alignAddress(TargetAddress, Alignment);
   uint32_t NopBytesToAdd = TargetAddress - SymValue;
-  if (NopBytesToAdd == pReloc->addend())
+  if (NopBytesToAdd == pReloc->addend()) {
+    region->addRequiredNops(offset, NopBytesToAdd);
     return false;
+  }
 
   if (NopBytesToAdd > pReloc->addend()) {
     config().raise(Diag::error_riscv_relaxation_align)
@@ -1334,9 +1425,11 @@ bool RISCVLDBackend::doRelaxationAlign(Relocation *pReloc) {
                ->getInput()
                ->decoratedPath();
 
+  uint32_t BytesDeleted = pReloc->addend() - NopBytesToAdd;
   region->addRequiredNops(offset, NopBytesToAdd);
-  relaxDeleteBytes("RISCV_ALIGN", *region, offset + NopBytesToAdd,
-                   pReloc->addend() - NopBytesToAdd, "");
+  relaxDeleteBytes("RISCV_ALIGN", *region, offset + NopBytesToAdd, BytesDeleted,
+                   "");
+  m_AlignRelaxRecords.push_back({pReloc, region, NopBytesToAdd, BytesDeleted});
   // Set the reloc to do nothing.
   pReloc->setType(llvm::ELF::R_RISCV_NONE);
   return true;
@@ -1683,15 +1776,21 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
   pFinished = true;
 
   // TLSDESC relaxations only apply to executables.
-  if (relaxation_pass == RELAXATION_TLSDESC && !config().isBuildingExecutable())
+  if (relaxation_pass == RELAXATION_TLSDESC &&
+      !config().isBuildingExecutable()) {
+    pFinished =
+        false; // ALIGN pass must still run to commit deferred deletions.
     return;
+  }
 
-  // RELAXATION_ALIGN pass, which is the last pass, will set pFinished to
-  // false if it has made changes. It is needed to call createProgramHdrs()
-  // again in the outer loop. Therefore, this function may be entered once more,
-  // for no good reason.
   if (relaxation_pass >= RELAXATION_PASS_COUNT) {
-    return;
+    if (m_NeedsAlignRerun) {
+      m_NeedsAlignRerun = false;
+      relaxation_pass = RELAXATION_ALIGN;
+    } else {
+      verifyAndRollbackCallRelaxations(pFinished);
+      return;
+    }
   }
 
   // retrieve gp value, .data + 0x800
@@ -1723,7 +1822,6 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
             pFinished = false;
           continue;
         }
-
         if (relaxation_pass == RELAXATION_TLSDESC) {
           // doRelaxationTLSDESC is used for both TLSDESC optimizations and
           // relaxations, therefore this function should be called regardless
@@ -2257,10 +2355,6 @@ void RISCVLDBackend::doPreLayout() {
                           getRelaEntrySize());
     m_Module.addOutputSection(getRelaDyn());
   }
-  if (ELFSection *S = getRelaPatch()) {
-    S->setSize(S->getRelocationCount() * getRelaEntrySize());
-    m_Module.addOutputSection(S);
-  }
 }
 
 void RISCVLDBackend::evaluateTargetSymbolsBeforeRelaxation() {
@@ -2329,20 +2423,25 @@ bool RISCVLDBackend::finalizeScanRelocations() {
 
   bool is32Bits = config().targets().is32Bits();
 
-  for (auto &[symInfo, plt] : m_PLTMap) {
-    if (!symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
+  if (!getPLT())
+    return true;
+
+  for (Fragment *F : getPLT()->getFragmentList()) {
+    auto *plt = llvm::dyn_cast<RISCVPLT>(F);
+    if (!plt)
+      continue;
+    ResolveInfo *symInfo = plt->symInfo();
+    if (!symInfo || !symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
         !symInfo->hasIFuncNeedsGOT())
       continue;
 
-    ELFObjectFile *PLTSlotObjFile =
-        llvm::cast<ELFObjectFile>(plt->getOwningSection()->getInputFile());
-    RISCVGOT *G = createGOT(GOT::GOTType::Regular, PLTSlotObjFile, symInfo);
+    RISCVGOT *G = createGOT(GOT::GOTType::Regular, symInfo);
 
     FragmentRef *PLTFragRef = make<FragmentRef>(*plt, 0);
     Relocation *r = Relocation::Create(
         is32Bits ? llvm::ELF::R_RISCV_32 : llvm::ELF::R_RISCV_64,
         is32Bits ? 32 : 64, make<FragmentRef>(*G, 0), 0);
-    PLTSlotObjFile->getGOT()->addRelocation(r);
+    getGOT()->addRelocation(r);
     r->modifyRelocationFragmentRef(PLTFragRef);
 
     recordGOT(symInfo, G);
@@ -2352,14 +2451,9 @@ bool RISCVLDBackend::finalizeScanRelocations() {
 }
 
 // Create GOT entry.
-RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
-                                    ResolveInfo *R) {
+RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ResolveInfo *R) {
 
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_got_entry)
-        << GOT::getGOTTypeAsStr(T) << R->name();
+  traceGOTCreation(T, R);
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->hasFragments()) {
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
@@ -2374,36 +2468,32 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
   bool GOT = true;
   switch (T) {
   case GOT::Regular:
-    G = RISCVGOT::Create(Obj->getGOT(), R, config().targets().is32Bits());
+    G = RISCVGOT::Create(getGOT(), R, config().targets().is32Bits());
     break;
   case GOT::GOTPLT0:
     G = llvm::dyn_cast<RISCVGOT>(*getGOTPLT()->getFragmentList().begin());
     GOT = false;
     break;
   case GOT::GOTPLTN: {
-    G = RISCVGOT::CreateGOTPLTN(R->isPatchable() ? getGOTPatch()
-                                                 : Obj->getGOTPLT(),
-                                R, config().targets().is32Bits());
+    G = RISCVGOT::CreateGOTPLTN(getGOTPLT(), R, config().targets().is32Bits());
     GOT = false;
     break;
   }
   case GOT::TLS_GD: {
-    G = RISCVGOT::CreateGD(Obj->getGOT(), R, config().targets().is32Bits());
+    G = RISCVGOT::CreateGD(getGOT(), R, config().targets().is32Bits());
     break;
   }
   case GOT::TLS_LD:
     // TODO: Apparently, this case is called either from getTLSModuleID (for a
     // unique slot) or from R_RISCV_TLS_GD_HI20 relocation (per relocation).
     // Handle both cases for now, but this may need to be double checked.
-    G = RISCVGOT::CreateLD(Obj ? Obj->getGOT() : getGOT(), R,
-                           config().targets().is32Bits());
+    G = RISCVGOT::CreateLD(getGOT(), R, config().targets().is32Bits());
     break;
   case GOT::TLS_IE:
-    G = RISCVGOT::CreateIE(Obj->getGOT(), R, config().targets().is32Bits());
+    G = RISCVGOT::CreateIE(getGOT(), R, config().targets().is32Bits());
     break;
   case GOT::TLS_DESC:
-    G = RISCVGOT::CreateTLSDESC(Obj->getGOTPLT(), R,
-                                config().targets().is32Bits());
+    G = RISCVGOT::CreateTLSDESC(getGOTPLT(), R, config().targets().is32Bits());
     break;
   default:
     assert(0);
@@ -2438,62 +2528,39 @@ RISCVGOT *RISCVLDBackend::findEntryInGOT(ResolveInfo *I) const {
 }
 
 // Create PLT entry.
-RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
-                                    bool isIRelative) {
+RISCVPLT *RISCVLDBackend::createPLT(ResolveInfo *R, bool isIRelative) {
   bool is32Bits = config().targets().is32Bits();
-  if ((config().options().isSymbolTracingRequested() &&
-       config().options().traceSymbol(*R)) ||
-      m_Module.getPrinter()->traceDynamicLinking())
-    config().raise(Diag::create_plt_entry) << R->name();
+  tracePLTCreation(R);
 
   reportErrorIfPLTIsDiscarded(R);
 
-  RISCVGOT *G = createGOT(GOT::GOTPLTN, Obj, R);
-  RISCVPLT *P = RISCVPLT::CreatePLTN(G, Obj->getPLT(), R, is32Bits);
+  // PLT0 must be created before the first PLTN since insertion order into the
+  // shared .plt is emission order.
+  bool NeedsLazy = !config().options().hasNow();
+  if (NeedsLazy && !getPLT()->hasFragments())
+    RISCVPLT::CreatePLT0(*this, createGOT(GOT::GOTPLT0, nullptr), getPLT(),
+                         is32Bits);
+
+  RISCVGOT *G = createGOT(GOT::GOTPLTN, R);
+  RISCVPLT *P = RISCVPLT::CreatePLTN(G, getPLT(), R, is32Bits);
   recordPLT(R, P);
-  if (R->isPatchable()) {
-    G->setValueType(GOT::SymbolValue);
-    // Create a static relocation in the patch relocation section, which will
-    // be written to the output but will not be applied statically. Static
-    // relocations are normally resolved to the PLT for functions that have
-    // a PLT, but since this value is written by the GOT slot directly,
-    // it will store the real symbol value.
-    Relocation *Rel = Relocation::Create(
+  if (NeedsLazy) {
+    // Create a static relocation to the PLT0 fragment.
+    Relocation *r0 = Relocation::Create(
         is32Bits ? llvm::ELF::R_RISCV_32 : llvm::ELF::R_RISCV_64,
         is32Bits ? 32 : 64, make<FragmentRef>(*G));
-    Rel->setSymInfo(R);
-    getRelaPatch()->addRelocation(Rel);
-    // Point the `__llvm_patchable` alias to the PLT slot. If a patchable
-    // symbol is not referenced, the PLT and alias will not be created.
-    LDSymbol *PatchableAlias = m_Module.getNamePool().findSymbol(
-        std::string("__llvm_patchable_") + R->name());
-    if (!PatchableAlias || PatchableAlias->shouldIgnore())
-      config().raise(Diag::error_patchable_alias_not_found)
-          << std::string("__llvm_patchable_") + R->name();
-    else
-      PatchableAlias->setFragmentRef(make<FragmentRef>(*P));
-  } else {
-    if (!config().options().hasNow()) {
-      // For lazy binding, create GOTPLT0 and PLT0, if they don't exist.
-      if (!getPLT()->hasFragments())
-        RISCVPLT::CreatePLT0(*this, createGOT(GOT::GOTPLT0, Obj, nullptr),
-                             getPLT(), is32Bits);
-      // Create a static relocation to the PLT0 fragment.
-      Relocation *r0 = Relocation::Create(
-          is32Bits ? llvm::ELF::R_RISCV_32 : llvm::ELF::R_RISCV_64,
-          is32Bits ? 32 : 64, make<FragmentRef>(*G));
-      r0->modifyRelocationFragmentRef(
-          make<FragmentRef>(**getPLT()->getFragmentList().begin()));
-      Obj->getGOTPLT()->addRelocation(r0);
-    }
-    Relocation::Type relocType = (isIRelative ? llvm::ELF::R_RISCV_IRELATIVE
-                                              : llvm::ELF::R_RISCV_JUMP_SLOT);
-    // Create a dynamic relocation for the GOTPLT slot.
-    Relocation *dynRel = Relocation::Create(relocType, is32Bits ? 32 : 64,
-                                            make<FragmentRef>(*G));
-    dynRel->setSymInfo(R);
-    Obj->getRelaPLT()->addRelocation(dynRel);
+    r0->modifyRelocationFragmentRef(
+        make<FragmentRef>(**getPLT()->getFragmentList().begin()));
+    getGOTPLT()->addRelocation(r0);
   }
+
+  Relocation::Type relocType = (isIRelative ? llvm::ELF::R_RISCV_IRELATIVE
+                                            : llvm::ELF::R_RISCV_JUMP_SLOT);
+  // Create a dynamic relocation for the GOTPLT slot.
+  Relocation *dynRel =
+      Relocation::Create(relocType, is32Bits ? 32 : 64, make<FragmentRef>(*G));
+  dynRel->setSymInfo(R);
+  getRelaPLT()->addRelocation(dynRel);
   return P;
 }
 
@@ -2629,7 +2696,6 @@ void RISCVLDBackend::setDefaultConfigs() {
   if (config().options().threadsEnabled() &&
       !config().isGlobalThreadingEnabled()) {
     config().disableThreadOptions(
-        LinkerConfig::EnableThreadsOpt::ScanRelocations |
         LinkerConfig::EnableThreadsOpt::ApplyRelocations |
         LinkerConfig::EnableThreadsOpt::LinkerRelaxation);
   }

@@ -100,10 +100,15 @@ public:
     return VerSyms[SymIdx] & llvm::ELF::VERSYM_VERSION;
   }
 
-  // Returns true if the versym entry is not hidden (default version).
+  // Returns true only for an actual versioned symbol whose version is the
+  // default (hidden bit clear). The reserved indices VER_NDX_LOCAL and
+  // VER_NDX_GLOBAL are not real versions and return false.
   bool isDefaultVersionedSymbol(uint32_t SymIdx) const {
     assert(SymIdx < VerSyms.size() && "Invalid SymIdx");
-    return VerSyms[SymIdx] == getSymbolVersionID(SymIdx);
+    uint16_t VerID = getSymbolVersionID(SymIdx);
+    if (VerID == llvm::ELF::VER_NDX_LOCAL || VerID == llvm::ELF::VER_NDX_GLOBAL)
+      return false;
+    return VerSyms[SymIdx] == VerID;
   }
 
   // Returns the output verneed index for an input version index.
@@ -133,16 +138,6 @@ public:
   }
 
   bool hasSymbolVersioningInfo() const { return VerSymSection != nullptr; }
-
-  // Record non-canonical symbols. For example, foo for `foo@@V1`.
-  void addNonCanonicalSymbol(LDSymbol *Sym) {
-    NonCanonicalSymbols.push_back(Sym);
-  }
-
-  // Returns the set of recorded non-canonical alias symbols
-  const std::vector<LDSymbol *> &getNonCanonicalSymbols() const {
-    return NonCanonicalSymbols;
-  }
 #endif
 
 private:
@@ -157,7 +152,6 @@ private:
   std::vector<uint16_t> VerSyms;
   /// It stores the output version ID for input version IDs.
   std::vector<uint16_t> OutputVernAuxIDMap;
-  std::vector<LDSymbol *> NonCanonicalSymbols;
 #endif
 };
 

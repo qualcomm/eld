@@ -11,6 +11,7 @@ ARM (32-bit) supports two instruction set architectures: the 32-bit ARM ISA and 
 | `S` | Runtime address of the referenced symbol |
 | `A` | Relocation addend |
 | `P` | Address of the relocation site (place) |
+| `Pa` | `(P + 4) & ~3` — Thumb aligned PC (address of the place, PC-biased and aligned to 4 bytes) |
 | `T` | 1 if the target symbol is a Thumb function, 0 otherwise |
 | `B(S)` | Base address of the segment containing symbol `S` |
 | `GOT_ORG` | Address of the Global Offset Table |
@@ -69,7 +70,20 @@ movt r0, #:upper16:symbol   @ R_ARM_THM_MOVT_ABS
 | `R_ARM_THM_MOVT_BREL` | `S + A - P` | `[31:16]` | none |
 | `R_ARM_THM_MOVW_BREL_NC` | `((S + A) \| T) - B(S)` | `[15:0]` | none |
 | `R_ARM_THM_MOVW_BREL` | `((S + A) \| T) - B(S)` | `[15:0]` | none |
-| `R_ARM_ALU_PC_G0` | `((S + A) \| T) - P` | top 8 bits, 4-bit rotation | none |
+| `R_ARM_ALU_PC_G0` | `((S + A) \| T) - P` | top 8 bits, 4-bit rotation | overflow checked |
+| `R_ARM_ALU_PC_G0_NC` | `((S + A) \| T) - P` | top 8 bits, 4-bit rotation | none (truncates) |
+| `R_ARM_ALU_PC_G1` | `((S + A) \| T) - P` | top 8 bits, 4-bit rotation | overflow checked |
+| `R_ARM_ALU_PC_G1_NC` | `((S + A) \| T) - P` | top 8 bits, 4-bit rotation | none (truncates) |
+| `R_ARM_ALU_PC_G2` | `((S + A) \| T) - P` | top 8 bits, 4-bit rotation | overflow checked |
+| `R_ARM_LDR_PC_G0` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
+| `R_ARM_LDR_PC_G1` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
+| `R_ARM_LDR_PC_G2` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
+| `R_ARM_THM_PC8` | `S + A - Pa` | imm8:00 (bits 7:0) | [0, 1023], 4-byte aligned |
+| `R_ARM_THM_PC12` | `((S + A) \| T) - Pa` | U:imm12 | [-4095, 4095] |
+
+`R_ARM_THM_PC8` uses `Pa = (P + 4) & ~3` — the Thumb instruction address aligned to the next 4-byte boundary — instead of `P`.
+
+`R_ARM_THM_PC12` uses `Pa = P & ~3`. The sign is encoded with the U bit and the magnitude in imm12.
 
 `R_ARM_SBREL32` uses the same handler as `R_ARM_REL32` but produces a segment-base-relative offset. `R_ARM_PREL31` is used in ARM exception table entries.
 
@@ -128,12 +142,10 @@ The table below lists every relocation that ELD's ARM backend maps to the `unsup
 
 | Type | Relocation | ABI category | TODO |
 |------|-----------|--------------|------|
-| 4 | `R_ARM_LDR_PC_G0` | Group reloc — literal-pool PC-relative LDR (G0) | Implement LDR PC-group G0 |
 | 5 | `R_ARM_ABS16` | 16-bit absolute | Implement 16-bit absolute |
 | 6 | `R_ARM_ABS12` | 12-bit absolute (LDR/STR immediate) | Implement ABS12 |
 | 7 | `R_ARM_THM_ABS5` | Thumb 5-bit absolute (LDR/STR) | |
 | 8 | `R_ARM_ABS8` | 8-bit absolute | |
-| 11 | `R_ARM_THM_PC8` | Thumb 8-bit PC-relative (LDR literal) | |
 | 12 | `R_ARM_BREL_ADJ` | Dynamic — adjustment for R_ARM_TLS_DESC | Dynamic only |
 | 13 | `R_ARM_TLS_DESC` | Dynamic TLS descriptor | Dynamic only |
 | 14 | `R_ARM_THM_SWI8` | Obsolete | |
@@ -156,15 +168,8 @@ The table below lists every relocation that ELD's ARM backend maps to the `unsup
 | 39 | `R_ARM_SBREL31` | Deprecated 31-bit section-relative | |
 | 52 | `R_ARM_THM_JUMP6` | Thumb 6-bit branch (CBZ/CBNZ) | |
 | 53 | `R_ARM_THM_ALU_PREL_11_0` | Thumb-2 ALU PC-relative 11:0 | |
-| 54 | `R_ARM_THM_PC12` | Thumb-2 LDR/STR 12-bit PC-relative | |
 | 55 | `R_ARM_ABS32_NOI` | 32-bit absolute, no interworking bit | |
 | 56 | `R_ARM_REL32_NOI` | 32-bit PC-relative, no interworking bit | |
-| 57 | `R_ARM_ALU_PC_G0_NC` | Group reloc — ALU PC-relative G0, no overflow | Implement ALU_PC_G group |
-| 59 | `R_ARM_ALU_PC_G1_NC` | Group reloc — ALU PC-relative G1, no overflow | Implement ALU_PC_G group |
-| 60 | `R_ARM_ALU_PC_G1` | Group reloc — ALU PC-relative G1 | Implement ALU_PC_G group |
-| 61 | `R_ARM_ALU_PC_G2` | Group reloc — ALU PC-relative G2 | Implement ALU_PC_G group |
-| 62 | `R_ARM_LDR_PC_G1` | Group reloc — LDR PC-relative G1 | Implement LDR PC-group |
-| 63 | `R_ARM_LDR_PC_G2` | Group reloc — LDR PC-relative G2 | Implement LDR PC-group |
 | 64 | `R_ARM_LDRS_PC_G0` | Group reloc — LDRD/STRD PC-relative G0 | Implement LDRS PC-group |
 | 65 | `R_ARM_LDRS_PC_G1` | Group reloc — LDRD/STRD PC-relative G1 | Implement LDRS PC-group |
 | 66 | `R_ARM_LDRS_PC_G2` | Group reloc — LDRD/STRD PC-relative G2 | Implement LDRS PC-group |
@@ -218,7 +223,6 @@ The following discrepancies or gaps were found when comparing this document agai
 | `R_ARM_TLS_LE32` expression | Document shows `S + A + 2*WordSize + ...`; ABI defines it as `S + A - tp` (offset from thread pointer) | Fix expression in TLS table to `S + A - tp` |
 | `R_ARM_GOT_BREL` bits column | Document shows `12`; ABI says the relocation places a 32-bit GOT-relative offset — the `12` refers to LDR's 12-bit immediate encoding, which is an instruction constraint, not the relocation size | Clarify as `32` with a note that the offset must fit in 12 bits |
 | `R_ARM_SBREL32` | Documented as identical to `R_ARM_REL32`; ABI marks it as using the segment base `B(S)` rather than `P`, so the formula is `((S+A)\|T) - B(S)` not `-P` | Fix expression to `((S + A) \| T) - B(S)` |
-| `R_ARM_ALU_PC_G0` (type 58) | Documented in this file and handled by ELD via the `alu_pc` handler; the G1/G2 variants and the `_NC` forms (57, 59-61) are unsupported — not noted in the PC-relative table | Add a note that only G0 is supported |
 | Thumb branch ranges | `R_ARM_THM_CALL` and `R_ARM_THM_JUMP24` are shown with `±16 MB` range; ABI specifies the range depends on whether J1J2 encoding is available (±4 MB without it) | Add conditional range note matching the Thumb Branch table in the Veneers section |
 | `R_ARM_TARGET2` | Handled by ELD (as `target2`) but not documented in any section of this file | Add `R_ARM_TARGET2` to the PC-relative or absolute table with a note that its behaviour (ABS32 or GOT-relative) is controlled by a linker option |
 | Deprecated relocations | `R_ARM_PC24` and `R_ARM_PLT32` are listed in the Branch section without noting they are deprecated in favour of `R_ARM_CALL`/`R_ARM_JUMP24` | Add deprecation note |
@@ -264,6 +268,8 @@ The linker selects a veneer template based on link-time options and the target C
 | THUMB1 | Microcontroller without MOVT/MOVW | `push {r0,r1}; ldr r0, [pc, #4]; str r0, [sp,#4]; pop {r0,pc}; dcd target` |
 
 For Thumb→Thumb veneers the stub body first switches to ARM mode (`bx pc; nop`) before executing the ABS or PIC template, because the ARM load/branch sequence is simpler. The MOV and THUMB1 templates operate entirely in Thumb-2 or Thumb-1 respectively and therefore do not need that prefix.
+
+Because the ABS/PIC Thumb→Thumb stub body switches ISA partway through, the fragment must carry correct ARM-ELF mapping symbols: `$t` at offset 0 (the `bx pc; nop` preamble, still Thumb) and `$a` at offset 4 (where the ARM-mode `ldr`/`add`/`bx` sequence actually begins). Getting these swapped doesn't corrupt the emitted code (the CPU executes the real bytes regardless) but it does corrupt mode-aware disassembly (`objdump -d`, debuggers) for the stub, since those tools trust the mapping symbols rather than re-deriving the mode.
 
 ---
 

@@ -41,7 +41,7 @@ eld::Expected<void> ExternCmd::activate(Module &CurModule) {
             ResolveInfo::Binding::Global, /*Size=*/0, /*Value=*/0,
             /*CurFragmentRef=*/FragmentRef::null(),
             ResolveInfo::Visibility::Default,
-            /*postLTOPhase=*/false, /*IsBitcode=*/false, /*IsPatchable=*/false);
+            /*postLTOPhase=*/false, /*IsBitcode=*/false);
     CurModule.getConfig().options().getUndefSymList().emplace_back(
         eld::make<StrToken>(Name));
     ScriptSymbol *ScriptSym = llvm::dyn_cast_or_null<ScriptSymbol>(E);

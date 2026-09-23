@@ -1,0 +1,324 @@
+OUTPUT_FORMAT("elf32-littlehexagon", "elf32-bighexagon",
+	      "elf32-littlehexagon")
+OUTPUT_ARCH(hexagon)
+SECTIONS
+{
+  /* Shared objects are position independent: they start at address 0 and are
+   * relocated to their final load address by the runtime loader.  No
+   * --section-start is used and no ENTRY() is declared, since a shared object
+   * is never the entry point of a program.
+   *
+   * This template deliberately does NOT use a PHDRS command.  Without one, the
+   * linker synthesizes the standard program headers automatically, including
+   * PT_LOAD, PT_DYNAMIC, PT_TLS and PT_GNU_EH_FRAME.  Declaring PHDRS here
+   * would suppress that synthesis and every segment (notably PT_TLS, which
+   * the loader needs to set up per-object TLS blocks) would have to be spelled
+   * out by hand.
+   */
+
+  /* Dynamic linking metadata.  The loader reads these before it can resolve
+   * anything, so they are placed first, in the read-only segment. */
+
+  /* SysV hash section */
+  .hash           :  { *(.hash) }
+
+  /* GNU hash section */
+  .gnu.hash       :  { *(.gnu.hash) }
+
+  /* Dynamic Symbol Table section */
+  .dynsym         :  { *(.dynsym) }
+
+  /* Dynamic string table section */
+  .dynstr         :  { *(.dynstr) }
+
+  /* Symbol versioning sections.  Mentioned explicitly so they land next to
+   * .dynsym/.dynstr instead of being placed as orphans much later in the
+   * image. */
+  .gnu.version    :  { *(.gnu.version) }
+  .gnu.version_d  :  { *(.gnu.version_d) }
+  .gnu.version_r  :  { *(.gnu.version_r) }
+
+  /* Dynamic relocations for data.
+   * .rela.dyn collects every flavour of dynamic relocation section
+   * (.rela.got, .rela.data, .rela.text, ...) so that DT_RELA covers one
+   * contiguous range.  .rela.plt is kept separate because it is described by
+   * DT_JMPREL and must not be included in the DT_RELA range. */
+  .rela.dyn       :
+  {
+    *(.rela.init)
+    *(.rela.text .rela.text.* .rela.gnu.linkonce.t.*)
+    *(.rela.fini)
+    *(.rela.rodata .rela.rodata.* .rela.gnu.linkonce.r.*)
+    *(.rela.data .rela.data.* .rela.gnu.linkonce.d.*)
+    *(.rela.tdata .rela.tdata.* .rela.gnu.linkonce.td.*)
+    *(.rela.tbss .rela.tbss.* .rela.gnu.linkonce.tb.*)
+    *(.rela.ctors)
+    *(.rela.dtors)
+    *(.rela.got)
+    *(.rela.sdata .rela.sdata.* .rela.gnu.linkonce.s.*)
+    *(.rela.sbss .rela.sbss.* .rela.gnu.linkonce.sb.*)
+    *(.rela.bss .rela.bss.* .rela.gnu.linkonce.b.*)
+    *(.rela.dyn)
+  }
+
+  /* Dynamic relocations for PLT (DT_JMPREL) */
+  .rela.plt       :  { *(.rela.plt) }
+
+  /* Initializer */
+  .init           :
+  {
+    KEEP (*(.init))
+  } =0x00c0007f
+
+  /* Procedure Linkage table */
+  .plt            :  { *(.plt) }
+
+  /* Text section */
+  .text           :
+  {
+    *(.text.unlikely .text.*_unlikely)
+    *(.text.hot .text.hot.* .gnu.linkonce.t.hot.*)
+    *(.text .stub .text.* .gnu.linkonce.t.*)
+    . = ALIGN(16);
+    __start___lcxx_override = .;
+    *(__lcxx_override)
+    __stop___lcxx_override = .;
+  } =0x00c0007f
+
+  /* Finalizer section */
+  .fini           :
+  {
+    KEEP (*(.fini))
+  } =0x00c0007f
+
+  /* Standard symbols for Text */
+  PROVIDE (__etext = .);
+  PROVIDE (_etext = .);
+  PROVIDE (etext = .);
+
+  /* Read Only Data */
+  .rodata         :
+  {
+    *(.rodata.hot .rodata.hot.* .gnu.linkonce.r.hot.*)
+    *(.rodata .rodata.* .gnu.linkonce.r.*)
+  }
+
+  /* EH Frame Information.
+   * .eh_frame is not guarded with ONLY_IF_RO here: with -fPIC the unwind
+   * tables may need dynamic relocations, which makes the section writable.
+   * An ONLY_IF_RO guard would then reject it here and let it drift out as an
+   * orphan, separating it from .eh_frame_hdr that describes it. */
+  .eh_frame_hdr   :
+  {
+    __eh_frame_hdr_start = .;
+    KEEP (*(.eh_frame_hdr))
+    __eh_frame_hdr_end = .;
+  }
+  .eh_frame       :
+  {
+    __eh_frame_start = .;
+    KEEP (*(.eh_frame))
+    __eh_frame_end = .;
+  }
+  .gcc_except_table :
+  {
+    *(.gcc_except_table .gcc_except_table.*)
+  }
+
+  /* Thread Local Storage sections.
+   *
+   * A shared object only supplies the TLS *template* (.tdata initial image
+   * plus .tbss size); the runtime loader allocates the actual per-object TLS
+   * block on dlopen().  So, unlike the static executable template, no
+   * .tls_space region is reserved here and no __tls_base is defined.
+   *
+   * .tdata and .tbss must stay adjacent and in this order so that the single
+   * PT_TLS segment describes both, with p_filesz covering .tdata and p_memsz
+   * covering .tdata + .tbss. */
+  . = ALIGN(8);
+  /* TLS Initialized Data */
+  .tdata          :
+  {
+    _TLS_START_ = .;
+    TLS_START = _TLS_START_;
+    __tdata_source = .;
+    __tdata_start = __tdata_source;
+    *(.tdata .tdata.* .gnu.linkonce.td.*)
+  }
+  _TLS_DATA_END_ = .;
+  __tdata_end = _TLS_DATA_END_;
+  __tdata_size = __tdata_end - __tdata_source;
+
+  /* TLS Uninitialized BSS */
+  .tbss           :
+  {
+    __tbss_start = .;
+    *(.tbss .tbss.* .gnu.linkonce.tb.*)
+    . = ALIGN(8);
+    __tbss_end = .;
+  }
+  _TLS_END_ = __tbss_end;
+  TLS_END = _TLS_END_;
+  __tbss_size = __tbss_end - __tbss_start;
+  __tbss_offset = __tbss_start - __tdata_start;
+
+  /* Constructors and Destructors.
+   *
+   * All constructor input sections are collected into a SINGLE output section,
+   * and likewise for destructors, so that DT_INIT_ARRAY/DT_INIT_ARRAYSZ (and
+   * DT_FINI_ARRAY/DT_FINI_ARRAYSZ) describe one contiguous range.
+   *
+   * The priority-suffixed variants (.init_array.NNN from
+   * __attribute__((constructor(NNN)))) must be matched here as well.  If only
+   * the unsuffixed name were matched, each .init_array.NNN would be placed as
+   * an orphan output section outside the DT_INIT_ARRAY range and those
+   * constructors would silently never run.
+   *
+   * SORT_BY_INIT_PRIORITY orders the suffixed entries by priority, and they
+   * precede the unsuffixed ones, matching the order the runtime expects.
+   *
+   * KEEP is required on all of them: nothing references these arrays
+   * symbolically, so --gc-sections would otherwise discard them. */
+  .preinit_array  :
+  {
+    PROVIDE_HIDDEN ( __preinit_array_start = . );
+    KEEP (*(.preinit_array))
+    PROVIDE_HIDDEN ( __preinit_array_end = . );
+  }
+  .init_array     :
+  {
+    PROVIDE_HIDDEN ( __init_array_start = . );
+    KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*)))
+    KEEP (*(.init_array))
+    PROVIDE_HIDDEN ( __init_array_end = . );
+
+    PROVIDE_HIDDEN ( __ctors_start = . );
+    KEEP (*(SORT_BY_INIT_PRIORITY(.ctors.*)))
+    KEEP (*(.ctors))
+    PROVIDE_HIDDEN ( __ctors_end = . );
+  }
+  .fini_array     :
+  {
+    PROVIDE_HIDDEN ( __fini_array_start = . );
+    KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*)))
+    KEEP (*(.fini_array))
+    PROVIDE_HIDDEN ( __fini_array_end = . );
+
+    PROVIDE_HIDDEN ( __dtors_start = . );
+    KEEP (*(SORT_BY_INIT_PRIORITY(.dtors.*)))
+    KEEP (*(.dtors))
+    PROVIDE_HIDDEN ( __dtors_end = . );
+  }
+
+  /* Read-only-after-relocation data.  Kept immediately before .dynamic and
+   * the GOT so that a single PT_GNU_RELRO can cover this whole run when
+   * -z relro is in effect. */
+  .data.rel.ro    :
+  {
+    *(.data.rel.ro.local .data.rel.ro.local.*)
+    *(.data.rel.ro .data.rel.ro.*)
+  }
+
+  /* Dynamic Sections */
+  .dynamic        :  { *(.dynamic) }
+
+  /* GOT section */
+  .got            :  { *(.got) }
+
+  /* GOT slots for PLT section */
+  .got.plt        :  { *(.got.plt) }
+
+  .data           :
+  {
+    *(.data.hot .data.hot.* .gnu.linkonce.d.hot.*)
+    *(.data .data.* .gnu.linkonce.d.*)
+    SORT(CONSTRUCTORS)
+  }
+  _edata = .; PROVIDE (edata = .);
+
+  /* Small data.
+   * A shared object is normally built with -G0, which disables small-data
+   * placement, so these are usually empty.  They are matched anyway so that a
+   * .so built without -G0 does not scatter small-data orphans through the
+   * image. */
+  .sdata          :
+  {
+    PROVIDE (_SDA_BASE_ = .);
+    *(.sdata.1 .sdata.1.* .gnu.linkonce.s.1.*)
+    *(.sdata.2 .sdata.2.* .gnu.linkonce.s.2.*)
+    *(.sdata.4 .sdata.4.* .gnu.linkonce.s.4.*)
+    *(.lit[a4] .lit[a4].* .gnu.linkonce.l[a4].*)
+    *(.sdata.8 .sdata.8.* .gnu.linkonce.s.8.*)
+    *(.lit8 .lit8.* .gnu.linkonce.l8.*)
+    *(.sdata.hot .sdata.hot.* .gnu.linkonce.s.hot.*)
+    *(.sdata .sdata.* .gnu.linkonce.s.*)
+  }
+
+  /* BSS.
+   * Small BSS and regular BSS are collected into a single output section so
+   * that the linker cannot place an orphan between them, which would leave a
+   * gap inside the [__bss_start, __bss_end) range that startup code zeroes.
+   * .dynbss holds the linker-created copies for copy relocations. */
+  .bss            :
+  {
+    PROVIDE (__sbss_start = .);
+    PROVIDE (___sbss_start = .);
+    *(.dynsbss)
+    *(.sbss.1 .sbss.1.* .gnu.linkonce.sb.1.*)
+    *(.scommon.1 .scommon.1.*)
+    *(.sbss.2 .sbss.2.* .gnu.linkonce.sb.2.*)
+    *(.scommon.2 .scommon.2.*)
+    *(.sbss.4 .sbss.4.* .gnu.linkonce.sb.4.*)
+    *(.scommon.4 .scommon.4.*)
+    *(.sbss.8 .sbss.8.* .gnu.linkonce.sb.8.*)
+    *(.scommon.8 .scommon.8.*)
+    *(.sbss.hot .sbss.hot.* .gnu.linkonce.sb.hot.*)
+    *(.sbss .sbss.* .gnu.linkonce.sb.*)
+    *(.scommon .scommon.*)
+    PROVIDE (__sbss_end = .);
+    PROVIDE (___sbss_end = .);
+
+    *(.dynbss)
+    *(.bss.hot .bss.hot.* .gnu.linkonce.b.hot.*)
+    *(.bss .bss.* .gnu.linkonce.b.*)
+    *(COMMON)
+  }
+  __bss_start = ADDR(.bss);
+  __bss_end = ADDR(.bss) + SIZEOF(.bss);
+  __bss_size = SIZEOF(.bss);
+
+  . = ALIGN (64);
+  _end = .;
+  PROVIDE (end = .);
+
+  /* Non alloc sections */
+  .hexagon.attributes 0 : { *(.hexagon.attributes) }
+  .comment       0 :  { *(.comment) }
+  /* Non-allocatable notes (for example .note.llvm.cgmdinfo emitted by the
+   * compiler).  Matched explicitly so they do not show up as orphan sections
+   * under --orphan-handling=warn.  .note.GNU-stack is discarded below. */
+  .note          0 :  { *(.note .note.*) }
+  /* DWARF debug sections.
+     Symbols in the DWARF debugging sections are relative to the beginning
+     of the section so we begin them at 0.  */
+  /* DWARF 1 */
+  .debug          0 :  { *(.debug) }
+  .line           0 :  { *(.line) }
+  /* GNU DWARF 1 extensions */
+  .debug_srcinfo  0 :  { *(.debug_srcinfo) }
+  .debug_sfnames  0 :  { *(.debug_sfnames) }
+  /* DWARF 1.1 and DWARF 2 */
+  .debug_aranges  0 :  { *(.debug_aranges) }
+  .debug_pubnames 0 :  { *(.debug_pubnames) }
+  /* DWARF 2 */
+  .debug_info     0 :  { *(.debug_info .gnu.linkonce.wi.*) }
+  .debug_abbrev   0 :  { *(.debug_abbrev) }
+  .debug_line     0 :  { *(.debug_line) }
+  .debug_frame    0 :  { *(.debug_frame) }
+  .debug_str      0 :  { *(.debug_str) }
+  .debug_loc      0 :  { *(.debug_loc) }
+  /* DWARF 3 */
+  .debug_pubtypes 0 :  { *(.debug_pubtypes) }
+  .debug_ranges   0 :  { *(.debug_ranges) }
+  /DISCARD/       :  { *(.note.GNU-stack) *(.gnu_debuglink) }
+}

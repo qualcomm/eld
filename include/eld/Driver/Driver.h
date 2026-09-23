@@ -31,6 +31,10 @@ class DLL_A_EXPORT Driver {
 public:
   Driver(DriverFlavor F = DriverFlavor::Invalid);
 
+  /// Linker entry point. This must live in the LinkerWrapper library rather
+  /// than in the ld.eld executable.
+  static int main(int Argc, const char **Argv);
+
   bool setDriverFlavorAndInferredArchFromLinkCommand(
       llvm::ArrayRef<const char *> Args);
 

@@ -39,8 +39,8 @@ RUN: %readelf --dyn-syms %t3.so | %filecheck --check-prefix=STAR_LOW %s
 STAR_LOW-NOT: foo
 STAR_LOW-NOT: foo1
 STAR_LOW-NOT: foo2
-STAR_LOW-DAG: bar
-STAR_LOW-DAG: bar1
+STAR_LOW-DAG: bar{{$}}
+STAR_LOW-DAG: bar1{{$}}
 STAR_LOW-DAG: baz
 STAR_LOW-DAG: qux
 

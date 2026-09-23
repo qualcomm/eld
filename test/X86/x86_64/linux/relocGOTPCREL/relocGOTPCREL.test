@@ -1,0 +1,12 @@
+#UNSUPPORTED: windows, darwin
+#--relocGOTPCRELStatic.test----------Executable--------#
+BEGIN_COMMENT
+# Test R_X86_64_GOTPCREL relocation type support.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/relocGOTPCREL_test.c -o %t.relocGOTPCREL_test.o
+RUN: %link %linkopts -o %t.relocGOTPCREL_test.out %t.relocGOTPCREL_test.o
+RUN: %run_and_print_exit %t.relocGOTPCREL_test.out | %filecheck %s --check-prefix=EXITCODE
+EXITCODE: 42
+#END_TEST

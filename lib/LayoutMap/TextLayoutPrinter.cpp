@@ -878,6 +878,9 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
   const LayoutInfo::RemoveSymbolOpsMapT RemovedSymbols =
       ThisLayoutInfo->getRemovedSymbols();
 
+  const LayoutInfo::SetSymbolAddressOpsMapT SetSymbolAddressOps =
+      ThisLayoutInfo->getSetSymbolAddressOps();
+
   bool HasFragOffsets =
       (CurModule.getState() >= LinkState::ActBeforePerformingLayout);
 
@@ -904,6 +907,8 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
 
     auto Removed = RemovedSymbols.find((*Syms)->resolveInfo());
 
+    auto SetAddress = SetSymbolAddressOps.find((*Syms)->resolveInfo());
+
     if (!IsGc) {
       outputStream() << "\t";
       printOffsetHelper(HasFragOffsets, [&, this]() {
@@ -921,6 +926,9 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
     if (Removed != RemovedSymbols.end())
       outputStream() << " {" << Removed->getSecond()->getPluginOpStr() << ", "
                      << Removed->getSecond()->getPluginName() << "}";
+    if (SetAddress != SetSymbolAddressOps.end())
+      outputStream() << " {" << SetAddress->getSecond()->getPluginOpStr()
+                     << ", " << SetAddress->getSecond()->getPluginName() << "}";
     if (IsBitcode) {
       outputStream() << "\t"
                      << "#(Bitcode origin:"
@@ -1331,16 +1339,14 @@ void TextLayoutPrinter::printMapFile(eld::Module &Module) {
 
   for (const auto *X : (Script.getScriptCommands())) {
     if (const Assignment *A = llvm::dyn_cast<Assignment>(X))
-      printAssignment(*A, Module, UseColor);
+      if (A->level() == Assignment::Level::BeforeSections)
+        printAssignment(*A, Module, UseColor);
   }
 
   printLayout(Module);
 
   if (!ThisLayoutInfo->showOnlyLayout())
     printPluginInfo(Module);
-
-  if (ThisLayoutInfo->showSymbolResolution())
-    printSymbolResolution(Module);
 }
 
 void TextLayoutPrinter::printLayout(eld::Module &Module) {
@@ -1433,12 +1439,8 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
       }
     }
 
-    // Evaluate all assignments at the end of the output section.
-    for (OutputSectionEntry::sym_iterator It = (*Out)->sectionendsymBegin(),
-                                          Ie = (*Out)->sectionendsymEnd();
-         It != Ie; ++It) {
-      printAssignment(**It, Module, UseColor);
-    }
+    (*Out)->forEachPostOutputSectionAssignment(
+        [&](const Assignment *A) { printAssignment(*A, Module, UseColor); });
   }
 }
 
@@ -1533,51 +1535,6 @@ void TextLayoutPrinter::printFragments(Module &Module, ELFSection &OutSect,
   } else {
     for (auto &F : R.getSection()->getFragmentList())
       printFrag(Module, &OutSect, F, UseColor);
-  }
-}
-
-void TextLayoutPrinter::printSymbolResolution(Module &Module) {
-  NamePool &NP = Module.getNamePool();
-  SymbolResolutionInfo &SRI = NP.getSRI();
-  const auto &Symbols = Module.getSymbols();
-  const GeneralOptions &Options = ThisLayoutInfo->getConfig().options();
-  SRI.setupCandidatesInfo(NP, Module.getScript());
-
-  outputStream() << "# Symbol Resolution: "
-                 << "\n";
-
-  size_t Index = 0;
-  for (const auto *RI : Symbols) {
-    if (RI->isLocal() &&
-        RI->resolvedOrigin() != Module.getInternalInput(Module::Plugin))
-      continue;
-    ++Index;
-    llvm::StringRef SymName = RI->getName();
-    const SymbolResolutionInfo::CandidatesType Candidates =
-        SRI.getCandidates(SymName);
-    outputStream() << Index << ") " << SymName << "\n";
-    for (const auto &Candidate : Candidates) {
-      std::optional<SymbolInfo> OptSymbolInfo = SRI.getSymbolInfo(Candidate);
-      ASSERT(OptSymbolInfo, "Symbol info must be present!");
-      SymbolInfo CandidateInfo = OptSymbolInfo.value();
-
-      std::string CandidateInfoAsString =
-          SRI.getSymbolInfoAsString(Candidate, Options);
-      outputStream() << "\t" << CandidateInfoAsString;
-      if (Candidate->resolveInfo()->outSymbol() == Candidate ||
-          (CandidateInfo.isBitcodeSymbol() &&
-           CandidateInfo.getInputFile() ==
-               Candidate->resolveInfo()->resolvedOrigin()))
-        outputStream() << " [Selected]";
-      if (CandidateInfo.isBitcodeSymbol()) {
-        if (const LDSymbol *LTOSym =
-                SRI.getCorrespondingLTOObjectSymIfAny(Candidate)) {
-          outputStream() << "\n\t  "
-                         << SRI.getSymbolInfoAsString(LTOSym, Options);
-        }
-      }
-      outputStream() << "\n";
-    }
   }
 }
 

@@ -1,0 +1,14 @@
+#---OverlaySharedVmaLmaNoAt.test------------ Executable,LS------------------#
+# OVERLAY with No explicit AT() (LMA defaults to VMA)
+
+RUN: %clang %clangopts -c %p/Inputs/input.s -o %t.o
+RUN: %link %linkopts %t.o -o %t.elf -T %p/Inputs/overlay_no_at.lds
+RUN: %readelf -S -l %t.elf | %filecheck %s
+
+#CHECK: .small            PROGBITS        {{0*}}2000 {{0*[0-9a-f]+}} {{0*}}20
+#CHECK: .large            PROGBITS        {{0*}}2000 {{0*[0-9a-f]+}} {{0*}}100
+#CHECK: .tiny             PROGBITS        {{0*}}2000 {{0*[0-9a-f]+}} {{0*}}10
+#CHECK: .after            PROGBITS        {{0*}}2100 {{0*[0-9a-f]+}} {{0*}}10
+#CHECK: LOAD {{.*}}0x{{0*}}2000 0x{{0*}}2000
+#CHECK: LOAD {{.*}}0x{{0*}}2000 0x{{0*}}2020
+#CHECK: LOAD {{.*}}0x{{0*}}2000 0x{{0*}}2120

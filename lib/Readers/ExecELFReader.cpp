@@ -68,88 +68,18 @@ eld::Expected<ELFSection *> ExecELFReader<ELFT>::createSection(
       ELFSection::isEmbeddedBitcodeMetadataSection(sectName))
     SectionIsIgnore = true;
 
-  if (this->getInputFile()->getInput()->getAttribute().isPatchBase()) {
-    // When reading the executable base image in the patch link, we ignore all
-    // the sections except those explicitly mentioned below.
-    if (!((sectName == ".pgot" || sectName == ".rel.pgot" ||
-           sectName == ".rela.pgot") &&
-          (kind == LDFileFormat::Regular || kind == LDFileFormat::Relocation)))
-      SectionIsIgnore = true;
-  } else {
-    if (kind == LDFileFormat::EhFrame)
-      return module.getScript().sectionMap().createEhFrameSection(
-          sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
-          rawSectHdr.sh_entsize);
-    if (kind == LDFileFormat::SFrame)
-      return module.getScript().sectionMap().createSFrameSection(
-          sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
-          rawSectHdr.sh_entsize);
-  }
+  if (kind == LDFileFormat::EhFrame)
+    return module.getScript().sectionMap().createEhFrameSection(
+        sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
+        rawSectHdr.sh_entsize);
+  if (kind == LDFileFormat::SFrame)
+    return module.getScript().sectionMap().createSFrameSection(
+        sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
+        rawSectHdr.sh_entsize);
 
   return module.getScript().sectionMap().createELFSection(
       sectName, (SectionIsIgnore ? LDFileFormat::Discard : kind),
       rawSectHdr.sh_type, rawSectHdr.sh_flags, rawSectHdr.sh_entsize);
-}
-
-template <class ELFT>
-eld::Expected<bool> ExecELFReader<ELFT>::readRelocationSection(ELFSection *RS) {
-  ASSERT(RS->getType() == llvm::ELF::SHT_REL ||
-             RS->getType() == llvm::ELF::SHT_RELA,
-         "RS must be a relocation section!");
-  if (RS->isIgnore() || RS->isDiscard())
-    return true;
-  eld::Expected<bool> expReadRelocSect =
-      (RS->getType() == llvm::ELF::SHT_RELA
-           ? readRelocationSection</*isRela=*/true>(RS)
-           : readRelocationSection</*isRela=*/false>(RS));
-  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadRelocSect);
-  return expReadRelocSect.value();
-}
-
-template <class ELFT>
-template <bool isRela>
-eld::Expected<bool> ExecELFReader<ELFT>::readRelocationSection(ELFSection *RS) {
-  ASSERT(this->m_LLVMELFFile.has_value(), "m_LLVMELFFile must be initialized!");
-  if (!this->m_RawSectHdrs)
-    LLVMEXP_EXTRACT_AND_CHECK(this->m_RawSectHdrs,
-                              this->m_LLVMELFFile->sections());
-  ASSERT(this->m_RawSectHdrs, "m_RawSectHdrs must be initialized!");
-
-  const typename ELFReader<ELFT>::Elf_Shdr &rawS =
-      (*this->m_RawSectHdrs)[RS->getIndex()];
-
-  auto expRelRange = ELFReader<ELFT>::template getRelocations<isRela>(rawS);
-  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expRelRange);
-  auto relRange = std::move(expRelRange.value());
-
-  GNULDBackend &backend = this->m_Module.getBackend();
-  InputFile *inputFile = this->getInputFile();
-  ELFFileBase *EFile = llvm::cast<ELFFileBase>(inputFile);
-
-  for (const auto &R : relRange) {
-    uint32_t rSym = R.getSymbol(/*isMips=*/false);
-    LDSymbol *symbol = EFile->getSymbol(rSym);
-    if (!symbol) {
-      return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          Diag::err_cannot_read_symbol,
-          {std::to_string(rSym),
-           inputFile->getInput()->getResolvedPath().getFullPath()}));
-    }
-
-    ELFSection *linkSect = RS->getLink();
-    Relocation::Type rType = this->template getRelocationType<isRela>(R);
-    typename ELFReader<ELFT>::intX_t rAddend = this->getAddend(R);
-
-    uint64_t offset = R.r_offset - linkSect->addr();
-    if (backend.handleRelocation(linkSect, rType, *symbol, offset, rAddend))
-      continue;
-
-    Relocation *relocation = eld::IRBuilder::addRelocation(
-        backend.getRelocator(), linkSect, rType, *symbol, offset, rAddend);
-    if (relocation)
-      linkSect->addRelocation(relocation);
-  }
-  return backend.handlePendingRelocations(RS->getLink());
 }
 
 template <class ELFT>

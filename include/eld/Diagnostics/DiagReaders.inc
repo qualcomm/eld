@@ -67,6 +67,8 @@ DIAG(fatal_missing_target_triple, DiagnosticEngine::Fatal,
      "Missing target triple!")
 DIAG(error_unsupported_section_in_executable, DiagnosticEngine::Error,
      "Unsupported section %0 in executable input file %1")
+DIAG(error_executable_requires_just_symbols, DiagnosticEngine::Error,
+     "executable input file `%0' can only be used with --just-symbols")
 DIAG(verbose_symbol_has_aliases, DiagnosticEngine::Verbose,
      "Global symbol %0 from input file %1 has aliases: %2")
 DIAG(error_create_archive_member_input, DiagnosticEngine::Error,
@@ -91,11 +93,6 @@ DIAG(verbose_reusing_prev_memory_mapping, DiagnosticEngine::Verbose,
      "Reusing previous memory mapping for input file '%0'")
 DIAG(verbose_reusing_archive_file_info, DiagnosticEngine::Verbose,
      "Reusing archive file info for '%0'")
-DIAG(error_patch_dynamic_input, DiagnosticEngine::Error,
-     "Dynamic input '%0' cannot be used with patching")
-DIAG(error_patch_invalid_symbol, DiagnosticEngine::Error,
-     "Symbol '%0' from file '%1' cannot be patched. Only global non-common "
-     "symbols can be patched")
 DIAG(warning_abi_differences, DiagnosticEngine::Warning,
      "'%0' has OS/ABI set to %1, previously seen %2")
 DIAG(error_unknown_target_emulation, DiagnosticEngine::Error,

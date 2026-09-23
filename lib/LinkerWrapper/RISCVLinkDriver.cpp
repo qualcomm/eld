@@ -20,25 +20,8 @@ using namespace llvm;
 using namespace llvm::opt;
 using namespace eld;
 
-#define OPTTABLE_STR_TABLE_CODE
+#define OPTTABLE_CODE
 #include "eld/Driver/RISCVLinkerOptions.inc"
-#undef OPTTABLE_STR_TABLE_CODE
-
-#define OPTTABLE_PREFIXES_TABLE_CODE
-#include "eld/Driver/RISCVLinkerOptions.inc"
-#undef OPTTABLE_PREFIXES_TABLE_CODE
-
-static constexpr llvm::opt::OptTable::Info infoTable[] = {
-#define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
-               ALIASARGS, FLAGS, VISIBILITY, PARAM, HELPTEXT,                  \
-               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)                          \
-  LLVM_CONSTRUCT_OPT_INFO(                                                     \
-      PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, RISCVLinkOptTable::ID, KIND,      \
-      RISCVLinkOptTable::GROUP, RISCVLinkOptTable::ALIAS, ALIASARGS, FLAGS,    \
-      VISIBILITY, PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET),
-#include "eld/Driver/RISCVLinkerOptions.inc"
-#undef OPTION
-};
 
 static Triple ParseEmulation(std::string pEmulation, Triple &triple,
                              DiagnosticEngine *DiagEngine) {
@@ -52,8 +35,7 @@ static Triple ParseEmulation(std::string pEmulation, Triple &triple,
   return result;
 }
 
-OPT_RISCVLinkOptTable::OPT_RISCVLinkOptTable()
-    : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
+OPT_RISCVLinkOptTable::OPT_RISCVLinkOptTable() : OptTable(optionTables()) {}
 
 RISCVLinkDriver *RISCVLinkDriver::Create(eld::LinkerConfig &C,
                                          std::string InferredArch) {
@@ -99,9 +81,12 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
                      /*ShowAllAliases=*/true);
     return LINK_SUCCESS;
   }
-  if (ArgList.hasArg(OPT_RISCVLinkOptTable::version)) {
-    printVersionInfo();
-    return LINK_SUCCESS;
+  if (llvm::opt::Arg *Arg = ArgList.getLastArg(
+          OPT_RISCVLinkOptTable::v, OPT_RISCVLinkOptTable::version)) {
+    if (Arg->getOption().matches(OPT_RISCVLinkOptTable::version)) {
+      printVersionInfo();
+      return LINK_SUCCESS;
+    }
   }
   // --about
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::about)) {
@@ -196,22 +181,6 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::keep_labels))
     Config.options().setKeepLabels();
 
-  // --patch-enable
-  if (ArgList.getLastArg(OPT_RISCVLinkOptTable::patch_enable))
-    Config.options().setPatchEnable();
-
-  // --patch-base
-  if (llvm::opt::Arg *arg =
-          ArgList.getLastArg(OPT_RISCVLinkOptTable::patch_base))
-    Config.options().setPatchBase(arg->getValue());
-
-  if (Config.options().isPatchEnable()) {
-    if (Config.options().getStripSymbolMode() ==
-        GeneralOptions::StripAllSymbols)
-      Config.raise(Diag::warn_strip_symbols) << "--patch-enable";
-    Config.options().setStripSymbols(eld::GeneralOptions::StripLocals);
-  }
-
   Config.options().setUnknownOptions(
       ArgList.getAllArgValues(OPT_RISCVLinkOptTable::UNKNOWN));
 
@@ -288,13 +257,6 @@ bool RISCVLinkDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (!GnuLdDriver::processOptions<T>(Args))
     return false;
 
-  // FIXME : remove duplicate code
-  if (Config.options().isPatchEnable()) {
-    if (Config.options().getStripSymbolMode() ==
-        GeneralOptions::StripAllSymbols)
-      Config.raise(Diag::warn_strip_symbols) << "--patch-enable";
-    Config.options().setStripSymbols(eld::GeneralOptions::StripLocals);
-  }
   return true;
 }
 

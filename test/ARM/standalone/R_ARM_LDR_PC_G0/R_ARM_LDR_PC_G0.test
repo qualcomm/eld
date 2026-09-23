@@ -1,0 +1,11 @@
+#---R_ARM_LDR_PC_G0.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify R_ARM_LDR_PC_G0 relocation is supported and correctly applied.
+# Formula: S + A - P encoded in LDR (literal) instruction.
+#END_COMMENT
+#START_TEST
+RUN: %clangas -c %p/Inputs/main.s -o %t.o
+RUN: %link %linkopts -march arm -static %t.o -o %t.out
+RUN: %readelf -x .text %t.out | %filecheck %s
+CHECK: 00000000 04000000
+#END_TEST

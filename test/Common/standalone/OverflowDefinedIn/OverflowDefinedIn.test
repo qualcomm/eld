@@ -1,0 +1,81 @@
+## Does not overflows on these targets so no link would run at all.
+UNSUPPORTED: riscv32, x86
+
+## NOTE: The overflow diagnostic currently names the input file only for
+## symbols defined in an object, bitcode, or shared file. Linker-script
+## assignments still fall back to the bare symbol name; we plan to update
+## the diagnostic to name the script and line in a follow-up.
+
+## Verify an overflow diagnostic names where the referenced symbol is defined.
+
+RUN: split-file %s %t
+
+## Address of a far symbol: AArch64, RISC-V 64.
+
+RUN: %if aarch64 || riscv64 %{ %clang %clangopts -c %t/addr.c -o %t/addr.o %}
+RUN: %if aarch64 || riscv64 %{ %clang %clangopts -c %t/fardata.c -o %t/far.o %}
+
+RUN: %if aarch64 || riscv64 %{ %not %link %linkopts %t/addr.o -T %t/assign.t -o /dev/null 2>&1 \
+RUN:   | %filecheck %s --check-prefix=ASSIGN %}
+
+RUN: %if aarch64 || riscv64 %{ %not %link %linkopts %t/addr.o %t/far.o -T %t/section.t -o /dev/null 2>&1 \
+RUN:   | %filecheck %s --check-prefix=OBJECT %}
+
+## Far call: ARM, Hexagon.
+
+RUN: %if arm || hexagon %{ %clang %clangopts -fno-asynchronous-unwind-tables -c %t/call.c -o %t/call.o %}
+RUN: %if arm || hexagon %{ %clang %clangopts -fno-asynchronous-unwind-tables -c %t/far.c -o %t/far.o %}
+
+RUN: %if arm || hexagon %{ %not %link %linkopts --no-trampolines %t/call.o -T %t/callassign.t -o /dev/null 2>&1 \
+RUN:   | %filecheck %s --check-prefix=ASSIGN %}
+
+RUN: %if arm || hexagon %{ %not %link %linkopts --no-trampolines %t/call.o %t/far.o -T %t/callsection.t -o /dev/null 2>&1 \
+RUN:   | %filecheck %s --check-prefix=OBJECT %}
+
+## TODO: name the script and line (e.g. "assign.t:1('faraway')") once the diagnostic is extended.
+ASSIGN:      out of range
+ASSIGN-SAME: references 'faraway'
+
+OBJECT:      out of range
+OBJECT-SAME: references {{.*}}far.o('faraway')
+
+#--- addr.c
+extern int faraway;
+int *get(void) { return &faraway; }
+
+#--- fardata.c
+int faraway = 11;
+
+#--- call.c
+void faraway(void);
+void _start(void) { faraway(); }
+
+#--- far.c
+void faraway(void) {}
+
+#--- assign.t
+faraway = 0x100000000;
+SECTIONS {
+  .text 0x0 : { *(*text*) }
+}
+
+#--- section.t
+SECTIONS {
+  .text 0x0 : { *(*text*) }
+  .far 0x100000000 : { *(*data*) }
+}
+
+#--- callassign.t
+faraway = 0x70000000;
+SECTIONS {
+  . = 0x1000;
+  .text : { *(.text*) }
+}
+
+#--- callsection.t
+SECTIONS {
+  . = 0x1000;
+  .text : { *call.o(.text*) }
+  . = 0x70000000;
+  .far : { *far.o(.text*) }
+}

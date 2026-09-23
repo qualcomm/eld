@@ -1,0 +1,14 @@
+#---OverlaySharedVmaLmaExplicitStart.test--- Executable,LS------------------#
+# OVERLAY with explicit start address
+
+RUN: %clang %clangopts -c %p/Inputs/input.s -o %t.o
+RUN: %link %linkopts %t.o -o %t.elf -T %p/Inputs/overlay.lds
+RUN: %readelf -S -l %t.elf | %filecheck %s
+
+#CHECK: .small            PROGBITS        {{0*}}2000 {{0*[0-9a-f]+}} {{0*}}20
+#CHECK: .large            PROGBITS        {{0*}}2000 {{0*[0-9a-f]+}} {{0*}}100
+#CHECK: .tiny             PROGBITS        {{0*}}2000 {{0*[0-9a-f]+}} {{0*}}10
+#CHECK: .after            PROGBITS        {{0*}}2100 {{0*[0-9a-f]+}} {{0*}}10
+#CHECK: LOAD {{.*}}0x{{0*}}2000 0x{{0*}}0
+#CHECK: LOAD {{.*}}0x{{0*}}2000 0x{{0*}}20
+#CHECK: LOAD {{.*}}0x{{0*}}2000 0x{{0*}}120

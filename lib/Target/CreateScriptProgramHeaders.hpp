@@ -81,11 +81,22 @@ bool GNULDBackend::createScriptProgramHdrs() {
     {
       eld::RegisterTimer T("Evaluate Script Assignments", "Establish Layout",
                            m_Module.getConfig().options().printTimingStats());
-      evaluateScriptAssignments(/*evaluateAsserts=*/false);
+      evaluateBeforeSectionsAssignments(/*evaluateAsserts=*/false);
     }
   };
 
   reset_state();
+
+  // OVERLAY member placement (see CreateProgramHeaders.hpp) is not
+  // implemented in this PHDRS-driven layout path. Rather than silently
+  // laying out overlay members incorrectly, diagnose it as unsupported.
+  for (out = outBegin; out != outEnd; ++out) {
+    if ((*out)->getOverlayDesc()) {
+      config().raise(Diag::error_overlay_not_supported_with_phdrs);
+      return true;
+    }
+  }
+  out = outBegin;
 
   while (out != outEnd) {
     bool useSetLMA = false;
@@ -207,7 +218,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
       cur->setPaddr(0);
       evaluateAssignments(*out);
       dotSymbol->setValue(SavedDot);
-      evaluateAssignmentsAtEndOfOutputSection(*out);
+      evaluatePostOutputSectionAssignments(*out);
       ++out;
       continue;
     }
@@ -272,9 +283,16 @@ bool GNULDBackend::createScriptProgramHdrs() {
     } else if (hasVMARegion || hasLMARegion) {
       ScriptMemoryRegion &R = (*out)->epilog().lmaRegion();
       pma = R.getPhysicalAddr(*out);
-      if (!(*out)->prolog().hasAlignWithInput() && !hasLMARegion)
-        if (cur->getAddrAlign() > 0 && vma % cur->getAddrAlign() == 0)
-          alignAddress(pma, cur->getAddrAlign());
+      if (!(*out)->prolog().hasAlignWithInput()) {
+        // Apply alignment to LMA when there is no explicit AT> region, or when
+        // the script explicitly requested alignment via ALIGN() in the section
+        // description. Natural input-section alignment is suppressed with AT>
+        // because the LMA region cursor is authoritative in that case.
+        bool explicitAlign = (*out)->prolog().hasAlign();
+        if (!hasLMARegion || explicitAlign)
+          if (cur->getAddrAlign() > 0 && vma % cur->getAddrAlign() == 0)
+            alignAddress(pma, cur->getAddrAlign());
+      }
     } else if (hasFixedLMA) {
       // If the current segment has a fixed LMA address, then
       curLoadSegment->fixedLMA()->evaluateAndRaiseError();
@@ -337,7 +355,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
     }
 
     // Evaluate Assignments at the end of the output section.
-    evaluateAssignmentsAtEndOfOutputSection(*out);
+    evaluatePostOutputSectionAssignments(*out);
     cur->setWanted(cur->wantedInOutput() || cur->size());
     if (!config().getDiagEngine()->diagnose()) {
       return false;

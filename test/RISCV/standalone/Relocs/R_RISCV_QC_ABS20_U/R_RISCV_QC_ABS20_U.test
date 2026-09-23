@@ -16,8 +16,8 @@ CHECK-LABEL: SYMBOL TABLE:
 CHECK: 00000000 l *ABS* 00000000 test_zero
 CHECK: 0007ffff l *ABS* 00000000 test_hi
 CHECK: fff80000 l *ABS* 00000000 test_lo
-CHECK: fffabcde l *ABS* 00000000 test_distinct
 CHECK: ffffffff l *ABS* 00000000 test_minus_one
+CHECK: fffabcde l *ABS* 00000000 test_distinct
 
 CHECK-LABEL: 00000074 <test1>:
 CHECK: 0000029b qc.li t0, 0

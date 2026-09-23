@@ -1,0 +1,12 @@
+#---EntryCmdInSectionsMultiple.test------------ Executable,LS------------------#
+#BEGIN_COMMENT
+# This test checks that when multiple ENTRY commands are specified inside the
+# SECTIONS command, the first one takes effect, matching the behavior of
+# multiple top-level ENTRY commands.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -h %t2.out | %filecheck %s
+#CHECK: Entry point address: 0x1000
+#END_TEST

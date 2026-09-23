@@ -87,24 +87,9 @@ void ARMGNULDBackend::createAttributeSection(uint32_t Flag, uint32_t Align) {
       ".ARM.attributes", llvm::ELF::SHT_ARM_ATTRIBUTES, Flag, Align);
 }
 
-void ARMGNULDBackend::initDynamicSections(ELFObjectFile &InputFile) {
-  InputFile.setDynamicSections(
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 4),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".got.plt",
-          llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
-          4),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::Internal, ".plt", llvm::ELF::SHT_PROGBITS,
-          llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 4),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rel.dyn",
-          llvm::ELF::SHT_REL, llvm::ELF::SHF_ALLOC, 4),
-      *m_Module.createInternalSection(
-          InputFile, LDFileFormat::DynamicRelocation, ".rel.plt",
-          llvm::ELF::SHT_REL, llvm::ELF::SHF_ALLOC, 4));
+void ARMGNULDBackend::initDynamicSections(InputFile &InputFile) {
+  GNULDBackend::initDynamicSections(InputFile,
+                                    {llvm::ELF::SHT_REL, 4, 4, 4, 4});
 }
 
 void ARMGNULDBackend::initTargetSections(ObjectBuilder &pBuilder) {
@@ -652,17 +637,22 @@ bool ARMGNULDBackend::finalizeScanRelocations() {
   // holds the address of PLT[ifunc]. GOT references then resolve to this slot
   // rather than the GOTPLT slot, so that the GOT-loaded pointer equals the
   // direct-reference pointer (pointer equality).
-  for (auto &[symInfo, plt] : m_PLTMap) {
-    if (!symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
+  if (!getPLT())
+    return true;
+
+  for (Fragment *F : getPLT()->getFragmentList()) {
+    auto *plt = llvm::dyn_cast<ARMPLT>(F);
+    if (!plt)
+      continue;
+    ResolveInfo *symInfo = plt->symInfo();
+    if (!symInfo || !symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
         !symInfo->hasIFuncNeedsGOT())
       continue;
-    ELFObjectFile *PLTSlotObjFile =
-        llvm::cast<ELFObjectFile>(plt->getOwningSection()->getInputFile());
-    ARMGOT *G = createGOT(GOT::Regular, PLTSlotObjFile, symInfo);
+    ARMGOT *G = createGOT(GOT::Regular, symInfo);
     FragmentRef *PLTFragRef = make<FragmentRef>(*plt, 0);
     Relocation *r = Relocation::Create(llvm::ELF::R_ARM_ABS32, 32,
                                        make<FragmentRef>(*G, 0), 0);
-    PLTSlotObjFile->getGOT()->addRelocation(r);
+    getGOT()->addRelocation(r);
     r->modifyRelocationFragmentRef(PLTFragRef);
     // createGOT(GOT::Regular, ...) already calls recordGOT for symInfo.
     symInfo->setReserved(symInfo->reserved() | Relocator::ReserveGOT);
@@ -708,6 +698,9 @@ ELFSection *ARMGNULDBackend::mergeSection(ELFSection *pSection) {
   case llvm::ELF::SHT_ARM_ATTRIBUTES:
     return m_pARMAttributeSection;
   case llvm::ELF::SHT_ARM_EXIDX: {
+    const InputFile *inputFile = pSection->getInputFile();
+    if (inputFile && inputFile->getInput()->getAttribute().isJustSymbols())
+      return nullptr;
     if (!pSection->getLink() && pSection->getInputFile())
       config().raise(Diag::warn_armexidx_no_link)
           << pSection->getInputFile()->getInput()->getName()
@@ -1043,13 +1036,9 @@ bool ARMGNULDBackend::ltoCallExternalAssembler(const std::string &Input,
 }
 
 // Create GOT entry.
-ARMGOT *ARMGNULDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
-                                   ResolveInfo *R, bool SkipPLTRef) {
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_got_entry)
-        << GOT::getGOTTypeAsStr(T) << R->name();
+ARMGOT *ARMGNULDBackend::createGOT(GOT::GOTType T, ResolveInfo *R,
+                                   bool SkipPLTRef) {
+  traceGOTCreation(T, R);
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->hasFragments()) {
     // TODO: This should be GOT0, not GOTPLT0.
@@ -1061,7 +1050,7 @@ ARMGOT *ARMGNULDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
   bool GOT = true;
   switch (T) {
   case GOT::Regular:
-    G = ARMGOT::Create(Obj->getGOT(), R);
+    G = ARMGOT::Create(getGOT(), R);
     break;
   case GOT::GOTPLT0:
     G = llvm::dyn_cast<ARMGOT>(*getGOTPLT()->getFragmentList().begin());
@@ -1073,19 +1062,18 @@ ARMGOT *ARMGNULDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     // value. No need to fill the GOT slot with PLT0.
     // No PLT0 for immediate binding.
     Fragment *F = SkipPLTRef ? nullptr : *getPLT()->getFragmentList().begin();
-    G = ARMGOTPLTN::Create(Obj->getGOTPLT(), R, F);
+    G = ARMGOTPLTN::Create(getGOTPLT(), R, F);
     GOT = false;
     break;
   }
   case GOT::TLS_GD:
-    G = ARMGDGOT::Create(Obj->getGOT(), R);
+    G = ARMGDGOT::Create(getGOT(), R);
     break;
   case GOT::TLS_LD:
-    // TODO: use a synthetic input file, separate from GOT header.
     G = ARMLDGOT::Create(getGOT(), R);
     break;
   case GOT::TLS_IE:
-    G = ARMIEGOT::Create(Obj->getGOT(), R);
+    G = ARMIEGOT::Create(getGOT(), R);
     break;
   default:
     assert(0);
@@ -1126,27 +1114,22 @@ int64_t ARMGNULDBackend::getPLTAddr(ResolveInfo *pInfo) const {
 }
 
 // Create PLT entry.
-ARMPLT *ARMGNULDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
-                                   bool isIRelative) {
+ARMPLT *ARMGNULDBackend::createPLT(ResolveInfo *R, bool isIRelative) {
   bool hasNow = config().options().hasNow();
-  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
-                        config().options().traceSymbol(*R)) ||
-                       m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(Diag::create_plt_entry) << R->name();
+  tracePLTCreation(R);
 
   reportErrorIfPLTIsDiscarded(R);
 
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
   if (!getPLT()->hasFragments()) {
-    ARMPLT0::Create(*m_Module.getIRBuilder(),
-                    createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
-                    nullptr);
+    ARMPLT0::Create(*m_Module.getIRBuilder(), createGOT(GOT::GOTPLT0, nullptr),
+                    getPLT(), nullptr);
   }
-  ARMPLT *P = ARMPLTN::Create(
-      *m_Module.getIRBuilder(),
-      createGOT(GOT::GOTPLTN, Obj, R, hasNow || isIRelative), Obj->getPLT(), R);
+  ARMPLT *P = ARMPLTN::Create(*m_Module.getIRBuilder(),
+                              createGOT(GOT::GOTPLTN, R, hasNow || isIRelative),
+                              getPLT(), R);
   // init the corresponding rel entry in .rel.plt
-  Relocation *rel_entry = Obj->getRelaPLT()->createOneReloc();
+  Relocation *rel_entry = getRelaPLT()->createOneReloc();
   rel_entry->setType(isIRelative ? llvm::ELF::R_ARM_IRELATIVE
                                  : llvm::ELF::R_ARM_JUMP_SLOT);
   rel_entry->setTargetRef(make<FragmentRef>(*P->getGOT(), 0));
@@ -1214,7 +1197,6 @@ void ARMGNULDBackend::setDefaultConfigs() {
   if (config().options().threadsEnabled() &&
       !config().isGlobalThreadingEnabled()) {
     config().disableThreadOptions(
-        LinkerConfig::EnableThreadsOpt::ScanRelocations |
         LinkerConfig::EnableThreadsOpt::ApplyRelocations |
         LinkerConfig::EnableThreadsOpt::LinkerRelaxation);
   }

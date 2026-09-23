@@ -17,6 +17,7 @@
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "eld/Input/ELFDynObjectFile.h"
 #endif
+#include "eld/Fragment/GOT.h"
 #include "eld/Object/ObjectBuilder.h"
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFExecObjParser.h"
@@ -54,7 +55,7 @@ class SFrameSection;
 class ELFDynamic;
 class ELFDynObjFileFormat;
 class ELFExecFileFormat;
-class ELFObjectFile;
+class InputFile;
 class ELFObjectFileFormat;
 class ELFSegmentFactory;
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
@@ -96,7 +97,7 @@ public:
     uint64_t offset = 0;
   };
 
-  typedef std::tuple<ResolveInfo::Type, uint64_t, InputFile *, bool> SymDefInfo;
+  typedef std::tuple<ResolveInfo::Type, uint64_t, InputFile *> SymDefInfo;
 
   // Based on Kind in LDFileFormat to define basic section orders for ELF,
   // and refer gold linker to add more enumerations to handle Regular and
@@ -462,19 +463,24 @@ public:
 
   virtual bool initRelocator() = 0;
 
-  void createInternalInputs();
-
   virtual void initTargetSections(ObjectBuilder &pBuilder) = 0;
 
-  ELFObjectFile *getDynamicSectionHeadersInputFile() const {
-    return m_DynamicSectionHeadersInputFile;
-  }
+  virtual void initDynamicSections(InputFile &) {}
 
-  virtual void initDynamicSections(ELFObjectFile &) {}
+  struct DynamicSectionLayout {
+    uint32_t RelType = 0;
+    uint32_t RelAlign = 0;
+    uint32_t GOTAlign = 0;
+    uint32_t GOTPLTAlign = 0;
+    uint32_t PLTAlign = 0;
+  };
+
+  /// Create this input file's dynamic relocation sections. On the first
+  /// call, create the shared .got/.got.plt/.plt too.
+  void initDynamicSections(InputFile &InputFile,
+                           const DynamicSectionLayout &Layout);
 
   virtual void initTargetSymbols() = 0;
-
-  virtual void initPatchSections(ELFObjectFile &) {}
 
   /// getRelEntrySize - the size in BYTE of rel type relocation
   virtual size_t getRelEntrySize() = 0;
@@ -487,6 +493,8 @@ public:
   uint64_t getSymbolSize(LDSymbol *pSymbol) const;
 
   uint64_t getSymbolInfo(LDSymbol *pSymbol) const;
+
+  uint8_t getSymbolBinding(LDSymbol *pSymbol) const;
 
   uint64_t getSymbolValue(LDSymbol *pSymbol) const;
 
@@ -509,11 +517,13 @@ public:
   /// Script
   bool createScriptProgramHdrs();
 
+  void warnRWXSegments();
+
   bool assignOffsets(uint64_t Offset);
 
   void evaluateAssignments(OutputSectionEntry *output);
 
-  void evaluateAssignmentsAtEndOfOutputSection(OutputSectionEntry *output);
+  void evaluatePostOutputSectionAssignments(OutputSectionEntry *output);
 
   // Print padding between end and start fragments of adjacent rules
   std::vector<PaddingT>
@@ -688,10 +698,9 @@ public:
 
   void addSymDefProvideSymbol(llvm::StringRef symName,
                               ResolveInfo::Type resolverType, uint64_t symVal,
-                              InputFile *file, bool isPatchable = false) {
+                              InputFile *file) {
     if (!m_SymDefProvideMap.count(symName))
-      m_SymDefProvideMap[symName] =
-          std::make_tuple(resolverType, symVal, file, isPatchable);
+      m_SymDefProvideMap[symName] = std::make_tuple(resolverType, symVal, file);
   }
 
   LDSymbol *canProvideSymbol(ResolveInfo *R);
@@ -714,15 +723,15 @@ public:
   void reportErrorIfPLTIsDiscarded(ResolveInfo *R) const;
   void reportErrorIfGOTPLTIsDiscarded(ResolveInfo *R) const;
 
+  void traceGOTCreation(GOT::GOTType T, const ResolveInfo *R) const;
+
+  void tracePLTCreation(const ResolveInfo *R) const;
+
   virtual LDSymbol *getGOTSymbol() const { return m_pGOTSymbol; }
 
   void recordRelativeReloc(Relocation *R, const Relocation *N) {
     m_RelativeRelocMap[N] = R;
   }
-
-  // Patching sections.
-  ELFSection *getGOTPatch() const;
-  ELFSection *getRelaPatch() const;
 
   // -----------------Segment Size Helper --------------------------------
   bool isOffsetAssigned() const { return m_OffsetsAssigned; }
@@ -918,11 +927,6 @@ public:
   bool isPhdrNeeded() const { return m_NeedPhdr; }
 
   // ----------------------- Patching -----------------------------------
-  // Absolute PLTs are used to redirect symbols in patch builds.
-  void recordAbsolutePLT(ResolveInfo *, const ResolveInfo *);
-
-  const ResolveInfo *findAbsolutePLT(ResolveInfo *I) const;
-
   // Symbol versioning helpers
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
   void initSymbolVersioningSections();
@@ -999,7 +1003,7 @@ private:
 
   // Evaluate defsym assignments and script assignments that appear outside
   // sections.
-  void evaluateScriptAssignments(bool evaluateAsserts = true);
+  void evaluateBeforeSectionsAssignments(bool evaluateAsserts = true);
 
   bool isRelROSection(const ELFSection *sect) const;
 
@@ -1126,6 +1130,26 @@ private:
   void setSymbolVersionID(const ResolveInfo *R, uint16_t VerID) {
     OutputVersionIDs[R] = VerID;
   }
+
+public:
+  // Records non-canonical versioned symbols. It is primarily used to
+  // suppress emitting of non-canonical symbols in the output symbol tables.
+  void addNonCanonicalVersionedSym(const ResolveInfo *R) {
+    NonCanonicalVersionedSyms.insert(R);
+  }
+
+  bool isNonCanonicalVersionedSym(const ResolveInfo *R) const {
+    return NonCanonicalVersionedSyms.count(R) != 0;
+  }
+
+  // Reconstruct the .symtab strtab string for a ResolveInfo:
+  //   - shared-library origin: single `@` (canonical name unchanged).
+  //   - object origin, default-version flag set: "base@@version".
+  //   - object origin, non-default:               "base@version".
+  //   - non-versioned:                            R.name() unchanged.
+  std::string getSymbolTableName(const ResolveInfo &R) const;
+
+private:
 #endif
 
 protected:
@@ -1263,7 +1287,11 @@ protected:
   std::unordered_map<std::string, ScriptMemoryRegion *> m_MemoryRegionMap;
 
   // Dynamic linking
-  ELFObjectFile *m_DynamicSectionHeadersInputFile = nullptr;
+  ELFSection *GOTSection = nullptr;
+  ELFSection *GOTPLTSection = nullptr;
+  ELFSection *PLTSection = nullptr;
+  ELFSection *RelDynSection = nullptr;
+  ELFSection *RelPLTSection = nullptr;
   LDSymbol *m_pGOTSymbol = nullptr;
   llvm::DenseMap<const Relocation *, Relocation *> m_RelativeRelocMap;
 
@@ -1271,9 +1299,6 @@ protected:
   // (R_*_IRELATIVE) support.
   LDSymbol *m_pIRelativeStart = nullptr;
   LDSymbol *m_pIRelativeEnd = nullptr;
-
-  // Patching.
-  llvm::DenseMap<ResolveInfo *, const ResolveInfo *> m_AbsolutePLTMap;
 
   std::optional<uint64_t> m_ImageStartVMA;
 
@@ -1292,6 +1317,7 @@ protected:
   ELFSection *GNUVerNeedSection = nullptr;
   GNUVerNeedFragment *GNUVerNeedFrag = nullptr;
   std::unordered_map<const ResolveInfo *, uint16_t> OutputVersionIDs;
+  std::unordered_set<const ResolveInfo *> NonCanonicalVersionedSyms;
 #endif
 
   llvm::StringMap<const Assignment *> SymbolNameToLatestAssignment;

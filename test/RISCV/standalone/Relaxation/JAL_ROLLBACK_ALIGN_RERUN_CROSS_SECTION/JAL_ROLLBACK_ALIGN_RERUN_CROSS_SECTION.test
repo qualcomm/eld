@@ -1,0 +1,16 @@
+#---JAL_ROLLBACK_ALIGN_RERUN_CROSS_SECTION.test--------- Executable ------------------#
+#START_TEST
+RUN: %clang -target riscv64-linux-gnu -c %p/Inputs/head.s    -o %t.head.o
+RUN: %clang -target riscv64-linux-gnu -c %p/Inputs/calls.s   -o %t.calls.o
+RUN: %clang -target riscv64-linux-gnu -c %p/Inputs/kobject.s -o %t.kobject.o
+RUN: %clang -target riscv64-linux-gnu -c %p/Inputs/exit.s    -o %t.exit.o
+RUN: %link %linkopts -T %p/Inputs/ls.lds \
+RUN:   %t.head.o %t.calls.o %t.kobject.o %t.exit.o -o %t.out \
+RUN:   --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE
+RUN: %readelf -s %t.out 2>&1 | %filecheck %s --check-prefix=SYMS
+#END_TEST
+
+VERBOSE: RISCV_CALL : Rolled back JAL for symbol 'kobject_put' in section .exit.text+0x{{[[:xdigit:]]+}} file {{.*}}exit.o (out of range after ALIGN)
+VERBOSE: RISCV_ALIGN : Undoing 0 nops / restoring 2 bytes in section .head+0x{{[[:xdigit:]]+}} file {{.*}}head.o (re-run after rollback)
+
+SYMS: {{[0-9a-f]*[048c]}} {{.*}} aligned_func

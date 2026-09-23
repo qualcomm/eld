@@ -16,8 +16,13 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 RegionFragmentEx::RegionFragmentEx(const char *Buf, size_t Sz, ELFSection *O,
                                    uint32_t Align)
-    : Fragment(Fragment::Type::RegionFragmentEx, O, Align), Data(Buf),
-      Size(Sz) {}
+    : Fragment(Fragment::Type::RegionFragmentEx, O, Align), Data(Buf), Size(Sz)
+#ifndef NDEBUG
+      ,
+      Capacity(Sz)
+#endif
+{
+}
 
 RegionFragmentEx::~RegionFragmentEx() {}
 
@@ -64,6 +69,34 @@ void RegionFragmentEx::deleteInstruction(uint32_t DeleteOffset,
                Size - DeleteOffset - DeleteSize);
 
   Size = Size - DeleteSize;
+}
+
+void RegionFragmentEx::insertInstruction(uint32_t InsertOffset,
+                                         uint32_t InsertSize) {
+#ifndef NDEBUG
+  assert(Size + InsertSize <= Capacity &&
+         "insertInstruction would exceed original buffer allocation");
+#endif
+  std::memmove((void *)(Data + InsertOffset + InsertSize),
+               (void *)(Data + InsertOffset), Size - InsertOffset);
+  std::memset((void *)(Data + InsertOffset), 0, InsertSize);
+  Size = Size + InsertSize;
+
+  // Shift relocation offsets that are at or after the insertion point.
+  for (auto &Reloc : getOwningSection()->getRelocations()) {
+    FragmentRef *Ref = Reloc->targetRef();
+    FragmentRef::Offset Off = Ref->offset();
+    if (Off >= InsertOffset && Off < Size)
+      Ref->setOffset(Off + InsertSize);
+  }
+
+  // Shift symbol offsets similarly.
+  for (ResolveInfo *Info : Symbols) {
+    FragmentRef *Ref = Info->outSymbol()->fragRef();
+    FragmentRef::Offset Off = Ref->offset();
+    if (Off >= InsertOffset && Off <= Size)
+      Ref->setOffset(Off + InsertSize);
+  }
 }
 
 size_t RegionFragmentEx::size() const { return Size; }

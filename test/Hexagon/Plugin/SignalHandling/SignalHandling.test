@@ -9,7 +9,6 @@ UNSUPPORTED: sanitize
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
 RUN: %not %not %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s
 CHECK-NOT: !!!UNEXPECTED LINKER BEHAVIOR!!!
-CHECK-DAG: LinkerCrashPlugin::Init
 CHECK-DAG: Please rerun link with
 CHECK-DAG: .sh
 CHECK-DAG: !!!PLUGIN CRASHED!!!

@@ -1,0 +1,38 @@
+#---T2TApplicationDisasm.test--------- Executable------------------------------#
+#BEGIN_COMMENT
+#Regression test: THMToTHMStub::clone() used to place the $a/$t ARM-ELF
+#mapping symbols backwards for a Thumb-to-Thumb long-branch veneer on a
+#non-microcontroller (application) target, corrupting objdump -d's
+#mode-aware disassembly even though the underlying instruction bytes were
+#always correct. Checks that both the ABS and PIC veneer templates disassemble
+#correctly and that $t/$a mapping symbols land at the correct offsets.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -mthumb %p/Inputs/1.c -o %t1.t2tdisasm.1.o
+RUN: %link %linkopts %t1.t2tdisasm.1.o -o %t2.t2tdisasm.1.out --defsym bar=0x80000001
+RUN: %objdump -d %t2.t2tdisasm.1.out | %filecheck %s -check-prefix=STATIC
+RUN: %objdump -t %t2.t2tdisasm.1.out | %filecheck %s -check-prefix=STATICSYM
+RUN: %link %linkopts %t1.t2tdisasm.1.o -o %t2.t2tdisasm.2.out --defsym bar=0x80000001 -shared
+RUN: %objdump -d %t2.t2tdisasm.2.out | %filecheck %s -check-prefix=SHARED
+RUN: %objdump -t %t2.t2tdisasm.2.out | %filecheck %s -check-prefix=SHAREDSYM
+
+#STATIC: {{.*}} <__bar_T2T_veneer@island-1>:
+#STATIC:      {{.*}}: 4778          bx      pc
+#STATIC:      {{.*}}: 46c0          mov     r8, r8
+#STATIC:      {{.*}}: e59fc000      ldr     r12, [pc]{{.*}}
+#STATIC:      {{.*}}: e12fff1c      bx      r12
+
+#STATICSYM: $t.t2t.1
+#STATICSYM: $a.t2t.1
+
+#SHARED: {{.*}} <__bar_T2T_veneer@island-1>:
+#SHARED:      {{.*}}: 4778          bx      pc
+#SHARED:      {{.*}}: 46c0          mov     r8, r8
+#SHARED:      {{.*}}: e59fc004      ldr     r12, [pc, #0x4]{{.*}}
+#SHARED:      {{.*}}: e08fc00c      add     r12, pc, r12
+#SHARED:      {{.*}}: e12fff1c      bx      r12
+
+#SHAREDSYM: $t.t2t.1
+#SHAREDSYM: $a.t2t.1
+
+#END_TEST

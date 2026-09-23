@@ -1,8 +1,11 @@
 UNSUPPORTED: x86
 #---SectionWithZeroSizedSymbolWithFatalWarning.test--------------------------- Executable --------------------#
 #BEGIN_COMMENT
-# This checks that the text map file has the empty section recorded if it has a zero sized
-# symbol in it
+# This checks that when a zero sized symbol in a zero sized fragment makes the link
+# fatal (-Wall/-Wzero-sized-sections with --fatal-warnings), the fatal diagnostic is
+# emitted and a map file is still produced. Because -T linker scripts are activated in
+# command-line order, a link aborted while reading an input positioned before the -T
+# script produces a map without that script's output-section layout.
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/x.s -o %t.x.o
@@ -17,5 +20,6 @@ RUN: %filecheck %s < %t.main.map2 --check-prefix=MAPCHECK
 #NOWARNMAPCHECK: .text.bar
 #NOWARNMAPCHECK: {{^.text.baz}}
 #CHECK: Fatal: Zero sized fragment .foo for non zero sized symbol sym from input file {{.*}}x.o
-#MAPCHECK: *(.text.bar){{.*}}[0:0]
+#MAPCHECK: # Output Section and Layout
+#MAPCHECK-NOT: *(.text.bar)
 #END_TEST

@@ -12,7 +12,6 @@
 #include "eld/Core/LinkerScript.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
-#include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/Input.h"
 #include "eld/Input/InputFile.h"
 #include "eld/Input/ZOption.h"
@@ -47,12 +46,7 @@ public:
 
 class FakeBackend final : public GNULDBackend {
 public:
-  FakeBackend(Module &M, TargetInfo *Info) : GNULDBackend(M, Info) {
-    m_DynamicSectionHeadersInputFile =
-        llvm::dyn_cast<ELFObjectFile>(m_Module.createInternalInputFile(
-            make<Input>("Dynamic section headers", config().getDiagEngine()),
-            /*CreateElfObjectFile=*/true));
-  }
+  FakeBackend(Module &M, TargetInfo *Info) : GNULDBackend(M, Info) {}
 
   bool finalizeTargetSymbols() override { return true; }
   Relocator *getRelocator() const override { return nullptr; }
@@ -1177,7 +1171,6 @@ TEST(CreateProgramHeaders, PhdrsSpecifiedUsesScriptSegments) {
   H.Mod->getScript().setPhdrsSpecified();
 
   PhdrSpec LoadSpec;
-  LoadSpec.init();
   LoadSpec.Name = make<StrToken>("LOAD");
   LoadSpec.ThisType = llvm::ELF::PT_LOAD;
   LoadSpec.ScriptHasFileHdr = true;
@@ -1213,7 +1206,6 @@ TEST(CreateProgramHeaders, PhdrsCommandCreatesSegmentsFromScript) {
 
   auto makeSpec = [&](llvm::StringRef Name, uint32_t Type) {
     PhdrSpec Spec;
-    Spec.init();
     Spec.Name = make<StrToken>(Name.str());
     Spec.ThisType = Type;
     Script.insertPhdrSpec(Spec);

@@ -36,14 +36,6 @@ public:
   enum Policy { Keep, NoKeep, SpecialNoKeep, SpecialKeep, Fixed, KeepFixed };
 
   struct Spec {
-    void initialize() {
-      WildcardFilePattern = nullptr;
-      InputArchiveMember = nullptr;
-      WildcardSectionPattern = nullptr;
-      ExcludeFilesRule = nullptr;
-      InputIsArchive = false;
-    }
-
     bool hasFile() const { return WildcardFilePattern != nullptr; }
 
     bool isArchive() const { return InputIsArchive; }
@@ -92,14 +84,6 @@ public:
       return true;
     }
 
-    void initialize(const Spec &Spec) {
-      this->WildcardFilePattern = Spec.WildcardFilePattern;
-      this->InputArchiveMember = Spec.InputArchiveMember;
-      this->WildcardSectionPattern = Spec.WildcardSectionPattern;
-      this->InputIsArchive = Spec.InputIsArchive;
-      this->ExcludeFilesRule = Spec.ExcludeFilesRule;
-    }
-
     void setExcludeFiles(const ExcludeFiles *ExcludeFiles) {
       ExcludeFilesRule = ExcludeFiles;
     }
@@ -108,14 +92,14 @@ public:
 
     bool hasExcludeFiles() const { return ExcludeFilesRule; }
 
-    const WildcardPattern *WildcardFilePattern;
-    const WildcardPattern *InputArchiveMember;
-    const StringList *WildcardSectionPattern;
+    const WildcardPattern *WildcardFilePattern = nullptr;
+    const WildcardPattern *InputArchiveMember = nullptr;
+    const StringList *WildcardSectionPattern = nullptr;
     // This stores the exclude files specified using the EXCLUDE_FILE directive
     // outside the section pattern. For example:
     // outSect : { EXCLUDE_FILES(...) *(*text*) }
-    const ExcludeFiles *ExcludeFilesRule;
-    bool InputIsArchive;
+    const ExcludeFiles *ExcludeFilesRule = nullptr;
+    bool InputIsArchive = false;
   };
 
   bool isSpecial() const {

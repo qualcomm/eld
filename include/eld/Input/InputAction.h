@@ -16,6 +16,7 @@
 #include "eld/Input/Input.h"
 #include "eld/Support/Path.h"
 #include <string>
+#include <vector>
 
 namespace eld {
 
@@ -51,6 +52,7 @@ public:
     StartLib,
     WholeArchive,
     JustSymbols,
+    Version,
   };
 
 protected:
@@ -364,6 +366,24 @@ public:
 
 private:
   const std::string InputFormat;
+};
+
+/// VersionAction handles '-v', which prints the version banner and lets
+/// linking continue (unlike '--version', which always short-circuits and
+/// is handled directly in parseOptions, not as an InputAction).
+class VersionAction : public InputAction {
+public:
+  explicit VersionAction(const std::vector<std::string> &SupportedTargets,
+                         DiagnosticPrinter *Printer);
+
+  bool activate(InputBuilder &) override;
+
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputActionKind::Version;
+  }
+
+private:
+  std::vector<std::string> SupportedTargets;
 };
 
 } // namespace eld

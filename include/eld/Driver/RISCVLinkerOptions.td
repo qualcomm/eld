@@ -90,14 +90,3 @@ def keep_labels : Flag<["--"], "keep-labels">,
                   HelpText<"Keep all local labels for debugging purposes">,
                   Group<grp_riscv_linker>;
 
-//===----------------------------------------------------------------------===//
-/// Patching
-//===----------------------------------------------------------------------===//
-def grp_patch : OptionGroup<"opts">, HelpText<"Symbol Patching">;
-def patch_enable : Flag<["--"], "patch-enable">,
-                   HelpText<"Enable symbol patching using indirection">,
-                   Group<grp_patch>;
-
-defm patch_base : mDashEq<"patch-base", "patch_base",
-                          "Specify base image to generate patch for">,
-                  Group<grp_patch>;

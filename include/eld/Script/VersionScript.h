@@ -8,7 +8,6 @@
 #define ELD_SCRIPT_VERSIONSCRIPT_H
 
 #include "eld/Script/ScriptSymbol.h"
-#include "llvm/ADT/DenseMap.h"
 #include <string>
 namespace eld {
 class StrToken;
@@ -17,10 +16,6 @@ class VersionScriptBlock;
 class VersionScriptNode;
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 class NamePool;
-
-/// Map from ResolveInfo to its demangled name. Used for extern "C++" matching.
-/// The map is lazily populated during version script matching.
-using DemangledNamesMap = llvm::DenseMap<const ResolveInfo *, std::string>;
 #endif
 
 /*
@@ -77,10 +72,10 @@ public:
   /// the symbol non-versioned name matches the version symbol pattern.
   ///
   /// For extern "C++" symbols, the pattern is matched against the demangled
-  /// name of the symbol. The DemangledNames map is lazily populated.
+  /// name of the symbol.
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
   bool matched(const ResolveInfo &R, const NamePool &NP,
-               DemangledNamesMap &DemangledNames) const;
+               llvm::StringRef demangledName) const;
 #endif
 
 protected:
