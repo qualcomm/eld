@@ -94,6 +94,9 @@ public:
 
   std::string getContext() const;
 
+  /// getContext(), with ":<line>" appended when a line number is known.
+  std::string getContextWithLineNumber() const;
+
   /// -------------------- Parent Information --------------------
   virtual uint32_t getDepth() const;
 

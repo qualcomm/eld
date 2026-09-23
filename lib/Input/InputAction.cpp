@@ -245,6 +245,7 @@ bool DefSymAction::activate(InputBuilder &PBuilder) {
       (llvm::Twine("Expression(Defsym)") + llvm::Twine(MAssignment)).str();
   Input *Inp = PBuilder.createInputNode(FileName, true /*isSpecial*/);
   Inp->setInputType(Input::Script);
+  Inp->setIsDefSym();
   Inp->setResolvedPath(FileName);
   auto pos = MAssignment.find("=");
   if (pos != std::string::npos)
