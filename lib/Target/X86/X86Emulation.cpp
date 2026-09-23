@@ -11,8 +11,9 @@
 // X86Emulation
 //===----------------------------------------------------------------------===//
 extern "C" void ELDInitializeX86Emulation() {
-  // Register the existing x86_64 emulation. The i386 emulation will be
-  // registered here when the X86 family gains its 32-bit backend.
+  // Register both emulations from the X86 family hook.
+  eld::TargetRegistry::RegisterEmulation(eld::TheX86_32Target,
+                                         eld::emulateX86_32LD);
   eld::TargetRegistry::RegisterEmulation(eld::Thex86_64Target,
                                          eld::emulatex86_64LD);
 }

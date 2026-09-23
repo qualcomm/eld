@@ -15,7 +15,11 @@ class LinkerConfig;
 class LinkerScript;
 class Module;
 
+extern Target TheX86_32Target;
 extern Target Thex86_64Target;
+
+bool emulateX86_32LD(LinkerScript &, LinkerConfig &);
+GNULDBackend *createX86_32LDBackend(Module &);
 
 bool emulatex86_64LD(LinkerScript &, LinkerConfig &);
 GNULDBackend *createx86_64LDBackend(Module &);
