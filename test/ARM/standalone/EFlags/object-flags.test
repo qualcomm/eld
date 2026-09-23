@@ -73,7 +73,7 @@
 # checking, matching ld.bfd behavior.
 #RUN: %link %emulation -shared %t.data3.o -o %t.data3.so
 #RUN: %readelf -h %t.data3.so | %filecheck %s --check-prefix=DYNEABI3
-#RUN: %readelf -S %t.data3.so | %not %grep 'AX'
+#RUN: %readelf -S %t.data3.so | %filecheck %s --check-prefix=DYNNOEXEC
 #
 #RUN: %not %link %emulation --warn-mismatch %t.ver5.o %t.data3.so \
 #RUN:   -o %t.ver5dyn3.out 2>&1 | %filecheck %s --check-prefix=DYNMISMATCH35
@@ -92,6 +92,7 @@
 #MISMATCH50: Error: Incompatible object files when reading {{.*}}unknown.o, mixing EABI0 and EABI5
 #DYNEABI3: Type: DYN
 #DYNEABI3: Flags: 0x3000000
+#DYNNOEXEC-NOT: AX
 #DYNMISMATCH35: Error: Incompatible object files when reading {{.*}}data3.so, mixing EABI3 and EABI5
 #DYNMISMATCH53: Error: Incompatible object files when reading {{.*}}ver5.o, mixing EABI5 and EABI3
 
