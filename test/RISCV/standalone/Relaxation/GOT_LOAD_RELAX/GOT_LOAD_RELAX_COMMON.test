@@ -13,10 +13,11 @@ RUN: %link %linkopts --defsym abs_var=5 --no-relax-got %t.common.o -o %t2.out
 RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.out | %filecheck %s --check-prefix=NO-RELAX
 RUN: %objdump --no-print-imm-hex -M no-aliases -d %t2.out | %filecheck %s --check-prefix=NO-RELAX
 
-## Check relaxation isn't performed if there's a non-zero addend on the got_hi.
+## Check non-zero addends on the got_hi are ignored, possibly allowing the
+## relaxation to proceed.
 RUN: %clang %clangopts -c %p/Inputs/addend.s -o %t.addend.o
-RUN: %link %linkopts --defsym abs_var=5 %t.addend.o -o %t.addend.out
-RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.addend.out | %filecheck %s --check-prefix=NO-RELAX
+RUN: %link %linkopts --defsym abs_var=5 %t.addend.o -o %t.addend.out 2>&1 | %filecheck %s --check-prefix=WARN-ADDEND
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.addend.out | %filecheck %s --check-prefix=ADDEND-RELAX
 
 ## Check relaxation isn't performed if not all HI/LOs have R_RISCV_RELAX or
 ## if a LO is missing.
@@ -28,6 +29,13 @@ NO-RELAX: auipc a1, 1
 NO-RELAX-NEXT: {{l[wd]}} a1, {{-?[0-9]+}}(a1)
 NO-RELAX: auipc a2, 1
 NO-RELAX-NEXT: {{l[wd]}} a2, {{-?[0-9]+}}(a2)
+
+WARN-ADDEND: ignoring addend for relocation `R_RISCV_GOT_HI20' referring symbol abs_var
+WARN-ADDEND: ignoring addend for relocation `R_RISCV_GOT_HI20' referring symbol rel_var
+
+ADDEND-RELAX: c.li a1, 5
+ADDEND-RELAX: auipc a2, 1
+ADDEND-RELAX-NEXT: addi a2, a2
 
 PARTIAL-NO-RELAX: auipc a1, 1
 PARTIAL-NO-RELAX-NEXT: {{l[wd]}} a1, {{-?[0-9]+}}(a1)
