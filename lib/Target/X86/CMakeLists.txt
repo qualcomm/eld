@@ -1,6 +1,8 @@
 llvm_add_library(
   ELDX86LDBackend
   STATIC
+  X86Emulation.cpp
+  X86LDBackend.cpp
   x86_64Emulation.cpp
   x86_64Info.cpp
   x86_64LDBackend.cpp
