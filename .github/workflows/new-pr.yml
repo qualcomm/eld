@@ -1,4 +1,4 @@
-name: "Labelling new pull requests"
+name: "New pull requests policy check"
 
 permissions:
   contents: read
@@ -12,6 +12,7 @@ on:
   pull_request_target:
     types:
       - opened
+      - edited
       - reopened
       - ready_for_review
       - synchronize
@@ -22,7 +23,10 @@ jobs:
     permissions:
       pull-requests: write
     if: >
-      github.event.pull_request.draft == false
+      github.event.pull_request.draft == false &&
+      (github.event.action == 'opened' ||
+       github.event.action == 'reopened' ||
+       github.event.action == 'ready_for_review')
     steps:
       - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
         id: labeler
@@ -35,3 +39,152 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh pr edit ${{ github.event.pull_request.number }} --add-label ignore-for-release-notes --repo ${{ github.repository }}
+
+  policy-checks:
+    needs: automate-pr-labels
+    if: >
+      always() && github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - name: Collect PR text and linked issues
+        id: metadata
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          TEXT_DIR: ${{ runner.temp }}/pr-policy
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const { owner, repo } = context.repo;
+            const number = context.payload.pull_request.number;
+            const dir = process.env.TEXT_DIR;
+            fs.mkdirSync(dir, { recursive: true });
+
+            const pull = await github.rest.pulls.get({ owner, repo, pull_number: number });
+            const commits = await github.paginate(github.rest.pulls.listCommits, {
+              owner, repo, pull_number: number, per_page: 100,
+            });
+
+            fs.writeFileSync(path.join(dir, 'title.txt'), `${pull.data.title}\n`);
+            fs.writeFileSync(
+              path.join(dir, 'commit-messages.txt'),
+              commits.map(commit => `${commit.commit.message}\n`).join(''),
+            );
+            fs.writeFileSync(
+              path.join(dir, 'commit-subjects.txt'),
+              commits.map(commit => `${commit.commit.message.split('\n', 1)[0]}\n`).join(''),
+            );
+
+            const labels = pull.data.labels.map(label => label.name);
+            core.setOutput('labels', labels.join(', '));
+            core.setOutput('has-labels', labels.length > 0 ? 'true' : 'false');
+            core.setOutput(
+              'has-default-label',
+              labels.includes('ignore-for-release-notes') ? 'true' : 'false',
+            );
+
+            // Only closing-keyword references count as linked issues here.
+            const referencePattern = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+((?:[\w.-]+\/[\w.-]+)?#\d+|https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+)/gi;
+            const references = [];
+            let match;
+            while ((match = referencePattern.exec(pull.data.body || '')) !== null) {
+              const reference = match[1];
+              const url = reference.match(/^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/issues\/(\d+)$/);
+              const shorthand = reference.match(/^(?:(\w[\w.-]*)\/(\w[\w.-]*))?#(\d+)$/);
+              if (url) {
+                references.push({ owner: url[1], repo: url[2], number: Number(url[3]) });
+              } else if (shorthand) {
+                references.push({
+                  owner: shorthand[1] || owner,
+                  repo: shorthand[2] || repo,
+                  number: Number(shorthand[3]),
+                });
+              }
+            }
+
+            const unique = [...new Map(references.map(issue =>
+              [`${issue.owner}/${issue.repo}#${issue.number}`, issue])).values()];
+            const closed = [];
+            for (const issue of unique) {
+              try {
+                const result = await github.rest.issues.get(issue);
+                if (result.data.state === 'closed') {
+                  closed.push(`${issue.owner}/${issue.repo}#${issue.number}`);
+                }
+              } catch (error) {
+                core.warning(`Unable to inspect ${issue.owner}/${issue.repo}#${issue.number}: ${error.message}`);
+              }
+            }
+
+            core.setOutput('has-linked-issue', unique.length > 0 ? 'true' : 'false');
+            core.setOutput('closed-issues', closed.join(', '));
+
+      - name: Install spelling checker
+        run: python -m pip install --disable-pip-version-check codespell
+
+      - name: Check PR title and commit messages for spelling
+        env:
+          TEXT_DIR: ${{ runner.temp }}/pr-policy
+        run: |
+          set +e
+          codespell "$TEXT_DIR/title.txt" \
+            "$TEXT_DIR/commit-messages.txt" \
+            "$TEXT_DIR/commit-subjects.txt" \
+            > "$TEXT_DIR/spelling.txt" 2>&1
+          set -e
+
+      - name: Update PR policy comment
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          TEXT_DIR: ${{ runner.temp }}/pr-policy
+          HAS_LABELS: ${{ steps.metadata.outputs.has-labels }}
+          LABELS: ${{ steps.metadata.outputs.labels }}
+          HAS_DEFAULT_LABEL: ${{ steps.metadata.outputs.has-default-label }}
+          HAS_LINKED_ISSUE: ${{ steps.metadata.outputs.has-linked-issue }}
+          CLOSED_ISSUES: ${{ steps.metadata.outputs.closed-issues }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- eld-pr-policy-checks -->';
+            const spelling = fs.readFileSync(`${process.env.TEXT_DIR}/spelling.txt`, 'utf8').trim();
+            const warnings = [];
+
+            if (spelling) {
+              warnings.push(`### Spelling suggestions\n\n\\`\\`\\`text\n${spelling}\n\\`\\`\\``);
+            }
+            if (process.env.HAS_LABELS !== 'true') {
+              warnings.push('### Missing label\n\nThis PR has no labels.');
+            }
+            if (process.env.HAS_DEFAULT_LABEL === 'true') {
+              warnings.push('### Default label present\n\nThis PR has the `ignore-for-release-notes` label.');
+            }
+            if (process.env.HAS_LINKED_ISSUE !== 'true') {
+              warnings.push('### Missing linked issue\n\nThis PR does not reference an issue with a closing keyword such as `Fixes #123`.');
+            }
+            if (process.env.CLOSED_ISSUES) {
+              warnings.push(`### Closed linked issue\n\nThis PR references an issue that is already closed: ${process.env.CLOSED_ISSUES}.`);
+            }
+
+            const body = warnings.length
+              ? `${marker}\n## PR policy warnings\n\n${warnings.join('\n\n')}`
+              : `${marker}\n## PR policy checks\n\nNo warnings found.`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number, per_page: 100,
+            });
+            const existing = comments.find(comment =>
+              comment.user.type === 'Bot' && comment.body?.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
