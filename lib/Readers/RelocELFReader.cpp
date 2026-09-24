@@ -18,6 +18,7 @@
 #include "eld/SymbolResolver/Resolver.h"
 #include "eld/Target/GNULDBackend.h"
 #include "eld/Target/LDFileFormat.h"
+#include "eld/Target/Relocator.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/Compression.h"
 #include <cstdint>
@@ -25,6 +26,35 @@
 #include <type_traits>
 
 namespace eld {
+
+static bool checkMergeStringRelocation(
+    GNULDBackend &Backend, ELFObjectFile &Object, const ELFSection *LinkSection,
+    const Relocation &Reloc, const LDSymbol &Symbol) {
+  ELFSection *SymbolSection = Object.getELFSection(Symbol.sectionIndex());
+  if (!SymbolSection || !SymbolSection->isMergeKind())
+    return true;
+
+  LinkerConfig &Config = Backend.config();
+  uint64_t SectionSize = SymbolSection->size();
+  uint64_t SymbolOffset = Symbol.value();
+  uint64_t TargetOffset = SymbolOffset;
+  uint64_t Addend = Backend.getRelocator()->getAddend(&Reloc);
+  if (Addend) {
+    if (Addend <= UINT64_MAX - TargetOffset)
+      TargetOffset += Addend;
+    else
+      TargetOffset = UINT64_MAX;
+  }
+  if (TargetOffset <= SectionSize)
+    return true;
+
+  Config.raise(Diag::error_merge_string_relocation_beyond_end)
+      << LinkSection->getLocation(Reloc.getOffset(), Config.options())
+      << Backend.getRelocator()->getName(Reloc.type()) << TargetOffset
+      << SymbolSection->getLocation(0, Config.options()) << SectionSize;
+  return false;
+}
+
 template <class ELFT>
 RelocELFReader<ELFT>::RelocELFReader(Module &module, InputFile &inputFile,
                                      plugin::DiagnosticEntry &diagEntry)
@@ -371,13 +401,21 @@ RelocELFReader<ELFT>::readRelocationSection(ELFSection *RS) {
         ELFReader<ELFT>::template getRelocationType<isRela>(R);
     typename ELFReader<ELFT>::intX_t rAddend = ELFReader<ELFT>::getAddend(R);
 
+    FragmentRef TargetRef(*linkSect->getFrontFragment(), R.r_offset);
+    Relocation InputReloc(backend.getRelocator(), rType, &TargetRef, rAddend);
+    InputReloc.setSymInfo(symbol->resolveInfo());
+    if (!checkMergeStringRelocation(backend, *EObj, linkSect, InputReloc,
+                                    *symbol))
+      return false;
+
     if (backend.handleRelocation(linkSect, rType, *symbol, R.r_offset, rAddend))
       continue;
 
     Relocation *relocation = eld::IRBuilder::addRelocation(
         backend.getRelocator(), linkSect, rType, *symbol, R.r_offset, rAddend);
-    if (relocation)
-      linkSect->addRelocation(relocation);
+    if (!relocation)
+      continue;
+    linkSect->addRelocation(relocation);
   }
   return backend.handlePendingRelocations(RS->getLink());
 }
