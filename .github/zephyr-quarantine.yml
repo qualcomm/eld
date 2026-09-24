@@ -134,24 +134,9 @@
     GCC+ELD passes.
 
 - scenarios:
-  - libraries\.heap_stats_log(?:\.(?!no_thread_stats$).*)?$
-  - libraries\.heap_stats_log\.no_thread_stats
-  platforms:
-  - qemu_cortex_m3/.*
-  comment: >-
-    Same EXIDX merging issue as bluetooth.init.test_20. See issue #225.
-
-- scenarios:
   - integration\.kernel
   platforms:
   - qemu_riscv32_xip/.*
   comment: >-
     The test's noinit section is 0x4020 bytes, but the board has 0x4000 bytes
     of RAM. GCC also overflows by the same amount as ELD.
-
-- scenarios:
-  - bluetooth.init.test_20
-  platforms:
-  - qemu_cortex_m3/.*
-  comment: >-
-    https://github.com/qualcomm/eld/issues/225

@@ -10,7 +10,8 @@
 RUN: %clang %clangopts -target arm -c %p/Inputs/exidx_a.s -o %t.a.o
 RUN: %clang %clangopts -target arm -c %p/Inputs/exidx_b.s -o %t.b.o
 RUN: %link %linkopts -r %t.a.o %t.b.o -o %t.r.o
-RUN: %link -MapStyle txt %linkopts %t.r.o -T %p/Inputs/script_multi.t \
+RUN: %link -MapStyle txt %linkopts --no-merge-exidx-entries %t.r.o \
+RUN:   -T %p/Inputs/script_multi.t \
 RUN:   -o %t.out -Map %t.map
 RUN: %filecheck %s --check-prefix=MAP < %t.map
 RUN: %readelf -S -W %t.out | %filecheck %s --check-prefix=SEC
