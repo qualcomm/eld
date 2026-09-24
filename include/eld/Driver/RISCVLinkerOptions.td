@@ -50,6 +50,11 @@ def no_riscv_relax_xqci
       HelpText<"Disable relaxing to/from Xqci instructions (default behavior)">,
       Group<grp_riscv_linker>;
 
+def no_relax_tp
+    : Flag<["--"], "no-relax-tp">,
+      HelpText<"Disable relaxing thread-pointer-relative instruction sequences">,
+      Group<grp_riscv_linker>;
+
 def no_relax_tlsdesc
     : Flag<["--"], "no-relax-tlsdesc">,
       HelpText<"Disable relaxing TLSDESC instruction sequences">,
