@@ -1,4 +1,4 @@
-name: "New pull requests policy check"
+name: "New pull requests policy check banana"
 
 permissions:
   contents: read
@@ -9,7 +9,8 @@ on:
   # code from the pull request branch.
   # See https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
   # zizmor: ignore[dangerous-triggers] no PR code is checked out; labeler only reads PR metadata
-  pull_request_target:
+  # pull_request_target:
+  pull_request:
     types:
       - opened
       - edited
@@ -157,7 +158,9 @@ jobs:
             const warnings = [];
 
             if (spelling) {
-              warnings.push(`### Spelling suggestions\n\n\\`\\`\\`text\n${spelling}\n\\`\\`\\``);
+              warnings.push(
+                '### Spelling suggestions\n\n```text\n' + spelling + '\n```',
+              );
             }
             if (process.env.HAS_LABELS !== 'true') {
               warnings.push('### Missing label\n\nThis PR has no labels.');
