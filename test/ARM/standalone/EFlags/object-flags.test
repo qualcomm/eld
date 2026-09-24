@@ -1,0 +1,232 @@
+#---object-flags.test---------------------- Executable --------------------#
+#BEGIN_COMMENT
+# Check that ARM e_flags are picked up from input object files and that
+# incompatible EABI versions are diagnosed.
+#END_COMMENT
+#START_TEST
+#RUN: %yaml2obj --docnum=1 %s -o %t.ver4.o
+#RUN: %yaml2obj --docnum=2 %s -o %t.ver5.o
+#RUN: %yaml2obj --docnum=3 %s -o %t.ver3.o
+#RUN: %yaml2obj --docnum=4 %s -o %t.unknown.o
+#RUN: %yaml2obj --docnum=5 %s -o %t.ver4soft.o
+#RUN: %yaml2obj --docnum=6 %s -o %t.data3.o
+#RUN: %yaml2obj --docnum=7 %s -o %t.shared5vfp.so
+#
+#RUN: %link %emulation %t.ver4.o -o %t.ver4.out
+#RUN: %readelf -h %t.ver4.out | %filecheck %s --check-prefix=VER4
+#
+# EABI4 and EABI5 are compatible. Keep the EABI version established by
+# the first input, matching ld.bfd behavior.
+#RUN: %link %emulation %t.ver4.o %t.ver5.o -o %t.ver45.out
+#RUN: %readelf -h %t.ver45.out | %filecheck %s --check-prefix=VER4
+#
+#RUN: %link %emulation %t.ver5.o %t.ver4.o -o %t.ver54.out
+#RUN: %readelf -h %t.ver54.out | %filecheck %s --check-prefix=VER5
+#
+#RUN: %not %link %emulation --warn-mismatch %t.ver3.o %t.ver5.o \
+#RUN:   -o %t.ver35.out 2>&1 | %filecheck %s --check-prefix=MISMATCH35
+#
+#RUN: %not %link %emulation --warn-mismatch %t.ver5.o %t.ver3.o \
+#RUN:   -o %t.ver53.out 2>&1 | %filecheck %s --check-prefix=MISMATCH53
+#
+# With --no-warn-mismatch, diagnose but retain the flags established by
+# the first input.
+#RUN: %link %emulation --no-warn-mismatch %t.ver3.o %t.ver5.o \
+#RUN:   -o %t.noerr35.out 2>&1 | %filecheck %s --check-prefix=NOERR35
+#RUN: %readelf -h %t.noerr35.out | %filecheck %s --check-prefix=VER3
+#
+#RUN: %link %emulation --no-warn-mismatch %t.ver5.o %t.ver3.o \
+#RUN:   -o %t.noerr53.out 2>&1 | %filecheck %s --check-prefix=NOERR53
+#RUN: %readelf -h %t.noerr53.out | %filecheck %s --check-prefix=VER5
+#
+# UNKNOWN followed by a known EABI version adopts the known version.
+#RUN: %link %emulation --warn-mismatch %t.unknown.o %t.ver5.o \
+#RUN:   -o %t.unknown5.out
+#RUN: %readelf -h %t.unknown5.out | %filecheck %s --check-prefix=VER5
+#
+# Once a known EABI version has been established, UNKNOWN is incompatible.
+#RUN: %not %link %emulation --warn-mismatch %t.ver5.o %t.unknown.o \
+#RUN:   -o %t.ver50.out 2>&1 | %filecheck %s --check-prefix=MISMATCH50
+#
+# Only inherit the EABI version from input e_flags. Non-EABI bits must not
+# be propagated implicitly to the output.
+#RUN: %link %emulation %t.ver4soft.o %t.ver5.o -o %t.ver4soft5.out
+#RUN: %readelf -h %t.ver4soft5.out | %filecheck %s --check-prefix=VER4
+#
+# Shared objects can also carry non-EABI flags. Do not inherit those flags
+# implicitly when a shared object establishes the output EABI version.
+#RUN: %link %emulation %t.shared5vfp.so %t.ver5.o -o %t.shared5vfp.out
+#RUN: %readelf -h %t.shared5vfp.out | %filecheck %s --check-prefix=VER5
+#
+# Once output flags have been established, a later data-only object does not
+# participate in EABI compatibility checking.
+#RUN: %link %emulation --warn-mismatch %t.ver5.o %t.data3.o \
+#RUN:   -o %t.ver5data3.out
+#RUN: %readelf -h %t.ver5data3.out | %filecheck %s --check-prefix=VER5
+#
+# A data-only object can still establish the initial output EABI state. A later
+# executable EABI5 object is therefore incompatible with that EABI3 state.
+#RUN: %not %link %emulation --warn-mismatch %t.data3.o %t.ver5.o \
+#RUN:   -o %t.data3ver5.out 2>&1 | %filecheck %s --check-prefix=MISMATCH35
+#
+# A data-only dynamic object still participates in ARM EABI compatibility
+# checking, matching ld.bfd behavior.
+#RUN: %link %emulation -shared %t.data3.o -o %t.data3.so
+#RUN: %readelf -h %t.data3.so | %filecheck %s --check-prefix=DYNEABI3
+#RUN: %readelf -S %t.data3.so | %filecheck %s --check-prefix=DYNNOEXEC
+#
+#RUN: %not %link %emulation --warn-mismatch %t.ver5.o %t.data3.so \
+#RUN:   -o %t.ver5dyn3.out 2>&1 | %filecheck %s --check-prefix=DYNMISMATCH35
+#
+#RUN: %not %link %emulation --warn-mismatch %t.data3.so %t.ver5.o \
+#RUN:   -o %t.dyn3ver5.out 2>&1 | %filecheck %s --check-prefix=DYNMISMATCH53
+#END_TEST
+
+#VER3: Flags: 0x3000000
+#VER4: Flags: 0x4000000
+#VER5: Flags: 0x5000000
+#MISMATCH35: Error: Incompatible object files when reading {{.*}}ver5.o, mixing EABI5 and EABI3
+#MISMATCH53: Error: Incompatible object files when reading {{.*}}ver3.o, mixing EABI3 and EABI5
+#NOERR35: Note: Incompatible object files when reading {{.*}}ver5.o, mixing EABI5 and EABI3
+#NOERR53: Note: Incompatible object files when reading {{.*}}ver3.o, mixing EABI3 and EABI5
+#MISMATCH50: Error: Incompatible object files when reading {{.*}}unknown.o, mixing EABI0 and EABI5
+#DYNEABI3: Type: DYN
+#DYNEABI3: Flags: 0x3000000
+#DYNNOEXEC-NOT: AX
+#DYNMISMATCH35: Error: Incompatible object files when reading {{.*}}data3.so, mixing EABI3 and EABI5
+#DYNMISMATCH53: Error: Incompatible object files when reading {{.*}}ver5.o, mixing EABI5 and EABI3
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER4 ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+Symbols:
+  - Name:            foo4
+    Section:         .text
+    Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER5 ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+Symbols:
+  - Name:            foo5
+    Section:         .text
+    Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER3 ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+Symbols:
+  - Name:            foo3
+    Section:         .text
+    Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_UNKNOWN ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+Symbols:
+  - Name:            foo0
+    Section:         .text
+    Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER4, EF_ARM_SOFT_FLOAT ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+Symbols:
+  - Name:            foo4soft
+    Section:         .text
+    Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER3 ]
+Sections:
+  - Name:            .data
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_WRITE ]
+    AddressAlign:    4
+    Content:         00000000
+Symbols:
+  - Name:            data3
+    Section:         .data
+    Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_DYN
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER5, EF_ARM_VFP_FLOAT ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+  - Name:            .dynstr
+    Type:            SHT_STRTAB
+    Flags:           [ SHF_ALLOC ]
+    AddressAlign:    1
+    Content:         00
+  - Name:            .dynamic
+    Type:            SHT_DYNAMIC
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    4
+    Link:            .dynstr
+    Entries:
+      - Tag:             DT_NULL
+        Value:           0
