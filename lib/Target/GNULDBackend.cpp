@@ -1420,7 +1420,8 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
         (isStripTemporaries && S->isLocal() &&
          llvm::StringRef(S->name()).starts_with(".L")) ||
         m_SymbolsToRemove.count(S)) {
-      config().raise(Diag::stripping_symbol) << S->name();
+      if (m_Module.getPrinter()->isVerbose())
+        config().raise(Diag::stripping_symbol) << S->name();
       continue;
     }
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING

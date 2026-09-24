@@ -4,7 +4,7 @@
 # END_COMMENT
 # START_TEST
 RUN: %clang -c %clangopts %p/Inputs/1.s -o %t.o
-RUN: %link %t.o -T %p/Inputs/script.t -o %t.out -Map %t.map \
+RUN: %link %t.o -T %p/Inputs/script.t --verbose -o %t.out -Map %t.map \
 RUN:  2>&1 | %filecheck %s --check-prefix=LINK
 RUN: %link %t.o -o %t2.out
 RUN: %readelf -s %t.out | %filecheck %s --check-prefix=STRIPPED
