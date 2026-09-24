@@ -48,6 +48,7 @@ public:
     uint16_t VersionID = 0;
     uint32_t VersionNameOffset = 0;
     uint32_t VersionNameHash = 0;
+    std::vector<uint32_t> DependencyNameOffsets;
   };
 
 protected:

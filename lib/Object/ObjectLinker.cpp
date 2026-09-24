@@ -74,6 +74,7 @@
 #include "eld/Target/Relocator.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/ScopeExit.h"
+#include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
@@ -434,6 +435,13 @@ void ObjectLinker::createDefaultSymverNode() {
 
 bool ObjectLinker::registerVersionScriptNodes(const VersionScript *VS,
                                               llvm::StringRef DecoratedPath) {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  llvm::StringSet<> SeenVersionNames;
+  for (const VersionScriptNode *N : ThisModule->getVersionScriptNodes())
+    if (N && !N->isAnonymous())
+      SeenVersionNames.insert(N->getName());
+#endif
+
   for (auto &VersionScriptNode : VS->getNodes()) {
     if (!VersionScriptNode->isAnonymous()) {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
@@ -444,10 +452,16 @@ bool ObjectLinker::registerVersionScriptNodes(const VersionScript *VS,
 #endif
     }
     if (VersionScriptNode->hasDependency()) {
-      ThisConfig.raise(Diag::unsupported_dependent_node)
-          << VersionScriptNode->getName() << DecoratedPath;
 #ifndef ELD_ENABLE_SYMBOL_VERSIONING
       continue;
+#else
+      llvm::StringRef Dependency = VersionScriptNode->getDependency();
+      if (Dependency == VersionScriptNode->getName() ||
+          !SeenVersionNames.contains(Dependency)) {
+        ThisConfig.raise(Diag::error_unknown_version_node_dependency)
+            << VersionScriptNode->getName() << Dependency << DecoratedPath;
+        return false;
+      }
 #endif
     }
     // FIXME: Why did we reach here at all if the version script parsing
@@ -457,6 +471,10 @@ bool ObjectLinker::registerVersionScriptNodes(const VersionScript *VS,
       return false;
     }
     ThisModule->addVersionScriptNode(VersionScriptNode);
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    if (!VersionScriptNode->isAnonymous())
+      SeenVersionNames.insert(VersionScriptNode->getName());
+#endif
   }
   return true;
 }
