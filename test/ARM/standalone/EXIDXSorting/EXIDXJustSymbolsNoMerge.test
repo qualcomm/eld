@@ -12,6 +12,7 @@ RUN:   --defsym=__aeabi_unwind_cpp_pr0=0 \
 RUN:   -o %t.cantunwind.out
 RUN: %link -MapStyle txt %linkopts %t.sentinel.o -R=%t.cantunwind.out \
 RUN:   -T %p/Inputs/script.t \
+RUN:   --no-merge-exidx-entries \
 RUN:   --defsym=__aeabi_unwind_cpp_pr0=0 \
 RUN:   -o %t.out -Map %t.map
 RUN: %readelf -S -W %t.out | %filecheck %s --check-prefix=SEC

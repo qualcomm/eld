@@ -129,6 +129,10 @@ ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
   if (ArgList.hasArg(OPT_ARMLinkOptTable::pic_veneer))
     Config.options().setPicVeneer(true);
 
+  Config.options().setMergeEXIDXEntries(
+      ArgList.hasFlag(OPT_ARMLinkOptTable::merge_exidx_entries,
+                      OPT_ARMLinkOptTable::no_merge_exidx_entries, true));
+
   // -frwpi
   if (ArgList.hasArg(OPT_ARMLinkOptTable::frwpi))
     Config.options().setRWPI();
