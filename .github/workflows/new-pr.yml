@@ -1,4 +1,4 @@
-name: "Labelling new pull requests"
+name: "New pull requests policy check"
 
 permissions:
   contents: read
@@ -12,6 +12,7 @@ on:
   pull_request_target:
     types:
       - opened
+      - edited
       - reopened
       - ready_for_review
       - synchronize
@@ -22,7 +23,10 @@ jobs:
     permissions:
       pull-requests: write
     if: >
-      github.event.pull_request.draft == false
+      github.event.pull_request.draft == false &&
+      (github.event.action == 'opened' ||
+       github.event.action == 'reopened' ||
+       github.event.action == 'ready_for_review')
     steps:
       - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
         id: labeler
@@ -30,8 +34,83 @@ jobs:
           configuration-path: .github/pr-labeler.yml
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Apply default label if none matched
-        if: steps.labeler.outputs.all-labels == ''
+  policy-checks:
+    needs: automate-pr-labels
+    if: >
+      always() && github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Collect PR text and linked issues
+        id: metadata
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const number = context.payload.pull_request.number;
+
+            const pull = await github.rest.pulls.get({ owner, repo, pull_number: number });
+
+            const labels = pull.data.labels.map(label => label.name);
+            core.setOutput('has-labels', labels.length > 0 ? 'true' : 'false');
+
+            const linked = await github.graphql(`
+              query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    closingIssuesReferences(first: 100) {
+                      nodes {
+                        number
+                        state
+                        repository {
+                          nameWithOwner
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `, { owner, repo, number });
+            const references = linked.repository.pullRequest.closingIssuesReferences.nodes;
+            const closed = references
+              .filter(issue => issue.state === 'CLOSED')
+              .map(issue => `${issue.repository.nameWithOwner}#${issue.number}`);
+
+            core.setOutput('has-linked-issue', references.length > 0 ? 'true' : 'false');
+            core.setOutput('closed-issues', closed.join(', '));
+
+      - name: Report PR policy warnings
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr edit ${{ github.event.pull_request.number }} --add-label ignore-for-release-notes --repo ${{ github.repository }}
+          HAS_LABELS: ${{ steps.metadata.outputs.has-labels }}
+          HAS_LINKED_ISSUE: ${{ steps.metadata.outputs.has-linked-issue }}
+          CLOSED_ISSUES: ${{ steps.metadata.outputs.closed-issues }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const warnings = [];
+
+            if (process.env.HAS_LABELS !== 'true') {
+              warnings.push('### Missing label\n\nThis PR has no labels.');
+            }
+            if (process.env.HAS_LINKED_ISSUE !== 'true') {
+              warnings.push('### Missing linked issue\n\nThis PR does not reference an issue with a closing keyword such as `Fixes #123`.');
+            }
+            if (process.env.CLOSED_ISSUES) {
+              warnings.push(`### Closed linked issue\n\nThis PR references an issue that is already closed: ${process.env.CLOSED_ISSUES}.`);
+            }
+
+            const summary = warnings.length
+              ? `## PR policy warnings\n\n${warnings.join('\n\n')}`
+              : '## PR policy checks\n\nNo warnings found.';
+            await require('fs').promises.appendFile(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
+            for (const warning of warnings) {
+              core.warning(warning.replace(/\n+/g, ' '));
+            }
+            if (warnings.length) {
+              core.setFailed('PR policy warnings detected. See the job summary for details.');
+            }
