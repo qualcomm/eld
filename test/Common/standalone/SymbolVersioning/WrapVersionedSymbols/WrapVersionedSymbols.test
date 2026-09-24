@@ -1,0 +1,52 @@
+REQUIRES: symbol_versioning
+#---WrapVersionedSymbols.test------------------------------ Executable ---------
+#BEGIN_COMMENT
+# Check that --wrap handles unversioned and versioned references independently.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.default.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.nondefault.o
+RUN: %clang %clangopts -c %p/Inputs/wrap.c -o %t.wrap.o
+RUN: %clang %clangopts -c %p/Inputs/wrap-v1.c -o %t.wrap-v1.o
+RUN: %clang %clangopts -c %p/Inputs/real-v1.c -o %t.real-v1.o
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/main-v1.c -o %t.main-v1.o
+RUN: %clang %clangopts -c %p/Inputs/main-both.c -o %t.main-both.o
+
+# foo@@V1 definition, unversioned reference, and --wrap=foo.
+RUN: %link %linkopts -o %t.case1.out %t.default.o %t.wrap.o %t.main.o --wrap=foo --trace=wrap-symbols 2>&1 | %filecheck %s --check-prefix=CASE1
+
+# foo@V1 definition, foo@V1 reference, and --wrap=foo.
+RUN: %link %linkopts -o %t.case2.out %t.nondefault.o %t.main-v1.o --wrap=foo
+RUN: %readelf -sW %t.case2.out | %filecheck %s --check-prefix=CASE2
+
+# foo@V1 definition, foo@V1 reference, and --wrap=foo@V1.
+RUN: %link %linkopts -o %t.case3.out %t.nondefault.o %t.wrap.o %t.wrap-v1.o %t.main-v1.o --wrap=foo@V1 --trace=wrap-symbols 2>&1 | %filecheck %s --check-prefix=CASE3
+
+# foo@@V1 definition, foo and foo@V1 references, and --wrap=foo.
+RUN: %link %linkopts -o %t.case4.out %t.default.o %t.wrap.o %t.main-both.o --wrap=foo --trace=wrap-symbols 2>&1 | %filecheck %s --check-prefix=CASE4
+
+# foo@@V1 definition, foo and foo@V1 references, --wrap=foo and --wrap=foo@V1.
+RUN: %link %linkopts -o %t.case5.out %t.default.o %t.wrap.o %t.wrap-v1.o %t.main-both.o --wrap=foo --wrap=foo@V1 --trace=wrap-symbols 2>&1 | %filecheck %s --check-prefix=CASE5
+
+# foo@V1 reference and __real_foo@V1 definition, with --wrap=foo@V1.
+RUN: %link %linkopts -o %t.case6.out %t.nondefault.o %t.wrap-v1.o %t.real-v1.o %t.main-v1.o --wrap=foo@V1 --trace=wrap-symbols 2>&1 | %filecheck %s --check-prefix=CASE6
+RUN: %readelf -sW %t.case6.out | %filecheck %s --check-prefix=CASE6-SYMS
+#END_TEST
+
+CASE1: Note: Renaming undefined symbol `foo' to `__wrap_foo' from {{.*}}main.o for wrapping
+
+CASE2-NOT: __wrap_foo
+CASE2: foo@V1
+CASE2-NOT: __wrap_foo
+
+CASE3: Note: Renaming undefined symbol `foo@V1' to `__wrap_foo@V1' from {{.*}}main-v1.o for wrapping
+
+CASE4-DAG: Note: Renaming undefined symbol `foo' to `__wrap_foo' from {{.*}}main-both.o for wrapping
+CASE4-NOT: Renaming undefined symbol `foo@V1'
+
+CASE5-DAG: Note: Renaming undefined symbol `foo' to `__wrap_foo' from {{.*}}main-both.o for wrapping
+CASE5-DAG: Note: Renaming undefined symbol `foo@V1' to `__wrap_foo@V1' from {{.*}}main-both.o for wrapping
+
+CASE6: Note: Renaming undefined symbol `foo@V1' to `__wrap_foo@V1' from {{.*}}main-v1.o for wrapping
+CASE6-SYMS: FUNC    GLOBAL   DEFAULT {{[0-9]+}} __real_foo@V1
