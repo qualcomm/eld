@@ -110,6 +110,7 @@ def build_docs(
         "-DLLVM_ENABLE_SPHINX=ON",
         "-DLLVM_TARGETS_TO_BUILD=ARM;AArch64;RISCV;Hexagon",
         "-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++",
+        "-DELD_ENABLE_PDF_DOCS=On",
         str(llvm_worktree / "llvm"),
     ]
 
