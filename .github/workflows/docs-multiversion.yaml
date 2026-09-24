@@ -88,7 +88,7 @@ jobs:
       - name: Preserve existing content (dashboard)
         run: |
           if [ -d docs-branch/dash ]; then
-            cp -r docs-branch/dash build/tools/eld/docs/multiversion/site/main
+            cp -r docs-branch/dash build/tools/eld/docs/multiversion/site/
             echo "Preserved dashboard from documentation branch"
           fi
 
