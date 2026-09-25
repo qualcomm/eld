@@ -268,14 +268,6 @@ eld::Expected<void> OutputSectDesc::activate(Module &CurModule) {
   OutputSectCmds Assignments;
   const LinkerScript &Script = CurModule.getLinkerScript();
 
-  if (OutputSectDescEpilog.hasPhdrs() && !Script.phdrsSpecified()) {
-    for (const auto &PhdrNameToken : OutputSectDescEpilog.phdrs()->tokens()) {
-      return std::make_unique<plugin::DiagnosticEntry>(
-          plugin::DiagnosticEntry(Diag::error_phdrs_not_specified_ldscript,
-                                  {getContext(), Name, PhdrNameToken->name()}));
-    }
-  }
-
   if (OutputSectDescEpilog.OutputSectionMemoryRegion) {
     eld::Expected<eld::ScriptMemoryRegion *> MemRegion = Script.getMemoryRegion(
         OutputSectDescEpilog.OutputSectionMemoryRegion->name(), getContext());
