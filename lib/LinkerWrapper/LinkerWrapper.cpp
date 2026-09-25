@@ -359,9 +359,7 @@ LinkerWrapper::getOutputSectionAndRule(Section S) {
       Sections.begin(), Input->getResolvedPath().native(),
       *llvm::cast<ELFSection>(S.getSection()), F.isArchive(), Input->getName(),
       S.getSection()->sectionNameHash(), Input->getResolvedPathHash(),
-      Input->getArchiveMemberNameHash(),
-      m_Module.getConfig().options().getScriptOption() ==
-          GeneralOptions::MatchGNU);
+      Input->getArchiveMemberNameHash());
 
   ELFSection *inputELFSect = llvm::dyn_cast<ELFSection>(S.getSection());
 

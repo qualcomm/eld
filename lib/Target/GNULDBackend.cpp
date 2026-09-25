@@ -4810,8 +4810,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
           m_Module.getScript().sectionMap().outputSections().begin(),
           input->getInput()->getResolvedPath().native(), *sec, false,
           input->getInput()->getName(), inputSectionHash, inputFileHash,
-          nameHash,
-          (config().options().getScriptOption() == GeneralOptions::MatchGNU));
+          nameHash);
       if (!pair.first) {
         config().raise(Diag::cannot_find_output_section_for_input)
             << sec->name();
