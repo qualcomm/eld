@@ -21,6 +21,15 @@ RUN: %clang %clangopts -c %p/Inputs/main_script.c -o %t.main_script.o -ffunction
 RUN: %link -o %t.script.out %linkopts %t.main_script.o --start-lib-thin %t.foo_sel.o %t.bar_sel.o --end-lib-thin -T %p/Inputs/startlib_thin_archive_pattern.t -MapStyle txt -Map %t.script.map.txt
 RUN: %filecheck %s -check-prefix=SCRIPT-MAP-THIN < %t.script.map.txt
 
+# Verify replay of a thin --start-lib reproducer, including its original
+# object-file members.
+RUN: %link -o %t.reproduce.out %linkopts %t.main_multi.o --start-lib-thin %t.foo.o %t.bar.o %t.baz.o --end-lib-thin --reproduce %t.reproduce.tar --dump-response-file %t.reproduce.response
+RUN: %mkdir %t.reproduce
+RUN: cd %t.reproduce
+RUN: %tar %gnutaropts -xf %t.reproduce.tar --strip-components=1
+RUN: %eld @response.txt -o %t.replay.out
+RUN: %diff %t.reproduce.out %t.replay.out
+
 #MULTI-SYM-THIN-DAG: foo
 #MULTI-SYM-THIN-DAG: bar
 #WHOLE-SYM-THIN-DAG: foo
@@ -31,4 +40,3 @@ RUN: %filecheck %s -check-prefix=SCRIPT-MAP-THIN < %t.script.map.txt
 #SCRIPT-MAP-THIN: .bar_out
 #SCRIPT-MAP-THIN: "*<start-lib-thin:1>:*bar_sel.o"
 #END_TEST
-

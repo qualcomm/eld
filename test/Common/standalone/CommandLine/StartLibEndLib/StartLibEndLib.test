@@ -36,6 +36,16 @@ RUN: %filecheck %s -check-prefix=SCRIPT-MAP < %t.script.map.txt
 RUN: %link -o %t.group.out %linkopts %t.main_group.o --start-group --start-lib %t.fcb.o %t.baz_impl.o --end-lib %t.libbar.a --end-group
 RUN: %nm %t.group.out | %filecheck %s -check-prefix=GROUPSYM
 
+# Verify that the generated response and archive can be replayed for
+# --start-lib. The original member must be captured even though the linker
+# processes the synthetic archive.
+RUN: %link -o %t.reproduce.out %linkopts %t.main.o --start-lib %t.foo.o --end-lib --reproduce %t.reproduce.tar --dump-response-file %t.reproduce.response
+RUN: %mkdir %t.reproduce
+RUN: cd %t.reproduce
+RUN: %tar %gnutaropts -xf %t.reproduce.tar --strip-components=1
+RUN: %eld @response.txt -o %t.replay.out
+RUN: %diff %t.reproduce.out %t.replay.out
+
 #MISMATCH: Mismatched --start-lib/--end-lib
 #NEST: Nested --start-lib/--end-lib not allowed
 #SYM: foo
