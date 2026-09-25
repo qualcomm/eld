@@ -98,9 +98,14 @@ uint64_t ARMInfo::flags() const {
   // checkFlags() was never called. This means the linker was given a lone empty
   // .o file or a lone symdef file, etc. In either case, we want the result to
   // have flags.
-  if (!OutputFlags)
-    return llvm::ELF::EF_ARM_EABI_VER5;
-  return *OutputFlags;
+  uint64_t Flags = OutputFlags.value_or(llvm::ELF::EF_ARM_EABI_VER5);
+  // AAELF32 defines EF_ARM_ABI_FLOAT_{SOFT,HARD} only for ET_EXEC and ET_DYN
+  // outputs, so partial links (-r) must not carry them.
+  const bool IsExecOrDyn = m_Config.codeGenType() == LinkerConfig::Exec ||
+                           m_Config.codeGenType() == LinkerConfig::DynObj;
+  if (IsExecOrDyn && getEABIVersion(Flags) >= llvm::ELF::EF_ARM_EABI_VER5)
+    Flags |= FloatABIFlag;
+  return Flags;
 }
 
 bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I,
