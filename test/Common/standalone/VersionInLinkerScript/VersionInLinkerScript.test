@@ -9,8 +9,9 @@ REQUIRES: symbol_versioning
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
-RUN: %link %linkopts -o %t1.1.so %t1.1.o -shared -T %p/Inputs/script.lds
+RUN: %link -MapStyle txt %linkopts -o %t1.1.so %t1.1.o -shared -T %p/Inputs/script.lds -Map %t1.1.map
 RUN: %readelf --dyn-syms --version-info %t1.1.so | %filecheck %s
+RUN: %filecheck %s --check-prefix=MAP < %t1.1.map
 #END_TEST
 
 CHECK: Symbol table '.dynsym' contains 2 entries:
@@ -24,3 +25,11 @@ CHECK: 0 (*local*)
 CHECK: '.gnu.version_d' contains 2 entries:
 CHECK: Name: {{[^ /\\]+}}1.1.so
 CHECK: Name: V1
+
+MAP: Version Script Information
+MAP: Version Script file
+MAP: {{.*}}Inputs/script.lds
+MAP: Global:
+MAP: Pattern: exported_symbol
+MAP: Local:
+MAP: Pattern: *
