@@ -26,7 +26,9 @@
 #include "eld/PluginAPI/LinkerPlugin.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/Relocation.h"
+#include "eld/Script/OutputSectDesc.h"
 #include "eld/Script/ScriptAction.h"
+#include "eld/Script/SectionsCmd.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/ProgressBar.h"
@@ -321,9 +323,6 @@ bool Linker::initializeInputTree(std::vector<InputAction *> &Actions) {
   if (Backend)
     Backend->setOptions();
 
-  if (!verifyLinkerScript())
-    return false;
-
   return true;
 }
 
@@ -350,6 +349,9 @@ bool Linker::normalize() {
     if (!ObjLinker->normalize())
       return false;
   }
+
+  if (!verifyLinkerScript())
+    return false;
 
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig->raise(Diag::verbose_loading_non_universal_plugins);
@@ -869,6 +871,29 @@ bool Linker::verifyLinkerScript() {
     ThisModule->setFailure(true);
     return false;
   }
+
+  if (CurScript.phdrsSpecified())
+    return true;
+
+  for (auto *ScriptCmd : CurScript.getScriptCommands()) {
+    auto *Sections = llvm::dyn_cast<SectionsCmd>(ScriptCmd);
+    if (!Sections)
+      continue;
+
+    for (auto *SectionCmd : *Sections) {
+      auto *Out = llvm::dyn_cast<OutputSectDesc>(SectionCmd);
+      if (!Out || !Out->epilog().hasPhdrs())
+        continue;
+
+      for (const auto *PhdrNameToken : Out->epilog().phdrs()->tokens()) {
+        ThisConfig->raise(Diag::error_phdrs_not_specified_ldscript)
+            << Out->getContext() << Out->name() << PhdrNameToken->name();
+        ThisModule->setFailure(true);
+        return false;
+      }
+    }
+  }
+
   return true;
 }
 

@@ -1,0 +1,28 @@
+#--PHDRSInLaterScript.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# PHDRS and SECTIONS may come from different linker scripts, including a
+# script given as an input file, which is only read after the -T scripts.
+# PHDRS usage must be checked after all scripts are read, while scripts that
+# are really incomplete are still diagnosed, also through INCLUDE.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+
+# PHDRS comes from a script given as an input file, after SECTIONS.
+RUN: %link %linkopts %t1.o -T %p/Inputs/sections.t %p/Inputs/phdrs.t -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+# SECTIONS comes from a script given as an input file, after PHDRS.
+RUN: %link %linkopts %t1.o -T %p/Inputs/phdrs.t %p/Inputs/sections.t -o %t3.out
+RUN: %readelf -l -W %t3.out | %filecheck %s
+
+# A :phdr assignment in an INCLUDE inside SECTIONS is still diagnosed when no
+# script specifies PHDRS.
+RUN: %not %link %linkopts %t1.o -L %p/Inputs -T %p/Inputs/nested.t -o %t4.out 2>&1 \
+RUN:   | %filecheck %s --check-prefix=NESTED
+#END_TEST
+
+CHECK: LOAD
+CHECK: 00 .text
+
+NESTED: body.t: Section .text assigned to segment A but PHDRS not specified
