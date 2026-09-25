@@ -139,7 +139,7 @@ DIAG(invalid_option_mapstyle, DiagnosticEngine::Error,
 DIAG(invalid_option_error_style, DiagnosticEngine::Error,
      "error-style can only take options llvm/gnu")
 DIAG(invalid_option_match_error_style, DiagnosticEngine::Error,
-     "error-style can only take options match-llvm/match-gnu")
+     "script-options can only take options match-llvm")
 DIAG(enable_disable_newdtags, DiagnosticEngine::Error,
      "Cannot enable and disable DTAGS at the same time")
 DIAG(cannot_find_target, DiagnosticEngine::Error, "Unable to find target: %0")
