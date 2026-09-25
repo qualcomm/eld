@@ -92,7 +92,33 @@ bool ARMInfo::InitializeDefaultMappings(Module &pModule) {
   return true;
 }
 
-std::string ARMInfo::flagString(uint64_t flag) const { return "arm"; }
+std::string ARMInfo::flagString(uint64_t flag) const {
+  std::string FlagStr = "arm";
+
+  auto AppendFlag = [&FlagStr](const std::string &Name) {
+    FlagStr += "|";
+    FlagStr += Name;
+  };
+
+  const uint64_t EABIVersion = getEABIVersion(flag);
+  if (EABIVersion != llvm::ELF::EF_ARM_EABI_UNKNOWN)
+    AppendFlag(getEABIVersionString(flag));
+
+  // AAELF32 gives 0x200/0x400 the EF_ARM_ABI_FLOAT_{SOFT,HARD} meaning from
+  // EABI version 5 on; pre-v5 objects used them as EF_ARM_{SOFT,VFP}_FLOAT.
+  const bool IsEABI5OrLater = EABIVersion >= llvm::ELF::EF_ARM_EABI_VER5;
+
+  if (flag & llvm::ELF::EF_ARM_SOFT_FLOAT)
+    AppendFlag(IsEABI5OrLater ? "FloatABISoft" : "SoftFloat");
+
+  if (flag & llvm::ELF::EF_ARM_VFP_FLOAT)
+    AppendFlag(IsEABI5OrLater ? "FloatABIHard" : "VFPFloat");
+
+  if (flag & llvm::ELF::EF_ARM_BE8)
+    AppendFlag("BE8");
+
+  return FlagStr;
+}
 
 uint64_t ARMInfo::flags() const {
   // checkFlags() was never called. This means the linker was given a lone empty
