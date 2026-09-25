@@ -20,18 +20,33 @@ ThreadPool::ThreadPool(ThreadPool &&other) noexcept : TPool(nullptr) {
 ThreadPool &ThreadPool::operator=(ThreadPool &&other) noexcept {
   if (this == &other)
     return *this;
-  std::swap(TPool, other.TPool);
+  if (TPool) {
+    wait();
+    delete TPool;
+  }
+  TPool = other.TPool;
+  Futures = std::move(other.Futures);
+  other.TPool = nullptr;
   return *this;
 }
 
 std::shared_future<void>
 ThreadPool::asyncImpl(plugin::ThreadPool::TaskTy Task) {
-  return TPool->async(Task);
+  std::shared_future<void> Future = TPool->async(Task);
+  Futures.push_back(Future);
+  return Future;
 }
 
-void plugin::ThreadPool::wait() { TPool->wait(); }
+void plugin::ThreadPool::wait() {
+  if (!TPool)
+    return;
+  TPool->wait();
+  Futures.clear();
+}
 
 plugin::ThreadPool::~ThreadPool() {
-  if (TPool)
+  if (TPool) {
+    wait();
     delete TPool;
+  }
 }

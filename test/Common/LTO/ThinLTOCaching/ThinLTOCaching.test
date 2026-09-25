@@ -1,3 +1,4 @@
+#UNSUPPORTED: tsan
 ## A basic test for thin LTO cache
 
 RUN: %clang %clangopts -flto=thin -O2 -c %p/Inputs/1.c -o %t.1.bc

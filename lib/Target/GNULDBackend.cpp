@@ -100,6 +100,7 @@
 #include <chrono>
 #include <climits>
 #include <cstring>
+#include <future>
 #include <limits>
 #include <map>
 #include <string>
@@ -2785,9 +2786,14 @@ bool GNULDBackend::checkCrossReferences() {
       config().raise(Diag::threads_enabled)
           << "CheckCrossRefs" << config().options().numThreads();
     llvm::ThreadPoolInterface *Pool = m_Module.getThreadPool();
+    std::vector<std::shared_future<void>> Futures;
+    Futures.reserve(m_Module.getObjectList().size());
     for (auto &input : m_Module.getObjectList()) {
-      Pool->async([&] { checkCrossReferencesHelper(input); });
+      Futures.emplace_back(
+          Pool->async([this, input] { checkCrossReferencesHelper(input); }));
     }
+    for (std::shared_future<void> &F : Futures)
+      F.wait();
     Pool->wait();
   }
   if (!config().getDiagEngine()->diagnose()) {

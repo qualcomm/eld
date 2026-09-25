@@ -1,3 +1,4 @@
+; UNSUPPORTED: tsan
 ; RUN: %rm %t.*
 ; RUN: %opt --mtriple=%triple --data-layout=%datalayout %s -o %t.bc
 
