@@ -1,0 +1,3 @@
+PHDRS {
+  A PT_LOAD;
+}
