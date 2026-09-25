@@ -178,6 +178,10 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
     case LDFileFormat::StackNote:
     case LDFileFormat::GNUProperty:
     case LDFileFormat::Target: {
+      if (S->isNoteGNUStack() && S->isCode() &&
+          !config.options().hasStackSet() && !config.options().noGnuStack())
+        config.raise(Diag::warn_execstack)
+            << inputFile->getInput()->decoratedPath();
       if (!backend.readSection(*inputFile, S)) {
         return std::make_unique<plugin::DiagnosticEntry>(
             plugin::DiagnosticEntry(Diag::err_cannot_read_target_section,
