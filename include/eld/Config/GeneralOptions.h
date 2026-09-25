@@ -1424,7 +1424,7 @@ private:
   std::string SoName;
   ExcludeLIBSType ExcludeLIBS;
   ErrorStyleType ErrorStyle = gnu;
-  ScriptOptionType ScriptOption = MatchLLVM;
+  ScriptOptionType ScriptOption = MatchGNU;
   std::vector<std::string> LTOAsmFile;
   std::vector<std::string> LTOOutputFile;
   std::optional<uint64_t> ImageBase; // --image-base=value

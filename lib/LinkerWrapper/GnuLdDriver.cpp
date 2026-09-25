@@ -567,7 +567,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     }
   }
 
-  // --script-options=[match-gnu|match-llvm]
+  // --script-options=[match-llvm]
   if (llvm::opt::Arg *arg = Args.getLastArg(T::script_options)) {
     if (!Config.options().setScriptOption(arg->getValue())) {
       Config.raise(Diag::invalid_option_match_error_style);
