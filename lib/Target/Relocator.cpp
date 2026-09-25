@@ -292,6 +292,8 @@ bool Relocator::reportNonPICRelocation(const Relocation &reloc) const {
 }
 
 bool Relocator::checkPICRelocSupported(const Relocation &reloc) const {
+  if (!isTLSRelocTypeSupported(reloc))
+    return false;
   if (!config().isCodeIndep())
     return true;
   if (isPICRelocTypeSupported(reloc))
@@ -320,6 +322,26 @@ bool Relocator::checkDynamicRelocAllowed(const Relocation &reloc,
   return true;
 }
 
+bool Relocator::isTLSRelocTypeSupported(const Relocation &reloc) const {
+  if (!config().options().hasShared())
+    return true;
+
+  if (!isTLSLocalExecReloc(reloc))
+    return true;
+
+  FragmentRef *Ref = reloc.targetRef();
+  std::string Location = reloc.getSourcePath(config().options());
+  if (Ref && Ref->frag() && Ref->frag()->getOwningSection())
+    Location = Ref->frag()->getOwningSection()->getLocation(Ref->offset(),
+                                                            config().options());
+  ResolveInfo *sym = reloc.symInfo();
+  config().raise(Diag::tls_le_relocation_in_shared)
+      << getName(reloc.type()) << (sym ? getSymbolName(sym) : "<unknown>")
+      << Location;
+
+  m_Module.setFailure(true);
+  return false;
+}
 bool Relocator::doDeMangle() const {
   return m_Config.options().shouldDemangle();
 }

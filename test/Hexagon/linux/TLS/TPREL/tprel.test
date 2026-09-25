@@ -7,7 +7,7 @@ RUN: %link %linkopts  -o %t.out %t1.o %t2.o -G0 2>&1
 RUN: %not %link %linkopts -shared -o %t.so %t1.pic.o %t2.pic.o -G0 2>&1 | %filecheck %s --check-prefix="ERR"
 RUN: %readelf -l -S -s -W %t.out |   %filecheck %s
 
-#ERR: recompile with -fPIC
+#ERR: Fatal: relocation {{R_HEX_TPREL_.*}} against {{(src1|src2|dst)}} referred from {{.*\+0x[0-9a-f]+\)}} cannot be used with -shared
 # CHECK:  .tdata            PROGBITS        {{[x0-9a-z]+}} {{[x0-9a-z]+}} 000008 00 WAT
 # CHECK:  .tbss             NOBITS          {{[x0-9a-z]+}} {{[x0-9a-z]+}} 000004 00 WAT
 # CHECK:  00000008     4 TLS     GLOBAL DEFAULT    {{[0-9]}} dst

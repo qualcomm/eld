@@ -14,6 +14,8 @@ RUN: %clang %clangopts -c %clangg0opts -fpic %p/Inputs/2.c -ftls-model=initial-e
 RUN: %not %link %linkopts -shared %t2IE.o -o %tlib.so.1 2>&1 | %filecheck %s --check-prefix="IEERR"
 RUN: %not %link %linkopts -shared %t2LE.o -o %tlib.so.2 2>&1 | %filecheck %s --check-prefix="LEERR"
 
-#IEERR:  recompile with -fPIC
-#LEERR:  recompile with -fPIC
+#IEERR: Fatal: relocation {{R_HEX_TPREL_.*}} against baz referred from {{.*2IE\.o.*\+0x[0-9a-f]+\)}} cannot be used with -shared
+#IEERR: Fatal: relocation {{R_HEX_TPREL_.*}} against baz referred from {{.*2IE\.o.*\+0x[0-9a-f]+\)}} cannot be used with -shared
+#LEERR: Fatal: relocation {{R_HEX_TPREL_.*}} against baz referred from {{.*2LE\.o.*\+0x[0-9a-f]+\)}} cannot be used with -shared
+#LEERR: Fatal: relocation {{R_HEX_TPREL_.*}} against baz referred from {{.*2LE\.o.*\+0x[0-9a-f]+\)}} cannot be used with -shared
 #CHECK: TPREL
