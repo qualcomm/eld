@@ -89,6 +89,7 @@
 #include "llvm/Support/Program.h"
 #include "llvm/Support/ThreadPool.h"
 #include "llvm/Support/raw_ostream.h"
+#include <atomic>
 #include <chrono>
 #include <mutex>
 #include <optional>
@@ -480,16 +481,12 @@ void ObjectLinker::assignVersionNodesToSymbols() {
       return VS->isGlobal() ? "VER_NDX_GLOBAL" : "VER_NDX_LOCAL";
     return (node->getName() + (VS->isGlobal() ? "(global)" : "(local)")).str();
   };
-
   std::vector<ResolveInfo *> VSApplicableSymbols;
   for (auto &G : NP.getGlobals()) {
     ResolveInfo *R = G.getValue();
     if (canAssignVersionNode(*R))
       VSApplicableSymbols.push_back(R);
   }
-  if (VSApplicableSymbols.empty())
-    return;
-
   // Precompute flat pattern lists in precedence order. Each list is walked
   // per-symbol during assignment, so each thread reads a shared read-only
   // view and mutates only its own slot in Results below.
@@ -536,6 +533,16 @@ void ObjectLinker::assignVersionNodesToSymbols() {
     pushFiltered((*It)->getGlobalBlock(), isMatchAllP, MatchAllPatterns);
   }
 
+  bool CheckUndefinedVersion = !ThisConfig.options().allowUndefinedVersion();
+  if (VSApplicableSymbols.empty() && !CheckUndefinedVersion)
+    return;
+  std::vector<std::atomic_bool> exactPatternHasMatch;
+  if (CheckUndefinedVersion) {
+    exactPatternHasMatch = std::vector<std::atomic_bool>(ExactPatterns.size());
+    for (size_t I = 0; I < ExactPatterns.size(); ++I)
+      exactPatternHasMatch[I].store(false, std::memory_order_relaxed);
+  }
+
   // Per-symbol decision. Reads only shared read-only state (NamePool,
   // pattern lists, config flags); writes only to a caller-provided slot.
   // Emits diagnostics via ThisConfig.raise which is thread-safe.
@@ -543,15 +550,16 @@ void ObjectLinker::assignVersionNodesToSymbols() {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
     std::optional<std::string> demangledName;
 #endif
-    auto matchesR = [&](VersionSymbol *vs) {
+
+    auto matchesR = [&](VersionSymbol *VS) {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-      if (vs->isExternCpp() && !demangledName)
+      if (VS->isExternCpp() && !demangledName)
         demangledName = eld::string::getDemangledName(R->getNonVersionedName());
-      return vs->matched(*R, NP,
+      return VS->matched(*R, NP,
                          demangledName ? llvm::StringRef(*demangledName)
                                        : llvm::StringRef());
 #else
-      return vs->getSymbolPattern()->matches(*R);
+      return VS->getSymbolPattern()->matches(*R);
 #endif
     };
 
@@ -569,9 +577,12 @@ void ObjectLinker::assignVersionNodesToSymbols() {
     // match so that any later exact match in a subsequent node emits the
     // reassignment warning.
     VersionSymbol *scope = nullptr;
-    for (VersionSymbol *vs : ExactPatterns) {
+    for (size_t I = 0; I < ExactPatterns.size(); ++I) {
+      VersionSymbol *vs = ExactPatterns[I];
       if (!matchesR(vs))
         continue;
+      if (CheckUndefinedVersion)
+        exactPatternHasMatch[I].store(true, std::memory_order_relaxed);
       if (!scope) {
         scope = vs;
       } else if (ThisConfig.showVersionScriptWarnings()) {
@@ -624,6 +635,13 @@ void ObjectLinker::assignVersionNodesToSymbols() {
           VSApplicableSymbols[i]);
       getTargetBackend().addSymbolScope(VSApplicableSymbols[i], Results[i]);
     }
+  }
+  if (CheckUndefinedVersion) {
+    for (size_t I = 0; I < ExactPatterns.size(); ++I)
+      if (!exactPatternHasMatch[I].load(std::memory_order_relaxed))
+        ThisConfig.raise(Diag::error_undefined_version)
+            << getVersionDesc(ExactPatterns[I])
+            << ExactPatterns[I]->getSymbolPattern()->name();
   }
 }
 

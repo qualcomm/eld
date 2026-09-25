@@ -323,13 +323,19 @@ defm T : mDashDeprTwoWithOpt<"T", "script", "T",
          MetaVarName<"<linkerscriptfile>">,
          Group<grp_scriptopts>;
 defm version_script : mDashDeprEqWithOpt<"version-script", "version_script",
-                                         "Use the linker script as a version "
-                                         "script.">,
-                      MetaVarName<"<linkersciptfile>">,
-                      Group<grp_scriptopts>;
+                                          "Use the linker script as a version "
+                                          "script.">,
+                       MetaVarName<"<linkersciptfile>">,
+                       Group<grp_scriptopts>;
+def undefined_version : FF<"undefined-version">,
+                        HelpText<"Allow undefined exact symbols in version scripts">,
+                        Group<grp_scriptopts>;
+def no_undefined_version : FF<"no-undefined-version">,
+                           HelpText<"Report undefined exact symbols in version scripts">,
+                           Group<grp_scriptopts>;
 defm default_script : mDashDeprEqWithOpt<"default-script", "default_script",
-                                         "Use the linker script as the default "
-                                         "linker script.">,
+                                          "Use the linker script as the default "
+                                          "linker script.">,
                       MetaVarName<"<pluginfile>">,
                       Group<grp_scriptopts>;
 defm Ttext : mDashCompEq<"Ttext", "Specify an address for the .text section">,

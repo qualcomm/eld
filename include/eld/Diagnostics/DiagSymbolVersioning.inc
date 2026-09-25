@@ -20,6 +20,9 @@ DIAG(trace_clear_export_due_to_local_scope, DiagnosticEngine::Trace,
      "Clearing export for symbol '%0' due to local scope")
 DIAG(error_missing_version_node, DiagnosticEngine::Error,
      "%0: symbol %1 has undefined version %2")
+DIAG(error_undefined_version, DiagnosticEngine::Error,
+     "version script assignment of '%0' to symbol '%1' failed: symbol not "
+     "defined")
 DIAG(trace_assign_output_version_ids, DiagnosticEngine::Trace,
      "Assigning version IDs to output symbols")
 DIAG(trace_adding_verneed_entry, DiagnosticEngine::Trace,
