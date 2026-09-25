@@ -492,6 +492,10 @@ public:
 
   bool getPicVeneer() const { return BPicVeneer; }
 
+  void setMergeEXIDXEntries(bool Merge) { MergeEXIDXEntries = Merge; }
+
+  bool mergeEXIDXEntries() const { return MergeEXIDXEntries; }
+
   // -M, --print-map
   void setPrintMap(bool PEnable = true) { BPrintMap = PEnable; }
 
@@ -1310,6 +1314,7 @@ private:
   bool BBuildCref = false;           // noflag, buildCRef
   bool BUseMovVeneer = false;        // --use-mov-veneer
   bool BPicVeneer = false;           // --pic-veneer
+  bool MergeEXIDXEntries = true;     // --[no-]merge-exidx-entries
   bool BNoDelete = false;            // -z nodelete
   bool BNewDTags = false;            //--enable(disable)-new-dtags
   bool BWarnOnce = false;            // --warn-once

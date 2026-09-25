@@ -10,6 +10,8 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/Relocation.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
+#include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Endian.h"
 #include <cstring>
 
@@ -37,21 +39,41 @@ uint32_t EXIDXFragment::translateInputOffset(uint32_t InputOffset) const {
   return 0;
 }
 
-bool EXIDXFragment::hasRealUnwindData() const {
+bool EXIDXFragment::getUnwindWord(const EXIDXPiece &Piece,
+                                  uint32_t &Word) const {
+  if (Piece.Size != 8)
+    return false;
   llvm::StringRef Region = getRegion();
-  for (const EXIDXPiece &P : Pieces) {
-    // Each piece is an 8-byte EXIDX entry; the second word is the unwind word.
-    // 0x00000001 (LE) means CANTUNWIND; anything else is real unwind data.
-    for (uint32_t Off = P.InputOffset + 4; Off + 4 <= P.InputOffset + P.Size;
-         Off += 8) {
-      if (Off + 4 > Region.size())
-        break;
-      uint32_t Word = llvm::support::endian::read32le(Region.data() + Off);
-      if (Word != 0x00000001u)
-        return true;
-    }
-  }
-  return false;
+  if (Piece.InputOffset + Piece.Size > Region.size())
+    return false;
+  Word = llvm::support::endian::read32le(Region.data() + Piece.InputOffset + 4);
+  return true;
+}
+
+uint32_t EXIDXFragment::getRelocationInputOffset(Relocation *R) {
+  auto It = RelocationInputOffsets.find(R);
+  if (It != RelocationInputOffsets.end())
+    return It->second;
+  uint32_t Offset = R->targetRef()->offset();
+  RelocationInputOffsets.try_emplace(R, Offset);
+  return Offset;
+}
+
+void EXIDXFragment::removePieces(llvm::ArrayRef<uint32_t> InputOffsets) {
+  ELFSection *Section = getOwningSection();
+  ASSERT(Section, "EXIDX fragment must have an owning section");
+
+  llvm::SmallDenseSet<uint32_t, 4> RemovedOffsets(InputOffsets.begin(),
+                                                  InputOffsets.end());
+  Section->removeRelocationsIf([&](Relocation *R) {
+    if (!R || !R->targetRef() || R->targetRef()->frag() != this)
+      return false;
+    const uint32_t Offset = getRelocationInputOffset(R);
+    return RemovedOffsets.contains(Offset - Offset % 8);
+  });
+  llvm::erase_if(Pieces, [&](const EXIDXPiece &Piece) {
+    return RemovedOffsets.contains(Piece.InputOffset);
+  });
 }
 
 size_t EXIDXFragment::size() const {
@@ -86,6 +108,7 @@ void EXIDXFragment::dump(llvm::raw_ostream &OS) {
     OS << "\t<GC>";
   OS << "\n";
 
+  uint32_t PieceOutputOffset = 0;
   for (size_t I = 0; I < Pieces.size(); ++I) {
     const EXIDXPiece &Piece = Pieces[I];
 
@@ -94,7 +117,7 @@ void EXIDXFragment::dump(llvm::raw_ostream &OS) {
     OS << "\toff=0x";
     OS.write_hex(Piece.InputOffset);
     OS << "\taddr=0x";
-    OS.write_hex(FragmentOutputAddr + Piece.InputOffset);
+    OS.write_hex(FragmentOutputAddr + PieceOutputOffset);
     OS << "\tsz=0x";
     OS.write_hex(Piece.Size);
     if (IsGC)
@@ -113,7 +136,7 @@ void EXIDXFragment::dump(llvm::raw_ostream &OS) {
       if (R->targetRef()->frag() != this)
         continue;
 
-      const uint32_t RelInputOffset = R->targetRef()->offset();
+      const uint32_t RelInputOffset = getRelocationInputOffset(R);
       if (RelInputOffset < Piece.InputOffset ||
           RelInputOffset >= Piece.InputOffset + Piece.Size)
         continue;
@@ -127,6 +150,7 @@ void EXIDXFragment::dump(llvm::raw_ostream &OS) {
         OS << "\t<GC>";
       OS << "\n";
     }
+    PieceOutputOffset += Piece.Size;
   }
 }
 

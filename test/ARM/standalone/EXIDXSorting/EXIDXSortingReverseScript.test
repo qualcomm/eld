@@ -8,7 +8,8 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -target arm -c %p/Inputs/exidx.s -o %t1.o
-RUN: %link %linkopts %t1.o -T %p/Inputs/script_reverse_exidx.t -o %t2.out
+RUN: %link %linkopts --no-merge-exidx-entries %t1.o \
+RUN:   -T %p/Inputs/script_reverse_exidx.t -o %t2.out
 RUN: %readelf -u %t2.out | %filecheck %s --check-prefix=UNW
 
 # Entries must appear in ascending function-address order regardless of the

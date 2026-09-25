@@ -30,6 +30,14 @@ def pic_veneer
           "Force PIC/PC-relative branch veneers even in a non-PIC/non-PIE "
           "link (ARM and AArch64)">,
       Group<grp_arm_linker>;
+def merge_exidx_entries
+    : Flag<["--"], "merge-exidx-entries">,
+      HelpText<"Enable merging .ARM.exidx entries (default)">,
+      Group<grp_arm_linker>;
+def no_merge_exidx_entries
+    : Flag<["--"], "no-merge-exidx-entries">,
+      HelpText<"Disable merging .ARM.exidx entries">,
+      Group<grp_arm_linker>;
 def grp_arm_linker_only : OptionGroup<"opts">,
                           HelpText<"ARM Linker Option ONLY">;
 def fix_cortex_a53_843419 : Flag<["-", "--"], "fix-cortex-a53-843419">,

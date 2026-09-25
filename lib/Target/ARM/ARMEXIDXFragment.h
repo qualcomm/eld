@@ -9,10 +9,14 @@
 
 #include "eld/Fragment/RegionFragment.h"
 #include "eld/Fragment/TargetFragment.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SmallVector.h"
 #include <cstdint>
 
 namespace eld {
+
+class Relocation;
 
 /// One logical entry (8 bytes) within a .ARM.exidx input section.
 struct EXIDXPiece {
@@ -47,9 +51,11 @@ public:
   /// Called after sortEXIDX to fix up relocation target offsets.
   uint32_t translateInputOffset(uint32_t InputOffset) const;
 
-  /// Returns true if any live piece contains a non-CANTUNWIND unwind word
-  /// (i.e. the second 32-bit word of an 8-byte entry is not 0x1).
-  bool hasRealUnwindData() const;
+  bool getUnwindWord(const EXIDXPiece &Piece, uint32_t &Word) const;
+
+  void removePieces(llvm::ArrayRef<uint32_t> InputOffsets);
+
+  uint32_t getRelocationInputOffset(Relocation *R);
 
   /// Total live size: sum of all piece sizes (excludes GC'd entries).
   size_t size() const override;
@@ -59,6 +65,7 @@ public:
 
 private:
   llvm::SmallVector<EXIDXPiece, 0> Pieces;
+  llvm::DenseMap<Relocation *, uint32_t> RelocationInputOffsets;
 };
 
 // An 8-byte linker-generated CANTUNWIND entry placed at the end of the
@@ -74,12 +81,12 @@ public:
   ~EXIDXSentinelFragment() override = default;
 
   const std::string name() const override { return "EXIDXSentinel"; }
-  // Size is 0 until activate() is called; this keeps the fragment invisible
-  // when no real .ARM.exidx input sections exist.
+  // Size is 0 until setActive(true) is called; this keeps the fragment
+  // invisible when no real .ARM.exidx input sections exist.
   size_t size() const override { return Active ? 8 : 0; }
 
-  // Called by sortEXIDX() once at least one real EXIDX fragment is found.
-  void activate() { Active = true; }
+  // Called by sortEXIDX() once the sentinel decision is known.
+  void setActive(bool IsActive) { Active = IsActive; }
 
   // Set the target address (byte past the last covered function).
   // Called by sortEXIDX() once all output addresses are known.

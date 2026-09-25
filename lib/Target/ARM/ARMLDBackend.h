@@ -203,8 +203,10 @@ public:
   /// target-dependent segments
   virtual void doCreateProgramHdrs() override;
 
-  /// Sort ARM.EDIDX
-  void sortEXIDX();
+  /// Sort ARM.EXIDX and merge duplicate table entries.
+  bool sortEXIDX();
+
+  bool updateTargetSections() override;
 
   /// Add Target specific segments.
   void addTargetSpecificSegments() override;
@@ -257,7 +259,8 @@ private:
   /// readSection; used by handleRelocation and sortEXIDX.
   llvm::DenseMap<ELFSection *, EXIDXFragment *> m_EXIDXFragments;
   ELFSection *m_pEXIDXSentinel = nullptr;
-  EXIDXSentinelFragment *m_pSentinelFrag = nullptr;
+  EXIDXSentinelFragment *SentinelFrag = nullptr;
+  ELFSection *EXIDXLastLinkedSection = nullptr;
   llvm::DenseMap<ResolveInfo *, ARMGOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, ARMGOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, ARMPLT *> m_PLTMap;

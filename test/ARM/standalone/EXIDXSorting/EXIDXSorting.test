@@ -15,7 +15,8 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -target arm -c %p/Inputs/exidx.s -o %t1.1.o
-RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -Map %t2.map
+RUN: %link -MapStyle txt %linkopts --no-merge-exidx-entries %t1.1.o \
+RUN:   -T %p/Inputs/script.t -o %t2.out -Map %t2.map
 RUN: %filecheck %s < %t2.map
 
 #CHECK: .ARM.exidx.text.f2      0x11010 0x10
