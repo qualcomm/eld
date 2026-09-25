@@ -1,0 +1,44 @@
+#------PR1802_MaxRoundsInvalidLayout.test------ Executable ------------------#
+# REQUIRES: riscv64
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/pr1802-max-rounds-invalid-layout.s -o %t.o
+RUN: %link %linkopts %t.o -T %p/Inputs/pr1802-max-rounds-invalid-layout.lds -o %t.out
+RUN: %objdump -d %t.out | %filecheck %s
+#END_TEST
+
+CHECK-LABEL: <call_0>:
+CHECK:       auipc
+CHECK-NEXT:  jalr
+CHECK-LABEL: <call_1>:
+CHECK:       auipc
+CHECK-NEXT:  jalr
+CHECK-LABEL: <call_2>:
+CHECK:       auipc
+CHECK-NEXT:  jalr
+CHECK-LABEL: <call_3>:
+CHECK:       auipc
+CHECK-NEXT:  jalr
+CHECK-LABEL: <call_4>:
+CHECK:       auipc
+CHECK-NEXT:  jalr
+CHECK-LABEL: <call_5>:
+CHECK:       auipc
+CHECK-NEXT:  jalr
+CHECK-LABEL: <call_6>:
+CHECK:       auipc
+CHECK-NEXT:  jalr
+CHECK-LABEL: <call_7>:
+CHECK:       auipc
+CHECK-NEXT:  jalr
+CHECK-LABEL: <call_8>:
+CHECK:       auipc
+CHECK-NEXT:  jalr
+CHECK-LABEL: <call_9>:
+CHECK:       auipc
+CHECK-NEXT:  jalr
+CHECK-LABEL: <call_10>:
+CHECK:       auipc
+CHECK-NEXT:  jalr
+CHECK-LABEL: <call_11>:
+CHECK:       auipc
+CHECK-NEXT:  jalr

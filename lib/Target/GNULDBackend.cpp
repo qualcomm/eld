@@ -3299,6 +3299,46 @@ bool GNULDBackend::layout() {
   return config().getDiagEngine()->diagnose();
 }
 
+bool GNULDBackend::convergeLayout() {
+  LayoutSnapshot PrevSnap, CurSnap;
+  PrevSnap = captureLayoutSnapshot();
+  constexpr int MaxIterations = 4;
+  DivergenceResult Diverged;
+  for (int I = 0; I < MaxIterations; ++I) {
+    eld::RegisterTimer T("Assign Address", "Establish Layout",
+                         m_Module.getConfig().options().printTimingStats());
+    bool HasError = createProgramHdrs();
+    if (HasError)
+      m_Module.setFailure(true);
+    if (updateTargetSections()) {
+      HasError = createProgramHdrs();
+      if (HasError)
+        m_Module.setFailure(true);
+    }
+    CurSnap = captureLayoutSnapshot();
+    Diverged = findDivergence(PrevSnap, CurSnap);
+    if (!Diverged.outputSection && !Diverged.assignment)
+      break;
+    PrevSnap = std::move(CurSnap);
+  }
+  if (Diverged.outputSection) {
+    if (const ELFSection *S = Diverged.outputSection->getSection())
+      config().raise(Diag::note_section_address_not_converging)
+          << S->name() << MaxIterations;
+  } else if (Diverged.assignment) {
+    const Assignment &A = *Diverged.assignment;
+    config().raise(Diag::note_assignment_value_not_converging)
+        << A.getContext() << A.getAsString(true) << MaxIterations;
+  }
+  if (LinkerConfig::Object != config().codeGenType()) {
+    if (!setupProgramHdrs()) {
+      m_Module.setFailure(true);
+      return false;
+    }
+  }
+  return true;
+}
+
 GNULDBackend::LayoutSnapshot GNULDBackend::captureLayoutSnapshot() const {
   LayoutSnapshot S;
   const SectionMap &SM = m_Module.getScript().sectionMap();
@@ -4208,44 +4248,8 @@ bool GNULDBackend::relax() {
 
   while (!finished) {
     auto start = std::chrono::steady_clock::now();
-    {
-      LayoutSnapshot prevSnap, curSnap;
-      prevSnap = captureLayoutSnapshot();
-      constexpr int maxIterations = 4;
-      DivergenceResult diverged;
-      for (int i = 0; i < maxIterations; ++i) {
-        eld::RegisterTimer T("Assign Address", "Establish Layout",
-                             m_Module.getConfig().options().printTimingStats());
-        bool hasError = createProgramHdrs();
-        if (hasError)
-          m_Module.setFailure(true);
-        if (updateTargetSections()) {
-          bool hasError = createProgramHdrs();
-          if (hasError)
-            m_Module.setFailure(true);
-        }
-        curSnap = captureLayoutSnapshot();
-        diverged = findDivergence(prevSnap, curSnap);
-        if (!diverged.outputSection && !diverged.assignment)
-          break;
-        prevSnap = std::move(curSnap);
-      }
-      if (diverged.outputSection) {
-        if (const ELFSection *S = diverged.outputSection->getSection())
-          config().raise(Diag::note_section_address_not_converging)
-              << S->name() << maxIterations;
-      } else if (diverged.assignment) {
-        const Assignment &A = *diverged.assignment;
-        config().raise(Diag::note_assignment_value_not_converging)
-            << A.getContext() << A.getAsString(true) << maxIterations;
-      }
-      if (LinkerConfig::Object != config().codeGenType()) {
-        if (!setupProgramHdrs()) {
-          m_Module.setFailure(true);
-          return false;
-        }
-      }
-    }
+    if (!convergeLayout())
+      return false;
 
     if (!config().getDiagEngine()->diagnose()) {
       if (m_Module.getPrinter()->isVerbose())
@@ -4281,6 +4285,20 @@ bool GNULDBackend::relax() {
           << (int)std::chrono::duration<double, std::milli>(end - start)
                  .count();
     iteration++;
+  }
+
+  // Commit any relaxation edits a backend deferred instead of applying
+  // eagerly; layout above already accounted for their effect. A backend
+  // that rolls an edit back mid-settle asks for another round by leaving
+  // pFinished false, and we recompute program headers before calling it
+  // again.
+  bool postRelaxFinished = false;
+  while (!postRelaxFinished) {
+    postRelaxFinished = true;
+    postRelax(postRelaxFinished);
+    if (!postRelaxFinished)
+      if (!convergeLayout())
+        return false;
   }
 
   // Print memory regions
