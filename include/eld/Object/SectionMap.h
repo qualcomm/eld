@@ -58,13 +58,12 @@ public:
   mapping findOnlyIn(iterator Output, std::string PInputFile,
                      const ELFSection &CurInputSection, bool IsArchive,
                      std::string Name, uint64_t InputSectionHash,
-                     uint64_t InputFileHash, uint64_t NameHash,
-                     bool GNUCompatible);
+                     uint64_t InputFileHash, uint64_t NameHash);
 
   mapping findIn(iterator Output, std::string PInputFile,
                  const ELFSection &CurInputSection, bool IsArchive,
                  std::string Name, uint64_t InputSectionHash,
-                 uint64_t InputFileHash, uint64_t NameHash, bool GNUCompatible);
+                 uint64_t InputFileHash, uint64_t NameHash);
 
   ELFSection *find(std::string EntrySection);
 
@@ -126,7 +125,7 @@ public:
                std::string const &PInputFile,
                std::string const &CurInputSection, bool IsArchive,
                std::string const &Name, uint64_t CurInputSectionHash,
-               uint64_t FileNameHash, uint64_t NameHash, bool GNUCompatible,
+               uint64_t FileNameHash, uint64_t NameHash,
                bool IsCommonSection) const;
 
   bool matched(const WildcardPattern &PPattern, llvm::StringRef PName,
