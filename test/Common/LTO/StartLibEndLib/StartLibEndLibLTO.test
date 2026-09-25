@@ -11,7 +11,14 @@ RUN: %clang %clangopts -flto -c %p/Inputs/main.c -o %t.main.o
 
 RUN: %link %linkopts %t.main.o --start-lib %t.foo.o %t.bar.o %t.baz.o --end-lib -o %t.out --print-timing-stats 2>&1 | %filecheck %s -check-prefix=TIMING
 
+# Verify that an LTO --start-lib reproducer can be replayed.
+RUN: %link %linkopts %t.main.o --start-lib %t.foo.o %t.bar.o %t.baz.o --end-lib -o %t.reproduce.out --reproduce %t.reproduce.tar --dump-response-file %t.reproduce.response
+RUN: %mkdir %t.reproduce
+RUN: cd %t.reproduce
+RUN: %tar %gnutaropts -xf %t.reproduce.tar --strip-components=1
+RUN: %eld @response.txt -o %t.replay.out
+RUN: %diff %t.reproduce.out %t.replay.out
+
 #TIMING: Build --start-lib archive
 #TIMING-NOT: Build --start-lib archive
 #END_TEST
-
