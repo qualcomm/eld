@@ -1,4 +1,4 @@
-UNSUPPORTED: arm && ndk-build
+UNSUPPORTED: arm, ndk-build, tsan
 #---ThinLTONoLS.test-------------------------------- Executable,LTO ---------------------#
 
 #BEGIN_COMMENT

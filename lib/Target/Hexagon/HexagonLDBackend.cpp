@@ -47,6 +47,7 @@
 #include "llvm/Support/Program.h"
 #include "llvm/Support/ThreadPool.h"
 #include "llvm/TargetParser/Triple.h"
+#include <atomic>
 #include <cstring>
 #include <string.h>
 #include <string>
@@ -461,6 +462,7 @@ void HexagonLDBackend::mayBeRelax(int, bool &pFinished) {
   }
 
   // Insert trampolines
+  std::atomic<bool> Finished{true};
   auto InsertTrampolinesForOutputSection = [&](size_t n) {
     OutputSectionEntry *Out = OutSections.at(n);
     std::vector<Fragment *> Frags;
@@ -510,12 +512,11 @@ void HexagonLDBackend::mayBeRelax(int, bool &pFinished) {
                              branchIsland.first->symInfo()->nameSize() + 1);
             }
             } // end of switch
-            pFinished = false;
+            Finished.store(false, std::memory_order_relaxed);
           }
           if (!config().getDiagEngine()->diagnose()) {
             if (m_Module.getPrinter()->isVerbose())
               config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
-            pFinished = true;
           }
         } break;
 
@@ -534,6 +535,7 @@ void HexagonLDBackend::mayBeRelax(int, bool &pFinished) {
     llvm::parallelFor((size_t)0, OutSections.size(),
                       InsertTrampolinesForOutputSection);
   }
+  pFinished = Finished.load(std::memory_order_relaxed);
 }
 
 /// finalizeSymbol - finalize the symbol value

@@ -10,6 +10,7 @@
 #include "Defines.h"
 #include <functional>
 #include <future>
+#include <vector>
 
 namespace llvm {
 class ThreadPoolInterface;
@@ -60,6 +61,7 @@ private:
 
 private:
   llvm::ThreadPoolInterface *TPool;
+  std::vector<std::shared_future<void>> Futures;
 };
 
 } // namespace eld::plugin

@@ -40,6 +40,7 @@
 #include "llvm/Support/ThreadPool.h"
 #include <algorithm>
 #include <chrono>
+#include <future>
 
 using namespace eld;
 
@@ -565,7 +566,9 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
       ThisConfig.raise(Diag::threads_enabled)
           << "AssignOutputSections" << ThisConfig.options().numThreads();
     llvm::ThreadPoolInterface *Pool = ThisModule.getThreadPool();
-    for (auto &Obj : Inputs) {
+    std::vector<std::shared_future<void>> Futures;
+    Futures.reserve(Inputs.size());
+    for (InputFile *Obj : Inputs) {
       if (IsPostLtoPhase && Obj->isBitcode())
         continue;
       /// Internal common sections are assigned output sections later.
@@ -575,10 +578,15 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
       if (ObjFile && HasSectionsCommand && ObjFile->hasHighSectionCount())
         ThisConfig.raise(Diag::more_sections)
             << Obj->getInput()->decoratedPath();
-      Pool->async([&] {
-        assignInputFromOutput(Obj);
-      });
+      Futures.emplace_back(
+          Pool->async([this, Obj] { assignInputFromOutput(Obj); }));
     }
+    // Join all submitted work before leaving this scope.
+    for (std::shared_future<void> &F : Futures)
+      F.wait();
+    // The worker-side ThreadPool wrapper also waits on the future. Ensure that
+    // wrapper has returned before destroying the futures and their shared
+    // state.
     Pool->wait();
   }
 

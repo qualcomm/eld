@@ -90,6 +90,7 @@
 #include "llvm/Support/ThreadPool.h"
 #include "llvm/Support/raw_ostream.h"
 #include <chrono>
+#include <future>
 #include <mutex>
 #include <optional>
 #include <sstream>
@@ -853,14 +854,23 @@ void ObjectLinker::mergeIdenticalStrings() const {
   if (GlobalMerge)
     mergeNonAllocStrings(OutputSections, Builder);
 
+  std::vector<std::shared_future<void>> Futures;
+  if (UseThreads)
+    Futures.reserve(OutputSections.size());
   for (OutputSectionEntry *O : OutputSections) {
     if (UseThreads)
-      Pool->async(std::bind(MergeStrings, O));
+      Futures.emplace_back(Pool->async(std::bind(MergeStrings, O)));
     else
       MergeStrings(O);
   }
-  if (UseThreads)
+  if (UseThreads) {
+    for (std::shared_future<void> &F : Futures)
+      F.wait();
+    // The worker-side ThreadPool wrapper also waits on the future. Ensure that
+    // wrapper has returned before destroying the futures and their shared
+    // state.
     Pool->wait();
+  }
 }
 
 void ObjectLinker::fixMergeStringRelocations() const {
@@ -1425,8 +1435,15 @@ bool ObjectLinker::mergeSections() {
         createOutputSection(Builder, O);
     } else {
       llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
-      for (auto &O : OutSections)
-        Pool->async([&] { createOutputSection(Builder, O); });
+      std::vector<std::shared_future<void>> Futures;
+      Futures.reserve(OutSections.size());
+      for (OutputSectionEntry *O : OutSections)
+        Futures.emplace_back(Pool->async(
+            [this, &Builder, O] { createOutputSection(Builder, O); }));
+      for (std::shared_future<void> &F : Futures)
+        F.wait();
+      // Ensure the worker-side wrappers have returned before destroying the
+      // futures and their shared state.
       Pool->wait();
     }
 
@@ -2573,14 +2590,18 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
       ThisConfig.raise(Diag::threads_enabled)
           << "ApplyRelocations" << ThisConfig.options().numThreads();
     llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
+    std::vector<std::shared_future<void>> Futures;
+    Futures.reserve(ThisModule->getObjectList().size());
     for (auto &Input : ThisModule->getObjectList()) {
-      Pool->async([&] {
+      Futures.emplace_back(Pool->async([&, Input] {
         ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Input);
         if (!ObjFile)
           return;
         ProcessObjectFile(ObjFile);
-      });
+      }));
     }
+    for (std::shared_future<void> &F : Futures)
+      F.wait();
     Pool->wait();
   }
 
@@ -2670,6 +2691,7 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
     }
   } else {
     llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
+    std::vector<std::shared_future<void>> Futures;
     if (ThisModule->getPrinter()->traceThreads())
       ThisConfig.raise(Diag::threads_enabled)
           << "SyncRelocations" << ThisConfig.options().numThreads();
@@ -2681,18 +2703,28 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
     // Therefore, a barrier is needed between writing branch island
     // relocations and input relocations.
     for (auto &Out : ThisModule->getScript().sectionMap()) {
-      Pool->async([&] { SyncBranchIslandsForOutputSection(Out); });
+      Futures.emplace_back(
+          Pool->async([&, Out] { SyncBranchIslandsForOutputSection(Out); }));
     }
+    for (std::shared_future<void> &F : Futures)
+      F.wait();
     Pool->wait();
+    Futures.clear();
     // sync linker created internal relocations
     for (auto &R : getTargetBackend().getInternalRelocs()) {
-      Pool->async([this, &R, &Buffer] { writeRelocationResult(*R, Buffer); });
+      Futures.emplace_back(Pool->async(
+          [this, R, &Buffer] { writeRelocationResult(*R, Buffer); }));
     }
+    for (std::shared_future<void> &F : Futures)
+      F.wait();
     Pool->wait();
+    Futures.clear();
     for (auto &Input : ThisModule->getObjectList()) {
-      Pool->async(
-          [this, &Buffer, Input] { syncRelocationResult(Buffer, Input); });
+      Futures.emplace_back(Pool->async(
+          [this, &Buffer, Input] { syncRelocationResult(Buffer, Input); }));
     }
+    for (std::shared_future<void> &F : Futures)
+      F.wait();
     Pool->wait();
   }
 }
