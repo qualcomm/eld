@@ -267,8 +267,6 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
     return;
   }
   bool IsPartialLink = (ThisConfig.codeGenType() == LinkerConfig::Object);
-  bool IsGnuCompatible =
-      (ThisConfig.options().getScriptOption() == GeneralOptions::MatchGNU);
   bool LinkerScriptHasSectionsCommand =
       ThisModule.getScript().linkerScriptHasSectionsCommand();
   SectionMap &SectionMap = ThisModule.getScript().sectionMap();
@@ -342,7 +340,7 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
         // auto Start = std::chrono::system_clock::now();
         if (SectionMap.matched(*In, Input, PInputFile, SectName, IsArchive,
                                Name, InputSectionHash, InputFileHash, NameHash,
-                               IsGnuCompatible, IsCommonSection)) {
+                               IsCommonSection)) {
           In->incMatchCount();
           Sect->setOutputSection(Out);
           Sect->setMatchedLinkerScriptRule(In);
@@ -372,8 +370,6 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
 void ObjectBuilder::assignInputFromOutputLegacy(eld::InputFile *Obj) {
   std::unordered_map<Section *, bool> RetrySections;
   bool IsPartialLink = (ThisConfig.codeGenType() == LinkerConfig::Object);
-  bool IsGnuCompatible =
-      (ThisConfig.options().getScriptOption() == GeneralOptions::MatchGNU);
   bool LinkerScriptHasSectionsCommand =
       ThisModule.getScript().linkerScriptHasSectionsCommand();
   SectionMap &SectionMap = ThisModule.getScript().sectionMap();
@@ -451,7 +447,7 @@ void ObjectBuilder::assignInputFromOutputLegacy(eld::InputFile *Obj) {
         }
         if (SectionMap.matched(*In, Input, PInputFile, SectName, IsArchive,
                                Name, InputSectionHash, InputFileHash, NameHash,
-                               IsGnuCompatible, IsCommonSection)) {
+                               IsCommonSection)) {
           In->incMatchCount();
           Section->setOutputSection(Out);
           Section->setMatchedLinkerScriptRule(In);
@@ -780,8 +776,6 @@ bool ObjectBuilder::doPluginOutputSectionsIterate(plugin::PluginBase *P) {
 
 void ObjectBuilder::reAssignOutputSections(const plugin::LinkerWrapper *LW) {
   auto &SectionMap = ThisModule.getScript().sectionMap();
-  bool IsGnuCompatible =
-      (ThisConfig.options().getScriptOption() == GeneralOptions::MatchGNU);
 
   LinkerScript::OverrideSectionMatchT OverrideMatch =
       ThisModule.getScript().getSectionOverrides(LW);
@@ -814,8 +808,7 @@ void ObjectBuilder::reAssignOutputSections(const plugin::LinkerWrapper *LW) {
       uint64_t InputSectionHash = ELFSect->sectionNameHash();
       SectionMap::mapping Pair = ThisModule.getScript().sectionMap().findOnlyIn(
           OutputSectIter, Input->getInput()->getResolvedPath().native(),
-          *ELFSect, IsArchive, Name, InputSectionHash, InputFileHash, NameHash,
-          IsGnuCompatible);
+          *ELFSect, IsArchive, Name, InputSectionHash, InputFileHash, NameHash);
       if (Pair.first) {
         ELFSect->setOutputSection(Pair.first);
         ELFSect->setMatchedLinkerScriptRule(Pair.second);

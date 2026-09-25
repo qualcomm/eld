@@ -541,22 +541,6 @@ bool GeneralOptions::setErrorStyle(std::string errStyle) {
   return false;
 }
 
-bool GeneralOptions::setScriptOption(std::string scriptOption) {
-  if (scriptOption == "match-gnu") {
-    ScriptOption = MatchGNU;
-    return true;
-  }
-  if (scriptOption == "match-llvm") {
-    ScriptOption = MatchLLVM;
-    return true;
-  }
-  return false;
-}
-
-GeneralOptions::ScriptOptionType GeneralOptions::getScriptOption() const {
-  return ScriptOption;
-}
-
 GeneralOptions::ErrorStyleType GeneralOptions::getErrorStyle() const {
   return ErrorStyle;
 }
