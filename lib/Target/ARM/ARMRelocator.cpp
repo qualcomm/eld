@@ -1362,7 +1362,7 @@ Relocator::Result thm_jump19(Relocation &pReloc, ARMRelocator &pParent) {
   return Relocator::OK;
 }
 
-// R_ARM_LDRS_PC_Gn: ((S + A) | T) - P
+// R_ARM_LDRS_PC_Gn: S + A - P
 static Relocator::Result ldrs_pc_group(Relocation &pReloc,
                                        ARMRelocator &pParent, unsigned pGroup) {
   Relocator::Address S = pParent.getSymValue(&pReloc);
@@ -1409,9 +1409,14 @@ static Relocator::Result ldrs_pc_group(Relocation &pReloc,
   return Relocator::OK;
 }
 
-// R_ARM_LDRS_PC_G0: ((S + A) | T) - P
+// R_ARM_LDRS_PC_G0: S + A - P
 Relocator::Result ldrs_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
   return ldrs_pc_group(pReloc, pParent, /*pGroup=*/0);
+}
+
+// R_ARM_LDRS_PC_G1: S + A - P
+Relocator::Result ldrs_pc_g1(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldrs_pc_group(pReloc, pParent, /*pGroup=*/1);
 }
 
 // R_ARM_ALU_PC_Gn / R_ARM_ALU_PC_Gn_NC: ((S + A) | T) - P
