@@ -17,7 +17,7 @@ RUN: %filecheck %s -check-prefix MAP < %t1.yaml.map
 CHECK: Error: conflicting way to use R9. {{.*}}: `SB', previously seen: `GPR'
 NOERR: Note: conflicting way to use R9. {{.*}}: `SB', previously seen: `GPR'
 
-#MAP: LOAD {{.*}}1.o[arm][blx,j1j2,movtmovw,GPR,PCRel,EnumSize 2,Application]
-#MAP: LOAD {{.*}}2.o[arm][blx,j1j2,movtmovw,SB,SBRel,EnumSize 2,Application]
+#MAP: LOAD {{.*}}1.o[arm|EABI5][blx,j1j2,movtmovw,GPR,PCRel,EnumSize 2,Application]
+#MAP: LOAD {{.*}}2.o[arm|EABI5][blx,j1j2,movtmovw,SB,SBRel,EnumSize 2,Application]
 
 #END_TEST
