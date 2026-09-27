@@ -1,0 +1,14 @@
+#--TLSLDRelax_SharedNoRelax.test----------Shared Library--------#
+# TLSLD in a DSO must NOT be relaxed: the loader positions the DSO TLS
+# block at startup, so tpoff is not a link-time constant.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ld_dso.s -o %t.o
+RUN: %link %linkopts -shared -o %t.so %t.o
+RUN: %readelf -r %t.so | %filecheck %s
+RUN: %objdump -d %t.so | %filecheck %s --check-prefix=NORELAX
+#END_TEST
+
+CHECK: R_X86_64_DTPMOD64
+
+NORELAX: <get_tls>:
+NORELAX-NOT: 64 48 8b 04 25

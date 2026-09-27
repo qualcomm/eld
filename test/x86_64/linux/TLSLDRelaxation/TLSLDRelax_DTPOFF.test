@@ -1,0 +1,13 @@
+#--TLSLDRelax_DTPOFF.test----------Executable--------#
+# After LD→LE, DTPOFF32 must use TP-relative offsets (negative on x86-64).
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ld_dtpoff.s -o %t.o
+RUN: %link %linkopts -static -e get_sum -o %t.eld %t.o
+RUN: %objdump -d %t.eld | %filecheck %s
+#END_TEST
+
+CHECK: <get_sum>:
+CHECK-NEXT: {{[0-9a-f]+}}: 66 66 66 64 48 8b 04 25 00 00 00 00
+
+CHECK: movl {{-0x[0-9a-f]+|-[0-9]+}}(%rax), %ecx
+CHECK: movl {{-0x[0-9a-f]+|-[0-9]+}}(%rax), %edx
