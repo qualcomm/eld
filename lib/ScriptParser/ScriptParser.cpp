@@ -1568,6 +1568,10 @@ void ScriptParser::readVersionSymbols(VersionScriptNode &VSN) {
         continue;
       }
       if (Tok == "global:" || (Tok == "global" && consume(":"))) {
+        if (VSN.getLocalBlock()) {
+          setError("global scope must appear before local scope", Tok);
+          return;
+        }
         VSN.switchToGlobal();
         continue;
       }
