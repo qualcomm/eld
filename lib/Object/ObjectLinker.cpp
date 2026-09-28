@@ -3691,7 +3691,14 @@ void ObjectLinker::addInputFileToTar(InputFile *Ipt, MappingFile::Kind K) {
   if (Ipt->getInput()->isArchiveMember())
     return;
   Input *I = Ipt->getInput();
-  Ipt->setMappedPath(I->getName());
+  std::string MappedPath = I->getName();
+  // The leading ':' is the -l: namespec spelling, not part of the library
+  // name. Do not preserve it in mapping.ini or it will become part of the
+  // DT_NEEDED name when the reproduce response is replayed.
+  if (I->getInputType() == Input::Namespec && !MappedPath.empty() &&
+      MappedPath.front() == ':')
+    MappedPath.erase(0, 1);
+  Ipt->setMappedPath(std::move(MappedPath));
   Ipt->setMappingFileKind(K);
   OutputTar->addInputFile(Ipt, /*isLTO*/ false);
 }
