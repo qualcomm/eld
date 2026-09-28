@@ -1,0 +1,84 @@
+REQUIRES: symbol_versioning
+#---VersionedSymbols.test----------------- SharedLib -------------------------#
+#BEGIN_COMMENT
+# This test verifies the symbol resolution report functionality with versioned
+# symbols when building shared libraries across various combinations of strong,
+# weak, default-versioned, non-default-versioned, and unversioned definitions.
+#END_COMMENT
+#START_TEST
+## Case 1: 1.o defines foo@@V1, 2.o defines foo@V2
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/foo_default_v1.c -c -fPIC
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/foo_nondefault_v2.c -c -fPIC
+RUN: %link %linkopts -o %t1.so %t1.1.o %t1.2.o -shared --emit-symbol-resolution-report %t1.json
+RUN: %python %eld_src_utils_root/SymbolResolutionInspector/SymbolResolutionInspector.py %t1.json --symbol foo | %filecheck %s --check-prefix=CASE1
+
+## Case 2: 1.o defines foo@@V1, 2.o defines weak foo@V1
+RUN: %clang %clangopts -o %t2.1.o %p/Inputs/foo_default_v1.c -c -fPIC
+RUN: %clang %clangopts -o %t2.2.o %p/Inputs/weak_foo_nondefault_v1.c -c -fPIC
+RUN: %link %linkopts -o %t2.so %t2.1.o %t2.2.o -shared --emit-symbol-resolution-report %t2.json
+RUN: %python %eld_src_utils_root/SymbolResolutionInspector/SymbolResolutionInspector.py %t2.json --symbol foo | %filecheck %s --check-prefix=CASE2
+
+## Case 3: 1.o defines weak foo@@V1, 2.o defines foo@V1
+RUN: %clang %clangopts -o %t3.1.o %p/Inputs/weak_foo_default_v1.c -c -fPIC
+RUN: %clang %clangopts -o %t3.2.o %p/Inputs/foo_nondefault_v1.c -c -fPIC
+RUN: %link %linkopts -o %t3.so %t3.1.o %t3.2.o -shared --emit-symbol-resolution-report %t3.json
+RUN: %python %eld_src_utils_root/SymbolResolutionInspector/SymbolResolutionInspector.py %t3.json --symbol foo | %filecheck %s --check-prefix=CASE3
+
+## Case 4: 1.o defines weak foo@@V1, 2.o defines foo@V1, 3.o defines weak foo
+RUN: %clang %clangopts -o %t4.1.o %p/Inputs/weak_foo_default_v1.c -c -fPIC
+RUN: %clang %clangopts -o %t4.2.o %p/Inputs/foo_nondefault_v1.c -c -fPIC
+RUN: %clang %clangopts -o %t4.3.o %p/Inputs/weak_foo_unversioned.c -c -fPIC
+RUN: %link %linkopts -o %t4.so %t4.1.o %t4.2.o %t4.3.o -shared --emit-symbol-resolution-report %t4.json
+RUN: %python %eld_src_utils_root/SymbolResolutionInspector/SymbolResolutionInspector.py %t4.json --symbol foo | %filecheck %s --check-prefix=CASE4
+
+## Case 5: 1.o defines weak foo@@V1, 2.o defines weak foo@V1, 3.o defines weak foo
+RUN: %clang %clangopts -o %t5.1.o %p/Inputs/weak_foo_default_v1.c -c -fPIC
+RUN: %clang %clangopts -o %t5.2.o %p/Inputs/weak_foo_nondefault_v1.c -c -fPIC
+RUN: %clang %clangopts -o %t5.3.o %p/Inputs/weak_foo_unversioned.c -c -fPIC
+RUN: %link %linkopts -o %t5.so %t5.1.o %t5.2.o %t5.3.o -shared --emit-symbol-resolution-report %t5.json
+RUN: %python %eld_src_utils_root/SymbolResolutionInspector/SymbolResolutionInspector.py %t5.json --symbol foo | %filecheck %s --check-prefix=CASE5
+
+## Case 6: 1.o defines foo@V1, 2.o defines weak foo@@V1, 3.o defines foo@V2
+RUN: %clang %clangopts -o %t6.1.o %p/Inputs/foo_nondefault_v1.c -c -fPIC
+RUN: %clang %clangopts -o %t6.2.o %p/Inputs/weak_foo_default_v1.c -c -fPIC
+RUN: %clang %clangopts -o %t6.3.o %p/Inputs/foo_nondefault_v2.c -c -fPIC
+RUN: %link %linkopts -o %t6.so %t6.1.o %t6.2.o %t6.3.o -shared --emit-symbol-resolution-report %t6.json
+RUN: %python %eld_src_utils_root/SymbolResolutionInspector/SymbolResolutionInspector.py %t6.json --symbol foo | %filecheck %s --check-prefix=CASE6
+#END_TEST
+
+CASE1:      foo@@V1
+CASE1-NEXT: Selected: {{.*}}1.1.o(foo@@V1)
+CASE1-NEXT: foo@@V1({{.*}}1.1.o:.text) [Size={{.*}}, Def, Global, Function, Default] [Selected]
+CASE1:      foo@V2
+CASE1-NEXT: Selected: {{.*}}1.2.o(foo@V2)
+CASE1-NEXT: foo@V2({{.*}}1.2.o:.text) [Size={{.*}}, Def, Global, Function, Default] [Selected]
+
+CASE2:      foo@@V1
+CASE2-NEXT: Selected: {{.*}}2.1.o(foo@@V1)
+CASE2-NEXT: foo@@V1({{.*}}2.1.o:.text) [Size={{.*}}, Def, Global, Function, Default] [Selected]
+CASE2-NEXT: foo@V1({{.*}}2.2.o:.text) [Size={{.*}}, Def, Weak, Function, Default]
+
+CASE3:      foo@V1
+CASE3-NEXT: Selected: {{.*}}3.2.o(foo@V1)
+CASE3-NEXT: foo@@V1({{.*}}3.1.o:.text) [Size={{.*}}, Def, Weak, Function, Default]
+CASE3-NEXT: foo@V1({{.*}}3.2.o:.text) [Size={{.*}}, Def, Global, Function, Default] [Selected]
+
+CASE4:      foo@V1
+CASE4-NEXT: Selected: {{.*}}4.2.o(foo@V1)
+CASE4-NEXT: foo@@V1({{.*}}4.1.o:.text) [Size={{.*}}, Def, Weak, Function, Default]
+CASE4-NEXT: foo@V1({{.*}}4.2.o:.text) [Size={{.*}}, Def, Global, Function, Default] [Selected]
+CASE4-NEXT: foo({{.*}}4.3.o:.text) [Size={{.*}}, Def, Weak, Function, Default]
+
+CASE5:      foo@@V1
+CASE5-NEXT: Selected: {{.*}}5.1.o(foo@@V1)
+CASE5-NEXT: foo@@V1({{.*}}5.1.o:.text) [Size={{.*}}, Def, Weak, Function, Default] [Selected]
+CASE5-NEXT: foo@V1({{.*}}5.2.o:.text) [Size={{.*}}, Def, Weak, Function, Default]
+CASE5-NEXT: foo({{.*}}5.3.o:.text) [Size={{.*}}, Def, Weak, Function, Default]
+
+CASE6:      foo@V1
+CASE6-NEXT: Selected: {{.*}}6.1.o(foo@V1)
+CASE6-NEXT: foo@V1({{.*}}6.1.o:.text) [Size={{.*}}, Def, Global, Function, Default] [Selected]
+CASE6-NEXT: foo@@V1({{.*}}6.2.o:.text) [Size={{.*}}, Def, Weak, Function, Default]
+CASE6:      foo@V2
+CASE6-NEXT: Selected: {{.*}}6.3.o(foo@V2)
+CASE6-NEXT: foo@V2({{.*}}6.3.o:.text) [Size={{.*}}, Def, Global, Function, Default] [Selected]
