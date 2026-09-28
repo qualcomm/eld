@@ -14,9 +14,11 @@
 #include "eld/Object/LibReader.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Input/Input.h"
+#include "eld/Input/InputFile.h"
 #include "eld/Input/InputTree.h"
 #include "eld/Object/ObjectLinker.h"
 #include "eld/Support/MemoryArea.h"
+#include "eld/Support/OutputTarWriter.h"
 #include "eld/Support/RegisterTimer.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Twine.h"
@@ -83,6 +85,28 @@ bool LibReader::readLib(InputBuilder::InputIteratorT &CurNode,
     if (!Input->resolvePath(Config))
       return false;
 
+    // The synthetic archive below is what the linker processes, but the
+    // response file still names the original inputs between --start-lib and
+    // --end-lib.  Capture those inputs explicitly for --reproduce; unlike a
+    // normal archive, the synthetic archive has no on-disk parent archive
+    // from which the reproducer can recover them.
+    if (MModule.getOutputTarWriter()) {
+      InputFile *InputFile = Input->getInputFile();
+      if (!InputFile) {
+        InputFile = eld::InputFile::create(Input, Config.getDiagEngine());
+        if (!InputFile)
+          return false;
+        Input->setInputFile(InputFile);
+      }
+      MappingFile::Kind Kind = InputFile->isBitcode()
+                                   ? MappingFile::Kind::Bitcode
+                                   : MappingFile::Kind::ObjectFile;
+      InputFile->setMappedPath(Input->getName());
+      InputFile->setMappingFileKind(Kind);
+      MModule.getOutputTarWriter()->addInputFile(InputFile,
+                                                 /*isLTOObject=*/false);
+    }
+
     if (IsThin)
       MemberNames.push_back(Input->getResolvedPath().getFullPath());
     else
@@ -125,5 +149,16 @@ bool LibReader::readLib(InputBuilder::InputIteratorT &CurNode,
   ArchiveInput->setMemberNameHash(Input::computeFilePathHash(ArchiveName));
   ArchiveInput->setMemArea(MemArea);
 
-  return MObjLinker->readAndProcessInput(ArchiveInput, IsPostLtoPhase);
+  bool Success = MObjLinker->readAndProcessInput(ArchiveInput, IsPostLtoPhase);
+  if (Success && MModule.getOutputTarWriter() && ArchiveInput->getInputFile()) {
+    // Archive parsing populates the thin member list. Register the synthetic
+    // archive once more so its archive/member mapping is available during
+    // reproduction.
+    InputFile *ArchiveFile = ArchiveInput->getInputFile();
+    ArchiveFile->setMappedPath(ArchiveName);
+    ArchiveFile->setMappingFileKind(MappingFile::Kind::Archive);
+    MModule.getOutputTarWriter()->addInputFile(ArchiveFile,
+                                               /*isLTOObject=*/false);
+  }
+  return Success;
 }
