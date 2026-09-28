@@ -389,6 +389,12 @@ std::string ResolveInfo::getContextualLabel() const {
 }
 
 std::string ResolveInfo::getDecoratedName(bool DoDeMangle) const {
+  return getDecoratedName(DoDeMangle, isDefaultVersion(), resolvedOrigin());
+}
+
+std::string ResolveInfo::getDecoratedName(bool DoDeMangle,
+                                         bool IsDefaultVersion,
+                                         const InputFile *Origin) const {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
   // Render the GNU-visible versioned form. Object-origin symbols get
   // `bar@@V1` when default-versioned and `bar@V1` when not; DSO-origin
@@ -401,10 +407,9 @@ std::string ResolveInfo::getDecoratedName(bool DoDeMangle) const {
   if (hasVersionInName()) {
     ParsedVersionedName P = parseVersionedName(name());
     if (!P.IsMalformed && !P.Version.empty()) {
-      InputFile *Origin = resolvedOrigin();
       bool IsDsoOrigin = Origin && llvm::isa<ELFDynObjectFile>(Origin);
       const llvm::StringRef Sep =
-          (!IsDsoOrigin && isDefaultVersion()) ? "@@" : "@";
+          (!IsDsoOrigin && IsDefaultVersion) ? "@@" : "@";
       BaseName = P.Base.str();
       VersionSuffix = (Sep + P.Version).str();
     }

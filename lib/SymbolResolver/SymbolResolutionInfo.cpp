@@ -132,7 +132,8 @@ llvm::json::Object SymbolResolutionInfo::buildSymbolObject(
     const LDSymbol *Sym, const SymbolInfo &SymInfo,
     const GeneralOptions &Options, bool IsSelected) {
   llvm::json::Object Obj;
-  Obj["Name"] = Sym->resolveInfo()->getDecoratedName(/*DoDemangle=*/false);
+  Obj["Name"] = Sym->resolveInfo()->getDecoratedName(
+      /*DoDemangle=*/false, SymInfo.isDefaultVersion(), SymInfo.getInputFile());
   Obj["InputFile"] = SymInfo.getInputFile()->getInput()->decoratedPath();
   std::string SectName = getSymbolSectionName(Sym, SymInfo, Options);
   if (!SectName.empty())

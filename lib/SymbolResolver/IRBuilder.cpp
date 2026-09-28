@@ -213,7 +213,8 @@ LDSymbol *IRBuilder::addSymbolFromObject(
   // default-versioned inputs (one call per (canonical, non-canonical)
   // alias). Returns nullptr on error.
   auto AddSymbol = [&](ResolveInfo InputSymbolResolveInfo,
-                       LDSymbol::ValueType ValueArg) -> LDSymbol * {
+                       LDSymbol::ValueType ValueArg,
+                       bool RecordInSRI = true) -> LDSymbol * {
     Resolver::Result ResolvedResult = {nullptr, false, false};
     LDSymbol *InputSym = makeLDSymbol(nullptr);
     InputSym->setFragmentRef(CurFragmentRef);
@@ -223,6 +224,9 @@ LDSymbol *IRBuilder::addSymbolFromObject(
     auto &PM = ThisModule.getPluginManager();
     SymbolInfo SymInfo(&Input, Size, Binding, Type, Visibility, Desc,
                        /*isBitcode=*/false);
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    SymInfo.setDefaultVersion(InputSymbolResolveInfo.isDefaultVersion());
+#endif
     DiagnosticPrinter *DP = ThisConfig.getPrinter();
     auto OldErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
     PM.callVisitSymbolHook(InputSym, InputSymbolResolveInfo.getName(), SymInfo);
@@ -237,7 +241,8 @@ LDSymbol *IRBuilder::addSymbolFromObject(
       return InputSym;
     }
 
-    if (ThisModule.getConfig().options().shouldEmitSymbolResolutionReport())
+    if (RecordInSRI &&
+        ThisModule.getConfig().options().shouldEmitSymbolResolutionReport())
       NP.getSRI().recordSymbolInfo(InputSym, SymInfo);
 
     bool S = NP.insertNonLocalSymbol(InputSymbolResolveInfo, *InputSym,
@@ -307,7 +312,7 @@ LDSymbol *IRBuilder::addSymbolFromObject(
       ResolveInfo NonCanonRI =
           NP.createInputSymbolRI(P.Base.str(), Input, /*isDyn=*/false, Type,
                                  Desc, Binding, Size, Visibility, Value);
-      NonCanonicalSym = AddSymbol(NonCanonRI, Value);
+      NonCanonicalSym = AddSymbol(NonCanonRI, Value, /*RecordInSRI=*/false);
       if (!NonCanonicalSym)
         return nullptr;
       if (auto *EFB = llvm::dyn_cast<ELFFileBase>(&Input))
@@ -391,7 +396,8 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
   SymbolInfo SymInfo(&Input, Size, Binding, Type, Visibility, Desc,
                      /*isBitcode=*/false);
   auto AddSymbol = [&Input, IsPostLtoPhase, &NP, Shndx, SymIdx, SymInfo, this,
-                    Value, oldOrigin](ResolveInfo RI) -> LDSymbol * {
+                    Value, oldOrigin](ResolveInfo RI,
+                                      bool RecordInSRI = true) -> LDSymbol * {
     // insert symbol and resolve it immediately
     // create an input LDSymbol.
     LDSymbol *InputSym = makeLDSymbol(nullptr);
@@ -399,8 +405,13 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
     InputSym->setSectionIndex(Shndx);
     InputSym->setSymbolIndex(SymIdx);
 
-    if (ThisModule.getConfig().options().shouldEmitSymbolResolutionReport())
-      ThisModule.getNamePool().getSRI().recordSymbolInfo(InputSym, SymInfo);
+    SymbolInfo SymInfoCopy = SymInfo;
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    SymInfoCopy.setDefaultVersion(RI.isDefaultVersion());
+#endif
+    if (RecordInSRI &&
+        ThisModule.getConfig().options().shouldEmitSymbolResolutionReport())
+      ThisModule.getNamePool().getSRI().recordSymbolInfo(InputSym, SymInfoCopy);
 
     Resolver::Result ResolvedResult = {nullptr, false, false};
     auto &PM = ThisModule.getPluginManager();
@@ -456,13 +467,15 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
   // foo@VerName
   LDSymbol *CanonicalSymbol = nullptr;
   if (IsDefaultVersionedSymbol) {
-    SymbolWithoutVerName = AddSymbol(InputSymbolResolveInfo);
+    SymbolWithoutVerName =
+        AddSymbol(InputSymbolResolveInfo, /*RecordInSRI=*/false);
     if (!SymbolWithoutVerName)
       return nullptr;
     DynObjFile->addNonCanonicalSymbol(SymbolWithoutVerName);
   }
   if (OptVersionedName)
     InputSymbolResolveInfo.setName(Saver.save(OptVersionedName.value()));
+  InputSymbolResolveInfo.setDefaultVersion(IsDefaultVersionedSymbol);
   CanonicalSymbol = AddSymbol(InputSymbolResolveInfo);
   if (!CanonicalSymbol)
     return nullptr;
