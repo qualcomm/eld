@@ -318,6 +318,8 @@ public:
   InputFile *resolvedOrigin() const { return SymbolResolvedOrigin; }
 
   std::string getDecoratedName(bool DoDemangle) const;
+  std::string getDecoratedName(bool DoDemangle, bool IsDefaultVersion,
+                               const InputFile *Origin) const;
 
   ELFSection *getOwningSection() const;
 

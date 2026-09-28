@@ -59,6 +59,11 @@ public:
 
   bool isBitcodeSymbol() const { return SymbolInfoBitfield.IsBitcode; }
 
+  bool isDefaultVersion() const { return SymbolInfoBitfield.IsDefaultVersion; }
+  void setDefaultVersion(bool Val) {
+    SymbolInfoBitfield.IsDefaultVersion = Val;
+  }
+
   llvm::StringRef getSymbolBindingAsStr() const;
 
   llvm::StringRef getSymbolTypeAsStr() const;
@@ -73,13 +78,14 @@ private:
   struct SymbolInfoBitField {
     SymbolInfoBitField()
         : SymBinding(0), SymType(0), SymVisibility(0), SymSectIndexKind(0),
-          IsBitcode(0) {}
+          IsBitcode(0), IsDefaultVersion(0) {}
     unsigned int SymBinding : 2;
     // FIXME: SymType needs 4 bits.
     unsigned int SymType : 2;
     unsigned int SymVisibility : 2;
     unsigned int SymSectIndexKind : 3;
     unsigned int IsBitcode : 1;
+    unsigned int IsDefaultVersion : 1;
   };
 
   void setSymbolBinding(ResolveInfo::Binding Binding);
