@@ -113,6 +113,7 @@ const LDSymbol *SymbolResolutionInfo::getCorrespondingLTOObjectSymIfAny(
 ///   "Symbols": [
 ///     {
 ///       "Name": "foo",
+///       "GroupKey": "foo",
 ///       "InputFile": "libc.a(malloc.o)",
 ///       "Section": ".text",             // omitted when no section
 ///       "Plugin": "MyPlugin",           // only for plugin-created symbols
@@ -132,7 +133,10 @@ llvm::json::Object SymbolResolutionInfo::buildSymbolObject(
     const LDSymbol *Sym, const SymbolInfo &SymInfo,
     const GeneralOptions &Options, bool IsSelected) {
   llvm::json::Object Obj;
-  Obj["Name"] = Sym->resolveInfo()->getDecoratedName(/*DoDemangle=*/false);
+  Obj["Name"] = SymInfo.getName().empty()
+                    ? Sym->resolveInfo()->getDecoratedName(/*DoDemangle=*/false)
+                    : SymInfo.getName();
+  Obj["GroupKey"] = Sym->resolveInfo()->name();
   Obj["InputFile"] = SymInfo.getInputFile()->getInput()->decoratedPath();
   std::string SectName = getSymbolSectionName(Sym, SymInfo, Options);
   if (!SectName.empty())

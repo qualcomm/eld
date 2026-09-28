@@ -136,7 +136,8 @@ bool NamePool::insertSymbol(
   if (IsBitCode)
     NewSymbol->setInBitCode(IsBitCode);
 
-  SymbolInfo SymInfo(Input, Size, Binding, Type, Visibility, Desc, IsBitCode);
+  SymbolInfo SymInfo(SymName, Input, Size, Binding, Type, Visibility, Desc,
+                     IsBitCode);
   // We do not create input symbols for non object file symbols!
   DiagnosticPrinter *DP = ThisConfig.getPrinter();
   auto OldErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();

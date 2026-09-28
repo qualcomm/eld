@@ -1932,8 +1932,8 @@ bool ObjectLinker::addScriptSymbols() {
       Size = OldInfo->size();
     }
     PluginManager &PM = ThisModule->getPluginManager();
-    SymbolInfo SymInfo(ScriptInput, Size, ResolveInfo::Absolute, Type, Vis,
-                       ResolveInfo::Define,
+    SymbolInfo SymInfo(SymName, ScriptInput, Size, ResolveInfo::Absolute, Type,
+                       Vis, ResolveInfo::Define,
                        /*isBitCode=*/false);
     // We do not create input symbols for non object file symbols!
     DiagnosticPrinter *DP = ThisConfig.getPrinter();
