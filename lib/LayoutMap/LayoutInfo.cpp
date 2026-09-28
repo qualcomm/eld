@@ -279,7 +279,7 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
     RemapComment += Comment.str();
   };
   InputFile::InputFileKind K;
-
+  std::string suffix;
   if (Input != nullptr) {
     Files = Input->decoratedPath();
     if (ThisConfig.options().hasMappingFile())
@@ -293,6 +293,9 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
                            ArchInput->getOriginalFileName());
     }
     K = Input->getInputFile()->getKind();
+    if (Input->getFileName().find("$SYSROOT/") == 0 ||
+        Input->getFileName().find('=') == 0)
+      suffix += " # " + Input->getFileName();
   }
   if (!Ist.Annotation.empty())
     appendRemapComment(Ist.Annotation);
@@ -328,7 +331,7 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
     default:
       ASSERT(0, "Unhandled Input File Kind");
     }
-    return Pref + Files + FileType + RemapComment;
+    return Pref + Files + FileType + RemapComment + suffix;
   }
 
   std::string InputFileStr = Pref + Files + ArchFlag;
@@ -338,7 +341,7 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
     if (!FeatureStr.empty())
       InputFileStr += "[" + FeatureStr + "]";
   }
-  return InputFileStr + RemapComment;
+  return InputFileStr + RemapComment + suffix;
 }
 
 void LayoutInfo::recordInputActions(InputKindPrefix Prefix, Input *Input,
