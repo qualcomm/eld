@@ -69,6 +69,12 @@ jobs:
                   core.setFailed(`Workflow run ${wr.id} is not associated with a pull request.`);
                   return;
                 }
+                const { data: pr } = await github.rest.pulls.get({
+                  owner, repo, pull_number: pullRequests[0].number,
+                });
+                if (!pr.labels.some(label => label.name === 'zephyr-check')) {
+                  return;
+                }
                 core.setOutput('run_id', String(wr.id));
                 core.setOutput('head_sha', wr.head_sha);
                 core.setOutput('pr_number', String(pullRequest.number));
