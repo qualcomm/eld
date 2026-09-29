@@ -42,13 +42,34 @@ Relocator::Result applyRelocationValue(Relocation &pReloc, uint64_t Value,
   const uint32_t Value32 = static_cast<uint32_t>(Value);
   const int64_t SignedValue = llvm::SignExtend64(Value32, 32);
 
-  if (Info.Range == x86_32::RangeCheck::SignedOrUnsigned) {
+  switch (Info.Range) {
+  case x86_32::RangeCheck::None:
+    break;
+  case x86_32::RangeCheck::SignedOrUnsigned:
     if (!llvm::isIntN(Bits, SignedValue) &&
         !llvm::isUIntN(Bits, static_cast<uint64_t>(SignedValue))) {
       pReloc.issueSignedOverflow(Parent, SignedValue, llvm::minIntN(Bits),
                                  llvm::maxUIntN(Bits));
       return Relocator::Overflow;
     }
+    break;
+  case x86_32::RangeCheck::Signed:
+    if (!llvm::isIntN(Bits, SignedValue)) {
+      pReloc.issueSignedOverflow(Parent, SignedValue, llvm::minIntN(Bits),
+                                 llvm::maxIntN(Bits));
+      return Relocator::Overflow;
+    }
+    break;
+  case x86_32::RangeCheck::SignedPC16:
+    // Accept a signed 17-bit result for R_386_PC16, tolerating
+    // the wraparound that occurs in 16-bit real-mode code, before truncating
+    // the value to the 16-bit field.
+    if (!llvm::isIntN(17, SignedValue)) {
+      pReloc.issueSignedOverflow(Parent, SignedValue, llvm::minIntN(17),
+                                 llvm::maxIntN(17));
+      return Relocator::Overflow;
+    }
+    break;
   }
 
   const uint32_t Mask = Bits == 32 ? 0xFFFFFFFFU : (1U << Bits) - 1;
@@ -161,6 +182,15 @@ Relocator::Result relocAbs(Relocation &pReloc, X86_32Relocator &pParent) {
     Symbol = 0;
 
   return applyRelocationValue(pReloc, Symbol + Addend, pParent);
+}
+
+// R_386_PC8, R_386_PC16, R_386_PC32: S + A - P.
+Relocator::Result relocPCRel(Relocation &pReloc, X86_32Relocator &pParent) {
+  const Relocator::Address Symbol = pReloc.symValue(pParent.module());
+  const Relocator::DWord Addend = getImplicitAddend(pReloc);
+  const Relocator::Address Place = pReloc.place(pParent.module());
+
+  return applyRelocationValue(pReloc, Symbol + Addend - Place, pParent);
 }
 
 Relocator::Result unsupported(Relocation &, X86_32Relocator &) {
