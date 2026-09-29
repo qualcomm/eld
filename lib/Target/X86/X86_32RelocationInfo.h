@@ -23,7 +23,11 @@ enum class EncodingWidth : uint8_t { None, Bits8, Bits16, Bits32 };
 
 // No range check is required for a full-width field. Narrow fields accept
 // values representable as either signed or unsigned.
-enum class RangeCheck { None, SignedOrUnsigned };
+//
+// Signed checks require the result to fit the signed field range. R_386_PC16
+// is a special case: it accepts a signed 17-bit result before truncating it
+// to the 16-bit field.
+enum class RangeCheck { None, SignedOrUnsigned, Signed, SignedPC16 };
 
 struct RelocationInfo {
   const char *Name;
@@ -37,7 +41,7 @@ struct RelocationInfo {
 inline constexpr RelocationInfo Relocs[] = {
     {"R_386_NONE", EncodingWidth::None, RangeCheck::None},
     {"R_386_32", EncodingWidth::Bits32, RangeCheck::None},
-    X86_32_UNSUPPORTED_RELOC("R_386_PC32"),
+    {"R_386_PC32", EncodingWidth::Bits32, RangeCheck::None},
     X86_32_UNSUPPORTED_RELOC("R_386_GOT32"),
     X86_32_UNSUPPORTED_RELOC("R_386_PLT32"),
     X86_32_UNSUPPORTED_RELOC("R_386_COPY"),
@@ -56,9 +60,9 @@ inline constexpr RelocationInfo Relocs[] = {
     X86_32_UNSUPPORTED_RELOC("R_386_TLS_GD"),
     X86_32_UNSUPPORTED_RELOC("R_386_TLS_LDM"),
     {"R_386_16", EncodingWidth::Bits16, RangeCheck::SignedOrUnsigned},
-    X86_32_UNSUPPORTED_RELOC("R_386_PC16"),
+    {"R_386_PC16", EncodingWidth::Bits16, RangeCheck::SignedPC16},
     {"R_386_8", EncodingWidth::Bits8, RangeCheck::SignedOrUnsigned},
-    X86_32_UNSUPPORTED_RELOC("R_386_PC8"),
+    {"R_386_PC8", EncodingWidth::Bits8, RangeCheck::Signed},
     X86_32_UNSUPPORTED_RELOC("R_386_TLS_GD_32"),
     X86_32_UNSUPPORTED_RELOC("R_386_TLS_GD_PUSH"),
     X86_32_UNSUPPORTED_RELOC("R_386_TLS_GD_CALL"),

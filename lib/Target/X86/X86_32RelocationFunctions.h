@@ -20,13 +20,15 @@ using ApplyFunctionType = Relocator::Result (*)(Relocation &pReloc,
 Relocator::Result none(Relocation &pReloc, X86_32Relocator &pParent);
 // R_386_8, R_386_16, and R_386_32: S + A.
 Relocator::Result relocAbs(Relocation &pReloc, X86_32Relocator &pParent);
+// R_386_PC8, R_386_PC16, and R_386_PC32: S + A - P.
+Relocator::Result relocPCRel(Relocation &pReloc, X86_32Relocator &pParent);
 // Any relocation not implemented by the current i386 backend.
 Relocator::Result unsupported(Relocation &pReloc, X86_32Relocator &pParent);
 
 inline constexpr ApplyFunctionType RelocDesc[] = {
     &none,        // R_386_NONE
     &relocAbs,    // R_386_32
-    &unsupported, // R_386_PC32
+    &relocPCRel,  // R_386_PC32
     &unsupported, // R_386_GOT32
     &unsupported, // R_386_PLT32
     &unsupported, // R_386_COPY
@@ -45,9 +47,9 @@ inline constexpr ApplyFunctionType RelocDesc[] = {
     &unsupported, // R_386_TLS_GD
     &unsupported, // R_386_TLS_LDM
     &relocAbs,    // R_386_16
-    &unsupported, // R_386_PC16
+    &relocPCRel,  // R_386_PC16
     &relocAbs,    // R_386_8
-    &unsupported, // R_386_PC8
+    &relocPCRel,  // R_386_PC8
     &unsupported, // R_386_TLS_GD_32
     &unsupported, // R_386_TLS_GD_PUSH
     &unsupported, // R_386_TLS_GD_CALL
