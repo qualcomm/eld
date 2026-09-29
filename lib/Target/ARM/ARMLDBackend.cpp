@@ -241,7 +241,8 @@ void ARMGNULDBackend::doPreLayout() {
   // For each EXIDX input section, ensure its output section's sh_link points
   // to the output .text section (not the raw input section).  This is needed
   // because ObjectBuilder stores the input-section link on the output section;
-  // getSectLink must return an output section index.
+  // getSectLink must return an output section index. Final links select the
+  // link for a merged .ARM.exidx section after sorting below.
   for (const auto &KV : m_EXIDXFragments) {
     EXIDXFragment *Frag = KV.second;
     ELFSection *InputExidx = Frag->getOwningSection();
@@ -517,6 +518,19 @@ bool ARMGNULDBackend::sortEXIDX() {
         R->targetRef()->setOffset(NewOffset);
       }
     }
+  }
+
+  // All input .ARM.exidx sections in this output section share one sh_link.
+  // Select it from the first fragment after EXIDX sorting, rather than from
+  // the iteration order of m_EXIDXFragments (an unordered DenseMap).
+  if (!config().isLinkPartial() && FirstEXIDXFrag) {
+    auto *FirstEXIDX = dyn_cast<EXIDXFragment>(FirstEXIDXFrag);
+    ELFSection *OwningSection = FirstEXIDX->getOwningSection();
+    ELFSection *InputLink = OwningSection ? OwningSection->getLink() : nullptr;
+    ELFSection *OutputLink =
+        InputLink ? InputLink->getOutputELFSection() : nullptr;
+    if (OutputLink)
+      E->setLink(OutputLink);
   }
 
   // GNU ld omits the sentinel when the final entry is CANTUNWIND.
