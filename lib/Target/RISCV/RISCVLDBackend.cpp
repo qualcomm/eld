@@ -97,7 +97,7 @@ void RISCVLDBackend::initDynamicSections(InputFile &InputFile) {
 
 void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
   m_pRISCVAttributeSection = m_Module.createInternalSection(
-      Module::InternalInputType::Attributes, LDFileFormat::Internal,
+      Module::InternalInputType::Attributes, LinkerSectionKind::Internal,
       ".riscv.attributes", llvm::ELF::SHT_RISCV_ATTRIBUTES, 0, 1);
   AttributeFragment = make<RISCVAttributeFragment>(m_pRISCVAttributeSection);
   m_pRISCVAttributeSection->addFragment(AttributeFragment);
@@ -110,7 +110,7 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
 
   if (config().options().getRISCVRelaxTbljal()) {
     m_pRISCVTableJumpSection = m_Module.createInternalSection(
-        Module::InternalInputType::TableJump, LDFileFormat::Internal,
+        Module::InternalInputType::TableJump, LinkerSectionKind::Internal,
         ".riscv.jvt", llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC,
         /*Align=*/64);
     TableJumpFragment =
@@ -234,7 +234,7 @@ bool RISCVLDBackend::readSection(InputFile &pInput, ELFSection *S) {
 }
 
 bool RISCVLDBackend::DoesOverrideMerge(ELFSection *pSection) const {
-  if (pSection->getKind() == LDFileFormat::Internal)
+  if (pSection->getKind() == LinkerSectionKind::Internal)
     return false;
   if (pSection->getType() == llvm::ELF::SHT_RISCV_ATTRIBUTES)
     return true;
@@ -248,7 +248,7 @@ ELFSection *RISCVLDBackend::mergeSection(ELFSection *S) {
       AttributeFragment->updateInfo(
           R->getRegion(), R->getOwningSection()->getInputFile(),
           config().getDiagEngine(), config().showAttributeMixWarnings());
-    S->setKind(LDFileFormat::Discard);
+    S->setKind(LinkerSectionKind::Discard);
     return m_pRISCVAttributeSection;
   }
   return nullptr;

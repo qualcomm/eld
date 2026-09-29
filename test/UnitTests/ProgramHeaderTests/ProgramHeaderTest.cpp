@@ -94,8 +94,8 @@ static ELFSection *addOutputSection(Module &M, llvm::StringRef Name,
                                     uint32_t Type, uint32_t Flags,
                                     uint64_t Size, uint64_t Align) {
   SectionMap &Map = M.getScript().sectionMap();
-  ELFSection *Sec =
-      Map.createELFSection(Name.str(), LDFileFormat::Regular, Type, Flags, 0);
+  ELFSection *Sec = Map.createELFSection(Name.str(), LinkerSectionKind::Regular,
+                                         Type, Flags, 0);
   Sec->setAddrAlign(Align);
   Sec->setSize(Size);
   auto It = Map.insert(Map.end(), Sec);

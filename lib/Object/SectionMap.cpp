@@ -502,7 +502,7 @@ SectionMap::getOutputSectionEntrySectionsForPluginType(plugin::Plugin::Type T) {
 }
 
 ELFSection *SectionMap::createOutputSectionEntry(std::string Section,
-                                                 LDFileFormat::Kind Kind,
+                                                 LinkerSectionKind Kind,
                                                  uint32_t Type, uint32_t Flag,
                                                  uint32_t Align) {
   OutputSectionEntry *Output =
@@ -511,7 +511,7 @@ ELFSection *SectionMap::createOutputSectionEntry(std::string Section,
 }
 
 ELFSection *SectionMap::createELFSection(const std::string &Name,
-                                         LDFileFormat::Kind K, uint32_t Type,
+                                         LinkerSectionKind K, uint32_t Type,
                                          uint32_t Flags, uint32_t EntSize) {
   return make<ELFSection>(K, Name, Flags, EntSize, /*AddrAlign=*/0, Type,
                           /*Info=*/0,

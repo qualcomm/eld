@@ -563,7 +563,7 @@ void plugin::Section::markAsDiscarded() {
   ELFSection *S = llvm::dyn_cast<ELFSection>(m_Section);
   if (!S)
     return;
-  S->setKind(LDFileFormat::Discard);
+  S->setKind(LinkerSectionKind::Discard);
 }
 
 bool plugin::Section::isDiscarded() const {

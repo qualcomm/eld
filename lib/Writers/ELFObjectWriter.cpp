@@ -24,6 +24,7 @@
 #include "eld/Fragment/StringFragment.h"
 #include "eld/Fragment/Stub.h"
 #include "eld/Fragment/TimingFragment.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Plugin/PluginManager.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/MsgHandling.h"
@@ -35,7 +36,6 @@
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "eld/Target/GNULDBackend.h"
-#include "eld/Target/LDFileFormat.h"
 #include "eld/Target/Relocator.h"
 #include "eld/Target/TargetInfo.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -61,28 +61,28 @@ ELFObjectWriter::writeSection(llvm::FileOutputBuffer &CurOutput,
   MemoryRegion Region;
   // Request output region
   switch (Section->getKind()) {
-  case LDFileFormat::Note:
+  case LinkerSectionKind::Note:
     if (!Section->hasSectionData())
       return {};
     LLVM_FALLTHROUGH;
-  case LDFileFormat::Regular:
-  case LDFileFormat::Internal:
-  case LDFileFormat::Common:
-  case LDFileFormat::DynamicRelocation:
-  case LDFileFormat::Group:
-  case LDFileFormat::MetaData:
-  case LDFileFormat::OutputSectData:
-  case LDFileFormat::Relocation:
-  case LDFileFormat::Target:
-  case LDFileFormat::Debug:
-  case LDFileFormat::MergeStr:
-  case LDFileFormat::GCCExceptTable:
-  case LDFileFormat::EhFrame:
-  case LDFileFormat::SFrame:
+  case LinkerSectionKind::Regular:
+  case LinkerSectionKind::Internal:
+  case LinkerSectionKind::Common:
+  case LinkerSectionKind::DynamicRelocation:
+  case LinkerSectionKind::Group:
+  case LinkerSectionKind::MetaData:
+  case LinkerSectionKind::OutputSectData:
+  case LinkerSectionKind::Relocation:
+  case LinkerSectionKind::Target:
+  case LinkerSectionKind::Debug:
+  case LinkerSectionKind::MergeStr:
+  case LinkerSectionKind::GCCExceptTable:
+  case LinkerSectionKind::EhFrame:
+  case LinkerSectionKind::SFrame:
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-  case LDFileFormat::SymbolVersion:
+  case LinkerSectionKind::SymbolVersion:
 #endif
-  case LDFileFormat::Timing: {
+  case LinkerSectionKind::Timing: {
     if (Section->getOutputELFSection()->isNoBits())
       return {};
     Region = ThisModule.getBackend().getFileOutputRegion(
@@ -93,18 +93,18 @@ ELFObjectWriter::writeSection(llvm::FileOutputBuffer &CurOutput,
     }
   } break;
 
-  case LDFileFormat::Null:
-  case LDFileFormat::NamePool:
-  case LDFileFormat::Version:
-  case LDFileFormat::StackNote:
-  case LDFileFormat::Discard:
-  case LDFileFormat::EhFrameHdr:
-  case LDFileFormat::GNUProperty:
+  case LinkerSectionKind::Null:
+  case LinkerSectionKind::NamePool:
+  case LinkerSectionKind::Version:
+  case LinkerSectionKind::StackNote:
+  case LinkerSectionKind::Discard:
+  case LinkerSectionKind::EhFrameHdr:
+  case LinkerSectionKind::GNUProperty:
     // Ignore these sections
     return {};
   default:
     ThisModule.getConfig().raise(Diag::unsupported_section_kind)
-        << Section->getKind() << Section->name();
+        << static_cast<unsigned>(Section->getKind()) << Section->name();
     return {};
   }
   eld::Expected<void> ExpWrite = writeRegion(Section, Region);
@@ -122,26 +122,26 @@ eld::Expected<void> ELFObjectWriter::writeRegion(ELFSection *Section,
     return {};
   // Write out sections with data
   switch (Section->getKind()) {
-  case LDFileFormat::GCCExceptTable:
-  case LDFileFormat::Regular:
-  case LDFileFormat::Common:
-  case LDFileFormat::Internal:
-  case LDFileFormat::MetaData:
-  case LDFileFormat::OutputSectData:
-  case LDFileFormat::Debug:
-  case LDFileFormat::Note:
-  case LDFileFormat::MergeStr:
-  case LDFileFormat::EhFrame:
-  case LDFileFormat::SFrame:
+  case LinkerSectionKind::GCCExceptTable:
+  case LinkerSectionKind::Regular:
+  case LinkerSectionKind::Common:
+  case LinkerSectionKind::Internal:
+  case LinkerSectionKind::MetaData:
+  case LinkerSectionKind::OutputSectData:
+  case LinkerSectionKind::Debug:
+  case LinkerSectionKind::Note:
+  case LinkerSectionKind::MergeStr:
+  case LinkerSectionKind::EhFrame:
+  case LinkerSectionKind::SFrame:
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-  case LDFileFormat::SymbolVersion:
+  case LinkerSectionKind::SymbolVersion:
 #endif
-  case LDFileFormat::Timing: {
+  case LinkerSectionKind::Timing: {
     eld::Expected<void> ExpEmit = emitSection(Section, Region);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpEmit);
     break;
   }
-  case LDFileFormat::DynamicRelocation: {
+  case LinkerSectionKind::DynamicRelocation: {
     // sort relocation for the benefit of the dynamic linker.
     ThisModule.getBackend().sortRelocation(*Section);
     if (ThisModule.getConfig().targets().is32Bits())
@@ -150,18 +150,18 @@ eld::Expected<void> ELFObjectWriter::writeRegion(ELFSection *Section,
       emitRelocation<llvm::object::ELF64LE>(Section, Region, true);
     break;
   }
-  case LDFileFormat::Relocation: {
+  case LinkerSectionKind::Relocation: {
     if (ThisModule.getConfig().targets().is32Bits())
       emitRelocation<llvm::object::ELF32LE>(Section, Region, false);
     if (ThisModule.getConfig().targets().is64Bits())
       emitRelocation<llvm::object::ELF64LE>(Section, Region, false);
     break;
   }
-  case LDFileFormat::Target: {
+  case LinkerSectionKind::Target: {
     auto ExpEmit = ThisModule.getBackend().emitSection(Section, Region);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpEmit);
   } break;
-  case LDFileFormat::Group:
+  case LinkerSectionKind::Group:
     emitGroup(Section, Region);
     break;
   default:
@@ -736,7 +736,7 @@ uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
       llvm::ELF::SHF_LINK_ORDER & S->getFlags() && S->getLink())
     return S->getLink()->getOutputSection()->getSection()->getIndex();
   if (S->isRelocationSection()) {
-    if (S->getKind() != LDFileFormat::DynamicRelocation)
+    if (S->getKind() != LinkerSectionKind::DynamicRelocation)
       Link = ThisModule.getBackend().getSymTab();
     else
       Link = ThisModule.getBackend().getDynSymSection();
@@ -817,7 +817,7 @@ void ELFObjectWriter::emitGroup(ELFSection *S, MemoryRegion &CurRegion) {
         break;
       uint32_t SectionIdx = (*Si)->getOutputELFSection()->getIndex();
       std::memcpy(GroupData + (Index * sizeof(llvm::ELF::Elf32_Word)),
-          &SectionIdx, sizeof(llvm::ELF::Elf32_Word));
+                  &SectionIdx, sizeof(llvm::ELF::Elf32_Word));
       ++Si;
     }
     CurOffset += Frag->size();

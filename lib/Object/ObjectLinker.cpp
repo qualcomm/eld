@@ -32,6 +32,7 @@
 #include "eld/Object/ArchiveMemberReport.h"
 #include "eld/Object/GroupReader.h"
 #include "eld/Object/LibReader.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Object/ObjectBuilder.h"
 #include "eld/Object/SectionMap.h"
 #include "eld/PluginAPI/LinkerPlugin.h"
@@ -70,7 +71,6 @@
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/SymbolResolver/SymbolResolutionInfo.h"
 #include "eld/Target/GNULDBackend.h"
-#include "eld/Target/LDFileFormat.h"
 #include "eld/Target/Relocator.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/ScopeExit.h"
@@ -928,26 +928,26 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
       continue;
     switch (Sect->getKind()) {
     // Some *INPUT sections should not be merged.
-    case LDFileFormat::Null:
-    case LDFileFormat::NamePool:
-    case LDFileFormat::Discard:
-    case LDFileFormat::Version:
+    case LinkerSectionKind::Null:
+    case LinkerSectionKind::NamePool:
+    case LinkerSectionKind::Discard:
+    case LinkerSectionKind::Version:
       // skip
       continue;
-    case LDFileFormat::Relocation:
-    case LDFileFormat::LinkOnce: {
+    case LinkerSectionKind::Relocation:
+    case LinkerSectionKind::LinkOnce: {
       if (Sect->getLink()->isIgnore() || Sect->getLink()->isDiscard())
-        Sect->setKind(LDFileFormat::Ignore);
+        Sect->setKind(LinkerSectionKind::Ignore);
       break;
     }
-    case LDFileFormat::Target:
+    case LinkerSectionKind::Target:
       if (getTargetBackend().DoesOverrideMerge(Sect)) {
         getTargetBackend().mergeSection(Sect);
         break;
       }
       LLVM_FALLTHROUGH;
-    case LDFileFormat::EhFrame: {
-      if (Sect->getKind() == LDFileFormat::EhFrame) {
+    case LinkerSectionKind::EhFrame: {
+      if (Sect->getKind() == LinkerSectionKind::EhFrame) {
         if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)->splitEhFrameSection())
           return false;
         if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)
@@ -956,7 +956,7 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
         llvm::dyn_cast<eld::EhFrameSection>(Sect)->finishAddingFragments(
             *ThisModule);
         if (getTargetBackend().getEhFrameHdr() &&
-            Sect->getKind() == LDFileFormat::EhFrame) {
+            Sect->getKind() == LinkerSectionKind::EhFrame) {
           getTargetBackend().getEhFrameHdr()->addEhFrame(
               *llvm::dyn_cast<eld::EhFrameSection>(Sect)->getEhFrameFragment());
           // Since we found an EhFrame section, lets go ahead and start creating
@@ -967,8 +967,8 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
       }
     }
       LLVM_FALLTHROUGH;
-    case LDFileFormat::SFrame: {
-      if (Sect->getKind() == LDFileFormat::SFrame) {
+    case LinkerSectionKind::SFrame: {
+      if (Sect->getKind() == LinkerSectionKind::SFrame) {
         auto *SFS = llvm::dyn_cast<eld::SFrameSection>(Sect);
         if (SFS) {
           if (!SFS->parseSFrameSection())
@@ -1110,7 +1110,7 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
 
   ELFSection *OutSect = Output->getSection();
   OutSect->setOutputSection(Output);
-  if (OutSect->getKind() != LDFileFormat::NamePool)
+  if (OutSect->getKind() != LinkerSectionKind::NamePool)
     OutSect->setAddrAlign(0);
   OutputSectionEntry::iterator In, InBegin, InEnd;
   InBegin = Output->begin();
@@ -1227,8 +1227,8 @@ bool ObjectLinker::updateInputSectionMappingsForPlugin() {
     ELFSection *Sect = llvm::dyn_cast<ELFSection>(Section);
     switch (Sect->getKind()) {
     // Some *INPUT sections should not be merged.
-    case LDFileFormat::Null:
-    case LDFileFormat::NamePool:
+    case LinkerSectionKind::Null:
+    case LinkerSectionKind::NamePool:
       continue;
     default:
       if (!Sect->getMatchedLinkerScriptRule())
@@ -1474,7 +1474,7 @@ void ObjectLinker::applySubAlign() {
       ELFSection *inSect = R->getSection();
       for (Fragment *F : inSect->getFragmentList()) {
         ELFSection *owningSect = F->getOwningSection();
-        if (owningSect->getKind() == LDFileFormat::Kind::OutputSectData) {
+        if (owningSect->getKind() == LinkerSectionKind::OutputSectData) {
           continue;
         }
         if (owningSect && seen.insert(owningSect).second) {
@@ -2071,8 +2071,8 @@ ELFSection *ObjectLinker::createEmitRelocSection(ELFSection *OutputTargetSect,
   std::string RelocSectionName = getTargetBackend().getOutputRelocSectName(
       OutputTargetSect->name().str(), RelocSectionType);
   ELFSection *OutputRelocSect = ThisModule->createOutputSection(
-      RelocSectionName, LDFileFormat::Relocation, RelocSectionType /* Kind */,
-      0x0, MaxAlignment);
+      RelocSectionName, LinkerSectionKind::Relocation,
+      RelocSectionType /* Kind */, 0x0, MaxAlignment);
   OutputRelocSect->setEntSize(RelocSectionType == llvm::ELF::SHT_RELA
                                   ? getTargetBackend().getRelaEntrySize()
                                   : getTargetBackend().getRelEntrySize());
@@ -2475,7 +2475,7 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
       ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
       if (!Section->hasRelocData())
         continue;
-      if (Section->getKind() != LDFileFormat::Internal)
+      if (Section->getKind() != LinkerSectionKind::Internal)
         continue;
       // Skip internal relocation sections.
       if (Section->isRelocationSection())
@@ -2707,7 +2707,7 @@ void ObjectLinker::syncRelocationResult(uint8_t *Data, InputFile *Input) {
     ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
     if (!Section->hasRelocData())
       continue;
-    if (Section->getKind() != LDFileFormat::Internal)
+    if (Section->getKind() != LinkerSectionKind::Internal)
       continue;
     // Skip internal relocation sections.
     if (Section->isRelocationSection())
@@ -4097,7 +4097,7 @@ bool ObjectLinker::provideGlobalSymbolAndContents(std::string Name, size_t Sz,
 
   char *Buf = ThisModule->getUninitBuffer(Sz);
   ELFSection *InputSect = ThisModule->createInternalSection(
-      Module::InternalInputType::GlobalDataSymbols, LDFileFormat::Regular,
+      Module::InternalInputType::GlobalDataSymbols, LinkerSectionKind::Regular,
       ".rodata.internal." + Name, llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC,
       Alignment, 0);
   Fragment *F = make<RegionFragment>(llvm::StringRef(Buf, Sz), InputSect,
@@ -4138,9 +4138,10 @@ bool ObjectLinker::setCommonSectionsFallbackToBSS() {
   if (OutSecEntry)
     OutSection = OutSecEntry->getSection();
   else {
-    OutSection = ThisModule->createOutputSection(".bss", LDFileFormat::Regular,
-                                                 /*pType=*/0, /*pFlag=*/0,
-                                                 /*pAlign=*/0);
+    OutSection =
+        ThisModule->createOutputSection(".bss", LinkerSectionKind::Regular,
+                                        /*pType=*/0, /*pFlag=*/0,
+                                        /*pAlign=*/0);
     OutSecEntry = OutSection->getOutputSection();
   }
 
@@ -4170,9 +4171,10 @@ bool ObjectLinker::setCopyRelocSectionsFallbackToBSS() {
   if (OutSecEntry)
     OutSection = OutSecEntry->getSection();
   else {
-    OutSection = ThisModule->createOutputSection(".bss", LDFileFormat::Regular,
-                                                 /*pType=*/0, /*pFlag=*/0,
-                                                 /*pAlign=*/0);
+    OutSection =
+        ThisModule->createOutputSection(".bss", LinkerSectionKind::Regular,
+                                        /*pType=*/0, /*pFlag=*/0,
+                                        /*pAlign=*/0);
     OutSecEntry = OutSection->getOutputSection();
   }
 

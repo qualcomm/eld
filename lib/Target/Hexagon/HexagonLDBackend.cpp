@@ -218,7 +218,7 @@ void HexagonLDBackend::createAttributeSection() {
   if (AttributeSection)
     return;
   AttributeSection = m_Module.createInternalSection(
-      Module::InternalInputType::Attributes, LDFileFormat::Target,
+      Module::InternalInputType::Attributes, LinkerSectionKind::Target,
       ".hexagon.attributes", llvm::ELF::SHT_HEXAGON_ATTRIBUTES, 0, 1);
   AttributeFragment = make<HexagonAttributeFragment>(AttributeSection);
   AttributeSection->addFragment(AttributeFragment);
@@ -229,9 +229,9 @@ void HexagonLDBackend::createAttributeSection() {
 
 void HexagonLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
   m_pguard = m_Module.createInternalSection(
-      Module::InternalInputType::Guard, LDFileFormat::Internal, ".text.guard",
-      llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR,
-      4);
+      Module::InternalInputType::Guard, LinkerSectionKind::Internal,
+      ".text.guard", llvm::ELF::SHT_PROGBITS,
+      llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 4);
 
   bool linkerScriptHasSectionsCommand =
       (m_Module.getScript().linkerScriptHasSectionsCommand());
@@ -240,7 +240,7 @@ void HexagonLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
     std::string stubName =
         HexagonTLSStub::stubName((HexagonTLSStub::StubType)i).str();
     m_TLSStubs[stubName] = m_Module.createInternalSection(
-        Module::InternalInputType::TLSStub, LDFileFormat::Internal,
+        Module::InternalInputType::TLSStub, LinkerSectionKind::Internal,
         ".text." + stubName, llvm::ELF::SHT_PROGBITS,
         llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 4);
   }
@@ -249,33 +249,33 @@ void HexagonLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
     return;
 
   m_psdata = m_Module.createInternalSection(
-      Module::InternalInputType::SmallData, LDFileFormat::Internal, ".sdata",
-      llvm::ELF::SHT_PROGBITS,
+      Module::InternalInputType::SmallData, LinkerSectionKind::Internal,
+      ".sdata", llvm::ELF::SHT_PROGBITS,
       llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE | llvm::ELF::SHF_HEX_GPREL,
       ((LinkerConfig::Object == config().codeGenType()) ? 0 : 4 * 1024));
 
   m_pscommon_1 = m_Module.createInternalSection(
-      Module::InternalInputType::SmallData, LDFileFormat::Internal,
+      Module::InternalInputType::SmallData, LinkerSectionKind::Internal,
       ".scommon.1", llvm::ELF::SHT_NOBITS,
       llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 1);
 
   m_pscommon_2 = m_Module.createInternalSection(
-      Module::InternalInputType::SmallData, LDFileFormat::Internal,
+      Module::InternalInputType::SmallData, LinkerSectionKind::Internal,
       ".scommon.2", llvm::ELF::SHT_NOBITS,
       llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 2);
 
   m_pscommon_4 = m_Module.createInternalSection(
-      Module::InternalInputType::SmallData, LDFileFormat::Internal,
+      Module::InternalInputType::SmallData, LinkerSectionKind::Internal,
       ".scommon.4", llvm::ELF::SHT_NOBITS,
       llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 4);
 
   m_pscommon_8 = m_Module.createInternalSection(
-      Module::InternalInputType::SmallData, LDFileFormat::Internal,
+      Module::InternalInputType::SmallData, LinkerSectionKind::Internal,
       ".scommon.8", llvm::ELF::SHT_NOBITS,
       llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 8);
 
   m_pstart = m_Module.createInternalSection(
-      Module::InternalInputType::Guard, LDFileFormat::Internal, ".start",
+      Module::InternalInputType::Guard, LinkerSectionKind::Internal, ".start",
       llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 8);
 }
 
@@ -616,14 +616,14 @@ HexagonLDBackend::getValueForDiscardedRelocations(const Relocation *R) const {
 }
 
 bool HexagonLDBackend::DoesOverrideMerge(ELFSection *pInputSection) const {
-  // FIXME: Should we also add pInputSection->kind() == LDFileFormat::Common,
-  // here?
-  if (pInputSection->getKind() == LDFileFormat::Internal)
+  // FIXME: Should we also add pInputSection->kind() ==
+  // LinkerSectionKind::Common, here?
+  if (pInputSection->getKind() == LinkerSectionKind::Internal)
     return false;
   return (!m_Module.getScript().linkerScriptHasSectionsCommand() &&
           LinkerConfig::Object != config().codeGenType() &&
           ((pInputSection->getFlags() & llvm::ELF::SHF_HEX_GPREL) ||
-           (pInputSection->getKind() == LDFileFormat::LinkOnce)));
+           (pInputSection->getKind() == LinkerSectionKind::LinkOnce)));
 }
 
 /// merge Input Sections
@@ -998,7 +998,7 @@ HexagonTLSStub *HexagonLDBackend::findTLSStub(std::string stubName) {
 
 bool HexagonLDBackend::readSection(InputFile &pInput, ELFSection *S) {
   switch (S->getKind()) {
-  case LDFileFormat::Target:
+  case LinkerSectionKind::Target:
     if (S->getType() == llvm::ELF::SHT_HEXAGON_ATTRIBUTES) {
       if (!AttributeSection)
         createAttributeSection();

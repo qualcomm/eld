@@ -14,12 +14,12 @@
 #include "eld/Fragment/RegionFragment.h"
 #include "eld/Fragment/StringFragment.h"
 #include "eld/LayoutMap/LayoutInfo.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Object/RuleContainer.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Script/Expression.h"
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/ScriptCommand.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -139,8 +139,9 @@ ELFSection *OutputSectData::createOSDSection(Module &Module) {
   std::string Name = "__OutputSectData." + OutputSectName.str() + "." +
                      getOSDKindAsStr().str();
   ELFSection *S = Module.createInternalSection(
-      Module::InternalInputType::OutputSectData, LDFileFormat::OutputSectData,
-      Name, DefaultSectionType, DefaultSectionFlags, /*alignment=*/1);
+      Module::InternalInputType::OutputSectData,
+      LinkerSectionKind::OutputSectData, Name, DefaultSectionType,
+      DefaultSectionFlags, /*alignment=*/1);
   Fragment *F =
       isASCIZ() ? static_cast<Fragment *>(make<StringFragment>(ASCIIZStr, S))
                 : static_cast<Fragment *>(make<OutputSectDataFragment>(*this));
@@ -234,9 +235,9 @@ ELFSection *LinkerVersionOutputData::createSection(Module &Module) {
   llvm::StringRef OutputSectName = R->getSection()->getOutputSection()->name();
   std::string Name = "__LinkerVersionData." + OutputSectName.str();
   ELFSection *S = Module.createInternalSection(
-      Module::InternalInputType::OutputSectData, LDFileFormat::OutputSectData,
-      Name, OutputSectData::DefaultSectionType,
-      OutputSectData::DefaultSectionFlags,
+      Module::InternalInputType::OutputSectData,
+      LinkerSectionKind::OutputSectData, Name,
+      OutputSectData::DefaultSectionType, OutputSectData::DefaultSectionFlags,
       /*alignment=*/1);
   Fragment *F = make<StringFragment>(buildLinkerVersionString(), S);
   LayoutInfo *layoutInfo = Module.getLayoutInfo();

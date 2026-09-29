@@ -83,7 +83,7 @@ void ARMGNULDBackend::createAttributeSection(uint32_t Flag, uint32_t Align) {
   if (m_pARMAttributeSection)
     return;
   m_pARMAttributeSection = m_Module.createInternalSection(
-      Module::InternalInputType::Attributes, LDFileFormat::Internal,
+      Module::InternalInputType::Attributes, LinkerSectionKind::Internal,
       ".ARM.attributes", llvm::ELF::SHT_ARM_ATTRIBUTES, Flag, Align);
 }
 
@@ -99,7 +99,7 @@ void ARMGNULDBackend::initTargetSections(ObjectBuilder &pBuilder) {
   // FIXME: Currently we set exidx and extab to "Exception" and directly emit
   // them from input
   m_pEXIDX = m_Module.createInternalSection(
-      Module::InternalInputType::Exception, LDFileFormat::Internal,
+      Module::InternalInputType::Exception, LinkerSectionKind::Internal,
       ".ARM.exidx", llvm::ELF::SHT_ARM_EXIDX,
       llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_LINK_ORDER, 4);
 
@@ -109,7 +109,7 @@ void ARMGNULDBackend::initTargetSections(ObjectBuilder &pBuilder) {
   // is always placed last.  Partial links (-r) do not get a sentinel.
   if (LinkerConfig::Object != config().codeGenType()) {
     m_pEXIDXSentinel = m_Module.createInternalSection(
-        Module::InternalInputType::Exception, LDFileFormat::Internal,
+        Module::InternalInputType::Exception, LinkerSectionKind::Internal,
         ".ARM.exidx", llvm::ELF::SHT_ARM_EXIDX,
         llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_LINK_ORDER, 4);
     m_pSentinelFrag = make<EXIDXSentinelFragment>(m_pEXIDXSentinel);
@@ -582,7 +582,7 @@ void ARMGNULDBackend::initSegmentFromLinkerScript(ELFSegment *pSegment) {
 
       // Convert to PROBIT
       cur->setType(llvm::ELF::SHT_PROGBITS);
-      cur->setKind(LDFileFormat::Regular);
+      cur->setKind(LinkerSectionKind::Regular);
       config().raise(Diag::warn_mix_bss_section)
           << lastMixedNonBSSSection->name() << cur->name();
     }
@@ -686,7 +686,7 @@ void ARMGNULDBackend::finalizeBeforeWrite() {
 }
 
 bool ARMGNULDBackend::DoesOverrideMerge(ELFSection *pSection) const {
-  if (pSection->getKind() == LDFileFormat::Internal)
+  if (pSection->getKind() == LinkerSectionKind::Internal)
     return false;
   if (pSection->getType() == llvm::ELF::SHT_ARM_ATTRIBUTES)
     return true;
@@ -717,7 +717,7 @@ ELFSection *ARMGNULDBackend::mergeSection(ELFSection *pSection) {
     else if (pSection->getLink()->isIgnore()) {
       // if the target section of the .ARM.exidx is Ignore, then it should be
       // ignored as well
-      pSection->setKind(LDFileFormat::Ignore);
+      pSection->setKind(LinkerSectionKind::Ignore);
       return nullptr;
     }
     ObjectBuilder builder(config(), m_Module);
@@ -775,7 +775,7 @@ void ARMGNULDBackend::setUpReachedSectionsForGC(
           // only the target symbols defined in the concerned sections can make
           // the reference
           ELFSection *target_sect = sym->getOwningSection();
-          if (target_sect->getKind() != LDFileFormat::Regular &&
+          if (target_sect->getKind() != LinkerSectionKind::Regular &&
               target_sect->isNoBits())
             continue;
 

@@ -31,7 +31,7 @@ RuleContainer::RuleContainer(SectionMap *Parent, std::string PName,
 
   MSpec.WildcardSectionPattern = Sections;
 
-  MPSection = Parent->createELFSection(PName, LDFileFormat::Regular,
+  MPSection = Parent->createELFSection(PName, LinkerSectionKind::Regular,
                                        /*Type=*/0, /*Flags=*/0, /*EntSize=*/0);
   MPSection->setMatchedLinkerScriptRule(this);
 }
@@ -47,8 +47,9 @@ RuleContainer::RuleContainer(SectionMap *Parent,
   MSpec.InputArchiveMember = PInputDesc.spec().InputArchiveMember;
   MSpec.InputIsArchive = PInputDesc.spec().InputIsArchive;
   MSpec.ExcludeFilesRule = PInputDesc.spec().getExcludeFiles();
-  MPSection = Parent->createELFSection("", LDFileFormat::Regular, /*Type=*/0,
-                                       /*Flags=*/0, /*EntSize=*/0);
+  MPSection =
+      Parent->createELFSection("", LinkerSectionKind::Regular, /*Type=*/0,
+                               /*Flags=*/0, /*EntSize=*/0);
   MPSection->setMatchedLinkerScriptRule(this);
 }
 

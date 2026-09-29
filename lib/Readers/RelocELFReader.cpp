@@ -11,13 +11,13 @@
 #include "eld/Fragment/MergeStringFragment.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/InputFile.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Object/SectionMap.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/Readers/Relocation.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/Resolver.h"
 #include "eld/Target/GNULDBackend.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/Compression.h"
 #include <cstdint>
@@ -53,10 +53,10 @@ eld::Expected<ELFSection *> RelocELFReader<ELFT>::createSection(
 
   // Setup all section properties.
   // FIXME: sectName can be extracted from rawSectHdr.
-  LDFileFormat::Kind kind = this->getSectionKind(rawSectHdr, sectName);
+  LinkerSectionKind kind = this->classifySectionKind(rawSectHdr, sectName);
 
   // FIXME: Emit some diagnostic here.
-  if (kind == LDFileFormat::Error)
+  if (kind == LinkerSectionKind::Error)
     return static_cast<ELFSection *>(nullptr);
 
   bool LLVMBCSectionIsIgnore = false;
@@ -70,19 +70,19 @@ eld::Expected<ELFSection *> RelocELFReader<ELFT>::createSection(
     LLVMBCSectionIsIgnore = true;
 
   ELFSection *section = nullptr;
-  if (kind == LDFileFormat::EhFrame)
+  if (kind == LinkerSectionKind::EhFrame)
     section = module.getScript().sectionMap().createEhFrameSection(
         sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
         rawSectHdr.sh_entsize);
 
-  if (!section && kind == LDFileFormat::SFrame)
+  if (!section && kind == LinkerSectionKind::SFrame)
     section = module.getScript().sectionMap().createSFrameSection(
         sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
         rawSectHdr.sh_entsize);
 
   if (!section) {
     section = module.getScript().sectionMap().createELFSection(
-        sectName, (LLVMBCSectionIsIgnore ? LDFileFormat::Discard : kind),
+        sectName, (LLVMBCSectionIsIgnore ? LinkerSectionKind::Discard : kind),
         rawSectHdr.sh_type, rawSectHdr.sh_flags, rawSectHdr.sh_entsize);
   }
 

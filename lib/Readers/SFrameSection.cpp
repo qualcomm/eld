@@ -15,7 +15,7 @@ using namespace eld;
 SFrameSection::SFrameSection(std::string Name, DiagnosticEngine *E,
                              uint32_t Type, uint32_t Flags, uint32_t EntSize,
                              uint64_t Size)
-    : ELFSection(Section::Kind::SFrame, LDFileFormat::SFrame, Name, Flags,
+    : ELFSection(Section::Kind::SFrame, LinkerSectionKind::SFrame, Name, Flags,
                  EntSize, /*AddrAlign=*/0, Type, /*Info=*/0, /*Link=*/nullptr,
                  Size, /*PAddr=*/0),
       TheDiagEngine(E) {}

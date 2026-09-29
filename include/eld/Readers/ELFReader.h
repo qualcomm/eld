@@ -8,11 +8,11 @@
 #define ELD_NEWREADERS_NEWELFREADER_H
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/PluginAPI/Expected.h"
 #include "eld/Readers/ELFReaderBase.h"
 #include "eld/Readers/Relocation.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Object/ELF.h"
 #include "llvm/Object/ELFTypes.h"
@@ -115,9 +115,9 @@ protected:
   /// Computes and returns the section name.
   eld::Expected<std::string> getSectionName(Elf_Shdr rawSectHdr);
 
-  /// Computes and return the section kind.
-  LDFileFormat::Kind getSectionKind(Elf_Shdr rawSectHdr,
-                                    llvm::StringRef sectionName);
+  /// Classifies and returns the section kind.
+  LinkerSectionKind classifySectionKind(Elf_Shdr rawSectHdr,
+                                        llvm::StringRef sectionName);
 
   /// Create and return eld::ELFSection from the raw section header.
   virtual eld::Expected<ELFSection *> createSection(Elf_Shdr rawSectHdr) = 0;

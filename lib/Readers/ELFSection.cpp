@@ -30,7 +30,7 @@ void ELFSection::addFragment(Fragment *F) {
   // Update Alignment if necessary.
   if (AddrAlign < F->alignment())
     AddrAlign = F->alignment();
-  /// LDFileFormat::MergeStr sections must consist of a single Fragment
+  /// LinkerSectionKind::MergeStr sections must consist of a single Fragment
   if (isMergeKind())
     assert(Fragments.empty());
   Fragments.push_back(F);

@@ -300,18 +300,18 @@ public:
   }
 
   ELFSection *createOutputSection(const std::string &Name,
-                                  LDFileFormat::Kind PKind, uint32_t Type,
+                                  LinkerSectionKind PKind, uint32_t Type,
                                   uint32_t PFlag, uint32_t PAlign);
 
-  ELFSection *createInternalSection(InputFile &I, LDFileFormat::Kind K,
+  ELFSection *createInternalSection(InputFile &I, LinkerSectionKind K,
                                     std::string Name, uint32_t Type,
                                     uint32_t PFlag, uint32_t PAlign,
                                     uint32_t EntSize = 0);
 
-  ELFSection *createInternalSection(InternalInputType Type,
-                                    LDFileFormat::Kind K, std::string Name,
-                                    uint32_t SectionType, uint32_t Flag,
-                                    uint32_t Align, uint32_t EntSize = 0) {
+  ELFSection *createInternalSection(InternalInputType Type, LinkerSectionKind K,
+                                    std::string Name, uint32_t SectionType,
+                                    uint32_t Flag, uint32_t Align,
+                                    uint32_t EntSize = 0) {
     return createInternalSection(*InternalFiles[Type], K, Name, SectionType,
                                  Flag, Align, EntSize);
   }

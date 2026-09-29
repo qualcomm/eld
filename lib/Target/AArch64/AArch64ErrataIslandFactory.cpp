@@ -175,7 +175,7 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
   // Set the owning section.
   ELFSection *TrampolineInputSection =
       pBuilder.getModule().getLinkerScript().sectionMap().createELFSection(
-          ".text" + name, LDFileFormat::Regular, llvm::ELF::SHT_PROGBITS,
+          ".text" + name, LinkerSectionKind::Regular, llvm::ELF::SHT_PROGBITS,
           MatchedSection->getFlags(), /*EntSize=*/0);
   TrampolineInputSection->setMatchedLinkerScriptRule(MatchedRule);
   TrampolineInputSection->setOutputSection(
