@@ -34,7 +34,13 @@ struct RelocationDescriptor {
   Add(llvm::ELF::R_386_16, relocAbs, EncodingWidth::Bits16,                    \
       RangeCheck::SignedOrUnsigned)                                             \
   Add(llvm::ELF::R_386_8, relocAbs, EncodingWidth::Bits8,                      \
-      RangeCheck::SignedOrUnsigned)
+      RangeCheck::SignedOrUnsigned)                                             \
+  Add(llvm::ELF::R_386_PC32, relocPCRel, EncodingWidth::Bits32,                 \
+      RangeCheck::None)                                                          \
+  Add(llvm::ELF::R_386_PC16, relocPCRel, EncodingWidth::Bits16,                \
+      RangeCheck::SignedPC16)                                                    \
+  Add(llvm::ELF::R_386_PC8, relocPCRel, EncodingWidth::Bits8,                   \
+      RangeCheck::Signed)
 // clang-format on
 
 inline std::array<RelocationDescriptor, RelocationTableSize>

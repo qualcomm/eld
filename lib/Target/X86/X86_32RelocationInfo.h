@@ -22,7 +22,11 @@ enum class EncodingWidth : uint8_t { None, Bits8, Bits16, Bits32 };
 
 // No range check is required for a full-width field. Narrow fields accept
 // values representable as either signed or unsigned.
-enum class RangeCheck { None, SignedOrUnsigned };
+//
+// Signed checks require the result to fit the signed field range. R_386_PC16
+// is a special case: it accepts a signed 17-bit result before truncating it
+// to the 16-bit field.
+enum class RangeCheck { None, SignedOrUnsigned, Signed, SignedPC16 };
 
 // Keep the table size tied to LLVM's canonical relocation list. The array may
 // contain holes because ELF relocation values are not required to be dense.

@@ -18,6 +18,8 @@ using RelocationHandler = Relocator::Result (*)(Relocation &pReloc,
 Relocator::Result none(Relocation &pReloc, X86_32Relocator &pParent);
 // R_386_8, R_386_16, and R_386_32: S + A.
 Relocator::Result relocAbs(Relocation &pReloc, X86_32Relocator &pParent);
+// R_386_PC8, R_386_PC16, and R_386_PC32: S + A - P.
+Relocator::Result relocPCRel(Relocation &pReloc, X86_32Relocator &pParent);
 // Any relocation not implemented by the current i386 backend.
 Relocator::Result unsupported(Relocation &pReloc, X86_32Relocator &pParent);
 

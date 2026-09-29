@@ -1,0 +1,20 @@
+#---PCRelativeRelocation.test----------- i386 ELF32 relocations -------------#
+#BEGIN_COMMENT
+# Verify the normal i386 SHT_REL PC-relative relocations use S + A - P.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/pcrel.s -o %t.pcrel.o
+RUN: %link %linkopts -m elf_i386 -T %p/Inputs/pcrel.t %t.pcrel.o -o %t.pcrel.out
+RUN: %readelf -x .text %t.pcrel.out | %filecheck %s --check-prefix=BYTES
+RUN: %readelf -r %t.pcrel.out | %filecheck %s --check-prefix=RELOCS
+
+# The target is at address 8 and the places are 0, 1, and 3. The in-place
+# addends are 1, 2, and 3, so all three results are 9, except the 32-bit result
+# which is 8 after subtracting its place.
+BYTES:      Hex dump of section '.text':
+BYTES-NEXT: 0x00000000 09090008 00000000 00
+
+RELOCS:      R_386_PC8
+RELOCS-NEXT: R_386_PC16
+RELOCS-NEXT: R_386_PC32
+#END_TEST
