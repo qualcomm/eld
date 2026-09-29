@@ -112,7 +112,7 @@ jobs:
 
       - name: Run C/C++ linter (non-blocking)
         id: cpp-lint
-        uses: cpp-linter/cpp-linter-action@dacf512996b9cfe9d9bcc7b326d1f3a64ab7b91f #v3.20.0
+        uses: cpp-linter/cpp-linter-action@8120e05c7fbd25fa09fa93424ec49f55f7b304ab #v3.20.0
         if: steps.changed-files.outputs.has_files == 'true'
         continue-on-error: true
         env:
