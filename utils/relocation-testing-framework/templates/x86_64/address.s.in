@@ -1,0 +1,14 @@
+.global _start
+
+.text
+_start:
+{{usage}}
+  mov ({{scratch_reg}}), %edi
+  mov $60, %rax
+  syscall
+
+.data
+.{{binding}} v
+{{visibility}}
+v:
+  .quad 42
