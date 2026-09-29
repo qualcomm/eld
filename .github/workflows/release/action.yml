@@ -20,6 +20,10 @@ inputs:
     description: "Auto-generate release notes from merged PRs ('true'/'false')"
     required: false
     default: "true"
+  body:
+    description: "Release notes body"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -29,6 +33,7 @@ runs:
       with:
         tag_name: ${{ inputs.tag_name }}
         name: ${{ inputs.release_name }}
+        body: ${{ inputs.body }}
         generate_release_notes: ${{ inputs.generate_release_notes }}
         draft: ${{ inputs.draft }}
         prerelease: ${{ inputs.prerelease }}

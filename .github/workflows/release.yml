@@ -22,6 +22,10 @@ on:
         default: 'true'
         type: choice
         options: ['true', 'false']
+      previous_tag_name:
+        description: 'Tag to start release notes from'
+        required: false
+        default: 'v22.1.0-rc3'
 
 permissions:
   contents: write
@@ -41,7 +45,29 @@ jobs:
           fetch-depth: 0
 
       # ------------------------------------------------------------------ #
-      # 2. Create the GitHub Release
+      # 2. Generate release notes against the explicitly selected tag
+      # ------------------------------------------------------------------ #
+      - name: Generate release notes
+        id: release_notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.event.inputs.tag_name }}
+          PREVIOUS_TAG_NAME: ${{ github.event.inputs.previous_tag_name }}
+        run: |
+          gh api --method POST \
+            "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f tag_name="${TAG_NAME}" \
+            -f target_commitish="${GITHUB_SHA}" \
+            -f previous_tag_name="${PREVIOUS_TAG_NAME}" > /tmp/release-notes.json
+
+          {
+            echo 'body<<RELEASE_NOTES_EOF'
+            jq -r '.body' /tmp/release-notes.json
+            echo 'RELEASE_NOTES_EOF'
+          } >> "${GITHUB_OUTPUT}"
+
+      # ------------------------------------------------------------------ #
+      # 3. Create the GitHub Release
       # ------------------------------------------------------------------ #
       - name: Create Release
         uses: ./.github/workflows/release
@@ -50,3 +76,5 @@ jobs:
           release_name: 'ELD ${{ github.event.inputs.tag_name }}'
           draft: ${{ github.event.inputs.draft }}
           prerelease: ${{ github.event.inputs.prerelease }}
+          generate_release_notes: 'false'
+          body: ${{ steps.release_notes.outputs.body }}
