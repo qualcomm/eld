@@ -1,8 +1,14 @@
 #UNSUPPORTED: windows
 #---SysrootExpansion.test---------------- Linker Script ----------------#
 #BEGIN_COMMENT
-# Validate sysroot expansion for "=" and "$SYSROOT" markers in INPUT/GROUP
-# script commands and command-line object files.
+# Validate sysroot expansion for both "=" and "$SYSROOT" markers in:
+#   * linker-script INPUT and GROUP commands;
+#   * command-line object files.
+#
+# The test also checks that:
+#   * expansion works when --sysroot is set and fails cleanly when it is not;
+#   * linker-script sysroot markers survive --reproduce extraction and replay;
+#   * verbose diagnostics report the original and expanded paths.
 #END_COMMENT
 #START_TEST
 
@@ -15,6 +21,15 @@ RUN: %link %linkopts -o %t.dir/lib64/lib1.so -shared %t.1.o
 
 # Test INPUT with = prefix
 RUN: %link %linkopts -o %t.out1 --sysroot=%t.dir -T %p/Inputs/script_equals.t %t.main.o --verbose 2>&1 | %filecheck %s --check-prefix=EQUALS
+
+# Verify that a linker-script sysroot marker survives reproduce extraction and
+# replay. The mapping key begins with '=', so it must be parsed as a complete
+# key rather than split at its leading marker.
+RUN: %link %linkopts -o %t.reproduce.out --sysroot=%t.dir -T %p/Inputs/script_equals.t %t.main.o --reproduce %t.reproduce.tar --dump-response-file %t.reproduce.response
+RUN: %mkdir %t.reproduce
+RUN: cd %t.reproduce
+RUN: %tar %gnutaropts -xf %t.reproduce.tar --strip-components=1
+RUN: %link @response.txt -o %t.replay.out
 
 # Test INPUT with $SYSROOT prefix
 RUN: %link %linkopts -o %t.out2 --sysroot=%t.dir -T %p/Inputs/script_sysroot.t %t.main.o --verbose 2>&1 | %filecheck %s --check-prefix=SYSROOT
