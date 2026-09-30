@@ -287,13 +287,8 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
         !LinkerScriptHasSectionsCommand)
       continue;
     InputFile *Input = Obj;
-    bool IsCommonSection = false;
-    if (CommonELFSection *CommonSection =
-            llvm::dyn_cast<CommonELFSection>(Sect)) {
-      Input = CommonSection->getOrigin();
-      IsCommonSection = true;
-    }
-    if (Sect->getOldInputFile())
+    bool IsCommonSection = llvm::isa<CommonELFSection>(Sect);
+    if (Sect->hasOldInputFile())
       Input = Sect->getOldInputFile();
     std::string const &PInputFile =
         Input->getInput()->getResolvedPath().native();
@@ -424,13 +419,8 @@ void ObjectBuilder::assignInputFromOutputLegacy(eld::InputFile *Obj) {
             !LinkerScriptHasSectionsCommand)
           continue;
         InputFile *Input = Obj;
-        bool IsCommonSection = false;
-        if (CommonELFSection *CommonSection =
-                llvm::dyn_cast<CommonELFSection>(Section)) {
-          Input = CommonSection->getOrigin();
-          IsCommonSection = true;
-        }
-        if (Section->getOldInputFile())
+        bool IsCommonSection = llvm::isa<CommonELFSection>(Section);
+        if (Section->hasOldInputFile())
           Input = Section->getOldInputFile();
         std::string const &PInputFile =
             Input->getInput()->getResolvedPath().native();
@@ -798,14 +788,13 @@ void ObjectBuilder::reAssignOutputSections(const plugin::LinkerWrapper *LW) {
       return;
     std::string OutputSectionOverride = Override->getOutputSectionName();
     InputFile *Input = ELFSect->getInputFile();
-    if (CommonELFSection *CommonSection =
-            llvm::dyn_cast<CommonELFSection>(ELFSect))
-      Input = CommonSection->getOrigin();
+
+    if (ELFSect->hasOldInputFile())
+      Input = ELFSect->getOldInputFile();
+
     SectionMap::iterator OutputSectIter =
         SectionMap.findIter(OutputSectionOverride);
     if (OutputSectIter != SectionMap.end()) {
-      if (ELFSect->getOldInputFile())
-        Input = ELFSect->getOldInputFile();
       std::string const &Name = Input->getInput()->getName();
       bool IsArchive =
           Input->isArchive() ||
@@ -854,8 +843,8 @@ bool ObjectBuilder::assignOutputSectionsToCommonSymbols() {
       llvm::dyn_cast<ObjectFile>(ThisModule.getCommonInternalInput());
   llvm::SmallSet<InputFile *, 16> CommonOriginInputs;
   for (const auto &S : CommonSymbolsInput->getSections()) {
-    if (CommonELFSection *CommonSection = llvm::dyn_cast<CommonELFSection>(S)) {
-      InputFile *I = CommonSection->getOrigin();
+    if (llvm::isa<CommonELFSection>(S) && S->hasOldInputFile()) {
+      InputFile *I = S->getOldInputFile();
       if (I)
         CommonOriginInputs.insert(I);
     }
