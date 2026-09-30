@@ -1,0 +1,22 @@
+#---OptimizationLevel.test------------------------------- Executable -----------#
+#BEGIN_COMMENT
+# Numeric GNU linker optimization levels are accepted and ignored. Malformed
+# levels are diagnosed, and unrelated unknown options still produce warnings.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts %t.o -e foo -O1 --fatal-warnings -o %t.out
+RUN: %link %linkopts %t.o -e foo -O0 -O1 -O2 -O3 -O4 -O42 -O 2 --fatal-warnings -o %t.out
+RUN: %link %linkopts %t.o -e foo -O1 --badoption -o %t.out 2>&1 | %filecheck %s --check-prefix=UNKNOWN
+RUN: %not %link %linkopts %t.o -e foo -Other -o %t.out 2>&1 | %filecheck %s --check-prefix=INVALID
+RUN: %not %link %linkopts %t.o -e foo -Other -O1 -o %t.out 2>&1 | %filecheck %s --check-prefix=INVALID
+RUN: %not %link %linkopts %t.o -e foo -O-1 -o %t.out 2>&1 | %filecheck %s --check-prefix=NEGATIVE
+RUN: %not %link %linkopts %t.o -e foo -O4294967296 -o %t.out 2>&1 | %filecheck %s --check-prefix=OVERFLOW
+RUN: %not %link %linkopts %t.o -e foo -o %t.out -O 2>&1 | %filecheck %s --check-prefix=MISSING
+
+#UNKNOWN: Unrecognized option `--badoption'
+#INVALID: Error: Invalid value for -O: ther
+#NEGATIVE: Error: Invalid value for -O: -1
+#OVERFLOW: Error: Invalid value for -O: 4294967296
+#MISSING: Error: Missing arg value for '-O' expected 1 argument(s)
+#END_TEST

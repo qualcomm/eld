@@ -258,6 +258,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (llvm::opt::Arg *arg = Args.getLastArg(T::warn_limit))
     Config.getPrinter()->setUserWarningLimit(getUnsignedInteger(arg, 10));
 
+  // Accept numeric -O levels for GNU linker compatibility, but ignore them.
+  for (auto *Arg : Args.filtered(T::O))
+    getUnsignedInteger(Arg, 0);
+
   // -t
   if (Args.hasArg(T::dash_t))
     Config.options().setTrace(true);

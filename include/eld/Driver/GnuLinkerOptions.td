@@ -1125,6 +1125,10 @@ defm TrampolineMap
 //===----------------------------------------------------------------------===//
 def grp_compatorignoredopts : OptionGroup<"opts">,
                               HelpText<"Compatibility Or Ignored Options">;
+def O : JoinedOrSeparate<["-"], "O">,
+        HelpText<"Ignored for GNU linker compatibility">,
+        MetaVarName<"<level>">,
+        Group<grp_compatorignoredopts>;
 def Qy : Flag<["-"], "Qy">,
          HelpText<"This option is ignored for SVR4 compatibility">,
          Group<grp_compatorignoredopts>;
