@@ -69,6 +69,8 @@ DIAG(prohibited_cross_ref_warn, DiagnosticEngine::Warning,
      "%1:(%2:%3): prohibited cross reference from %4 to `%0'(%6) in %5")
 DIAG(addend_not_supported, DiagnosticEngine::Error,
      "Unable to fetch addend for merging strings for section %0")
+DIAG(error_merge_string_relocation_beyond_end, DiagnosticEngine::Error,
+     "%0: relocation %1 has target offset %2 past the %3 section size (%4)")
 DIAG(reading_relocs, DiagnosticEngine::Verbose,
      "Reading relocations from Input %0")
 DIAG(unsupported_reloc, DiagnosticEngine::Fatal,

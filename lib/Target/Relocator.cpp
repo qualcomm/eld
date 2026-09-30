@@ -92,12 +92,17 @@ std::pair<Fragment *, uint64_t>
 Relocator::findFragmentForMergeStr(const ELFSection *RelocationSection,
                                    const Relocation *R,
                                    MergeStringFragment *F) const {
-  uint32_t Addend = getAddend(R);
-  const MergeableString *String = F->findString(Addend);
+  int64_t Addend = getAddend(R);
+  if (Addend < 0)
+    return {nullptr, 0};
+  uint64_t Offset = static_cast<uint64_t>(Addend);
+  if (Offset == F->getOwningSection()->size())
+    return {F, Offset};
+  const MergeableString *String = F->findString(Offset);
   if (!String)
     return {nullptr, 0};
 
-  uint32_t OffsetInString = Addend - String->InputOffset;
+  uint64_t OffsetInString = Offset - String->InputOffset;
 
   OutputSectionEntry *OutputSection = F->getOwningSection()->getOutputSection();
   bool GlobalMerge = m_Config.options().shouldGlobalStringMerge();
