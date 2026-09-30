@@ -5197,6 +5197,8 @@ bool GNULDBackend::assignMemoryRegions() {
     return true;
 
   for (auto &out : script.sectionMap()) {
+    if (out->isDiscard())
+      continue;
     for (auto &region : script.getMemoryRegions()) {
       if (region->checkCompatibilityAndAssignMemorySpecToOutputSection(out))
         break;

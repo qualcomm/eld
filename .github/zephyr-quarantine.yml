@@ -97,6 +97,13 @@
     LLEXT_TYPE_ELF_RELOCATABLE.
 
 - scenarios:
+  - llext.semihost
+  platforms:
+  - qemu_cortex_a53/.*
+  comment: >-
+    clang emits `.bss.number_in_bss`, but test_inspect expects `.bss`.
+
+- scenarios:
   - bluetooth\.shell\.shell_br(\..*)?
   - posix.threads_base.dynamic_stack
   platforms:
