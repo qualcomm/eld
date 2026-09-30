@@ -16,8 +16,6 @@ on:
       - reopened
       - ready_for_review
       - synchronize
-      - labeled
-      - unlabeled
 
 jobs:
   automate-pr-labels:
