@@ -576,6 +576,10 @@ public:
 
   bool hasVersionScript() const { return BVersionScript; }
 
+  void setAllowUndefinedVersion(bool Enable) { AllowUndefinedVersion = Enable; }
+
+  bool allowUndefinedVersion() const { return AllowUndefinedVersion; }
+
   void setDefaultSymver() { BDefaultSymver = true; }
 
   bool hasDefaultSymver() const { return BDefaultSymver; }
@@ -1298,6 +1302,7 @@ private:
   bool BForceDynamic = false;        // --force-dynamic
   bool BDynamicList = false;         // --dynamic-list flag
   bool BVersionScript = false;       // --version-script
+  bool AllowUndefinedVersion = true; // --[no-]undefined-version
   bool BDefaultSymver = false;       // --default-symver
   bool BHasDyld = false;             // user set dynamic linker ?
   bool NoInhibitExec = false;        //--noinhibit-exec
