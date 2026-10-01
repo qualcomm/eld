@@ -57,7 +57,11 @@ Input::Input(std::string PName, const Attribute &Attr,
       MemberNameHash(0), Type(PType), DiagEngine(DiagEngine) {}
 
 bool Input::resolvePathMappingFile(const LinkerConfig &PConfig) {
-  ResolvedPath = eld::sys::fs::Path(PConfig.getFileFromHash(FileName));
+  // FileName is normally the hashed path from the reproduce response. When
+  // --remap-inputs changed a logical path before reaching this function, use
+  // the mapping in the other direction to find that hashed path.
+  std::string MappedFileName = PConfig.getHashFromFile(FileName);
+  ResolvedPath = eld::sys::fs::Path(PConfig.getFileFromHash(MappedFileName));
   std::string ResolvedPathStr = ResolvedPath->native();
   if (!isPathValid(FileName)) {
     return false;
@@ -65,9 +69,9 @@ bool Input::resolvePathMappingFile(const LinkerConfig &PConfig) {
   ResolvedPathHash = computeFilePathHash(ResolvedPathStr);
   MemberNameHash = computeFilePathHash(FileName);
   MemoryArea *InputMem =
-      Input::getMemoryAreaForPath(FileName, PConfig.getDiagEngine());
+      Input::getMemoryAreaForPath(MappedFileName, PConfig.getDiagEngine());
   if (!InputMem)
-    InputMem = createMemoryArea(FileName, PConfig.getDiagEngine());
+    InputMem = createMemoryArea(MappedFileName, PConfig.getDiagEngine());
   setMemArea(InputMem);
   // All queries to return the name of the Input return FileName for the main
   // driver.
@@ -107,8 +111,6 @@ std::string Input::expandSysrootMarkers(llvm::StringRef Name,
 bool Input::resolvePath(const LinkerConfig &PConfig) {
   if (ResolvedPath)
     return true;
-  if (PConfig.options().hasMappingFile() && !isInternal())
-    return resolvePathMappingFile(PConfig);
   // Apply --remap-inputs remappings (in order, first match wins).
   if (auto Replacement = PConfig.options().findRemapInput(FileName)) {
     if (PConfig.getPrinter()->isVerbose())
@@ -116,6 +118,8 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
     OriginalFileName = FileName;
     FileName = std::move(*Replacement);
   }
+  if (PConfig.options().hasMappingFile() && !isInternal())
+    return resolvePathMappingFile(PConfig);
   auto &PSearchDirs = PConfig.directories();
 
   std::string ExpandedFileName = FileName;
