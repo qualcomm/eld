@@ -1,0 +1,13 @@
+#---PCRelativeRelocationWrap.test--------- i386 ELF32 relocations ----------#
+#BEGIN_COMMENT
+# Verify R_386_PC16 accepts the signed 17-bit result
+# before writing the low 16 bits.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/pcrel-wrap.s -o %t.pcrel-wrap.o
+RUN: %link %linkopts -m elf_i386 -T %p/Inputs/pcrel.t %t.pcrel-wrap.o -o %t.pcrel-wrap.out
+RUN: %readelf -x .text %t.pcrel-wrap.out | %filecheck %s --check-prefix=WRAP
+
+WRAP:      Hex dump of section '.text':
+WRAP-NEXT: 0x00000000 000080
+#END_TEST
