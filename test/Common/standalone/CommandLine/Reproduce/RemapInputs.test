@@ -1,0 +1,22 @@
+#---RemapInputs.test--------------------- Executable---------------------------#
+#BEGIN_COMMENT
+# Verify that --remap-inputs is preserved when an INPUT() command is replayed
+# from a reproduce archive.
+#END_COMMENT
+
+RUN: %clang %clangopts -c %p/Inputs/remap-main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/remap-foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/remap-bar.c -o %t.bar.o
+RUN: %echo "INPUT(%t.foo.o)" > %t.input.t
+
+RUN: %link %linkopts -o %t.original.out --remap-inputs=%t.foo.o=%t.bar.o \
+RUN: %t.main.o -T %t.input.t --reproduce %t.tar --dump-response-file %t.response
+
+RUN: %mkdir %t.replay
+RUN: cd %t.replay
+RUN: %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: %link @response.txt -o replay.out
+RUN: %readelf -s replay.out | %filecheck %s
+
+CHECK: FILE    LOCAL  DEFAULT   ABS remap-bar.c
+CHECK-NOT: remap-foo.c
