@@ -62,8 +62,6 @@ public:
 
   enum ErrorStyleType { gnu, llvm };
 
-  enum ScriptOptionType { MatchGNU, MatchLLVM };
-
   enum HashStyle { SystemV = 0x1, GNU = 0x2, Both = 0x3 };
 
   enum class RISCVRelaxTbljalMode { None, Zcmt, Xqccmt };
@@ -761,10 +759,6 @@ public:
 
   bool setErrorStyle(std::string ErrorStyle);
 
-  ScriptOptionType getScriptOption() const;
-
-  bool setScriptOption(std::string ScriptOptions);
-
   bool useOldRuleMatching() const { return BUseOldRuleMatching; }
 
   void setUseOldRuleMatching(bool B) { BUseOldRuleMatching = B; }
@@ -1429,7 +1423,6 @@ private:
   std::string SoName;
   ExcludeLIBSType ExcludeLIBS;
   ErrorStyleType ErrorStyle = gnu;
-  ScriptOptionType ScriptOption = MatchLLVM;
   std::vector<std::string> LTOAsmFile;
   std::vector<std::string> LTOOutputFile;
   std::optional<uint64_t> ImageBase; // --image-base=value

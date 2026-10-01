@@ -1046,10 +1046,6 @@ def use_old_rule_matching
       HelpText<"Use the original (pre-optimization) linker script "
                "rule-matching algorithm">,
       Group<grp_extendedopts>;
-defm script_options : mDashEq<"script-options", "script_options",
-                              "Specify a match type, match-gnu/match-llvm">,
-                      MetaVarName<"<matchtype>">,
-                      Group<grp_extendedopts>;
 def allow_bss_conversion
     : FF<"allow-bss-conversion">,
       HelpText<"Don't produce an error when mixing NOBITS, and PROGBITS "
