@@ -11,6 +11,7 @@ llvm_add_library(
   x86_64PLT.cpp
   x86_64GOT.cpp
   X86_32Emulation.cpp
+  X86_32GOT.cpp
   X86_32LDBackend.cpp
   X86_32Relocator.cpp)
 

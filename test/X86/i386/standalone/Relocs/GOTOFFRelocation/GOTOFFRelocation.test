@@ -1,0 +1,20 @@
+#---GOTOFFRelocation.test--------- i386 ELF32 GOT-base relocation ----------#
+#BEGIN_COMMENT
+# Verify R_386_GOTOFF creates the GOT base even when no relocation directly
+# references _GLOBAL_OFFSET_TABLE_.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/gotoff-only.s -o %t.gotoff.o
+RUN: %link %linkopts -m elf_i386 -T %p/Inputs/gotoff-only.t %t.gotoff.o -o %t.gotoff.out
+RUN: %readelf -x .text %t.gotoff.out | %filecheck %s --check-prefix=BYTES
+RUN: %readelf -x .got.plt %t.gotoff.out | %filecheck %s --check-prefix=GOTPLT
+RUN: %readelf -s %t.gotoff.out | %filecheck %s --check-prefix=SYMBOLS
+
+BYTES:      Hex dump of section '.text':
+BYTES-NEXT: 0x00001000 09f0ffff 00
+
+GOTPLT:      Hex dump of section '.got.plt':
+GOTPLT-NEXT: 0x00002000 00000000 00000000 00000000
+
+SYMBOLS: {{.*}}00002000{{.*}}_GLOBAL_OFFSET_TABLE_
+#END_TEST
