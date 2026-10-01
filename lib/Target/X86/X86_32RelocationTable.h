@@ -40,7 +40,11 @@ struct RelocationDescriptor {
   Add(llvm::ELF::R_386_PC16, relocPCRel, EncodingWidth::Bits16,                \
       RangeCheck::SignedPC16)                                                    \
   Add(llvm::ELF::R_386_PC8, relocPCRel, EncodingWidth::Bits8,                   \
-      RangeCheck::Signed)
+      RangeCheck::Signed)                                                        \
+  Add(llvm::ELF::R_386_GOTOFF, relocGOTOFF, EncodingWidth::Bits32,              \
+      RangeCheck::None)                                                          \
+  Add(llvm::ELF::R_386_GOTPC, relocGOTPC, EncodingWidth::Bits32,                \
+      RangeCheck::None)
 // clang-format on
 
 inline std::array<RelocationDescriptor, RelocationTableSize>

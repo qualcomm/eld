@@ -24,6 +24,14 @@ bool isSupportedRelocation(Relocation::Type Type) {
          x86_32::Relocs[Type].Handler != &x86_32::unsupported;
 }
 
+bool isGOTBaseRelocation(Relocation::Type Type) {
+  return Type == llvm::ELF::R_386_GOTOFF || Type == llvm::ELF::R_386_GOTPC;
+}
+
+bool isGOTBaseSymbol(const ResolveInfo *SymInfo) {
+  return SymInfo && llvm::StringRef(SymInfo->name()) == "_GLOBAL_OFFSET_TABLE_";
+}
+
 // i386 is SHT_REL: the addend is stored in the target field itself, sign
 // extended from the width of the field it was read from.
 Relocator::DWord getImplicitAddend(const Relocation &pReloc) {
@@ -126,6 +134,16 @@ void X86_32Relocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &,
   assert(SymInfo != nullptr &&
          "ResolveInfo of relocation not set while scanRelocation");
 
+  if (isGOTBaseSymbol(SymInfo) && !isGOTBaseRelocation(pReloc.type())) {
+    config().raise(Diag::unsupported_reloc)
+        << pReloc.type() << pSection.getDecoratedName(config().options())
+        << pInputFile.getInput()->decoratedPath();
+    return;
+  }
+
+  if (isGOTBaseRelocation(pReloc.type()))
+    m_Target.ensureGOTBaseRelocations();
+
   if (m_Module.getPrinter()->traceReloc()) {
     std::lock_guard<std::mutex> RelocGuard(m_RelocMutex);
     const std::string RelocName = getName(pReloc.type());
@@ -191,6 +209,24 @@ Relocator::Result relocPCRel(Relocation &pReloc, X86_32Relocator &pParent) {
   const Relocator::Address Place = pReloc.place(pParent.module());
 
   return applyRelocationValue(pReloc, Symbol + Addend - Place, pParent);
+}
+
+// R_386_GOTOFF: S + A - GOT.
+Relocator::Result relocGOTOFF(Relocation &pReloc, X86_32Relocator &pParent) {
+  const Relocator::Address Symbol = pReloc.symValue(pParent.module());
+  const Relocator::DWord Addend = getImplicitAddend(pReloc);
+  const Relocator::Address GOT = pParent.getTarget().getGOTSymbolAddr();
+
+  return applyRelocationValue(pReloc, Symbol + Addend - GOT, pParent);
+}
+
+// R_386_GOTPC: GOT + A - P.
+Relocator::Result relocGOTPC(Relocation &pReloc, X86_32Relocator &pParent) {
+  const Relocator::DWord Addend = getImplicitAddend(pReloc);
+  const Relocator::Address Place = pReloc.place(pParent.module());
+  const Relocator::Address GOT = pParent.getTarget().getGOTSymbolAddr();
+
+  return applyRelocationValue(pReloc, GOT + Addend - Place, pParent);
 }
 
 Relocator::Result unsupported(Relocation &, X86_32Relocator &) {
