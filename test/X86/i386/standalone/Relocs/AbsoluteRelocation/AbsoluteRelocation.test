@@ -1,0 +1,20 @@
+#---AbsoluteRelocation.test------------ i386 ELF32 relocations -------------#
+#BEGIN_COMMENT
+# Verify normal i386 absolute relocations use the addend stored in the target
+# field and write the expected 8-, 16-, and 32-bit values.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/absolute.s -o %t.absolute.o
+RUN: %link %linkopts -m elf_i386 -T %p/Inputs/absolute.t %t.absolute.o -o %t.absolute.out
+RUN: %readelf -x .text %t.absolute.out | %filecheck %s --check-prefix=BYTES
+RUN: %readelf -r %t.absolute.out | %filecheck %s --check-prefix=RELOCS
+
+# target is at address 8. The in-place addends are 1, 2, and 3.
+BYTES:      Hex dump of section '.text':
+BYTES-NEXT: 0x00000000 090a000b 0000005a 00
+
+RELOCS:      R_386_8
+RELOCS-NEXT: R_386_16
+RELOCS-NEXT: R_386_32
+RELOCS-NEXT: R_386_NONE
+#END_TEST

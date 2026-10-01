@@ -1,0 +1,11 @@
+#---PCRelativeRelocationOverflow.test---- i386 ELF32 relocations ----------#
+#BEGIN_COMMENT
+# Verify a signed narrow PC-relative relocation is rejected when its value
+# does not fit in the relocation field.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/pcrel-overflow.s -o %t.pcrel-overflow.o
+RUN: %not %link %linkopts -m elf_i386 -T %p/Inputs/pcrel-overflow.t %t.pcrel-overflow.o -o %t.pcrel-overflow.out 2>&1 | %filecheck %s --check-prefix=OVERFLOW
+
+OVERFLOW: {{.*}}R_386_PC8{{.*}}out of range{{.*}}
+#END_TEST
