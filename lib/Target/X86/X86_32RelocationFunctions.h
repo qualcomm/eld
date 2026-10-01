@@ -22,6 +22,10 @@ Relocator::Result none(Relocation &pReloc, X86_32Relocator &pParent);
 Relocator::Result relocAbs(Relocation &pReloc, X86_32Relocator &pParent);
 // R_386_PC8, R_386_PC16, and R_386_PC32: S + A - P.
 Relocator::Result relocPCRel(Relocation &pReloc, X86_32Relocator &pParent);
+// R_386_GOTOFF: S + A - GOT.
+Relocator::Result relocGOTOFF(Relocation &pReloc, X86_32Relocator &pParent);
+// R_386_GOTPC: GOT + A - P.
+Relocator::Result relocGOTPC(Relocation &pReloc, X86_32Relocator &pParent);
 // Any relocation not implemented by the current i386 backend.
 Relocator::Result unsupported(Relocation &pReloc, X86_32Relocator &pParent);
 
@@ -35,8 +39,8 @@ inline constexpr ApplyFunctionType RelocDesc[] = {
     &unsupported, // R_386_GLOB_DAT
     &unsupported, // R_386_JUMP_SLOT
     &unsupported, // R_386_RELATIVE
-    &unsupported, // R_386_GOTOFF
-    &unsupported, // R_386_GOTPC
+    &relocGOTOFF, // R_386_GOTOFF
+    &relocGOTPC,  // R_386_GOTPC
     &unsupported, // R_386_32PLT
     &unsupported, // R_386_RESERVED_12
     &unsupported, // R_386_RESERVED_13
