@@ -16,24 +16,7 @@
     the quotes included.
 
 - scenarios:
-  - kernel.fpu_sharing.generic.riscv32
   - arch.riscv.fpu_sharing
-  - drivers.sensor.generic.fpu
-  - kernel.fpu_sharing.float_disable
-  - libraries.cbprintf.package_fp
-  - libraries.cbprintf.package_fp.picolibc
-  - libraries.cbprintf.package_fp_align_offset
-  - libraries.cbprintf.package_fp_align_offset_cpp
-  - libraries.cbprintf.package_fp_cpp
-  - libraries.cbprintf.package_fp_cpp.picolibc
-  - libraries.cbprintf.package_long_double
-  - libraries.cbprintf.package_long_double_align_offset
-  - libraries.cbprintf.package_long_double_align_offset_cpp
-  - libraries.cbprintf.package_long_double_cpp
-  - libraries.libc.sprintf
-  - libraries.libc.sprintf_new
-  - logging.dictionary.fpu
-  - net.prometheus.histogram
   - zdsp.basicmath.fpu
   platforms:
   - qemu_riscv32/.*
@@ -123,8 +106,8 @@
 # Lookaheads exclude the variants that pass. They are tied to the ARM job's
 # libc config, so recheck them if that changes.
 - scenarios:
-  - logging\.deferred\.api\.(?!.*(?:rt_filter|rt_filtering))(?!printk(?:_cpp)?(?:\.tagged_args)?$).*
-  - logging\.frontend(?!.*(?:rt_filter|rt_filtering|immediate)).*
+  - logging\.deferred\.api\.(?!.*(?:rt_filter|rt_filtering))(?!printk(?:_cpp)?(?:\.tagged_args)?$)(?!override_level(?:\.tagged_args)?$|static_filter\.tagged_args$).*
+  - logging\.frontend(?!.*(?:rt_filter|rt_filtering|immediate))(?!\.dbg$).*
   platforms:
   - qemu_cortex_m3/.*
   comment: >-
