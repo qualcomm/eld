@@ -13,13 +13,11 @@
 #include <vector>
 
 namespace eld {
-class ReproduceTarReader;
 namespace sys {
 namespace fs {
 
 std::error_code loadFileContents(llvm::StringRef filePath,
-                                 std::vector<std::string> &Lines,
-                                 const ReproduceTarReader *TarReader = nullptr);
+                                 std::vector<std::string> &Lines);
 
 } // namespace fs
 } // namespace sys

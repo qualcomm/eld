@@ -18,7 +18,6 @@
 #include <ostream>
 
 namespace eld {
-class ReproduceTarReader;
 
 /// \class INIReaderSection
 /// \brief Represents a particular section within an ini file
@@ -78,8 +77,7 @@ public:
   }
 
   /// Read the file and return true if successful
-  eld::Expected<bool>
-  readINIFile(const ReproduceTarReader *TarReader = nullptr);
+  eld::Expected<bool> readINIFile();
 
   /// \returns The INIReaderSection associated with a section name
   /// \param section The requested ini section

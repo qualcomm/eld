@@ -16,7 +16,6 @@
 #include "eld/Driver/x86_64LinkDriver.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/Support/Memory.h"
-#include "eld/Support/ReproduceTarReader.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/Support/TargetSelect.h"
 #include "eld/Target/TargetMachine.h"
@@ -40,98 +39,18 @@ static llvm::ArrayRef<const char *>
 maybeExpandResponseFiles(llvm::ArrayRef<const char *> Args,
                          llvm::BumpPtrAllocator &Alloc) {
   // Expand response files.
-  llvm::SmallVector<const char *, 256> SmallVec(Args.begin(), Args.end());
+  llvm::SmallVector<const char *, 256> SmallVec;
+  for (const char *Arg : Args)
+    SmallVec.push_back(Arg);
   llvm::StringSaver Saver(Alloc);
   llvm::cl::ExpandResponseFiles(Saver, llvm::cl::TokenizeGNUCommandLine,
                                 SmallVec);
 
+  // Pack the results to a C-array and return it.
   const char **Copy = Alloc.Allocate<const char *>(SmallVec.size() + 1);
   std::copy(SmallVec.begin(), SmallVec.end(), Copy);
   Copy[SmallVec.size()] = nullptr;
-  return llvm::ArrayRef(Copy, SmallVec.size());
-}
-
-static bool startsWithReplayOption(llvm::StringRef Arg) {
-  return Arg == "--replay" || Arg.starts_with("--replay=");
-}
-
-static llvm::ArrayRef<const char *>
-maybeExpandReplayTarball(llvm::ArrayRef<const char *> Args,
-                         llvm::BumpPtrAllocator &Alloc, bool &Ok,
-                         std::optional<eld::ReproduceTarReader> &TarReader) {
-  Ok = true;
-  TarReader.reset();
-  size_t ReplayOptionIndex = 0;
-  size_t ReplayValueIndex = 0;
-  std::string TarPath;
-  bool FoundReplay = false;
-  for (size_t Index = 1; Index < Args.size() && Args[Index]; ++Index) {
-    llvm::StringRef Arg = Args[Index];
-    if (!startsWithReplayOption(Arg))
-      continue;
-    if (FoundReplay) {
-      Ok = false;
-      return Args;
-    }
-    FoundReplay = true;
-    ReplayOptionIndex = Index;
-    if (Arg == "--replay") {
-      if (Index + 1 >= Args.size() || !Args[Index + 1]) {
-        Ok = false;
-        return Args;
-      }
-      ReplayValueIndex = Index + 1;
-      TarPath = Args[ReplayValueIndex];
-    } else {
-      ReplayValueIndex = Index;
-      TarPath = Arg.substr(strlen("--replay=")).str();
-    }
-  }
-  if (!FoundReplay || TarPath.empty())
-    return Args;
-
-  auto TarReaderOrErr = eld::ReproduceTarReader::create(TarPath);
-  if (!TarReaderOrErr) {
-    llvm::errs() << "error: failed to read replay tarball: " << TarPath << "\n";
-    Ok = false;
-    return Args;
-  }
-  auto ResponseOrErr = TarReaderOrErr->readResponseFile();
-  if (!ResponseOrErr) {
-    llvm::errs() << "error: replay tarball is missing or invalid response.txt: "
-                 << TarPath << "\n";
-    Ok = false;
-    return Args;
-  }
-
-  TarReader.emplace(std::move(*TarReaderOrErr));
-  llvm::StringSaver Saver(Alloc);
-  llvm::SmallVector<const char *, 256> ReplayTokens;
-  llvm::cl::TokenizeGNUCommandLine(*ResponseOrErr, Saver, ReplayTokens);
-
-  llvm::SmallVector<const char *, 256> Merged;
-  Merged.push_back(Args[0]);
-  size_t Start = 0;
-  if (!ReplayTokens.empty()) {
-    llvm::StringRef First = ReplayTokens.front();
-    if (First.ends_with("ld.eld") || First.ends_with("eld"))
-      Start = 1;
-  }
-  if (Start < ReplayTokens.size()) {
-    Merged.push_back("--__replay_begin");
-    Merged.append(ReplayTokens.begin() + Start, ReplayTokens.end());
-    Merged.push_back("--__replay_end");
-  }
-  for (size_t Index = 1; Index < Args.size() && Args[Index]; ++Index) {
-    if (Index == ReplayOptionIndex || Index == ReplayValueIndex)
-      continue;
-    Merged.push_back(Args[Index]);
-  }
-
-  const char **Copy = Alloc.Allocate<const char *>(Merged.size() + 1);
-  std::copy(Merged.begin(), Merged.end(), Copy);
-  Copy[Merged.size()] = nullptr;
-  return llvm::ArrayRef(Copy, Merged.size());
+  return llvm::ArrayRef(Copy, SmallVec.size() + 1);
 }
 
 int Driver::main(int Argc, const char **Argv) {
@@ -144,20 +63,10 @@ int Driver::main(int Argc, const char **Argv) {
   llvm::ArrayRef<const char *> Args =
       maybeExpandResponseFiles({Argv, Argv + Argc}, Alloc);
 
-  bool ReplayOk = true;
-  std::optional<eld::ReproduceTarReader> TarReader;
-  Args = maybeExpandReplayTarball(Args, Alloc, ReplayOk, TarReader);
-  if (!ReplayOk)
-    return LINK_FAIL;
-  if (TarReader)
-    Args = maybeExpandResponseFiles(Args, Alloc);
-
   Driver TheDriver;
   if (!TheDriver.setDriverFlavorAndInferredArchFromLinkCommand(Args))
     return LINK_FAIL;
 
-  if (TarReader)
-    TheDriver.getConfig().setReproduceTarReader(&*TarReader);
   return TheDriver.getLinkerDriver()->link(Args);
 }
 

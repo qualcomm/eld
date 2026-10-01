@@ -20,7 +20,6 @@
 #include "eld/Input/SearchDirs.h"
 #include "eld/Support/FileSystem.h"
 #include "eld/Support/MsgHandling.h"
-#include "eld/Support/ReproduceTarReader.h"
 #include "llvm/Support/raw_ostream.h"
 #include <fstream>
 
@@ -61,18 +60,6 @@ bool InputFileAction::activate(InputBuilder &PBuilder) {
   Is.close();
   I = PBuilder.createInputNode(Name);
   return true;
-}
-
-bool ReplayInputFileAction::activate(InputBuilder &PBuilder) {
-  const ReproduceTarReader *TarReader =
-      PBuilder.getLinkerConfig().getReproduceTarReader();
-  // Replay-sourced positional inputs must come from the replay tarball.
-  if (TarReader && TarReader->hasFile(Name)) {
-    I = PBuilder.createInputNode(Name);
-    return true;
-  }
-  PBuilder.getDiagEngine()->raise(Diag::fatal_cannot_read_input) << Name;
-  return false;
 }
 
 //===----------------------------------------------------------------------===//

@@ -1,9 +1,0 @@
-#---ReplayDuplicateOption.test-------------- Executable -------------------#
-#BEGIN_COMMENT
-# Verify only one --replay option is accepted.
-#END_COMMENT
-#START_TEST
-RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
-RUN: %link %linkopts %t.1.o -o %t.orig.out --reproduce %t.repro.tar
-RUN: %not %link %linkopts --replay %t.repro.tar --replay %t.repro.tar -o %t.out
-#END_TEST

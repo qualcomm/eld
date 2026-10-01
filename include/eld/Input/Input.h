@@ -30,7 +30,6 @@ class DiagnosticEngine;
 class InputFile;
 class LinkerConfig;
 class MemoryArea;
-class ReproduceTarReader;
 class SearchDirs;
 class WildcardPattern;
 class DiagnosticPrinter;
@@ -181,9 +180,8 @@ public:
   static MemoryArea *getMemoryAreaForPath(const std::string &Filepath,
                                           DiagnosticEngine *DiagEngine);
 
-  static MemoryArea *
-  createMemoryArea(const std::string &Filepath, DiagnosticEngine *DiagEngine,
-                   const ReproduceTarReader *TarReader = nullptr);
+  static MemoryArea *createMemoryArea(const std::string &Filepath,
+                                      DiagnosticEngine *DiagEngine);
 
   static void cacheMemoryAreaForPath(const std::string &Filepath,
                                      MemoryArea *Area);

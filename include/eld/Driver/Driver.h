@@ -42,8 +42,6 @@ public:
   createDriverForLinkCommand(llvm::ArrayRef<const char *> Args);
 
   GnuLdDriver *getLinkerDriver();
-  eld::LinkerConfig &getConfig() { return Config; }
-  const eld::LinkerConfig &getConfig() const { return Config; }
 
   virtual ~Driver();
 

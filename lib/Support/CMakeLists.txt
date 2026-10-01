@@ -11,7 +11,6 @@ llvm_add_library(
   OutputTarWriter.cpp
   Path.cpp
   RegisterTimer.cpp
-  ReproduceTarReader.cpp
   StringUtils.cpp
   StringRefUtils.cpp
   Target.cpp

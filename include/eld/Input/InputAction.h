@@ -109,15 +109,6 @@ protected:
   Input *I = nullptr;
 };
 
-/// ReplayInputFileAction
-class ReplayInputFileAction : public InputFileAction {
-public:
-  explicit ReplayInputFileAction(std::string Name, DiagnosticPrinter *Printer)
-      : InputFileAction(std::move(Name), Printer) {}
-
-  bool activate(InputBuilder &) override;
-};
-
 /// NamespecAction
 class NamespecAction : public InputAction {
 public:

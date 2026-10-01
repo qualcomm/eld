@@ -15,7 +15,6 @@
 #include "eld/Input/InputFile.h"
 #include "eld/Input/InputTree.h"
 #include "eld/Support/MsgHandling.h"
-#include "eld/Support/ReproduceTarReader.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/Support/FileSystem.h"
 #include <filesystem>
@@ -68,8 +67,7 @@ bool Input::resolvePathMappingFile(const LinkerConfig &PConfig) {
   MemoryArea *InputMem =
       Input::getMemoryAreaForPath(FileName, PConfig.getDiagEngine());
   if (!InputMem)
-    InputMem = createMemoryArea(FileName, PConfig.getDiagEngine(),
-                                PConfig.getReproduceTarReader());
+    InputMem = createMemoryArea(FileName, PConfig.getDiagEngine());
   setMemArea(InputMem);
   // All queries to return the name of the Input return FileName for the main
   // driver.
@@ -133,18 +131,13 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
     return true;
   }
   if (Type == Input::Script) {
-    const ReproduceTarReader *TarReader = PConfig.getReproduceTarReader();
     if (shouldPrependSysrootToScriptInput(PConfig)) {
       ResolvedPath = PSearchDirs.sysroot();
       ResolvedPath->append(ExpandedFileName);
     }
-    bool ExistsOnDisk = llvm::sys::fs::exists(ResolvedPath->native());
-    // During --replay, script files may exist only in the tarball.
-    bool ExistsInReplay =
-        TarReader && TarReader->hasFile(ResolvedPath->native());
-    if (!ExistsOnDisk && !ExistsInReplay) {
-      const sys::fs::Path *P =
-          PSearchDirs.find(FileName, SearchDirs::SearchInputType::Script);
+    if (!llvm::sys::fs::exists(ResolvedPath->native())) {
+      const sys::fs::Path *P = PSearchDirs.find(
+          ExpandedFileName, SearchDirs::SearchInputType::Script);
       if (P != nullptr)
         ResolvedPath = *P;
     }
@@ -178,8 +171,8 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
   MemoryArea *InputMem =
       Input::getMemoryAreaForPath(ResolvedPathStr, PConfig.getDiagEngine());
   if (!InputMem)
-    InputMem = Input::createMemoryArea(ResolvedPathStr, PConfig.getDiagEngine(),
-                                       PConfig.getReproduceTarReader());
+    InputMem =
+        Input::createMemoryArea(ResolvedPathStr, PConfig.getDiagEngine());
   if (!InputMem)
     return false;
   setMemArea(InputMem);
@@ -257,11 +250,10 @@ MemoryArea *Input::getMemoryAreaForPath(const std::string &Filepath,
 }
 
 MemoryArea *Input::createMemoryArea(const std::string &Filepath,
-                                    DiagnosticEngine *DiagEngine,
-                                    const ReproduceTarReader *TarReader) {
+                                    DiagnosticEngine *DiagEngine) {
   DiagEngine->raise(Diag::verbose_mapping_file_into_memory) << Filepath;
   MemoryArea *InputMem = make<MemoryArea>(Filepath);
-  if (!InputMem->Init(DiagEngine, TarReader))
+  if (!InputMem->Init(DiagEngine))
     return nullptr;
   ResolvedPathToMemoryAreaMap[Filepath] = InputMem;
   return InputMem;
