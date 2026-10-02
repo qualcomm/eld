@@ -20,7 +20,7 @@ RUN: %clang %clangopts -o %t.main.o %p/Inputs/main.c -c
 RUN: %link %linkopts -o %t.dir/lib64/lib1.so -shared %t.1.o
 
 # Test INPUT with = prefix
-RUN: %link %linkopts -o %t.out1 --sysroot=%t.dir -T %p/Inputs/script_equals.t %t.main.o --verbose 2>&1 | %filecheck %s --check-prefix=EQUALS
+RUN: %link %linkopts -o %t.out1 --sysroot=%t.dir -T %p/Inputs/script_equals.t %t.main.o -M --verbose 2>&1 | %filecheck %s --check-prefix=EQUALS
 
 # Verify that a linker-script sysroot marker survives reproduce extraction and
 # replay. The mapping key begins with '=', so it must be parsed as a complete
@@ -32,13 +32,13 @@ RUN: %tar %gnutaropts -xf %t.reproduce.tar --strip-components=1
 RUN: %link @response.txt -o %t.replay.out
 
 # Test INPUT with $SYSROOT prefix
-RUN: %link %linkopts -o %t.out2 --sysroot=%t.dir -T %p/Inputs/script_sysroot.t %t.main.o --verbose 2>&1 | %filecheck %s --check-prefix=SYSROOT
+RUN: %link %linkopts -o %t.out2 --sysroot=%t.dir -T %p/Inputs/script_sysroot.t %t.main.o -M --verbose 2>&1 | %filecheck %s --check-prefix=SYSROOT
 
 # Test GROUP with = prefix
-RUN: %link %linkopts -o %t.out3 --sysroot=%t.dir -T %p/Inputs/group_equals.t %t.main.o --verbose 2>&1 | %filecheck %s --check-prefix=GROUP_EQUALS
+RUN: %link %linkopts -o %t.out3 --sysroot=%t.dir -T %p/Inputs/group_equals.t %t.main.o -M --verbose 2>&1 | %filecheck %s --check-prefix=GROUP_EQUALS
 
 # Test GROUP with $SYSROOT prefix
-RUN: %link %linkopts -o %t.out4 --sysroot=%t.dir -T %p/Inputs/group_sysroot.t %t.main.o --verbose 2>&1 | %filecheck %s --check-prefix=GROUP_SYSROOT
+RUN: %link %linkopts -o %t.out4 --sysroot=%t.dir -T %p/Inputs/group_sysroot.t %t.main.o -M --verbose 2>&1 | %filecheck %s --check-prefix=GROUP_SYSROOT
 
 # Test = prefix without sysroot set (should fail)
 RUN: %not %link %linkopts -o %t.out5 -T %p/Inputs/script_equals.t %t.main.o 2>&1 | %filecheck %s --check-prefix=NOSYSROOT
@@ -47,10 +47,10 @@ RUN: %not %link %linkopts -o %t.out5 -T %p/Inputs/script_equals.t %t.main.o 2>&1
 RUN: cp %t.main.o %t.dir/lib64/main.o
 
 # Test command-line object file with = prefix
-RUN: %link %linkopts -o %t.out6 --sysroot=%t.dir %t.1.o =/lib64/main.o --verbose 2>&1 | %filecheck %s --check-prefix=CMDLINE_EQUALS
+RUN: %link %linkopts -o %t.out6 --sysroot=%t.dir %t.1.o =/lib64/main.o -M --verbose 2>&1 | %filecheck %s --check-prefix=CMDLINE_EQUALS
 
 # Test command-line object file with $SYSROOT prefix
-RUN: %link %linkopts -o %t.out7 --sysroot=%t.dir %t.1.o '$SYSROOT/lib64/main.o' --verbose 2>&1 | %filecheck %s --check-prefix=CMDLINE_SYSROOT
+RUN: %link %linkopts -o %t.out7 --sysroot=%t.dir %t.1.o '$SYSROOT/lib64/main.o' -M --verbose 2>&1 | %filecheck %s --check-prefix=CMDLINE_SYSROOT
 
 # Test verbose diagnostic for sysroot expansion
 RUN: %link %linkopts -o %t.out8 --sysroot=%t.dir -T %p/Inputs/script_equals.t %t.main.o --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_DIAG
@@ -59,11 +59,17 @@ RUN: %link %linkopts -o %t.out9 --sysroot=%t.dir %t.1.o =/lib64/main.o --verbose
 #END_TEST
 
 EQUALS: Verbose: Mapping input file '{{.*}}dir/lib64/lib1.so' into memory
+EQUALS: LOAD {{.*}}dir/lib64/lib1.so{{.*}} # =/lib64/lib1.so
 SYSROOT: Verbose: Mapping input file '{{.*}}dir/lib64/lib1.so' into memory
+SYSROOT: LOAD {{.*}}dir/lib64/lib1.so{{.*}} # $SYSROOT/lib64/lib1.so
 GROUP_EQUALS: Verbose: Mapping input file '{{.*}}dir/lib64/lib1.so' into memory
+GROUP_EQUALS: LOAD {{.*}}dir/lib64/lib1.so{{.*}} # =/lib64/lib1.so
 GROUP_SYSROOT: Verbose: Mapping input file '{{.*}}dir/lib64/lib1.so' into memory
+GROUP_SYSROOT: LOAD {{.*}}dir/lib64/lib1.so{{.*}} # $SYSROOT/lib64/lib1.so
 NOSYSROOT: Fatal: cannot read file /lib64/lib1.so
 CMDLINE_EQUALS: Verbose: Mapping input file '{{.*}}dir/lib64/main.o' into memory
+CMDLINE_EQUALS: LOAD {{.*}}dir/lib64/main.o{{.*}} # =/lib64/main.o
 CMDLINE_SYSROOT: Verbose: Mapping input file '{{.*}}dir/lib64/main.o' into memory
+CMDLINE_SYSROOT: LOAD {{.*}}dir/lib64/main.o{{.*}} # $SYSROOT/lib64/main.o
 VERBOSE_DIAG: Verbose: Expanded sysroot marker in path. '=/lib64/lib1.so' -> '{{.*}}dir/lib64/lib1.so'
 VERBOSE_CMDLINE: Verbose: Expanded sysroot marker in path. '=/lib64/main.o' -> '{{.*}}dir/lib64/main.o'
