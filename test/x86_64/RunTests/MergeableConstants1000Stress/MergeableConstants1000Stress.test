@@ -1,0 +1,30 @@
+REQUIRES: run_test, linux
+#---MergeableConstants1000Stress.test-- MergeConstants, RunTest ----------#
+#BEGIN_COMMENT
+# Stress-test SHF_MERGE constant-data dedup across 10 compilation units
+# that together define 1000 string-literal getters cycling through 250
+# distinct string values. After linking through ld.eld, exactly 250
+# unique string addresses must be observed at runtime.
+#END_COMMENT
+#START_TEST
+RUN: %mkdir -p %t.src
+RUN: bash %p/Inputs/generate_sources.sh %t.src
+RUN: %run_cc %clangopts -O2 -c %t.src/constants_0.c -o %t.src/constants_0.o
+RUN: %run_cc %clangopts -O2 -c %t.src/constants_1.c -o %t.src/constants_1.o
+RUN: %run_cc %clangopts -O2 -c %t.src/constants_2.c -o %t.src/constants_2.o
+RUN: %run_cc %clangopts -O2 -c %t.src/constants_3.c -o %t.src/constants_3.o
+RUN: %run_cc %clangopts -O2 -c %t.src/constants_4.c -o %t.src/constants_4.o
+RUN: %run_cc %clangopts -O2 -c %t.src/constants_5.c -o %t.src/constants_5.o
+RUN: %run_cc %clangopts -O2 -c %t.src/constants_6.c -o %t.src/constants_6.o
+RUN: %run_cc %clangopts -O2 -c %t.src/constants_7.c -o %t.src/constants_7.o
+RUN: %run_cc %clangopts -O2 -c %t.src/constants_8.c -o %t.src/constants_8.o
+RUN: %run_cc %clangopts -O2 -c %t.src/constants_9.c -o %t.src/constants_9.o
+RUN: %run_cc %clangopts -O2 %t.src/main.c %t.src/constants_0.o %t.src/constants_1.o %t.src/constants_2.o %t.src/constants_3.o %t.src/constants_4.o %t.src/constants_5.o %t.src/constants_6.o %t.src/constants_7.o %t.src/constants_8.o %t.src/constants_9.o -o %t.out
+RUN: %run %t.out | %filecheck %s
+#END_TEST
+
+CHECK: 0000 MERGE_CONST_000 0x{{[0-9a-fA-F]+}}
+CHECK: 0249 MERGE_CONST_249 0x{{[0-9a-fA-F]+}}
+CHECK: 0250 MERGE_CONST_000 0x{{[0-9a-fA-F]+}}
+CHECK: SUMMARY total=1000 unique_addresses=250 expected_unique=250
+CHECK: PASS: mergeable constants combined across multiple files

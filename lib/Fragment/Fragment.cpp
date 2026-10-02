@@ -146,6 +146,8 @@ uint64_t Fragment::getAddr(DiagnosticEngine *DiagEngine) const {
 
 bool Fragment::isMergeStr() const { return getOwningSection()->isMergeKind(); }
 
+bool Fragment::isMergeData() const { return Kind == Fragment::MergeData; }
+
 bool Fragment::originatesFromPlugin(const Module &Module) const {
   return getOwningSection()->getInputFile() ==
          Module.getInternalInput(Module::InternalInputType::Plugin);

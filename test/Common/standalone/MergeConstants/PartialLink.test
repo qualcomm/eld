@@ -1,0 +1,31 @@
+#---PartialLink.test------------------ Relocatable/Executable-----------#
+#BEGIN_COMMENT
+# Check that SHF_ALLOC|SHF_MERGE non-string constants are not merged during
+# partial linking (-r), matching merge-string behavior.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts --entry=c1 %t1.o %t2.o -o %t.full.out
+RUN: %readelf -s -W %t.full.out | %filecheck %s --check-prefix=FULL
+RUN: %link %linkopts --entry=c1 %t1.o %t2.o -T %p/Inputs/partial-link-script.t -o %t.full.ls.out
+RUN: %readelf -s -W %t.full.ls.out | %filecheck %s --check-prefix=FULL-LS
+RUN: %link -r %linkopts %t1.o %t2.o -o %t.partial.o
+RUN: %readelf -s -W %t.partial.o | %filecheck %s --check-prefix=PARTIAL
+RUN: %link -r %linkopts %t1.o %t2.o -T %p/Inputs/partial-link-script.t -o %t.partial.ls.o
+RUN: %readelf -s -W %t.partial.ls.o | %filecheck %s --check-prefix=PARTIAL-LS
+#END_TEST
+
+#FULL-DAG: {{[0-9]+}}: [[FULLVAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c1
+#FULL-DAG: {{[0-9]+}}: [[FULLVAL]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c2
+
+#FULL-LS-DAG: {{[0-9]+}}: [[FULLLSVAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c1
+#FULL-LS-DAG: {{[0-9]+}}: [[FULLLSVAL]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c2
+
+#PARTIAL-DAG: {{[0-9]+}}: [[PVAL1:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c1
+#PARTIAL-DAG: {{[0-9]+}}: [[PVAL2:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c2
+#PARTIAL-NOT: [[PVAL1]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c2
+
+#PARTIAL-LS-DAG: {{[0-9]+}}: [[PLSVAL1:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c1
+#PARTIAL-LS-DAG: {{[0-9]+}}: [[PLSVAL2:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c2
+#PARTIAL-LS-NOT: [[PLSVAL1]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c2

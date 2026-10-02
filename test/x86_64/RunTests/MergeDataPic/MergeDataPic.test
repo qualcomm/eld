@@ -1,0 +1,22 @@
+REQUIRES: run_test, linux, x86_64
+#---MergeDataPic.test------------------ MergeConstants, RunTest ----------#
+#BEGIN_COMMENT
+# Verify -fPIC merge-constants behavior: with default settings two
+# byte-identical PIC constants merge (getters return the same address),
+# while --no-merge-constants keeps them distinct.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc %clangopts -c %p/Inputs/a_const.s -o %t.a_const.o
+RUN: %run_cc %clangopts -c %p/Inputs/b_const.s -o %t.b_const.o
+RUN: %run_cc %clangopts -fPIC -ffreestanding -c %p/Inputs/a_get.c -o %t.a_get.o
+RUN: %run_cc %clangopts -fPIC -ffreestanding -c %p/Inputs/b_get.c -o %t.b_get.o
+RUN: %run_cc %clangopts -c %p/Inputs/start.s -o %t.start.o
+
+# Default merge behavior should merge equal constants.
+RUN: %run_cc %clangopts -o %t.merge_on.elf %t.start.o %t.a_const.o %t.b_const.o %t.a_get.o %t.b_get.o -Wl,--entry=_start -nostdlib
+RUN: %run %t.merge_on.elf
+
+# --no-merge-constants should keep equal constants distinct.
+RUN: %run_cc %clangopts -o %t.merge_off.elf %t.start.o %t.a_const.o %t.b_const.o %t.a_get.o %t.b_get.o -Wl,--entry=_start -Wl,--no-merge-constants -nostdlib
+RUN: %not %run %t.merge_off.elf
+#END_TEST

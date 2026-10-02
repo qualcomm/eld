@@ -1,0 +1,20 @@
+UNSUPPORTED: riscv32, riscv64, aarch64, arm, hexagon
+#---PIC.test--------------------------- Executable----------------------#
+#BEGIN_COMMENT
+# Check that compiler-generated mergeable constant data referenced from PIC code
+# is still deduplicated.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIC -g -O0 -c %p/Inputs/pic1.c -o %t1.o
+RUN: %clang %clangopts -fPIC -g -O0 -c %p/Inputs/pic2.c -o %t2.o
+RUN: %link %linkopts --entry=scale1 --trace=merge-constants %t1.o %t2.o -o %t.out 2>&1 | %filecheck %s --check-prefix=TRACE
+RUN: %readelf -S -W %t.out | %filecheck %s --check-prefix=SECTIONS
+RUN: %readelf -s -W %t.out | %filecheck %s --check-prefix=SYMS
+#END_TEST
+
+#TRACE: Trace: Merging constant from file {{.*}}2.o in section .rodata.cst4 at offset 0 with alignment 4
+#TRACE: with constant from file {{.*}}1.o in section .rodata.cst4 at offset 0 with alignment 4
+#TRACE: to output section .rodata
+#SECTIONS: .rodata {{.*}} 000004 {{.*}} AM {{.*}} 4
+#SYMS: {{[0-9]+}}: {{[0-9a-f]+}} {{[0-9]+}} FUNC GLOBAL DEFAULT {{[0-9]+}} scale1
+#SYMS: {{[0-9]+}}: {{[0-9a-f]+}} {{[0-9]+}} FUNC GLOBAL DEFAULT {{[0-9]+}} scale2

@@ -668,6 +668,12 @@ public:
 
   bool mergeStrings() const { return BMergeStrings; }
 
+  void setMergeConstants(bool MergeConstants) {
+    BMergeConstants = MergeConstants;
+  }
+
+  bool getMergeConstants() const { return BMergeConstants; }
+
   void setLinkerVersionDirectiveEnabled(bool Enable = true) {
     EnableLinkerVersionDirective = Enable;
   }
@@ -1308,6 +1314,7 @@ private:
   bool NoGnuStack = false;           //--nognustack
   bool BNoTrampolines = false;       //--no-trampolines
   bool BMergeStrings = true;         //--merge-strings
+  bool BMergeConstants = true;       //--merge-constants
   bool BEmitRelocs = false;          //--emit-relocs
   bool BEmitGNUCompatRelocs = false; // --emit-gnu-compat-relocs
   bool BCref = false;                // --cref

@@ -778,6 +778,7 @@ defm trace
           "\t\t\t --trace=live-edges : trace reachable sections when garbage "
           "collection is enabled\n"
           "\t\t\t --trace=merge-strings : trace linker string optimization\n"
+          "\t\t\t --trace=merge-constants : trace linker constant-data optimization\n"
           "\t\t\t --trace=trampolines : trace trampolines\n"
           "\t\t\t --trace=untar : trace tar extraction entries\n"
           "\t\t\t --trace=wrap-symbols : trace symbol wrap options\n"
@@ -957,6 +958,9 @@ def sframe_hdr
 def no_merge_strings : FF<"no-merge-strings">,
                        HelpText<"Disable String Merging">,
                        Group<grp_optimizationopts>;
+def no_merge_constants : Flag<["--"], "no-merge-constants">,
+                         HelpText<"Disable Constant Data Merging">,
+                         Group<grp_optimizationopts>;
 def no_trampolines : FF<"no-trampolines">,
                      HelpText<"Disable Trampolines">,
                      Group<grp_optimizationopts>;

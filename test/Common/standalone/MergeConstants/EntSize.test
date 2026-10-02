@@ -1,0 +1,20 @@
+#---EntSize.test----------------------- Executable----------------------#
+#BEGIN_COMMENT
+# Check that mergeable constants deduplicate within a single entsize class and
+# do not merge across sections with different entsize values.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t3.o
+RUN: %clang %clangopts -c %p/Inputs/4.c -o %t4.o
+RUN: %link %linkopts --entry=e4a %t3.o %t4.o -o %t.out
+RUN: %readelf -S -W %t.out | %filecheck %s --check-prefix=SECTIONS
+RUN: %readelf -s -W %t.out | %filecheck %s --check-prefix=SYMS
+#END_TEST
+
+#SECTIONS: .rodata {{.*}} 00000c {{.*}} AM
+#SYMS-DAG: {{[0-9]+}}: [[E4VAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} e4a
+#SYMS-DAG: {{[0-9]+}}: [[E4VAL]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} e4b
+#SYMS-DAG: {{[0-9]+}}: [[E8VAL:[0-9a-f]+]] 8 OBJECT GLOBAL DEFAULT {{[0-9]+}} e8a
+#SYMS-DAG: {{[0-9]+}}: [[E8VAL]] 8 OBJECT GLOBAL DEFAULT {{[0-9]+}} e8b
+#SYMS-NOT: [[E4VAL]] 8 OBJECT GLOBAL DEFAULT
+#SYMS-NOT: [[E8VAL]] 4 OBJECT GLOBAL DEFAULT
