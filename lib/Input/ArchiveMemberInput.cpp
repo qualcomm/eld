@@ -25,7 +25,7 @@ ArchiveMemberInput::ArchiveMemberInput(DiagnosticEngine *DiagEngine,
   setMemberName(Name);
   setMemArea(Data);
   // Update the Hash values.
-  ResolvedPathHash = llvm::hash_combine(ResolvedPath->native());
+  ResolvedPathHash = llvm::hash_combine(ResolvedPath->native(),Name);
   MemberNameHash = llvm::hash_combine(Name);
 }
 

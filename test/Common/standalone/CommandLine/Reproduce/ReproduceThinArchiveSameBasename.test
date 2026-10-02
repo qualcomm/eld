@@ -1,0 +1,28 @@
+#---ReproduceThinArchiveSameBasename.test----------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# Checks that --reproduce preserves thin-archive members with the same basename.
+#END_COMMENT
+#START_TEST
+RUN: %rm -rf %t.tmpdir
+RUN: %mkdir %t.tmpdir
+RUN: %mkdir %t.tmpdir/a
+RUN: %mkdir %t.tmpdir/b
+RUN: %clang %clangopts -c %p/Inputs/a/foo.c -o %t.tmpdir/a/foo.o
+RUN: %clang %clangopts -c %p/Inputs/b/foo.c -o %t.tmpdir/b/foo.o
+RUN: %clang %clangopts -c %p/Inputs/thin-main.c -o %t.tmpdir/main.o
+RUN: cd %t.tmpdir
+RUN: %ar cr %aropts --thin %t.tmpdir/libsame.a a/foo.o b/foo.o
+RUN: %link --no-threads %t.tmpdir/main.o %t.tmpdir/libsame.a -o %t.same.out \
+RUN:   --reproduce %t.repro.tar --dump-mapping-file %t.mapping.ini \
+RUN:   --dump-response-file %t.response
+RUN: %filecheck %s < %t.mapping.ini
+RUN: %mkdir %t.replay
+RUN: cd %t.replay
+RUN: %tar %gnutaropts -xf %t.repro.tar --strip-components=1
+RUN: %link --no-threads @response.txt -o %t.same.replay.out
+RUN: %diff %t.same.out %t.same.replay.out
+#END_TEST
+
+CHECK-DAG: Object/foo.o.{{[0-9]+}}
+CHECK-DAG: Object/foo.o.{{[0-9]+}}
