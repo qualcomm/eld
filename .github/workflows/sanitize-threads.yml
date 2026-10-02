@@ -1,5 +1,5 @@
 name: Nightly thread sanitizer check
-owner: Steven6798
+# owner: Steven6798
 
 on:
   # pull_request: {} # Uncomment only to test this WF file update.

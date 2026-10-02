@@ -1,5 +1,5 @@
 name: Hourly Build Status Dashboard Updater
-owner: quic-shaksuma
+# owner: quic-shaksuma
 
 on:
   schedule:

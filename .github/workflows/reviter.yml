@@ -1,5 +1,5 @@
 name: Nightly check using reverse iterators
-owner: quic-seaswara
+# owner: quic-seaswara
 
 on:
   # pull_request: {} # Uncomment only to test this WF file update.

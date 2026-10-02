@@ -1,5 +1,5 @@
 name: Nightly builder for testing eld against musl-test-suite
-owner: parth-07
+# owner: parth-07
 on:
   schedule:
       - cron: '0 2 * * *' # 2:00 AM

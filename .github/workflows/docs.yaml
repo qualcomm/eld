@@ -1,5 +1,5 @@
 name: Generate and Deploy Docs
-owner: quic-shaksuma
+# owner: quic-shaksuma
 
 on:
   push:

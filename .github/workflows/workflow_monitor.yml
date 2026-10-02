@@ -1,5 +1,5 @@
 name: Monitor workflow failures
-owner: quic-shaksuma
+# owner: quic-shaksuma
 
 on:
   # A workflow_run trigger lets this workflow inspect the completed run without
@@ -121,7 +121,7 @@ jobs:
               throw new Error(`Could not read workflow file ${workflow.data.path}.`);
             }
             const workflowText = Buffer.from(workflowFile.data.content, 'base64').toString('utf8');
-            const ownerMatch = workflowText.match(/^owner:\s*["']?([A-Za-z0-9-]+)["']?\s*(?:#.*)?$/m);
+            const ownerMatch = workflowText.match(/^[ \t]*(?:#[ \t]*)?owner:[ \t]*["']?([A-Za-z0-9-]+)["']?[ \t]*(?:#.*)?$/m);
             const owner = ownerMatch ? ownerMatch[1] : undefined;
             if (!owner) {
               core.warning(`No owner field found in ${workflow.data.path}; creating an unassigned issue.`);

@@ -1,5 +1,5 @@
 name: Windows Arm64/x86_64 CI/Nightly
-owner: Steven6798
+# owner: Steven6798
 
 on:
   # pull_request: {} # Uncomment to run in CI mode to build ELD PR branch.

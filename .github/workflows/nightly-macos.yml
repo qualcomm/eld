@@ -1,5 +1,5 @@
 name: macOS Nightly
-owner: malto101
+# owner: malto101
 
 # GitHub-hosted Darwin host build of ld.eld (ELF linker, not a Mach-O target).
 

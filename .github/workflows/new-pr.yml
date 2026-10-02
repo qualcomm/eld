@@ -1,5 +1,5 @@
 name: "New pull requests policy check"
-owner: quic-seaswara
+# owner: quic-seaswara
 
 permissions:
   contents: read

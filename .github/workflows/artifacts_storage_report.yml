@@ -1,5 +1,5 @@
 name: Artifact Storage Report
-owner: quic-shaksuma
+# owner: quic-shaksuma
 
 on:
   # Allows an on-demand report in addition to the daily scheduled run.

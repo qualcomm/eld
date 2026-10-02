@@ -1,5 +1,5 @@
 name: Clang Format Check
-owner: quic-seaswara
+# owner: quic-seaswara
 
 on:
   pull_request:

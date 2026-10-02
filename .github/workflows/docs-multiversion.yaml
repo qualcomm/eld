@@ -1,5 +1,5 @@
 name: Bulid multi-version docs
-owner: partaror
+# owner: partaror
 
 on:
  # push:

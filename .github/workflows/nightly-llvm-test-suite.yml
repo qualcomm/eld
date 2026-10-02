@@ -1,5 +1,5 @@
 name: Nightly LLVM Test Suite (x86_64)
-owner: BhoumikPatidar
+# owner: BhoumikPatidar
 
 on:
   pull_request:
