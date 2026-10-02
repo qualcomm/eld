@@ -35,7 +35,6 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/MemoryBufferRef.h"
 #include "llvm/Support/Parallel.h"
-#include "llvm/Support/ThreadPool.h"
 #include <cstdint>
 #include <memory>
 
@@ -629,19 +628,20 @@ void ArchiveParser::warnRepeatedMembers(const ArchiveFile &archiveFile) const {
   const std::vector<Input *> &archiveMembers = archiveFile.getAllMembers();
   std::vector<uint64_t> archiveMemberHashes(archiveMembers.size(), 0);
   size_t useThreads = config.useThreads();
-  llvm::ThreadPoolInterface *Pool = m_Module.getThreadPool();
+  eld::plugin::ThreadPool *Pool = m_Module.getThreadPool();
   auto computeAndSetHash = [&](size_t i) {
     archiveMemberHashes[i] =
         llvm::hash_value(archiveMembers[i]->getFileContents());
   };
   for (size_t i = 0; i < archiveMembers.size(); ++i) {
     if (useThreads)
-      Pool->async(computeAndSetHash, i);
+      Pool->run(computeAndSetHash, i);
     else
       computeAndSetHash(i);
   }
-  if (useThreads)
+  if (useThreads) {
     Pool->wait();
+  }
   for (size_t i = 0; i < archiveMembers.size(); ++i) {
     const ArchiveMemberInput *member =
         llvm::cast<ArchiveMemberInput>(archiveMembers[i]);

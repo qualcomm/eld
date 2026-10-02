@@ -95,7 +95,6 @@
 #include "llvm/Support/BinaryStreamWriter.h"
 #include "llvm/Support/FileOutputBuffer.h"
 #include "llvm/Support/Memory.h"
-#include "llvm/Support/ThreadPool.h"
 #include <algorithm>
 #include <chrono>
 #include <climits>
@@ -2786,9 +2785,9 @@ bool GNULDBackend::checkCrossReferences() {
     if (m_Module.getPrinter()->traceThreads())
       config().raise(Diag::threads_enabled)
           << "CheckCrossRefs" << config().options().numThreads();
-    llvm::ThreadPoolInterface *Pool = m_Module.getThreadPool();
+    eld::plugin::ThreadPool *Pool = m_Module.getThreadPool();
     for (auto &input : m_Module.getObjectList()) {
-      Pool->async([&] { checkCrossReferencesHelper(input); });
+      Pool->run([this, input] { checkCrossReferencesHelper(input); });
     }
     Pool->wait();
   }

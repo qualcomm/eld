@@ -24,7 +24,7 @@ ReproduceTarReader::create(llvm::StringRef TarPath) {
   return ReproduceTarReader(std::move(*BufferOrErr));
 }
 
-eld::Expected<llvm::MemoryBufferRef>
+eld::Expected<std::unique_ptr<llvm::MemoryBuffer>>
 ReproduceTarReader::findFile(llvm::StringRef FileName) const {
   return InputTarReader::findFile(TarBuffer->getBuffer(), FileName);
 }
@@ -40,7 +40,7 @@ eld::Expected<std::string> ReproduceTarReader::readResponseFile() const {
   auto MBOrErr = findFile("response.txt");
   if (!MBOrErr)
     return std::move(MBOrErr.error());
-  return MBOrErr->getBuffer().str();
+  return (*MBOrErr)->getBuffer().str();
 }
 
 } // namespace eld

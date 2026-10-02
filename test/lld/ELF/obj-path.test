@@ -1,3 +1,4 @@
+#UNSUPPORTED: tsan
 ## Test --lto-obj-path= for regular LTO.
 
 RUN: %clang %clangopts -c -flto %p/Inputs/a.c -o %t.a.o

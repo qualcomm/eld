@@ -1,4 +1,4 @@
-#XFAIL: tsan
+#UNSUPPORTED: tsan
 # This tests that appropriate R_HEX_COPY relocations are created by the linker
 # when the referenced symbol is in a dynamic shared library.
 RUN: %clang %clangopts -c %clangg0opts -fPIC %p/Inputs/1.c -o %t1.1.o

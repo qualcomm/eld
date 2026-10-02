@@ -37,7 +37,6 @@
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/Path.h"
-#include "llvm/Support/ThreadPool.h"
 #include <algorithm>
 #include <chrono>
 
@@ -564,8 +563,8 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
     if (ThisModule.getPrinter()->traceThreads())
       ThisConfig.raise(Diag::threads_enabled)
           << "AssignOutputSections" << ThisConfig.options().numThreads();
-    llvm::ThreadPoolInterface *Pool = ThisModule.getThreadPool();
-    for (auto &Obj : Inputs) {
+    eld::plugin::ThreadPool *Pool = ThisModule.getThreadPool();
+    for (InputFile *Obj : Inputs) {
       if (IsPostLtoPhase && Obj->isBitcode())
         continue;
       /// Internal common sections are assigned output sections later.
@@ -575,10 +574,9 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
       if (ObjFile && HasSectionsCommand && ObjFile->hasHighSectionCount())
         ThisConfig.raise(Diag::more_sections)
             << Obj->getInput()->decoratedPath();
-      Pool->async([&] {
-        assignInputFromOutput(Obj);
-      });
+      Pool->run([this, Obj] { assignInputFromOutput(Obj); });
     }
+    // Join all submitted work before leaving this scope.
     Pool->wait();
   }
 

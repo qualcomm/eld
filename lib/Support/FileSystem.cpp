@@ -22,9 +22,9 @@ eld::sys::fs::loadFileContents(llvm::StringRef FilePath,
   if (TarReader) {
     // Replay path: read text files (mapping/response/ini/etc.) directly from
     // the in-memory tarball when available.
-    auto BufferRefOrErr = TarReader->findFile(FilePath);
-    if (BufferRefOrErr) {
-      llvm::StringRef Buffer = BufferRefOrErr->getBuffer();
+    auto BufferOrErr = TarReader->findFile(FilePath);
+    if (BufferOrErr) {
+      llvm::StringRef Buffer = (*BufferOrErr)->getBuffer();
       while (!Buffer.empty()) {
         std::pair<llvm::StringRef, llvm::StringRef> LineAndRest =
             Buffer.split('\n');

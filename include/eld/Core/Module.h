@@ -18,13 +18,14 @@
 #define ELD_CORE_MODULE_H
 
 #include "eld/Config/GeneralOptions.h"
-#include "eld/Core/Linker.h"
 #include "eld/Core/LinkState.h"
+#include "eld/Core/Linker.h"
 #include "eld/Input/InputFile.h"
 #include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Plugin/PluginActivityLog.h"
 #include "eld/Plugin/PluginManager.h"
 #include "eld/PluginAPI/LinkerWrapper.h"
+#include "eld/PluginAPI/ThreadPool.h"
 #include "eld/Script/StrToken.h"
 #include "eld/Script/VersionScript.h"
 #include "eld/Support/OutputTarWriter.h"
@@ -40,6 +41,7 @@
 #include <array>
 #include <climits>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -549,7 +551,7 @@ public:
   }
 
   // ---------------------------Central Thread Pool ------------------------
-  llvm::ThreadPoolInterface *getThreadPool();
+  eld::plugin::ThreadPool *getThreadPool();
 
   // ---------------Internal Input Files ------------------------------
   /// Returns the common internal input file.
@@ -727,7 +729,7 @@ private:
   // ----------------- Mutex guard -----------------------------------
   std::mutex Mutex;
   // ----------------- Central thread pool for Linker ---------------
-  llvm::ThreadPoolInterface *LinkerThreadPool = nullptr;
+  std::optional<eld::plugin::ThreadPool> LinkerThreadPool;
   llvm::ThreadPoolStrategy ThreadingStrategy;
 
   llvm::StringMap<MergeableString *> UniqueNonAllocStrings;
