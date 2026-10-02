@@ -30,13 +30,64 @@ on:
       - '.github/pr-labeler.yml'
       - 'etc/**/*.sh'
       - '**/configure_external_llvm.sh'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to build"
+        required: true
+        type: number
 
 permissions: {}
 jobs:
+  resolve:
+    if: github.repository == 'qualcomm/eld'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      pr_number: ${{ steps.find.outputs.pr_number }}
+      head_ref: ${{ steps.find.outputs.head_ref }}
+      head_repo: ${{ steps.find.outputs.head_repo }}
+      base_ref: ${{ steps.find.outputs.base_ref }}
+    steps:
+      - name: Resolve PR
+        id: find
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            let pullRequest;
+
+            if (context.eventName === 'workflow_dispatch') {
+              const prNumber = Number(process.env.PR_NUMBER);
+              if (!Number.isInteger(prNumber) || prNumber <= 0) {
+                core.setFailed('A valid pr_number is required.');
+                return;
+              }
+              pullRequest = (await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: prNumber,
+              })).data;
+            } else {
+              pullRequest = context.payload.pull_request;
+            }
+
+            core.setOutput('pr_number', String(pullRequest.number));
+            core.setOutput('head_ref', pullRequest.head.ref);
+            core.setOutput('head_repo', pullRequest.head.repo.full_name);
+            core.setOutput('base_ref', pullRequest.base.ref);
+
   build:
+    needs: resolve
+    if: needs.resolve.result == 'success'
     runs-on: self-hosted
     concurrency:
-      group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+      group: ${{ github.workflow }}-${{ needs.resolve.outputs.pr_number }}
       cancel-in-progress: true
     permissions:
       actions: write
@@ -44,10 +95,10 @@ jobs:
       statuses: write
 
     env:
-      PR_NUMBER: ${{ github.event.number }}
-      BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
-      BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
-      CCACHE_DIR: /local/mnt/workspace/ccache/${{ github.event.pull_request.base.ref }}
+      PR_NUMBER: ${{ needs.resolve.outputs.pr_number }}
+      BRANCH_NAME: ${{ needs.resolve.outputs.head_ref }}
+      BASE_BRANCH_NAME: ${{ needs.resolve.outputs.base_ref }}
+      CCACHE_DIR: /local/mnt/workspace/ccache/${{ needs.resolve.outputs.base_ref }}
       CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_COMPILERCHECK: content
       CCACHE_NOHASHDIR: true
@@ -63,8 +114,8 @@ jobs:
       - name: Checkout qualcomm/eld PR branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ needs.resolve.outputs.head_repo }}
+          ref: ${{ needs.resolve.outputs.head_ref }}
           path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
           fetch-depth: 0
 
@@ -175,13 +226,13 @@ jobs:
         working-directory: pr-${{ env.PR_NUMBER }}/obj
         run: ninja check-eld-summary
 
-      # Package the PR-built ld.eld (+ libs) for zephyr-pr.yml and
-      # linux-kernel-pr.yml. `inst/` layout matches FetchNightlyToolset
-      # (~27MB compressed). Gated on `zephyr-check`/`kernel-check`.
+      # Package the PR-built ld.eld (+ libs) for PR integration workflows.
+      # `inst/` layout matches FetchNightlyToolset (~27MB compressed).
       - name: Package PR ELD toolset
         if: |
           steps.file-check.outputs.skip_build == 'false' &&
-          (contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
+          (github.event_name == 'workflow_dispatch' ||
+           contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
            contains(github.event.pull_request.labels.*.name, 'kernel-check'))
         working-directory: pr-${{ env.PR_NUMBER }}
         shell: bash
@@ -202,11 +253,12 @@ jobs:
       - name: Upload PR ELD toolset
         if: |
           steps.file-check.outputs.skip_build == 'false' &&
-          (contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
+          (github.event_name == 'workflow_dispatch' ||
+           contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
            contains(github.event.pull_request.labels.*.name, 'kernel-check'))
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
-          name: pr-eld-toolset
+          name: ${{ github.event_name == 'workflow_dispatch' && format('pr-eld-toolset-{0}', needs.resolve.outputs.pr_number) || 'pr-eld-toolset' }}
           # Keep a fallback copy in case the workflow fails before cleanup.
           retention-days: 7
           path: pr-${{ env.PR_NUMBER }}/install-pr-toolset.tar.xz
@@ -216,7 +268,8 @@ jobs:
       - name: Stage DeleteOldArtifacts action
         if: |
           steps.file-check.outputs.skip_build == 'false' &&
-          (contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
+          (github.event_name == 'workflow_dispatch' ||
+           contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
            contains(github.event.pull_request.labels.*.name, 'kernel-check'))
         run: |
           mkdir -p .github/workflows/DeleteOldArtifacts
@@ -225,13 +278,14 @@ jobs:
       - name: Delete older PR ELD toolsets
         if: |
           steps.file-check.outputs.skip_build == 'false' &&
-          (contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
+          (github.event_name == 'workflow_dispatch' ||
+           contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
            contains(github.event.pull_request.labels.*.name, 'kernel-check'))
         continue-on-error: true
         uses: ./.github/workflows/DeleteOldArtifacts
         with:
-          artifact-names: pr-eld-toolset
-          pull-request-number: ${{ github.event.pull_request.number }}
+          artifact-names: ${{ github.event_name == 'workflow_dispatch' && format('pr-eld-toolset-{0}', needs.resolve.outputs.pr_number) || 'pr-eld-toolset' }}
+          pull-request-number: ${{ needs.resolve.outputs.pr_number }}
 
       - name: Clean up
         if: always()

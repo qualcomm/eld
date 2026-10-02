@@ -5,18 +5,162 @@ on:
   pull_request:
     paths:
       - '.github/workflows/nightly-llvm-test-suite.yml'
+  workflow_run: # zizmor: ignore[dangerous-triggers] read-only token, no secrets, ephemeral runner
+    workflows: [CI]
+    types: [completed]
+  issue_comment:
+    types: [created]
   schedule:
     - cron: '0 11 * * *'  # 5:00 AM CST
   workflow_dispatch:
 
+concurrency:
+  group: llvm-test-suite-${{ github.event.workflow_run.head_branch || github.run_id }}
+  cancel-in-progress: true
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
+  actions: read
+  pull-requests: read
 jobs:
-  test-llvm-test-suite-x86_64:
-    if: github.repository == 'qualcomm/eld' || github.event_name == 'workflow_dispatch'
+  request:
+    if: |
+      github.repository == 'qualcomm/eld' &&
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request != null &&
+      github.event.comment.body == 'check-llvm-test-suite' &&
+      (github.event.comment.author_association == 'COLLABORATOR' ||
+       github.event.comment.author_association == 'MEMBER' ||
+       github.event.comment.author_association == 'OWNER')
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      actions: write
+    steps:
+      - name: Enable LLVM test suite check
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issueNumber = context.issue.number;
+            const label = 'llvm-test-suite-check';
+
+            try {
+              await github.rest.issues.getLabel({
+                owner,
+                repo,
+                name: label,
+              });
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+              await github.rest.issues.createLabel({
+                owner,
+                repo,
+                name: label,
+                color: '1d76db',
+                description: 'Run the LLVM test suite against the PR ELD toolset',
+              });
+            }
+
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              labels: [label],
+            });
+
+            await github.rest.actions.createWorkflowDispatch({
+              owner,
+              repo,
+              workflow_id: 'ci.yml',
+              ref: context.payload.repository.default_branch,
+              inputs: {
+                pr_number: String(issueNumber),
+              },
+            });
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              body: `Enabled **${label}**. CI will rebuild the PR toolset, then this workflow will run the LLVM test suite against that ld.eld.`,
+            });
+
+  resolve:
+    if: |
+      github.repository == 'qualcomm/eld' &&
+      (github.event_name != 'workflow_run' ||
+       github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pull-requests: read
+    outputs:
+      run_id: ${{ steps.find.outputs.run_id }}
+      head_sha: ${{ steps.find.outputs.head_sha }}
+      pr_number: ${{ steps.find.outputs.pr_number }}
+      artifact_name: ${{ steps.find.outputs.artifact_name }}
+    steps:
+      - name: Resolve CI run and PR toolset
+        id: find
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            if (context.eventName !== 'workflow_run') {
+              return;
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const workflowRun = context.payload.workflow_run;
+            const artifacts = await github.paginate(
+              github.rest.actions.listWorkflowRunArtifacts,
+              { owner, repo, run_id: workflowRun.id, per_page: 100 }
+            );
+            const toolset = artifacts.find(
+              artifact => /^pr-eld-toolset-\d+$/.test(artifact.name) && !artifact.expired
+            );
+            if (!toolset) {
+              core.info(`CI run ${workflowRun.id} has no PR ELD toolset artifact.`);
+              return;
+            }
+
+            const artifactPrNumber = toolset.name.match(/^pr-eld-toolset-(\d+)$/)[1];
+            const pullRequest = (await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: Number(artifactPrNumber),
+            })).data;
+            if (!pullRequest) {
+              core.info(`CI run ${workflowRun.id} is not an enabled LLVM test suite PR run.`);
+              return;
+            }
+            if (!pullRequest.labels.some(label => label.name === 'llvm-test-suite-check')) {
+              core.info(`PR ${pullRequest.number} is not enabled for the LLVM test suite.`);
+              return;
+            }
+
+            core.setOutput('run_id', String(workflowRun.id));
+            core.setOutput('head_sha', workflowRun.head_sha);
+            core.setOutput('pr_number', String(pullRequest.number));
+            core.setOutput('artifact_name', toolset.name);
+
+  test-llvm-test-suite-x86_64:
+    needs: resolve
+    if: |
+      github.repository == 'qualcomm/eld' &&
+      github.event_name != 'issue_comment' &&
+      (github.event_name != 'workflow_run' || needs.resolve.outputs.run_id != '')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
     env:
       ELD_SOURCE_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld
 
@@ -49,6 +193,14 @@ jobs:
 
       - name: Fetch nightly ELD
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+
+      - name: Overlay PR ELD toolset
+        if: needs.resolve.outputs.run_id != ''
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchEldToolset
+        with:
+          run-id: ${{ needs.resolve.outputs.run_id }}
+          artifact-name: ${{ needs.resolve.outputs.artifact_name || 'pr-eld-toolset' }}
+          tarball: install-pr-toolset.tar.xz
 
       - name: Clone LLVM test suite
         run: |
@@ -131,7 +283,7 @@ jobs:
           branch-name: "${{env.BUILD_BRANCH}}"
 
       - name: Delete older LLVM test-suite results
-        if: success()
+        if: success() && github.event_name != 'workflow_run'
         continue-on-error: true
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts
         with:
