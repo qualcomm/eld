@@ -3910,7 +3910,15 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     if (Input->getInputType() == Input::Namespec)
       NameSpecPath = "-l" + Input->getFileName();
     ArchiveFile *CurArchive = llvm::dyn_cast<eld::ArchiveFile>(CurInput);
-    if (ThisConfig.options().isInExcludeLIBS(Path, NameSpecPath))
+    bool ExcludeArchive =
+        ThisConfig.options().isInExcludeLIBS(Path, NameSpecPath);
+    // During reproduce replay, Path is the original logical mapping key
+    // while Input->getFileName() is the captured hashed archive path. Check
+    // both identities without changing normal-link matching semantics.
+    if (!ExcludeArchive && ThisConfig.options().hasMappingFile())
+      ExcludeArchive = ThisConfig.options().isInExcludeLIBS(
+          Input->getFileName(), NameSpecPath);
+    if (ExcludeArchive)
       CurArchive->setNoExport();
     MemoryArea *MemArea = CurInput->getInput()->getMemArea();
     if (const ArchiveFile *AF = getArchiveFileFromMemoryAreaToAFMap(MemArea)) {

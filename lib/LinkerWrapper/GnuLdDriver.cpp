@@ -50,6 +50,7 @@
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
+#include <set>
 #include <thread>
 
 using namespace llvm;
@@ -1733,6 +1734,73 @@ bool GnuLdDriver::processReproduceOption(
     return outputTar->rewritePath(path);
   };
 
+  // A namespec such as -lfoo is rewritten to the captured archive path in
+  // the response file. Keep --exclude-libs in sync with that rewrite, or the
+  // option will no longer match the archive when the response is replayed.
+  auto rewriteExcludeLibs = [&](llvm::StringRef value) {
+    std::string result;
+    bool first = true;
+    while (!value.empty()) {
+      // --exclude-libs accepts a comma-separated list, for example
+      // "libfoo.a,libbar.a". Rewrite each entry independently.
+      auto [entry, rest] = value.split(',');
+      std::string rewritten = entry.str();
+      // ALL means exclude symbols from every archive library, so it is
+      // already independent of an archive's replay name.
+      if (entry != "ALL") {
+        // Find the input archive referred to by this entry. It may have
+        // appeared on the command line as a filename, a bare namespec
+        // ("foo"), or a -l namespec ("-lfoo").
+        std::set<std::string> rewrittenMatches;
+        for (auto *action : actions) {
+          auto kind = action->getInputActionKind();
+          if (kind != eld::InputAction::InputFile &&
+              kind != eld::InputAction::Namespec)
+            continue;
+          auto *input = action->getInput();
+          if (!input || !input->getInputFile())
+            continue;
+          std::string resolvedPath = input->getResolvedPath().native();
+          std::string resolved = input->getResolvedPath().filename().native();
+          std::string namespec = "-l" + input->getFileName();
+          if (entry != resolvedPath && entry != resolved &&
+              entry != input->getFileName() && entry != namespec)
+            continue;
+
+          // Use the same key that was used to create the reproduce mapping.
+          std::string key = input->getInputFile()->hasMappedPath()
+                                ? input->getInputFile()->getMappedPath()
+                                : input->getName();
+          // Replay uses the captured path, so --exclude-libs must match its
+          // basename for both direct archive inputs and namespec inputs.
+          std::string rewrittenMatch =
+              llvm::sys::path::filename(outputTar->rewritePath(key)).str();
+          rewrittenMatches.insert(std::move(rewrittenMatch));
+        }
+        if (!rewrittenMatches.empty()) {
+          // A single --exclude-libs entry can match multiple input actions
+          // (for example, repeated archive inputs). Preserve each replay
+          // name in the comma-separated result and do not also append the
+          // original rewritten entry below.
+          for (const auto &match : rewrittenMatches) {
+            if (!first)
+              result += ',';
+            result += match;
+            first = false;
+          }
+          value = rest;
+          continue;
+        }
+      }
+      if (!first)
+        result += ',';
+      result += rewritten;
+      first = false;
+      value = rest;
+    }
+    return result;
+  };
+
   auto zArgsRange = Args.filtered(T::dash_z);
   auto zArgIt = zArgsRange.begin();
 
@@ -1785,6 +1853,10 @@ bool GnuLdDriver::processReproduceOption(
     case T::output_file:
     case T::Map:
       os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
+         << ' ';
+      break;
+    case T::exclude_libs:
+      os << arg->getSpelling() << '=' << rewriteExcludeLibs(arg->getValue())
          << ' ';
       break;
     case T::dynamic_list:
