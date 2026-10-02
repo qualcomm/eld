@@ -205,8 +205,11 @@ bool Linker::link() {
   }
 
   // Skip if out file does not need to be emitted.
-  if (!ThisConfig->options().shouldEmitOutputFile())
+  if (!ThisConfig->options().shouldEmitOutputFile()) {
+    ThisConfig->raise(Diag::verbose_skip_output_file)
+        << ThisConfig->options().outputFileName();
     return true;
+  }
 
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig->raise(Diag::emit_output_file)

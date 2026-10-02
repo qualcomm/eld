@@ -114,6 +114,8 @@ DIAG(merging_input_sections, DiagnosticEngine::Verbose,
      "Merging input sections before layout")
 DIAG(begin_layout, DiagnosticEngine::Verbose, "Preparing layout of output file")
 DIAG(emit_output_file, DiagnosticEngine::Verbose, "Writing output file %0")
+DIAG(verbose_skip_output_file, DiagnosticEngine::Verbose,
+     "Skipping output file emission for %0")
 DIAG(printing_layout, DiagnosticEngine::Verbose, "Printing layout")
 DIAG(initializing_backend, DiagnosticEngine::Verbose, "Initializing backend")
 DIAG(initializing_object_linker, DiagnosticEngine::Verbose,
