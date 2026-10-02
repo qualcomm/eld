@@ -1424,6 +1424,54 @@ Relocator::Result ldrs_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
   return ldrs_pc_group(pReloc, pParent, /*pGroup=*/2);
 }
 
+static Relocator::Result ldc_pc_group(Relocation &pReloc, ARMRelocator &pParent,
+                                      unsigned pGroup) {
+  Relocator::Address S = pParent.getSymValue(&pReloc);
+  Relocator::Address P = pReloc.place(pParent.module());
+
+  if (getThumbBit(pParent, pReloc, /*IsJump*/ false))
+    helper_clear_thumb_bit(S);
+
+  uint32_t I = pReloc.target();
+
+  // LDC/STC encodes an 8-bit immediate scaled by four.
+  int64_t A = static_cast<int64_t>((I & 0xff) << 2);
+  if (!(I & 0x00800000))
+    A = -A;
+
+  A += pReloc.addend();
+
+  int64_t X = static_cast<int64_t>(S) + A - static_cast<int64_t>(P);
+
+  uint32_t UBit = 0x00800000;
+  uint64_t Magnitude = static_cast<uint64_t>(X);
+  if (X < 0) {
+    UBit = 0;
+    Magnitude = static_cast<uint64_t>(-X);
+  }
+
+  uint32_t Residual =
+      helper_get_rem_for_group(pGroup, static_cast<uint32_t>(Magnitude));
+
+  if (Residual >= 0x400) {
+    pReloc.issueUnsignedOverflow(pParent, Residual, 0, 0x3ff);
+    return Relocator::Overflow;
+  }
+
+  if (Residual & 0x3)
+    return Relocator::BadReloc;
+
+  I = (I & 0xff7fff00) | UBit | (Residual >> 2);
+
+  pReloc.target() = I;
+  return Relocator::OK;
+}
+
+// R_ARM_LDC_PC_G0: S + A - P
+Relocator::Result ldc_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldc_pc_group(pReloc, pParent, /*pGroup=*/0);
+}
+
 // R_ARM_ALU_PC_Gn / R_ARM_ALU_PC_Gn_NC: ((S + A) | T) - P
 // Shared worker for the whole ALU_PC group family. pGroup selects which
 // group's residual to encode and pCheck selects whether encoding failure is
