@@ -1,0 +1,22 @@
+REQUIRES: symbol_versioning
+#---VersionNodeDependency.test---------------- SymbolVersioning ---#
+#BEGIN_COMMENT
+# Verify that a version node dependency is emitted in .gnu.version_d without
+# changing symbol version assignment.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.o %p/Inputs/1.c -c -fPIC
+RUN: %link %linkopts -o %t.so %t.o -shared --version-script %p/Inputs/vs.t 2>&1 | %filecheck %s --check-prefix=NO-WARN --allow-empty
+RUN: %readelf --dyn-syms --version-info %t.so | %filecheck %s --check-prefix=VERINFO
+#END_TEST
+
+NO-WARN-NOT: Dependent nodes are not supported
+
+VERINFO-DAG: foo@@V1
+VERINFO-DAG: bar@@V2
+VERINFO: '.gnu.version_d' contains 3 entries:
+VERINFO: Name: {{.*}}
+VERINFO: Name: V1
+VERINFO-NOT: Parent
+VERINFO: Name: V2
+VERINFO: Parent 1: V1
