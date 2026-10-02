@@ -1,0 +1,8 @@
+.global _start
+
+.text
+_start:
+{{usage}}
+  mov %eax, %edi
+  mov $60, %rax
+  syscall
