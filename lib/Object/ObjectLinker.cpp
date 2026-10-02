@@ -811,7 +811,7 @@ void ObjectLinker::mergeIdenticalStrings() const {
   /// not be used.
   bool UseThreads = ThisConfig.useThreads();
   bool GlobalMerge = ThisConfig.options().shouldGlobalStringMerge();
-  llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
+  eld::plugin::ThreadPool *Pool = ThisModule->getThreadPool();
   auto MergeStrings = [&](OutputSectionEntry *O) {
     for (RuleContainer *RC : *O) {
       for (Fragment *F : RC->getSection()->getFragmentList()) {
@@ -855,7 +855,7 @@ void ObjectLinker::mergeIdenticalStrings() const {
 
   for (OutputSectionEntry *O : OutputSections) {
     if (UseThreads)
-      Pool->async(std::bind(MergeStrings, O));
+      Pool->run(std::bind(MergeStrings, O));
     else
       MergeStrings(O);
   }
@@ -1424,9 +1424,9 @@ bool ObjectLinker::mergeSections() {
       for (auto &O : OutSections)
         createOutputSection(Builder, O);
     } else {
-      llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
-      for (auto &O : OutSections)
-        Pool->async([&] { createOutputSection(Builder, O); });
+      eld::plugin::ThreadPool *Pool = ThisModule->getThreadPool();
+      for (OutputSectionEntry *O : OutSections)
+        Pool->run([this, &Builder, O] { createOutputSection(Builder, O); });
       Pool->wait();
     }
 
@@ -2572,9 +2572,9 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     if (ThisModule->getPrinter()->traceThreads())
       ThisConfig.raise(Diag::threads_enabled)
           << "ApplyRelocations" << ThisConfig.options().numThreads();
-    llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
+    eld::plugin::ThreadPool *Pool = ThisModule->getThreadPool();
     for (auto &Input : ThisModule->getObjectList()) {
-      Pool->async([&] {
+      Pool->run([&, Input] {
         ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Input);
         if (!ObjFile)
           return;
@@ -2669,7 +2669,7 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
       syncRelocationResult(Buffer, Input);
     }
   } else {
-    llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
+    eld::plugin::ThreadPool *Pool = ThisModule->getThreadPool();
     if (ThisModule->getPrinter()->traceThreads())
       ThisConfig.raise(Diag::threads_enabled)
           << "SyncRelocations" << ThisConfig.options().numThreads();
@@ -2681,16 +2681,16 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
     // Therefore, a barrier is needed between writing branch island
     // relocations and input relocations.
     for (auto &Out : ThisModule->getScript().sectionMap()) {
-      Pool->async([&] { SyncBranchIslandsForOutputSection(Out); });
+      Pool->run([&, Out] { SyncBranchIslandsForOutputSection(Out); });
     }
     Pool->wait();
     // sync linker created internal relocations
     for (auto &R : getTargetBackend().getInternalRelocs()) {
-      Pool->async([this, &R, &Buffer] { writeRelocationResult(*R, Buffer); });
+      Pool->run([this, R, &Buffer] { writeRelocationResult(*R, Buffer); });
     }
     Pool->wait();
     for (auto &Input : ThisModule->getObjectList()) {
-      Pool->async(
+      Pool->run(
           [this, &Buffer, Input] { syncRelocationResult(Buffer, Input); });
     }
     Pool->wait();

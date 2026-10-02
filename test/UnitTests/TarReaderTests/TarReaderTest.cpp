@@ -100,13 +100,17 @@ TEST(TarReaderTests, EmitsEntryNames) {
   EXPECT_TRUE(Emitted.find("dir/b.bin") != std::string::npos);
 }
 
-TEST(TarReaderTests, FindFileReturnsMemoryBufferRef) {
+TEST(TarReaderTests, FindFileReturnsMemoryBuffer) {
   std::string TarPath = createTar({{"a.txt", "hello"}, {"dir/b.bin", "world"}});
   std::string TarData = readFile(TarPath);
 
   auto FileOrErr = InputTarReader::findFile(TarData, "a.txt");
   ASSERT_TRUE(static_cast<bool>(FileOrErr));
-  EXPECT_EQ(FileOrErr->getBuffer(), "hello");
+  EXPECT_EQ((*FileOrErr)->getBuffer(), "hello");
+  // TarWriter stores entries below the archive's base directory. The
+  // returned buffer must retain that original entry name, not the lookup
+  // name used for the suffix match.
+  EXPECT_EQ((*FileOrErr)->getBufferIdentifier(), "eld-test/a.txt");
 
   auto MissingOrErr = InputTarReader::findFile(TarData, "missing.txt");
   EXPECT_FALSE(static_cast<bool>(MissingOrErr));

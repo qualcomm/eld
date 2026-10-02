@@ -11,7 +11,10 @@ using namespace eld;
 using namespace eld::plugin;
 
 plugin::ThreadPool::ThreadPool(uint32_t NumThreads)
-    : TPool(new llvm::StdThreadPool(llvm::hardware_concurrency(NumThreads))) {}
+    : ThreadPool(llvm::hardware_concurrency(NumThreads)) {}
+
+plugin::ThreadPool::ThreadPool(const llvm::ThreadPoolStrategy &Strategy)
+    : TPool(new llvm::StdThreadPool(Strategy)) {}
 
 ThreadPool::ThreadPool(ThreadPool &&other) noexcept : TPool(nullptr) {
   *this = std::move(other);
@@ -20,18 +23,36 @@ ThreadPool::ThreadPool(ThreadPool &&other) noexcept : TPool(nullptr) {
 ThreadPool &ThreadPool::operator=(ThreadPool &&other) noexcept {
   if (this == &other)
     return *this;
+
+  std::scoped_lock Lock(FuturesMutex, other.FuturesMutex);
   std::swap(TPool, other.TPool);
+  std::swap(Futures, other.Futures);
   return *this;
 }
 
 std::shared_future<void>
 ThreadPool::asyncImpl(plugin::ThreadPool::TaskTy Task) {
-  return TPool->async(Task);
+  std::shared_future<void> Future = TPool->async(Task);
+  {
+    std::lock_guard<std::mutex> Lock(FuturesMutex);
+    Futures.push_back(Future);
+  }
+  return Future;
 }
 
-void plugin::ThreadPool::wait() { TPool->wait(); }
+void plugin::ThreadPool::wait() {
+  if (!TPool)
+    return;
+  TPool->wait();
+  {
+    std::lock_guard<std::mutex> Lock(FuturesMutex);
+    Futures.clear();
+  }
+}
 
 plugin::ThreadPool::~ThreadPool() {
-  if (TPool)
+  if (TPool) {
+    wait();
     delete TPool;
+  }
 }

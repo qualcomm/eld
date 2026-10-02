@@ -1,5 +1,5 @@
 #---MoveChunksFromOutputSectionForTrampolines.test----------------------- Executable,LS --------------------#
-
+# UNSUPPORTED: tsan
 #BEGIN_COMMENT
 #This test tries to create a situation where the linker creates
 #trampolines of the same name. This case can be triggered only by

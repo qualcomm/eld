@@ -14,7 +14,6 @@
 
 namespace llvm {
 class MemoryBuffer;
-class MemoryBufferRef;
 class StringRef;
 } // namespace llvm
 
@@ -26,7 +25,8 @@ class ReproduceTarReader {
 public:
   static eld::Expected<ReproduceTarReader> create(llvm::StringRef TarPath);
 
-  eld::Expected<llvm::MemoryBufferRef> findFile(llvm::StringRef FileName) const;
+  eld::Expected<std::unique_ptr<llvm::MemoryBuffer>>
+  findFile(llvm::StringRef FileName) const;
 
   bool hasFile(llvm::StringRef FileName) const;
 
