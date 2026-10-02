@@ -1,4 +1,5 @@
 name: Release
+owner: quic-areg
 
 # TODO:
 # This is a template workflow to test release notes via manual dispatch. This

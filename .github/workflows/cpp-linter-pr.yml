@@ -1,4 +1,5 @@
 name: Cpp Linter PR Check
+owner: Steven6798
 
 on:
   # Temporarily disable PR-triggered runs.

@@ -1,4 +1,5 @@
 name: Zephyr on ELD PR
+owner: quic-areg
 
 # Run Zephyr against a PR's own ELD build. Opt-in via the `zephyr-check` label,
 # or manually with a PR number.

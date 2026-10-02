@@ -1,4 +1,5 @@
 name: Zephyr build and test (reusable)
+owner: quic-areg
 
 # Reusable Zephyr build + twister body, called by zephyr-nightly.yml and
 # zephyr-pr.yml. Callers resolve a run id and pass the toolset artifact/tarball

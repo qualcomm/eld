@@ -1,4 +1,5 @@
 name: nightly picolibc builder
+owner: kushpal
 
 on:
   pull_request:
