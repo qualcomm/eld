@@ -4951,11 +4951,19 @@ LDSymbol *GNULDBackend::canProvideSymbol(llvm::StringRef symName) {
 void GNULDBackend::makeVersionString() {
   if (!m_pComment)
     return;
-  std::string VersionString = std::string(eld::getVendorName()) + " Linker ";
+  std::string VersionString = "Linker: ";
+  if (!eld::getVendorName().empty()) {
+    VersionString += eld::getVendorName().str();
+    VersionString += " ";
+  }
+  VersionString += "ELD ";
   VersionString += eld::getELDVersion();
-  VersionString += " (" + eld::getELDRevision().str() + ")";
-  if (m_Module.needLTOToBeInvoked() || config().options().hasLTO())
-    VersionString += " LTO Enabled ";
+
+  const std::string ELDRepositoryVersion = eld::getELDRepositoryVersion();
+  if (!ELDRepositoryVersion.empty()) {
+    VersionString += " ";
+    VersionString += ELDRepositoryVersion;
+  }
   Fragment *F = make<StringFragment>(VersionString, m_pComment);
   m_pComment->addFragmentAndUpdateSize(F);
   LayoutInfo *layoutInfo = m_Module.getLayoutInfo();

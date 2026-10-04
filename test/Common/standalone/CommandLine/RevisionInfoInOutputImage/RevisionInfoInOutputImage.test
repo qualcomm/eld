@@ -7,6 +7,6 @@
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
 RUN: %link %linkopts %t1.1.o -o %t1.1.out
 RUN: %readelf -p .comment %t1.1.out 2>&1 2>&1 | %filecheck %s
-#CHECK: Linker {{.*}} ({{.*}})
+#CHECK: Linker: {{.*}}ELD {{.*}} ({{.*}})
 #CHECK: {{(LLVM .* \(.*\))?}}
 #END_TEST
