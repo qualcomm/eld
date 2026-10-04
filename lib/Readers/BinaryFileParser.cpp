@@ -8,10 +8,10 @@
 #include "eld/Core/Module.h"
 #include "eld/Fragment/RegionFragment.h"
 #include "eld/Input/ObjectFile.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Object/SectionMap.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/BinaryFormat/ELF.h"
 
@@ -33,7 +33,7 @@ eld::Expected<void> BinaryFileParser::parseFile(InputFile &inputFile) {
 
 ELFSection *BinaryFileParser::createDataSection(InputFile &inputFile) {
   ELFSection *S = m_Module.getScript().sectionMap().createELFSection(
-      ".data", LDFileFormat::Regular, llvm::ELF::SHT_PROGBITS,
+      ".data", LinkerSectionKind::Regular, llvm::ELF::SHT_PROGBITS,
       llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, /*EntSize=*/0);
   S->setInputFile(&inputFile);
   // Binary format file data must not be garbage-collected.

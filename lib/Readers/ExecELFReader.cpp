@@ -52,10 +52,10 @@ eld::Expected<ELFSection *> ExecELFReader<ELFT>::createSection(
 
   // Setup all section properties.
   // FIXME: sectName can be extracted from rawSectHdr.
-  LDFileFormat::Kind kind = this->getSectionKind(rawSectHdr, sectName);
+  LinkerSectionKind kind = this->classifySectionKind(rawSectHdr, sectName);
 
   // FIXME: Emit some diagnostic here.
-  if (kind == LDFileFormat::Error)
+  if (kind == LinkerSectionKind::Error)
     return static_cast<ELFSection *>(nullptr);
 
   bool SectionIsIgnore = false;
@@ -68,17 +68,17 @@ eld::Expected<ELFSection *> ExecELFReader<ELFT>::createSection(
       ELFSection::isEmbeddedBitcodeMetadataSection(sectName))
     SectionIsIgnore = true;
 
-  if (kind == LDFileFormat::EhFrame)
+  if (kind == LinkerSectionKind::EhFrame)
     return module.getScript().sectionMap().createEhFrameSection(
         sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
         rawSectHdr.sh_entsize);
-  if (kind == LDFileFormat::SFrame)
+  if (kind == LinkerSectionKind::SFrame)
     return module.getScript().sectionMap().createSFrameSection(
         sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
         rawSectHdr.sh_entsize);
 
   return module.getScript().sectionMap().createELFSection(
-      sectName, (SectionIsIgnore ? LDFileFormat::Discard : kind),
+      sectName, (SectionIsIgnore ? LinkerSectionKind::Discard : kind),
       rawSectHdr.sh_type, rawSectHdr.sh_flags, rawSectHdr.sh_entsize);
 }
 

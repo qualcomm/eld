@@ -1,0 +1,14 @@
+#---EXIDXLinkOrder.test--------------- Executable,LS --------------------------#
+#BEGIN_COMMENT
+# Verify that the merged .ARM.exidx section links to the first sorted entry.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/exidx_link_order_1.c -o %t.1.o
+RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/exidx_link_order_2.c -o %t.2.o
+RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/exidx_link_order_3.c -o %t.3.o
+RUN: %link %linkopts --thread-count 4 --threads -T %p/Inputs/exidx_link_order.t %t.1.o %t.2.o %t.3.o -o %t.out
+RUN: %readelf -S -W %t.out | %filecheck %s
+# .ARM.exidx must link to the first output section, FOO (section index 1).
+CHECK: [ 1] FOO
+CHECK: .ARM.exidx{{.*}} AL 1 0
+#END_TEST

@@ -15,7 +15,8 @@ using namespace eld;
 llvm::StringRef Section::getSignatureForLinkOnceSection() const {
   ASSERT(isELF(),
          "Section " + std::string(name()) + " is called with not ELF kind ");
-  ASSERT(llvm::dyn_cast<ELFSection>(this)->getKind() == LDFileFormat::LinkOnce,
+  ASSERT(llvm::dyn_cast<ELFSection>(this)->getKind() ==
+             LinkerSectionKind::LinkOnce,
          "Section " + std::string(name()) + " is not GNU linkonce!");
   // .gnu.linkonce + "." + type + "." + name
   llvm::StringRef sname(

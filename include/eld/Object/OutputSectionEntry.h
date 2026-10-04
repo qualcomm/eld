@@ -8,10 +8,10 @@
 #define ELD_OBJECT_OUTPUTSECTIONENTRY_H
 
 #include "eld/Fragment/MergeStringFragment.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Object/SectionMap.h"
 #include "eld/Script/Assignment.h"
 #include "eld/Script/OutputSectDesc.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/DataTypes.h"
@@ -46,7 +46,7 @@ public:
   OutputSectionEntry(SectionMap *, ELFSection *);
   OutputSectionEntry(SectionMap *, OutputSectDesc &POutputDesc);
   OutputSectionEntry(SectionMap *Parent, std::string PName,
-                     LDFileFormat::Kind PKind, uint32_t PType, uint32_t PFlag,
+                     LinkerSectionKind PKind, uint32_t PType, uint32_t PFlag,
                      uint32_t PAlign);
 
   llvm::StringRef name() const { return Name; }

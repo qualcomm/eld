@@ -5,7 +5,8 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -target arm -c %p/Inputs/exidx.s -o %t1.1.o
-RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script_discard_exidx_f1.t -o %t2.out -Map %t2.map
+RUN: %link -MapStyle txt %linkopts --no-merge-exidx-entries %t1.1.o \
+RUN:   -T %p/Inputs/script_discard_exidx_f1.t -o %t2.out -Map %t2.map
 RUN: %filecheck %s --check-prefix=MAP < %t2.map
 RUN: %readelf -u %t2.out | %filecheck %s --check-prefix=UNW
 
@@ -16,6 +17,6 @@ RUN: %readelf -u %t2.out | %filecheck %s --check-prefix=UNW
 
 #UNW: FunctionAddress: 0x11000
 #UNW: FunctionAddress: 0x11004
-#UNW: FunctionAddress: 0x1100C
 #UNW-NOT: FunctionAddress: 0x11008
+#UNW: FunctionAddress: 0x1100C
 #END_TEST

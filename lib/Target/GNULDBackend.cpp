@@ -70,6 +70,7 @@
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "eld/Script/VersionScript.h"
 #endif
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Script/ScopedScriptEvalContext.h"
 #include "eld/Support/DynamicLibrary.h"
 #include "eld/Support/Memory.h"
@@ -83,7 +84,6 @@
 #include "eld/Target/ELFDynamic.h"
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/ELFSegmentFactory.h"
-#include "eld/Target/LDFileFormat.h"
 #include "eld/Target/Relocator.h"
 #include "eld/Target/TargetInfo.h"
 #include "eld/Writers/SymDefWriter.h"
@@ -213,28 +213,28 @@ eld::Expected<void> GNULDBackend::initStdSections() {
                        m_Module.getConfig().options().printTimingStats());
 
   // Create standard ELF sections
-  ELFSection *NullSection = createOutputSection("", LDFileFormat::Null,
+  ELFSection *NullSection = createOutputSection("", LinkerSectionKind::Null,
                                                 llvm::ELF::SHT_NULL, 0x0, 0x0);
   NullSection->setOffset(0);
 
-  m_pShStrTab = createOutputSection(".shstrtab", LDFileFormat::NamePool,
+  m_pShStrTab = createOutputSection(".shstrtab", LinkerSectionKind::NamePool,
                                     llvm::ELF::SHT_STRTAB, 0x0, 0x1);
 
-  m_pSymTab = createOutputSection(".symtab", LDFileFormat::NamePool,
+  m_pSymTab = createOutputSection(".symtab", LinkerSectionKind::NamePool,
                                   llvm::ELF::SHT_SYMTAB, 0x0,
                                   config().targets().bitclass() / 8);
 
   m_pSymTabShndxr =
-      createOutputSection(".symtab_shndxr", LDFileFormat::NamePool,
+      createOutputSection(".symtab_shndxr", LinkerSectionKind::NamePool,
                           llvm::ELF::SHT_SYMTAB_SHNDX, 0x0, 4);
 
-  m_pStrTab = createOutputSection(".strtab", LDFileFormat::NamePool,
+  m_pStrTab = createOutputSection(".strtab", LinkerSectionKind::NamePool,
                                   llvm::ELF::SHT_STRTAB, 0x0, 0x1);
 
   if (!config().isCodeStatic() || config().options().isPIE() ||
       config().options().forceDynamic()) {
     ELFSection *DynSymSection = m_Module.createInternalSection(
-        Module::InternalInputType::DynamicSections, LDFileFormat::Internal,
+        Module::InternalInputType::DynamicSections, LinkerSectionKind::Internal,
         ".dynsym", llvm::ELF::SHT_DYNSYM, llvm::ELF::SHF_ALLOC,
         config().targets().bitclass() / 8);
     m_pDynSymFrag = make<DynSymFragment>(DynSymSection, DynamicSymbols,
@@ -244,14 +244,14 @@ eld::Expected<void> GNULDBackend::initStdSections() {
     m_pDynSymSection = DynSymSection;
 
     ELFSection *DynStrSection = m_Module.createInternalSection(
-        Module::InternalInputType::DynamicSections, LDFileFormat::Internal,
+        Module::InternalInputType::DynamicSections, LinkerSectionKind::Internal,
         ".dynstr", llvm::ELF::SHT_STRTAB, llvm::ELF::SHF_ALLOC, 1);
     m_pDynStrFrag = make<DynStrFragment>(DynStrSection);
     DynStrSection->addFragmentAndUpdateSize(m_pDynStrFrag);
     m_pDynStrSection = DynStrSection;
 
     ELFSection *DynSection = m_Module.createInternalSection(
-        Module::InternalInputType::DynamicSections, LDFileFormat::Internal,
+        Module::InternalInputType::DynamicSections, LinkerSectionKind::Internal,
         ".dynamic", llvm::ELF::SHT_DYNAMIC,
         llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
         config().targets().bitclass() / 8);
@@ -266,7 +266,7 @@ eld::Expected<void> GNULDBackend::initStdSections() {
 
   if (config().options().getInsertTimingStats()) {
     m_pTiming = m_Module.createInternalSection(
-        Module::InternalInputType::Timing, LDFileFormat::Timing,
+        Module::InternalInputType::Timing, LinkerSectionKind::Timing,
         ".note.qc.timing", llvm::ELF::SHT_NOTE, 0, 1);
 
     insertTimingFragmentStub();
@@ -280,21 +280,23 @@ eld::Expected<void> GNULDBackend::initStdSections() {
 
       if (config().options().hasDynamicLinker()) {
         interp = m_Module.createInternalSection(
-            Module::InternalInputType::DynamicSections, LDFileFormat::Note,
+            Module::InternalInputType::DynamicSections, LinkerSectionKind::Note,
             ".interp", llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC, 1);
       }
     }
     if ((GeneralOptions::SystemV == config().options().getHashStyle() ||
          (GeneralOptions::Both == config().options().getHashStyle()))) {
       m_pSysVHash = m_Module.createInternalSection(
-          Module::InternalInputType::DynamicSections, LDFileFormat::Regular,
-          ".hash", llvm::ELF::SHT_HASH, llvm::ELF::SHF_ALLOC, 4);
+          Module::InternalInputType::DynamicSections,
+          LinkerSectionKind::Regular, ".hash", llvm::ELF::SHT_HASH,
+          llvm::ELF::SHF_ALLOC, 4);
     }
     if ((GeneralOptions::GNU == config().options().getHashStyle() ||
          (GeneralOptions::Both == config().options().getHashStyle()))) {
       m_pGNUHash = m_Module.createInternalSection(
-          Module::InternalInputType::DynamicSections, LDFileFormat::Regular,
-          ".gnu.hash", llvm::ELF::SHT_GNU_HASH, llvm::ELF::SHF_ALLOC, 4);
+          Module::InternalInputType::DynamicSections,
+          LinkerSectionKind::Regular, ".gnu.hash", llvm::ELF::SHT_GNU_HASH,
+          llvm::ELF::SHF_ALLOC, 4);
     }
   }
 
@@ -307,27 +309,27 @@ eld::Expected<void> GNULDBackend::initStdSections() {
           config().targets().is32Bits() ? 4 : 8);
     }
     m_pEhFrameFillerSection = m_Module.createInternalSection(
-        Module::InternalInputType::EhFrameFiller, LDFileFormat::Regular,
+        Module::InternalInputType::EhFrameFiller, LinkerSectionKind::Regular,
         ".eh_frame", llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC, 4);
   }
 
   // Create .sframe output section if --sframe-hdr is set.
   if (config().options().hasSFrameHdr()) {
     m_pSFrameSection = m_Module.createInternalSection(
-        Module::InternalInputType::SFrameHdr, LDFileFormat::SFrame, ".sframe",
-        llvm::ELF::SHT_GNU_SFRAME, llvm::ELF::SHF_ALLOC,
+        Module::InternalInputType::SFrameHdr, LinkerSectionKind::SFrame,
+        ".sframe", llvm::ELF::SHT_GNU_SFRAME, llvm::ELF::SHF_ALLOC,
         config().targets().is32Bits() ? 4 : 8);
   }
 
   m_pComment = m_Module.createInternalSection(
-      Module::InternalInputType::LinkerVersion, LDFileFormat::Regular,
+      Module::InternalInputType::LinkerVersion, LinkerSectionKind::Regular,
       ".comment", llvm::ELF::SHT_PROGBITS,
       llvm::ELF::SHF_MERGE | llvm::ELF::SHF_STRINGS, 1, 1);
   makeVersionString();
 
   if (config().options().isBuildIDEnabled()) {
     m_pBuildIDSection = m_Module.createInternalSection(
-        Module::InternalInputType::GNUBuildID, LDFileFormat::Note,
+        Module::InternalInputType::GNUBuildID, LinkerSectionKind::Note,
         ".note.gnu.build-id", llvm::ELF::SHT_NOTE, llvm::ELF::SHF_ALLOC, 4);
     m_pBuildIDFragment = make<BuildIDFragment>(m_pBuildIDSection);
     eld::Expected<void> E = m_pBuildIDFragment->setBuildIDStyle(config());
@@ -355,7 +357,7 @@ eld::Expected<void> GNULDBackend::initStdSections() {
 }
 
 ELFSection *GNULDBackend::createOutputSection(llvm::StringRef pName,
-                                              LDFileFormat::Kind pKind,
+                                              LinkerSectionKind pKind,
                                               uint32_t pType, uint32_t pFlag,
                                               uint32_t pAlign) {
   ELFSection *Section =
@@ -1238,7 +1240,7 @@ bool GNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
     F = make<FillFragment>(getModule(), 0x0, S->size(), S, S->getAddrAlign());
   else {
     llvm::StringRef R = pInput.getSlice(S->offset(), S->size());
-    if (S->getKind() == LDFileFormat::EhFrame)
+    if (S->getKind() == LinkerSectionKind::EhFrame)
       F = make<EhFrameFragment>(R, S);
     else
       F = make<RegionFragment>(R, S, Fragment::Type::Region, S->getAddrAlign());
@@ -1473,7 +1475,7 @@ unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
   llvm::StringRef sectionName = pSectHdr.name();
 
   // nullptr section should be the "1st" section
-  if (LDFileFormat::Null == pSectHdr.getKind())
+  if (LinkerSectionKind::Null == pSectHdr.getKind())
     return SHO_nullptr;
 
   if (&pSectHdr == getShStrTab())
@@ -1518,10 +1520,10 @@ unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
   bool is_exec = (pSectHdr.getFlags() & llvm::ELF::SHF_EXECINSTR) != 0;
   // TODO: need to take care other possible output sections
   switch (pSectHdr.getKind()) {
-  case LDFileFormat::Common:
-  case LDFileFormat::Internal:
-  case LDFileFormat::OutputSectData:
-  case LDFileFormat::Regular:
+  case LinkerSectionKind::Common:
+  case LinkerSectionKind::Internal:
+  case LinkerSectionKind::OutputSectData:
+  case LinkerSectionKind::Regular:
     if (is_exec) {
       if (!linkerScriptHasSectionsCommand && sectionName == ".init")
         return SHO_INIT;
@@ -1568,12 +1570,12 @@ unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
       return SHO_DATA;
     }
 
-  case LDFileFormat::MergeStr:
+  case LinkerSectionKind::MergeStr:
     if (pSectHdr.isAlloc())
       return SHO_RO;
     return SHO_UNDEFINED;
 
-  case LDFileFormat::NamePool:
+  case LinkerSectionKind::NamePool:
     // .gnu.version/.gnu.version_d/.gnu.version_r are ALLOC read-only sections
     // that belong with the dynamic name-pool region next to .dynsym, matching
     // GNU ld/lld. Without this case they fall through to SHO_UNDEFINED and get
@@ -1581,22 +1583,22 @@ unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
     // writable segment and corrupting the program break / load layout in the
     // older qemu versions.
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-  case LDFileFormat::SymbolVersion:
+  case LinkerSectionKind::SymbolVersion:
 #endif
     return SHO_NAMEPOOL;
-  case LDFileFormat::Relocation:
-  case LDFileFormat::DynamicRelocation:
+  case LinkerSectionKind::Relocation:
+  case LinkerSectionKind::DynamicRelocation:
     if (sectionName == ".rel.plt" || sectionName == ".rela.plt")
       return SHO_REL_PLT;
     return SHO_RELOCATION;
 
   // get the order from target for target specific sections
-  case LDFileFormat::Target:
+  case LinkerSectionKind::Target:
     return getTargetSectionOrder(pSectHdr);
 
   // handle .interp and .note.* sections
-  case LDFileFormat::Note:
-  case LDFileFormat::StackNote: {
+  case LinkerSectionKind::Note:
+  case LinkerSectionKind::StackNote: {
     if (pSectHdr.name() == ".interp")
       return SHO_INTERP;
     else if (is_write)
@@ -1604,18 +1606,18 @@ unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
     return SHO_RO_NOTE;
   }
 
-  case LDFileFormat::EhFrame:
+  case LinkerSectionKind::EhFrame:
     // set writable .eh_frame as relro
     if (is_write)
       return SHO_RELRO;
     LLVM_FALLTHROUGH;
-  case LDFileFormat::EhFrameHdr:
-  case LDFileFormat::GCCExceptTable:
-  case LDFileFormat::SFrame:
+  case LinkerSectionKind::EhFrameHdr:
+  case LinkerSectionKind::GCCExceptTable:
+  case LinkerSectionKind::SFrame:
     return SHO_EXCEPTION;
 
-  case LDFileFormat::MetaData:
-  case LDFileFormat::Debug:
+  case LinkerSectionKind::MetaData:
+  case LinkerSectionKind::Debug:
   default:
     return SHO_UNDEFINED;
   }
@@ -1724,18 +1726,18 @@ void GNULDBackend::initDynamicSections(InputFile &InputFile,
 
   bool IsRela = Layout.RelType == llvm::ELF::SHT_RELA;
   RelDynSection = m_Module.createInternalSection(
-      InputFile, LDFileFormat::DynamicRelocation,
+      InputFile, LinkerSectionKind::DynamicRelocation,
       IsRela ? ".rela.dyn" : ".rel.dyn", Layout.RelType, llvm::ELF::SHF_ALLOC,
       Layout.RelAlign);
   RelPLTSection = m_Module.createInternalSection(
-      InputFile, LDFileFormat::DynamicRelocation,
+      InputFile, LinkerSectionKind::DynamicRelocation,
       IsRela ? ".rela.plt" : ".rel.plt", Layout.RelType, llvm::ELF::SHF_ALLOC,
       Layout.RelAlign);
 
   auto Create = [&](std::string Name, uint32_t Flags, uint32_t Align) {
-    return m_Module.createInternalSection(InputFile, LDFileFormat::Internal,
-                                          Name, llvm::ELF::SHT_PROGBITS, Flags,
-                                          Align);
+    return m_Module.createInternalSection(
+        InputFile, LinkerSectionKind::Internal, Name, llvm::ELF::SHT_PROGBITS,
+        Flags, Align);
   };
   GOTSection = Create(".got", llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
                       Layout.GOTAlign);
@@ -2845,37 +2847,37 @@ bool GNULDBackend::placeOutputSections() {
 
       switch ((elem)->getKind()) {
       // take nullptr and StackNote directly
-      case LDFileFormat::Null:
-      case LDFileFormat::StackNote:
+      case LinkerSectionKind::Null:
+      case LinkerSectionKind::StackNote:
         wanted = true;
         break;
       // ignore if section size is 0
-      case LDFileFormat::EhFrame:
+      case LinkerSectionKind::EhFrame:
         if ((elem)->size() || config().codeGenType() == LinkerConfig::Object)
           wanted = true;
         break;
-      case LDFileFormat::Relocation:
+      case LinkerSectionKind::Relocation:
         if (elem->size() || ((elem)->hasRelocData() &&
                              config().codeGenType() == LinkerConfig::Object))
           wanted = true;
         break;
-      case LDFileFormat::Common:
-      case LDFileFormat::DynamicRelocation:
-      case LDFileFormat::Internal:
+      case LinkerSectionKind::Common:
+      case LinkerSectionKind::DynamicRelocation:
+      case LinkerSectionKind::Internal:
         if (elem->size())
           wanted = true;
         break;
-      case LDFileFormat::Regular:
-      case LDFileFormat::Target:
-      case LDFileFormat::MetaData:
-      case LDFileFormat::Debug:
-      case LDFileFormat::GCCExceptTable:
-      case LDFileFormat::Note:
-      case LDFileFormat::EhFrameHdr:
-      case LDFileFormat::MergeStr:
-      case LDFileFormat::NamePool:
+      case LinkerSectionKind::Regular:
+      case LinkerSectionKind::Target:
+      case LinkerSectionKind::MetaData:
+      case LinkerSectionKind::Debug:
+      case LinkerSectionKind::GCCExceptTable:
+      case LinkerSectionKind::Note:
+      case LinkerSectionKind::EhFrameHdr:
+      case LinkerSectionKind::MergeStr:
+      case LinkerSectionKind::NamePool:
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-      case LDFileFormat::SymbolVersion:
+      case LinkerSectionKind::SymbolVersion:
 #endif
         // Place the section in the proper place as per the section permissions.
         if ((elem->size() || string::isValidCIdentifier(elem->name())) ||
@@ -2883,28 +2885,28 @@ bool GNULDBackend::placeOutputSections() {
              config().codeGenType() == LinkerConfig::Object))
           wanted = true;
         break;
-      case LDFileFormat::Group:
+      case LinkerSectionKind::Group:
         if (LinkerConfig::Object == config().codeGenType()) {
           wanted = true;
         }
         break;
-      case LDFileFormat::Timing:
+      case LinkerSectionKind::Timing:
         if (elem->size() || elem->hasSectionData())
           wanted = true;
         break;
-      case LDFileFormat::Version:
+      case LinkerSectionKind::Version:
         if ((elem)->hasSectionData() || elem->size()) {
           wanted = true;
           config().raise(Diag::warn_unsupported_symbolic_versioning)
               << (elem)->name();
         }
         break;
-      case LDFileFormat::GNUProperty:
+      case LinkerSectionKind::GNUProperty:
         break;
       default:
         if ((elem)->size())
           config().raise(Diag::err_unsupported_section)
-              << (elem)->name() << (elem)->getKind();
+              << (elem)->name() << static_cast<unsigned>((elem)->getKind());
         break;
       } // end of switch
 
@@ -2981,7 +2983,7 @@ bool GNULDBackend::placeOutputSections() {
           SectionMap::mapping pair;
           pair.first = elem->getOutputSection();
           if (pair.first && pair.first->isDiscard())
-            (elem)->setKind(LDFileFormat::Null);
+            (elem)->setKind(LinkerSectionKind::Null);
           else {
             if (!isNonDymSymbolStringTableSection(elem))
               isError |= handleOrphanSection(elem);
@@ -3023,7 +3025,7 @@ bool GNULDBackend::placeOutputSections() {
           if (name.starts_with(".debug") || name.starts_with(".zdebug") ||
               name.starts_with(".line") || name.starts_with(".stab")) {
             if (!cur->isIgnore() && !cur->isDiscard())
-              cur->setKind(LDFileFormat::Debug);
+              cur->setKind(LinkerSectionKind::Debug);
             cur->setType(llvm::ELF::SHT_PROGBITS);
             cur->setFlags(cur->getFlags());
             debugSectionSeen = true;
@@ -3032,8 +3034,8 @@ bool GNULDBackend::placeOutputSections() {
           } else {
             if (!cur->size())
               cur->setFlags(llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE);
-            if (cur->getKind() != LDFileFormat::Target)
-              cur->setKind(LDFileFormat::Regular);
+            if (cur->getKind() != LinkerSectionKind::Target)
+              cur->setKind(LinkerSectionKind::Regular);
           }
           if (!cur->getType())
             cur->setType(llvm::ELF::SHT_NOBITS);
@@ -3077,7 +3079,7 @@ bool GNULDBackend::placeOutputSections() {
       outBegin = sectionMap.begin();
       outEnd = sectionMap.end();
 
-      if ((orphan)->getKind() == LDFileFormat::Null)
+      if ((orphan)->getKind() == LinkerSectionKind::Null)
         out = sectionMap.insert(outBegin, orphan);
       else {
         // Orphan placement Doesn't matter so much for partial link steps.
@@ -3475,7 +3477,7 @@ bool GNULDBackend::postLayout() {
   for (auto &out : m_Module.getScript().sectionMap()) {
     ELFSection *cur = out->getSection();
     if (cur->isWanted() || cur->size() ||
-        cur->getKind() == LDFileFormat::Null) {
+        cur->getKind() == LinkerSectionKind::Null) {
       if (cur->isNullType() && !cur->name().empty())
         continue;
       if (layoutInfo)
@@ -4102,7 +4104,7 @@ void GNULDBackend::sortRelocation(ELFSection &pSection) {
   if (!config().options().hasCombReloc())
     return;
 
-  if (pSection.getKind() != LDFileFormat::DynamicRelocation)
+  if (pSection.getKind() != LinkerSectionKind::DynamicRelocation)
     return;
 
   if ((pSection.name() != ".rel.dyn") && (pSection.name() != ".rela.dyn"))
@@ -4415,7 +4417,7 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
 
   // Create a unique section for each copy relocation symbol.
   ELFSection *copyRelocSect = m_Module.createInternalSection(
-      Module::InternalInputType::CopyRelocSymbols, LDFileFormat::Kind::Internal,
+      Module::InternalInputType::CopyRelocSymbols, LinkerSectionKind::Internal,
       ".dynbss." + origSym->getName().str(), llvm::ELF::SHT_NOBITS,
       llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 1);
 
@@ -4734,7 +4736,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
       uint64_t Offset = 0;
       for (auto &M : RB) {
         ELFSection *N = m_Module.getScript().sectionMap().createELFSection(
-            M.Name, LDFileFormat::Regular, llvm::ELF::SHT_PROGBITS,
+            M.Name, LinkerSectionKind::Regular, llvm::ELF::SHT_PROGBITS,
             llvm::ELF::SHF_ALLOC, /*EntSize=*/0);
         PluginSections.push_back(N);
         Fragment *frag = make<RegionFragment>(
@@ -5195,6 +5197,8 @@ bool GNULDBackend::assignMemoryRegions() {
     return true;
 
   for (auto &out : script.sectionMap()) {
+    if (out->isDiscard())
+      continue;
     for (auto &region : script.getMemoryRegions()) {
       if (region->checkCompatibilityAndAssignMemorySpecToOutputSection(out))
         break;
@@ -5280,7 +5284,7 @@ void GNULDBackend::createFileHeader() {
                        m_Module.getConfig().options().printTimingStats());
   LinkerScript &script = m_Module.getScript();
   m_ehdr = script.sectionMap().createELFSection(
-      "__ehdr__", LDFileFormat::Regular, /*Type=*/0, /*Flags=*/0,
+      "__ehdr__", LinkerSectionKind::Regular, /*Type=*/0, /*Flags=*/0,
       /*EntSize=*/0);
   if (config().options().hasExecuteOnlySegments())
     m_ehdr->setFlags(llvm::ELF::SHF_ALLOC);
@@ -5311,7 +5315,7 @@ void GNULDBackend::createProgramHeader() {
                        m_Module.getConfig().options().printTimingStats());
   LinkerScript &script = m_Module.getScript();
   m_phdr = script.sectionMap().createELFSection(
-      "__pHdr__", LDFileFormat::Regular, /*Type=*/0, /*Flags=*/0,
+      "__pHdr__", LinkerSectionKind::Regular, /*Type=*/0, /*Flags=*/0,
       /*EntSize=*/0);
   m_phdr->setAddrAlign(config().targets().is32Bits() ? 4 : 8);
   if (config().options().hasExecuteOnlySegments())
@@ -5480,7 +5484,7 @@ void GNULDBackend::initSymbolVersioningSections() {
         << ".gnu.version";
   GNUVerSymSection = m_Module.createInternalSection(
       Module::InternalInputType::SymbolVersioning,
-      LDFileFormat::Kind::SymbolVersion, ".gnu.version",
+      LinkerSectionKind::SymbolVersion, ".gnu.version",
       llvm::ELF::SHT_GNU_versym, llvm::ELF::SHF_ALLOC,
       /*Align=*/2,
       /*EntrySize=*/2);
@@ -5491,7 +5495,7 @@ void GNULDBackend::initSymbolVersioningSections() {
         << ".gnu.version_d";
   GNUVerDefSection = m_Module.createInternalSection(
       Module::InternalInputType::SymbolVersioning,
-      LDFileFormat::Kind::SymbolVersion, ".gnu.version_d",
+      LinkerSectionKind::SymbolVersion, ".gnu.version_d",
       llvm::ELF::SHT_GNU_verdef, llvm::ELF::SHF_ALLOC,
       /*Align=*/sizeof(uint32_t));
   GNUVerDefSection->setLink(m_pDynStrSection);
@@ -5501,7 +5505,7 @@ void GNULDBackend::initSymbolVersioningSections() {
         << ".gnu.version_r";
   GNUVerNeedSection = m_Module.createInternalSection(
       Module::InternalInputType::SymbolVersioning,
-      LDFileFormat::Kind::SymbolVersion, ".gnu.version_r",
+      LinkerSectionKind::SymbolVersion, ".gnu.version_r",
       llvm::ELF::SHT_GNU_verneed, llvm::ELF::SHF_ALLOC,
       /*Align=*/sizeof(uint32_t));
   GNUVerNeedSection->setLink(m_pDynStrSection);

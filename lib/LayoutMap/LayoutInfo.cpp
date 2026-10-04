@@ -138,14 +138,14 @@ bool LayoutInfo::isSectionDetailedInfoAvailable(ELFSection *Section) {
   // These sections are handled separately and they dont follow
   // the same path of merging
   switch (Section->getKind()) {
-  case LDFileFormat::Discard:
-  case LDFileFormat::Null:
-  case LDFileFormat::Relocation:
-  case LDFileFormat::NamePool:
-  case LDFileFormat::Group:
-  case LDFileFormat::StackNote:
-  case LDFileFormat::EhFrame:
-  case LDFileFormat::SFrame:
+  case LinkerSectionKind::Discard:
+  case LinkerSectionKind::Null:
+  case LinkerSectionKind::Relocation:
+  case LinkerSectionKind::NamePool:
+  case LinkerSectionKind::Group:
+  case LinkerSectionKind::StackNote:
+  case LinkerSectionKind::EhFrame:
+  case LinkerSectionKind::SFrame:
     return false;
   default:
     break;

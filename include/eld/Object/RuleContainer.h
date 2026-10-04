@@ -7,11 +7,11 @@
 #ifndef ELD_OBJECT_RULECONTAINER_H
 #define ELD_OBJECT_RULECONTAINER_H
 
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Object/SectionMap.h"
 #include "eld/Script/Assignment.h"
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/OutputSectDesc.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/DataTypes.h"

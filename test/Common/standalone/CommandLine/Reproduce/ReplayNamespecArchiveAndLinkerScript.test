@@ -1,0 +1,21 @@
+#UNSUPPORTED: windows
+#---ReplayNamespecArchiveAndLinkerScript.test------------ Executable ------#
+#BEGIN_COMMENT
+# Verify --replay works when the reproduced link uses both a linker script and
+# archive lookup via -L/-l.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t.libdir %t.repro.tar
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: %mkdir %t.libdir
+RUN: %ar -cr %aropts %t.libdir/libfoo.a %t.1.o
+RUN: %link %linkopts --no-default-plugins -L%t.libdir -T %p/Inputs/script1.t %t.2.o -lfoo -o %t.orig.out \
+RUN: --reproduce %t.repro.tar --dump-response-file %t.response
+RUN: %filecheck %s --check-prefix=RESPONSE < %t.response
+RUN: %link %linkopts --replay %t.repro.tar -o %t.replay.out
+RUN: %diff %t.orig.out %t.replay.out
+
+RESPONSE-DAG: LinkerScript/
+RESPONSE-DAG: Archives/
+#END_TEST

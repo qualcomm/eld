@@ -16,10 +16,11 @@
 #include "eld/BranchIsland/BranchIsland.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/InputFile.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Readers/Section.h"
 #include "eld/SymbolResolver/LDSymbol.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/ADT/Hashing.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/iterator_range.h"
 #include <string>
@@ -40,7 +41,7 @@ public:
   uint32_t getEntSize() const { return EntSize; }
   ELFSectionBase *getLink() const { return Link; }
   uint32_t getInfo() const { return Info; }
-  LDFileFormat::Kind getKind() const { return ELFSectionKind; }
+  LinkerSectionKind getKind() const { return ELFSectionKind; }
   uint32_t getIndex() const { return Index; }
 
   void setFlags(uint32_t F) { Flags = F; }
@@ -48,23 +49,33 @@ public:
   void setAddrAlign(uint32_t A) { AddrAlign = A; }
   void setEntSize(uint32_t E) { EntSize = E; }
   void setInfo(uint32_t I) { Info = I; }
-  void setKind(LDFileFormat::Kind K) { ELFSectionKind = K; }
+  void setKind(LinkerSectionKind K) { ELFSectionKind = K; }
   void setIndex(uint32_t I) { Index = I; }
   void setLink(ELFSectionBase *L) { Link = L; }
 
-  bool isIgnore() const { return ELFSectionKind == LDFileFormat::Ignore; }
-  bool isMergeKind() const { return ELFSectionKind == LDFileFormat::MergeStr; }
-  bool isNullKind() const { return ELFSectionKind == LDFileFormat::Null; }
-  bool isDiscard() const { return ELFSectionKind == LDFileFormat::Discard; }
-  bool isNoteGNUStack() const {
-    return ELFSectionKind == LDFileFormat::StackNote;
+  bool isIgnore() const { return ELFSectionKind == LinkerSectionKind::Ignore; }
+  bool isMergeKind() const {
+    return ELFSectionKind == LinkerSectionKind::MergeStr;
   }
-  bool isDebugKind() const { return ELFSectionKind == LDFileFormat::Debug; }
-  bool isNoteKind() const { return ELFSectionKind == LDFileFormat::Note; }
-  bool isGroupKind() const { return ELFSectionKind == LDFileFormat::Group; }
-  bool isNamePool() const { return ELFSectionKind == LDFileFormat::NamePool; }
+  bool isNullKind() const { return ELFSectionKind == LinkerSectionKind::Null; }
+  bool isDiscard() const {
+    return ELFSectionKind == LinkerSectionKind::Discard;
+  }
+  bool isNoteGNUStack() const {
+    return ELFSectionKind == LinkerSectionKind::StackNote;
+  }
+  bool isDebugKind() const {
+    return ELFSectionKind == LinkerSectionKind::Debug;
+  }
+  bool isNoteKind() const { return ELFSectionKind == LinkerSectionKind::Note; }
+  bool isGroupKind() const {
+    return ELFSectionKind == LinkerSectionKind::Group;
+  }
+  bool isNamePool() const {
+    return ELFSectionKind == LinkerSectionKind::NamePool;
+  }
   bool isRelocationKind() const {
-    return ELFSectionKind == LDFileFormat::Relocation;
+    return ELFSectionKind == LinkerSectionKind::Relocation;
   }
 
   bool isProgBits() const { return Type == llvm::ELF::SHT_PROGBITS; }
@@ -95,7 +106,7 @@ public:
 
 protected:
   explicit ELFSectionBase(Section::Kind SectionKind,
-                          LDFileFormat::Kind ELFSectionKind,
+                          LinkerSectionKind ELFSectionKind,
                           const std::string &Name, uint32_t Flags,
                           uint32_t EntSize, uint32_t AddrAlign, uint32_t Type,
                           uint32_t Info, ELFSectionBase *Link,
@@ -115,7 +126,7 @@ protected:
   uint32_t Info;
 
   uint32_t Index = 0;
-  LDFileFormat::Kind ELFSectionKind;
+  LinkerSectionKind ELFSectionKind;
 };
 
 /** \class ELFSection
@@ -124,20 +135,18 @@ protected:
  */
 class ELFSection : public ELFSectionBase {
 public:
-  explicit ELFSection(LDFileFormat::Kind ELFSectionKind,
-                      const std::string &Name, uint32_t Flags, uint32_t EntSize,
-                      uint32_t AddrAlign, uint32_t Type, uint32_t Info,
-                      ELFSectionBase *Link, uint32_t SectionSize,
-                      uint64_t PAddr)
+  explicit ELFSection(LinkerSectionKind ELFSectionKind, const std::string &Name,
+                      uint32_t Flags, uint32_t EntSize, uint32_t AddrAlign,
+                      uint32_t Type, uint32_t Info, ELFSectionBase *Link,
+                      uint32_t SectionSize, uint64_t PAddr)
       : ELFSectionBase(Section::ELF, ELFSectionKind, Name, Flags, EntSize,
                        AddrAlign, Type, Info, Link, SectionSize) {}
 
   explicit ELFSection(Section::Kind SectionKind,
-                      LDFileFormat::Kind ELFSectionKind,
-                      const std::string &Name, uint32_t Flags, uint32_t EntSize,
-                      uint32_t AddrAlign, uint32_t Type, uint32_t Info,
-                      ELFSectionBase *Link, uint32_t SectionSize,
-                      uint64_t PAddr)
+                      LinkerSectionKind ELFSectionKind, const std::string &Name,
+                      uint32_t Flags, uint32_t EntSize, uint32_t AddrAlign,
+                      uint32_t Type, uint32_t Info, ELFSectionBase *Link,
+                      uint32_t SectionSize, uint64_t PAddr)
       : ELFSectionBase(SectionKind, ELFSectionKind, Name, Flags, EntSize,
                        AddrAlign, Type, Info, Link, SectionSize) {}
 
@@ -325,6 +334,11 @@ public:
   }
   size_t getRelocationCount() const { return Relocations.size(); }
   void clearRelocations() { Relocations.clear(); }
+  template <typename PredicateT>
+  void removeRelocationsIf(PredicateT Predicate) {
+    Relocations.erase(llvm::remove_if(Relocations, Predicate),
+                      Relocations.end());
+  }
   void appendRelocations(RelocationRange From) {
     Relocations.insert(Relocations.end(), From.begin(), From.end());
   }

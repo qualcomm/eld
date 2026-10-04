@@ -7,7 +7,8 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/exidx.s -o %t.o
-RUN: %link %linkopts --thread-count 4 --threads %t.o -T %p/Inputs/script_exidx_assignment.t -shared -o %t.so
+RUN: %link %linkopts --thread-count 4 --threads --no-merge-exidx-entries \
+RUN:   %t.o -T %p/Inputs/script_exidx_assignment.t -shared -o %t.so
 RUN: %readelf -S -W %t.so > %t.sec
 RUN: %readelf -s %t.so > %t.sym
 RUN: %filecheck %s --check-prefix=SEC < %t.sec

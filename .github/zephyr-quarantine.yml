@@ -16,24 +16,7 @@
     the quotes included.
 
 - scenarios:
-  - kernel.fpu_sharing.generic.riscv32
   - arch.riscv.fpu_sharing
-  - drivers.sensor.generic.fpu
-  - kernel.fpu_sharing.float_disable
-  - libraries.cbprintf.package_fp
-  - libraries.cbprintf.package_fp.picolibc
-  - libraries.cbprintf.package_fp_align_offset
-  - libraries.cbprintf.package_fp_align_offset_cpp
-  - libraries.cbprintf.package_fp_cpp
-  - libraries.cbprintf.package_fp_cpp.picolibc
-  - libraries.cbprintf.package_long_double
-  - libraries.cbprintf.package_long_double_align_offset
-  - libraries.cbprintf.package_long_double_align_offset_cpp
-  - libraries.cbprintf.package_long_double_cpp
-  - libraries.libc.sprintf
-  - libraries.libc.sprintf_new
-  - logging.dictionary.fpu
-  - net.prometheus.histogram
   - zdsp.basicmath.fpu
   platforms:
   - qemu_riscv32/.*
@@ -97,6 +80,13 @@
     LLEXT_TYPE_ELF_RELOCATABLE.
 
 - scenarios:
+  - llext.semihost
+  platforms:
+  - qemu_cortex_a53/.*
+  comment: >-
+    clang emits `.bss.number_in_bss`, but test_inspect expects `.bss`.
+
+- scenarios:
   - bluetooth\.shell\.shell_br(\..*)?
   - posix.threads_base.dynamic_stack
   platforms:
@@ -116,8 +106,8 @@
 # Lookaheads exclude the variants that pass. They are tied to the ARM job's
 # libc config, so recheck them if that changes.
 - scenarios:
-  - logging\.deferred\.api\.(?!.*(?:rt_filter|rt_filtering))(?!printk(?:_cpp)?(?:\.tagged_args)?$).*
-  - logging\.frontend(?!.*(?:rt_filter|rt_filtering|immediate)).*
+  - logging\.deferred\.api\.(?!.*(?:rt_filter|rt_filtering))(?!printk(?:_cpp)?(?:\.tagged_args)?$)(?!override_level(?:\.tagged_args)?$|static_filter\.tagged_args$).*
+  - logging\.frontend(?!.*(?:rt_filter|rt_filtering|immediate))(?!\.dbg$).*
   platforms:
   - qemu_cortex_m3/.*
   comment: >-
@@ -134,24 +124,9 @@
     GCC+ELD passes.
 
 - scenarios:
-  - libraries\.heap_stats_log(?:\.(?!no_thread_stats$).*)?$
-  - libraries\.heap_stats_log\.no_thread_stats
-  platforms:
-  - qemu_cortex_m3/.*
-  comment: >-
-    Same EXIDX merging issue as bluetooth.init.test_20. See issue #225.
-
-- scenarios:
   - integration\.kernel
   platforms:
   - qemu_riscv32_xip/.*
   comment: >-
     The test's noinit section is 0x4020 bytes, but the board has 0x4000 bytes
     of RAM. GCC also overflows by the same amount as ELD.
-
-- scenarios:
-  - bluetooth.init.test_20
-  platforms:
-  - qemu_cortex_m3/.*
-  comment: >-
-    https://github.com/qualcomm/eld/issues/225

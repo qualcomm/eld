@@ -1,2 +1,11 @@
+#---devnull.test--------------------- Executable-------------------------------#
+#BEGIN_COMMENT
+#This tests that the linker supports /dev/null output files.
+#END_COMMENT
+
+#START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
-RUN: %link %linkopts %t1.o -o /dev/null
+RUN: %link %linkopts %t1.o -o /dev/null --verbose 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: Verbose: Skipping output file emission for /dev/null

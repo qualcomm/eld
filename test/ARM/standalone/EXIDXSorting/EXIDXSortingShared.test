@@ -4,7 +4,8 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -target arm -c %p/Inputs/exidx.s -o %t1.1.o
-RUN: %link -MapStyle txt %linkopts -shared %t1.1.o -T %p/Inputs/script.t -o %t2.so -Map %t2.map
+RUN: %link -MapStyle txt %linkopts --no-merge-exidx-entries -shared \
+RUN:   %t1.1.o -T %p/Inputs/script.t -o %t2.so -Map %t2.map
 RUN: %filecheck %s --check-prefix=MAP < %t2.map
 RUN: %readelf -u %t2.so | %filecheck %s --check-prefix=UNW
 

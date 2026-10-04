@@ -1068,8 +1068,10 @@ void TextLayoutPrinter::printDynamicList(Module &CurModule, bool UseColor) {
 
 // If version list is present, add it to map file along with the symbol list.
 void TextLayoutPrinter::printVersionList(Module &CurModule, bool UseColor) {
-  auto &VersionScripts = CurModule.getVersionScripts();
-  if (!VersionScripts.size())
+  const auto &VersionScripts = CurModule.getVersionScripts();
+  const auto &LinkerScriptVersionScripts =
+      CurModule.getLinkerScriptVersionScripts();
+  if (VersionScripts.empty() && LinkerScriptVersionScripts.empty())
     return;
   outputStream() << "\nVersion Script Information\n";
   if (UseColor)
@@ -1077,6 +1079,8 @@ void TextLayoutPrinter::printVersionList(Module &CurModule, bool UseColor) {
   std::function<std::string(const Input *)> GetDecoratedPath =
       [=](const Input *I) { return this->getDecoratedPath(I); };
   for (const auto *Item : VersionScripts)
+    Item->dump(outputStream(), GetDecoratedPath);
+  for (const auto *Item : LinkerScriptVersionScripts)
     Item->dump(outputStream(), GetDecoratedPath);
   if (UseColor)
     outputStream().resetColor();

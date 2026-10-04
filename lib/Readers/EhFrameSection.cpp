@@ -31,9 +31,9 @@ llvm::DenseMap<std::pair<llvm::ArrayRef<uint8_t>, ResolveInfo *>, EhFrameCIE *>
 EhFrameSection::EhFrameSection(std::string Name, DiagnosticEngine *E,
                                uint32_t Type, uint32_t Flags, uint32_t EntSize,
                                uint64_t Size)
-    : ELFSection(Section::Kind::EhFrame, LDFileFormat::EhFrame, Name, Flags,
-                 EntSize, /*AddrAlign=*/0, Type, /*Info=*/0, /*Link=*/nullptr,
-                 Size, /*PAddr=*/0),
+    : ELFSection(Section::Kind::EhFrame, LinkerSectionKind::EhFrame, Name,
+                 Flags, EntSize, /*AddrAlign=*/0, Type, /*Info=*/0,
+                 /*Link=*/nullptr, Size, /*PAddr=*/0),
       m_DiagEngine(E) {}
 
 size_t EhFrameSection::readEhRecordSize(size_t Off) {
@@ -169,11 +169,11 @@ EhFrameCIE *EhFrameSection::addCie(EhFramePiece &P) {
 // Handle fake eh_frame sections.
 void EhFrameSection::finishAddingFragments(Module &ThisModule) {
   if (!size()) {
-    setKind(LDFileFormat::Regular);
+    setKind(LinkerSectionKind::Regular);
     return;
   }
   if (m_EhFrame->getCIEs().empty()) {
-    setKind(LDFileFormat::Regular);
+    setKind(LinkerSectionKind::Regular);
     Fragments.push_back(m_EhFrame);
     if (ThisModule.getLayoutInfo())
       ThisModule.getLayoutInfo()->recordFragment(getInputFile(), this, m_EhFrame);

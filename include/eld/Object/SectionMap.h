@@ -12,12 +12,12 @@
 //===----------------------------------------------------------------------===//
 #ifndef ELD_OBJECT_SECTIONMAP_H
 #define ELD_OBJECT_SECTIONMAP_H
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Object/OutputSectionEntry.h"
 #include "eld/Object/RuleContainer.h"
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/OutputSectDesc.h"
 #include "eld/Script/WildcardPattern.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/ADT/StringRef.h"
 #include <unordered_map>
 #include <vector>
@@ -99,10 +99,10 @@ public:
   iterator insert(iterator PPosition, OutputSectionEntry *Output);
 
   ELFSection *createOutputSectionEntry(std::string Section,
-                                       LDFileFormat::Kind Kind, uint32_t Type,
+                                       LinkerSectionKind Kind, uint32_t Type,
                                        uint32_t Flag, uint32_t Align);
 
-  ELFSection *createELFSection(const std::string &Name, LDFileFormat::Kind K,
+  ELFSection *createELFSection(const std::string &Name, LinkerSectionKind K,
                                uint32_t Type, uint32_t Flags, uint32_t EntSize);
 
   EhFrameHdrSection *createEhFrameHdrSection(std::string Section, uint32_t Type,

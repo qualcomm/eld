@@ -10,10 +10,12 @@
 #include "eld/PluginAPI/Expected.h"
 #include "llvm/ADT/StringMap.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace llvm {
+class MemoryBuffer;
 class MemoryBufferRef;
 class raw_ostream;
 class StringRef;

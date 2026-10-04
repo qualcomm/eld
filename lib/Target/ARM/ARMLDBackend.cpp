@@ -44,6 +44,7 @@
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Object/ELFTypes.h"
+#include "llvm/Support/ARMEHABI.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/FileSystem.h"
@@ -54,6 +55,12 @@
 
 using namespace eld;
 using namespace llvm;
+
+// References to .ARM.extab sections have bit 31 clear and are not the
+// special EXIDX_CANTUNWIND entry.
+static bool isExtabRef(uint32_t unwind) {
+  return (unwind & 0x80000000u) == 0 && unwind != ARM::EHABI::EXIDX_CANTUNWIND;
+}
 
 //===----------------------------------------------------------------------===//
 // ARMGNULDBackend
@@ -83,7 +90,7 @@ void ARMGNULDBackend::createAttributeSection(uint32_t Flag, uint32_t Align) {
   if (m_pARMAttributeSection)
     return;
   m_pARMAttributeSection = m_Module.createInternalSection(
-      Module::InternalInputType::Attributes, LDFileFormat::Internal,
+      Module::InternalInputType::Attributes, LinkerSectionKind::Internal,
       ".ARM.attributes", llvm::ELF::SHT_ARM_ATTRIBUTES, Flag, Align);
 }
 
@@ -99,7 +106,7 @@ void ARMGNULDBackend::initTargetSections(ObjectBuilder &pBuilder) {
   // FIXME: Currently we set exidx and extab to "Exception" and directly emit
   // them from input
   m_pEXIDX = m_Module.createInternalSection(
-      Module::InternalInputType::Exception, LDFileFormat::Internal,
+      Module::InternalInputType::Exception, LinkerSectionKind::Internal,
       ".ARM.exidx", llvm::ELF::SHT_ARM_EXIDX,
       llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_LINK_ORDER, 4);
 
@@ -109,15 +116,15 @@ void ARMGNULDBackend::initTargetSections(ObjectBuilder &pBuilder) {
   // is always placed last.  Partial links (-r) do not get a sentinel.
   if (LinkerConfig::Object != config().codeGenType()) {
     m_pEXIDXSentinel = m_Module.createInternalSection(
-        Module::InternalInputType::Exception, LDFileFormat::Internal,
+        Module::InternalInputType::Exception, LinkerSectionKind::Internal,
         ".ARM.exidx", llvm::ELF::SHT_ARM_EXIDX,
         llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_LINK_ORDER, 4);
-    m_pSentinelFrag = make<EXIDXSentinelFragment>(m_pEXIDXSentinel);
-    m_pEXIDXSentinel->addFragment(m_pSentinelFrag);
+    SentinelFrag = make<EXIDXSentinelFragment>(m_pEXIDXSentinel);
+    m_pEXIDXSentinel->addFragment(SentinelFrag);
     LayoutInfo *LI = getModule().getLayoutInfo();
     if (LI)
       LI->recordFragment(m_pEXIDXSentinel->getInputFile(), m_pEXIDXSentinel,
-                         m_pSentinelFrag);
+                         SentinelFrag);
   }
 }
 
@@ -234,7 +241,8 @@ void ARMGNULDBackend::doPreLayout() {
   // For each EXIDX input section, ensure its output section's sh_link points
   // to the output .text section (not the raw input section).  This is needed
   // because ObjectBuilder stores the input-section link on the output section;
-  // getSectLink must return an output section index.
+  // getSectLink must return an output section index. Final links select the
+  // link for a merged .ARM.exidx section after sorting below.
   for (const auto &KV : m_EXIDXFragments) {
     EXIDXFragment *Frag = KV.second;
     ELFSection *InputExidx = Frag->getOwningSection();
@@ -250,40 +258,22 @@ void ARMGNULDBackend::doPreLayout() {
     if (OutLink)
       OutExidx->setLink(OutLink);
   }
-
-  // Activate the sentinel fragment early so its 8-byte contribution to the
-  // .ARM.exidx output section size is known during the address-assignment
-  // layout pass.  Without this, the sentinel size would be 0 at layout time
-  // and .dynamic (or whatever follows) would be placed at an address that
-  // overlaps with the sentinel once it is activated in doPostLayout.
-  //
-  // Match GNU ld: only emit the sentinel when at least one live EXIDX entry
-  // carries real unwind data (i.e. not a bare CANTUNWIND word 0x1).
-  if (m_pSentinelFrag) {
-    for (const auto &KV : m_EXIDXFragments) {
-      EXIDXFragment *Frag = KV.second;
-      ELFSection *OutSec = Frag->getOutputELFSection();
-      if (OutSec && !OutSec->isIgnore() && !OutSec->isDiscard() &&
-          Frag->hasRealUnwindData()) {
-        m_pSentinelFrag->activate();
-        break;
-      }
-    }
-  }
 }
 
-void ARMGNULDBackend::sortEXIDX() {
+bool ARMGNULDBackend::sortEXIDX() {
   // ARM EHABI requires .ARM.exidx entries to be sorted by the address of
   // the function each entry describes.
   ELFSection *E =
       m_Module.getScript().sectionMap().find(llvm::ELF::SHT_ARM_EXIDX);
 
   if (!E)
-    return;
+    return false;
 
   OutputSectionEntry *O = E->getOutputSection();
   if (!O)
-    return;
+    return false;
+
+  const uint64_t OriginalSize = O->getSection()->size();
 
   const uint64_t MaxSortKey = std::numeric_limits<uint64_t>::max();
 
@@ -363,7 +353,7 @@ void ARMGNULDBackend::sortEXIDX() {
         if (R->type() == llvm::ELF::R_ARM_NONE)
           continue;
 
-        const uint32_t RelocOffset = R->targetRef()->offset();
+        const uint32_t RelocOffset = EXIDX->getRelocationInputOffset(R);
         EXIDXPiece Piece = EXIDX->getPiece(RelocOffset);
         if (RelocOffset != Piece.InputOffset)
           continue;
@@ -389,19 +379,6 @@ void ARMGNULDBackend::sortEXIDX() {
                          return OriginalOrder.lookup(A.InputOffset) <
                                 OriginalOrder.lookup(B.InputOffset);
                        });
-
-      // Relocations record their target position using input-section offsets.
-      // After sorting, pieces are reordered in the output, so input offset 0
-      // may no longer be output offset 0.
-      for (Relocation *R : Owning->getRelocations()) {
-        if (!R || !R->targetRef() || R->targetRef()->isNull())
-          continue;
-        if (R->targetRef()->frag() != EXIDX)
-          continue;
-        uint32_t NewOffset =
-            EXIDX->translateInputOffset(R->targetRef()->offset());
-        R->targetRef()->setOffset(NewOffset);
-      }
 
       uint64_t FragKey = MaxSortKey;
       for (const EXIDXPiece &P : Pieces)
@@ -445,55 +422,148 @@ void ARMGNULDBackend::sortEXIDX() {
                        return KeyA < KeyB;
                      return false;
                    });
-  evaluateAssignments(O);
+
+  // The sentinel needs to be kept after the last rule
+  // as required by the ARM EHABI table layout.
+  if (SentinelFrag) {
+    ELFSection *TargetSection = nullptr;
+    for (auto It = O->end(); It != O->begin();) {
+      ELFSection *Section = (*--It)->getSection();
+      if (!Section || Section->isIgnore() || Section->isDiscard())
+        continue;
+      if (std::any_of(Section->getFragmentList().begin(),
+                      Section->getFragmentList().end(), [&](Fragment *F) {
+                        return EXIDXFragSet.contains(F) && !F->isNull() &&
+                               F->size();
+                      })) {
+        TargetSection = Section;
+        break;
+      }
+    }
+
+    ELFSection *OwningSection = SentinelFrag->getOwningSection();
+    RuleContainer *CurrentRule =
+        OwningSection ? OwningSection->getMatchedLinkerScriptRule() : nullptr;
+    if (CurrentRule && TargetSection &&
+        CurrentRule->getSection()->removeFragment(SentinelFrag)) {
+      TargetSection->addFragment(SentinelFrag);
+      OwningSection->setMatchedLinkerScriptRule(
+          TargetSection->getMatchedLinkerScriptRule());
+    }
+  }
 
   Fragment *FirstEXIDXFrag = nullptr;
   Fragment *LastEXIDXFrag = nullptr;
+  uint32_t PrevUnwind = 0;
+  const bool ShouldMerge = LinkerConfig::Object != config().codeGenType() &&
+                           config().options().mergeEXIDXEntries();
+  const bool RecordLastLinkedSection = !EXIDXLastLinkedSection;
   for (auto &In : *O) {
     ELFSection *S = In->getSection();
     if (!S)
       continue;
+    const bool IsLive = !S->isIgnore() && !S->isDiscard();
     for (Fragment *F : S->getFragmentList()) {
-      if (F->isNull())
+      if (!EXIDXFragSet.contains(F)) {
+        if (IsLive && ShouldMerge && F->size())
+          PrevUnwind = 0;
         continue;
-      if (!EXIDXFragSet.contains(F))
+      }
+
+      auto *EXIDX = cast<EXIDXFragment>(F);
+      ELFSection *Owning = EXIDX->getOwningSection();
+      auto &Pieces = EXIDX->getPieces();
+
+      // Keep the linked output section of the original final EXIDX fragment.
+      // Deduplication can remove every entry from that fragment.
+      if (IsLive && RecordLastLinkedSection && !Pieces.empty() && Owning) {
+        if (ELFSection *InputLink = Owning->getLink())
+          EXIDXLastLinkedSection = InputLink->getOutputELFSection();
+      }
+
+      if (IsLive && ShouldMerge) {
+        llvm::SmallVector<uint32_t, 4> RemovedOffsets;
+        for (const EXIDXPiece &Piece : Pieces) {
+          uint32_t Unwind = 0;
+          if (!EXIDX->getUnwindWord(Piece, Unwind) || isExtabRef(Unwind)) {
+            PrevUnwind = 0;
+            continue;
+          }
+          if (PrevUnwind == Unwind) {
+            RemovedOffsets.push_back(Piece.InputOffset);
+            continue;
+          }
+          PrevUnwind = Unwind;
+        }
+        if (!RemovedOffsets.empty())
+          EXIDX->removePieces(RemovedOffsets);
+      }
+
+      if (IsLive && !F->isNull() && F->size()) {
+        if (!FirstEXIDXFrag)
+          FirstEXIDXFrag = F;
+        LastEXIDXFrag = F;
+      }
+
+      // Relocations use input section offsets while pieces are sorted.
+      // Translate them after duplicate pieces have been removed.
+      if (!Owning)
         continue;
-      if (!F->size())
-        continue;
-      if (!FirstEXIDXFrag)
-        FirstEXIDXFrag = F;
-      LastEXIDXFrag = F;
+      for (Relocation *R : Owning->getRelocations()) {
+        if (!R || !R->targetRef() || R->targetRef()->isNull() ||
+            R->targetRef()->frag() != EXIDX)
+          continue;
+        uint32_t NewOffset =
+            EXIDX->translateInputOffset(EXIDX->getRelocationInputOffset(R));
+        R->targetRef()->setOffset(NewOffset);
+      }
     }
   }
 
-  // The sentinel was activated in doPreLayout to ensure its 8-byte size was
-  // included in the layout pass.  Here we set the PREL31 target address once
-  // output addresses are available.
-  if (m_pSentinelFrag && m_pSentinelFrag->size() && LastEXIDXFrag) {
-    // The rule's MPSection has no sh_link; use the fragment's owning input
-    // section (the actual .ARM.exidx.* section) to resolve the linked .text
-    // output section whose addr() is set by layout.
-    auto *LastEXIDX = dyn_cast<EXIDXFragment>(LastEXIDXFrag);
-    ELFSection *OwningSection =
-        LastEXIDX ? LastEXIDX->getOwningSection() : nullptr;
+  // All input .ARM.exidx sections in this output section share one sh_link.
+  // Select it from the first fragment after EXIDX sorting, rather than from
+  // the iteration order of m_EXIDXFragments (an unordered DenseMap).
+  if (!config().isLinkPartial() && FirstEXIDXFrag) {
+    auto *FirstEXIDX = dyn_cast<EXIDXFragment>(FirstEXIDXFrag);
+    ELFSection *OwningSection = FirstEXIDX->getOwningSection();
     ELFSection *InputLink = OwningSection ? OwningSection->getLink() : nullptr;
-    ELFSection *LastLinkedSection =
+    ELFSection *OutputLink =
         InputLink ? InputLink->getOutputELFSection() : nullptr;
-    if (LastLinkedSection)
-      m_pSentinelFrag->setTargetAddr(LastLinkedSection->addr() +
-                                     LastLinkedSection->size());
+    if (OutputLink)
+      E->setLink(OutputLink);
   }
+
+  // GNU ld omits the sentinel when the final entry is CANTUNWIND.
+  if (SentinelFrag) {
+    bool NeedsSentinel = false;
+    if (auto *LastEXIDX = dyn_cast_or_null<EXIDXFragment>(LastEXIDXFrag)) {
+      const auto &Pieces = LastEXIDX->getPieces();
+      uint32_t Unwind = 0;
+      NeedsSentinel = !Pieces.empty() &&
+                      LastEXIDX->getUnwindWord(Pieces.back(), Unwind) &&
+                      Unwind != ARM::EHABI::EXIDX_CANTUNWIND;
+    }
+    SentinelFrag->setActive(NeedsSentinel);
+  }
+
+  evaluateAssignments(O);
+
+  if (SentinelFrag && SentinelFrag->size() && EXIDXLastLinkedSection)
+    SentinelFrag->setTargetAddr(EXIDXLastLinkedSection->addr() +
+                                EXIDXLastLinkedSection->size());
 
   if (m_pEXIDXStart && FirstEXIDXFrag)
     m_pEXIDXStart->setFragmentRef(make<FragmentRef>(*FirstEXIDXFrag, 0));
   // __exidx_end points past the sentinel (the true end of the EXIDX table).
-  if (m_pEXIDXEnd && m_pSentinelFrag && m_pSentinelFrag->size()) {
+  if (m_pEXIDXEnd && SentinelFrag && SentinelFrag->size()) {
     m_pEXIDXEnd->setFragmentRef(
-        make<FragmentRef>(*m_pSentinelFrag, m_pSentinelFrag->size()));
+        make<FragmentRef>(*SentinelFrag, SentinelFrag->size()));
   } else if (m_pEXIDXEnd && LastEXIDXFrag) {
     m_pEXIDXEnd->setFragmentRef(
         make<FragmentRef>(*LastEXIDXFrag, LastEXIDXFrag->size()));
   }
+
+  return O->getSection()->size() != OriginalSize;
 }
 
 bool ARMGNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
@@ -540,17 +610,16 @@ void ARMGNULDBackend::updateFloatABIFlag() {
 }
 
 void ARMGNULDBackend::doPostLayout() {
-  {
+  if (LinkerConfig::Object == config().codeGenType()) {
     eld::RegisterTimer T("Sort EXIDX Fragments if Present", "Do Post Layout",
                          m_Module.getConfig().options().printTimingStats());
-    ELFSection *exidx =
-        m_Module.getScript().sectionMap().find(llvm::ELF::SHT_ARM_EXIDX);
-    if (exidx)
-      sortEXIDX();
+    sortEXIDX();
   }
 
   GNULDBackend::doPostLayout();
 }
+
+bool ARMGNULDBackend::updateTargetSections() { return sortEXIDX(); }
 
 void ARMGNULDBackend::initSegmentFromLinkerScript(ELFSegment *pSegment) {
   ELFSegment::iterator sect = pSegment->begin(), sectEnd = pSegment->end();
@@ -582,7 +651,7 @@ void ARMGNULDBackend::initSegmentFromLinkerScript(ELFSegment *pSegment) {
 
       // Convert to PROBIT
       cur->setType(llvm::ELF::SHT_PROGBITS);
-      cur->setKind(LDFileFormat::Regular);
+      cur->setKind(LinkerSectionKind::Regular);
       config().raise(Diag::warn_mix_bss_section)
           << lastMixedNonBSSSection->name() << cur->name();
     }
@@ -686,7 +755,7 @@ void ARMGNULDBackend::finalizeBeforeWrite() {
 }
 
 bool ARMGNULDBackend::DoesOverrideMerge(ELFSection *pSection) const {
-  if (pSection->getKind() == LDFileFormat::Internal)
+  if (pSection->getKind() == LinkerSectionKind::Internal)
     return false;
   if (pSection->getType() == llvm::ELF::SHT_ARM_ATTRIBUTES)
     return true;
@@ -717,7 +786,7 @@ ELFSection *ARMGNULDBackend::mergeSection(ELFSection *pSection) {
     else if (pSection->getLink()->isIgnore()) {
       // if the target section of the .ARM.exidx is Ignore, then it should be
       // ignored as well
-      pSection->setKind(LDFileFormat::Ignore);
+      pSection->setKind(LinkerSectionKind::Ignore);
       return nullptr;
     }
     ObjectBuilder builder(config(), m_Module);
@@ -775,7 +844,7 @@ void ARMGNULDBackend::setUpReachedSectionsForGC(
           // only the target symbols defined in the concerned sections can make
           // the reference
           ELFSection *target_sect = sym->getOwningSection();
-          if (target_sect->getKind() != LDFileFormat::Regular &&
+          if (target_sect->getKind() != LinkerSectionKind::Regular &&
               target_sect->isNoBits())
             continue;
 

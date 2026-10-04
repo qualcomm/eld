@@ -469,7 +469,7 @@ void x86_64LDBackend::sortRelocation(ELFSection &pSection) {
   if (!config().options().hasCombReloc())
     return;
 
-  if (pSection.getKind() != LDFileFormat::DynamicRelocation)
+  if (pSection.getKind() != LinkerSectionKind::DynamicRelocation)
     return;
 
   if ((pSection.name() != ".rel.dyn") && (pSection.name() != ".rela.dyn"))

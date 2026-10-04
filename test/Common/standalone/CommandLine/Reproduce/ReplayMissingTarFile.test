@@ -1,0 +1,9 @@
+#---ReplayMissingTarFile.test--------------- Executable -------------------#
+#BEGIN_COMMENT
+# Verify --replay reports an error when tarball path does not exist.
+#END_COMMENT
+#START_TEST
+RUN: %not %link %linkopts --replay %t.this_tar_does_not_exist.tar -o %t.out 2>&1 | %filecheck %s
+
+CHECK: error: failed to read replay tarball:
+#END_TEST

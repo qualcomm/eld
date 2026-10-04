@@ -258,6 +258,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (llvm::opt::Arg *arg = Args.getLastArg(T::warn_limit))
     Config.getPrinter()->setUserWarningLimit(getUnsignedInteger(arg, 10));
 
+  // Accept numeric -O levels for GNU linker compatibility, but ignore them.
+  for (auto *Arg : Args.filtered(T::O))
+    getUnsignedInteger(Arg, 0);
+
   // -t
   if (Args.hasArg(T::dash_t))
     Config.options().setTrace(true);
@@ -1344,6 +1348,19 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
   int GroupMatchCount = 0;
   int LibMatchCount = 0;
   bool HasVersionAction = false;
+  size_t ReplayBeginIndex = 0;
+  size_t ReplayEndIndex = 0;
+  bool HasReplayInputRange = false;
+  if (Config.getReproduceTarReader()) {
+    llvm::opt::Arg *ReplayBegin = Args.getLastArg(T::replay_begin_internal);
+    llvm::opt::Arg *ReplayEnd = Args.getLastArg(T::replay_end_internal);
+    if (ReplayBegin && ReplayEnd &&
+        ReplayBegin->getIndex() < ReplayEnd->getIndex()) {
+      ReplayBeginIndex = ReplayBegin->getIndex();
+      ReplayEndIndex = ReplayEnd->getIndex();
+      HasReplayInputRange = true;
+    }
+  }
 
   for (llvm::opt::Arg *arg : Args) {
     switch (arg->getOption().getID()) {
@@ -1503,8 +1520,17 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
     } break;
 
     case T::INPUT: {
-      actions.push_back(eld::make<eld::InputFileAction>(arg->getValue(),
-                                                        Config.getPrinter()));
+      // Only inputs originating from replay response expansion should be
+      // treated as replay-backed. User positional inputs after --replay remain
+      // regular filesystem inputs.
+      if (HasReplayInputRange && arg->getIndex() > ReplayBeginIndex &&
+          arg->getIndex() < ReplayEndIndex) {
+        actions.push_back(eld::make<eld::ReplayInputFileAction>(
+            arg->getValue(), Config.getPrinter()));
+      } else {
+        actions.push_back(eld::make<eld::InputFileAction>(arg->getValue(),
+                                                          Config.getPrinter()));
+      }
       ++input_num;
     } break;
 

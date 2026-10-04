@@ -20,6 +20,7 @@
 #include "eld/Input/ArchiveMemberInput.h"
 #include "eld/Input/InputFile.h"
 #include "eld/Input/ObjectFile.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Object/ObjectLinker.h"
 #include "eld/Object/RuleContainer.h"
 #include "eld/Object/SectionMap.h"
@@ -32,7 +33,6 @@
 #include "eld/Support/RegisterTimer.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Parallel.h"
@@ -243,12 +243,12 @@ void ObjectBuilder::doPluginIterateSections(eld::InputFile *Obj,
       continue;
     ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
     // Get the section kind.
-    int32_t SectionKind = Section->getKind();
-    if (SectionKind == LDFileFormat::Null ||
-        SectionKind == LDFileFormat::StackNote ||
-        (SectionKind == LDFileFormat::NamePool && !IsLinkerInternal) ||
-        (SectionKind == LDFileFormat::Relocation && !IsLinkerInternal) ||
-        SectionKind == LDFileFormat::Group)
+    LinkerSectionKind SectionKind = Section->getKind();
+    if (SectionKind == LinkerSectionKind::Null ||
+        SectionKind == LinkerSectionKind::StackNote ||
+        (SectionKind == LinkerSectionKind::NamePool && !IsLinkerInternal) ||
+        (SectionKind == LinkerSectionKind::Relocation && !IsLinkerInternal) ||
+        SectionKind == LinkerSectionKind::Group)
       continue;
     if (P->getType() == plugin::Plugin::Type::SectionIterator &&
         Section->isIgnore())
@@ -347,9 +347,9 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
           In->incMatchCount();
           Sect->setOutputSection(Out);
           Sect->setMatchedLinkerScriptRule(In);
-          // FIXME: Shouldn't we set ELFSect to LDFileFormat::Discard?
+          // FIXME: Shouldn't we set ELFSect to LinkerSectionKind::Discard?
           if (ELFSect && Out->isDiscard()) {
-            ELFSect->setKind(LDFileFormat::Ignore);
+            ELFSect->setKind(LinkerSectionKind::Ignore);
             if (ThisConfig.options().isSectionTracingRequested() &&
                 ThisConfig.options().traceSection(ELFSect->name().str()))
               ThisConfig.raise(Diag::discarded_section_info)
@@ -456,9 +456,9 @@ void ObjectBuilder::assignInputFromOutputLegacy(eld::InputFile *Obj) {
           In->incMatchCount();
           Section->setOutputSection(Out);
           Section->setMatchedLinkerScriptRule(In);
-          // FIXME: Shouldn't we set ELFSect to LDFileFormat::Discard?
+          // FIXME: Shouldn't we set ELFSect to LinkerSectionKind::Discard?
           if (ELFSect && Out->isDiscard()) {
-            ELFSect->setKind(LDFileFormat::Ignore);
+            ELFSect->setKind(LinkerSectionKind::Ignore);
             if (ThisConfig.options().isSectionTracingRequested() &&
                 ThisConfig.options().traceSection(ELFSect->name().str()))
               ThisConfig.raise(Diag::discarded_section_info)
@@ -624,7 +624,7 @@ void ObjectBuilder::mayChangeSectionTypeOrKind(ELFSection *Target,
     return;
   }
   if (Target->isNoBits() && !I->isNoBits()) {
-    Target->setKind(LDFileFormat::Regular);
+    Target->setKind(LinkerSectionKind::Regular);
     Target->setType(llvm::ELF::SHT_PROGBITS);
     return;
   }
@@ -691,9 +691,9 @@ void ObjectBuilder::updateSectionFlags(ELFSection *PTo, ELFSection *PFrom) {
 
   PTo->setFlags(Flags);
 
-  if (PTo->getKind() != LDFileFormat::Internal &&
+  if (PTo->getKind() != LinkerSectionKind::Internal &&
       (Flags & llvm::ELF::SHF_MASKPROC))
-    PTo->setKind(LDFileFormat::Target);
+    PTo->setKind(LinkerSectionKind::Target);
 }
 
 /// This function figures out if a new section section needs to be created, or
@@ -879,9 +879,9 @@ ObjectBuilder::getInputSectionsForRuleMatching(ObjectFile *ObjFile) {
   for (Section *S : ObjFile->getSections()) {
     if (ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(S)) {
       // Get the section kind.
-      int32_t SectionKind = ELFSect->getKind();
-      if (SectionKind == LDFileFormat::Discard ||
-          SectionKind == LDFileFormat::Ignore) {
+      LinkerSectionKind SectionKind = ELFSect->getKind();
+      if (SectionKind == LinkerSectionKind::Discard ||
+          SectionKind == LinkerSectionKind::Ignore) {
         if (ThisConfig.options().isSectionTracingRequested() &&
             ThisConfig.options().traceSection(ELFSect->name().str()))
           ThisConfig.raise(Diag::discarded_section_info)
@@ -889,11 +889,11 @@ ObjectBuilder::getInputSectionsForRuleMatching(ObjectFile *ObjFile) {
               << ObjFile->getInput()->decoratedPath();
         continue;
       }
-      if (SectionKind == LDFileFormat::Null ||
-          SectionKind == LDFileFormat::StackNote ||
-          SectionKind == LDFileFormat::NamePool ||
-          (SectionKind == LDFileFormat::Relocation && !IsLinkerInternal) ||
-          SectionKind == LDFileFormat::Group)
+      if (SectionKind == LinkerSectionKind::Null ||
+          SectionKind == LinkerSectionKind::StackNote ||
+          SectionKind == LinkerSectionKind::NamePool ||
+          (SectionKind == LinkerSectionKind::Relocation && !IsLinkerInternal) ||
+          SectionKind == LinkerSectionKind::Group)
         continue;
       if (ELFSect->getOutputSection())
         continue;

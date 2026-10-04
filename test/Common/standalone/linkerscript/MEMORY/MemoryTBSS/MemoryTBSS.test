@@ -22,4 +22,4 @@ RUN: %filecheck %s -check-prefix=MAP < %t1.map
 #MAP: .tbss {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE|SHF_TLS, Type: SHT_NOBITS, Memory : [MYMEM, MYMEM]
 #MAP: .mydata {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_PROGBITS, Memory : [MYMEM, MYMEM]
 #MAP: .otherdata {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_PROGBITS, Memory : [MYMEM, MYMEM]
-#MAP: /DISCARD/ {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS, Memory : [MYMEM, MYMEM]
+#MAP: /DISCARD/ {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS

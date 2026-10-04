@@ -21,7 +21,7 @@ OutputSectionEntry::OutputSectionEntry(SectionMap *Parent, std::string PName)
       Order(UINT_MAX), FirstNonEmptyRule(nullptr), LastRule(nullptr) {
   OutputSectionDesc = eld::make<OutputSectDesc>(PName);
   OutputELFSection =
-      Parent->createELFSection(PName, LDFileFormat::Regular,
+      Parent->createELFSection(PName, LinkerSectionKind::Regular,
                                /*Type=*/0, /*Flags=*/0, /*EntSize=*/0);
   // Set a default index. This index will be overwritten later by postLayout.
   OutputELFSection->setIndex(Index++);
@@ -38,7 +38,7 @@ OutputSectionEntry::OutputSectionEntry(SectionMap *Parent, ELFSection *S)
 }
 
 OutputSectionEntry::OutputSectionEntry(SectionMap *Parent, std::string PName,
-                                       LDFileFormat::Kind PKind, uint32_t PType,
+                                       LinkerSectionKind PKind, uint32_t PType,
                                        uint32_t PFlag, uint32_t PAlign)
     : Name(PName), LoadSegment(nullptr), Order(UINT_MAX),
       FirstNonEmptyRule(nullptr), LastRule(nullptr) {
@@ -58,7 +58,7 @@ OutputSectionEntry::OutputSectionEntry(SectionMap *Parent,
       OutputELFSection(nullptr), LoadSegment(nullptr), Order(UINT_MAX),
       FirstNonEmptyRule(nullptr), LastRule(nullptr) {
   OutputELFSection =
-      Parent->createELFSection(Name, LDFileFormat::Regular,
+      Parent->createELFSection(Name, LinkerSectionKind::Regular,
                                /*Type*/ 0, /*Flags*/ 0, /*EntSize*/ 0);
   // Set a default index. This index will be overwritten later by postLayout.
   OutputELFSection->setIndex(Index++);

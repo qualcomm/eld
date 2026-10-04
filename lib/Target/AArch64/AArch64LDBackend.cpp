@@ -228,7 +228,7 @@ void AArch64LDBackend::initSegmentFromLinkerScript(
 
       // Convert to PROBIT
       cur->setType(llvm::ELF::SHT_PROGBITS);
-      cur->setKind(LDFileFormat::Regular);
+      cur->setKind(LinkerSectionKind::Regular);
       config().raise(Diag::warn_mix_bss_section)
           << lastMixedNonBSSSection->name() << cur->name();
     }
@@ -787,7 +787,7 @@ void AArch64LDBackend::createGNUPropertySection(bool force) {
   if (m_pNoteGNUProperty)
     return;
   m_pNoteGNUProperty = m_Module.createInternalSection(
-      Module::InternalInputType::Sections, LDFileFormat::Internal,
+      Module::InternalInputType::Sections, LinkerSectionKind::Internal,
       ".note.gnu.property", llvm::ELF::SHT_NOTE, llvm::ELF::SHF_ALLOC, 1);
   m_pGPF = eld::make<AArch64NoteGNUPropertyFragment>(m_pNoteGNUProperty);
   m_pNoteGNUProperty->addFragmentAndUpdateSize(m_pGPF);
@@ -796,7 +796,7 @@ void AArch64LDBackend::createGNUPropertySection(bool force) {
 
 bool AArch64LDBackend::readSection(InputFile &pInput, ELFSection *S) {
   // We need break them down to individual entry
-  if (S->getKind() == LDFileFormat::GNUProperty) {
+  if (S->getKind() == LinkerSectionKind::GNUProperty) {
     // Force create GNU property section
     createGNUPropertySection(true);
     S->setWanted(true);
@@ -812,7 +812,7 @@ bool AArch64LDBackend::readSection(InputFile &pInput, ELFSection *S) {
 }
 
 bool AArch64LDBackend::DoesOverrideMerge(ELFSection *pSection) const {
-  if (pSection->getKind() == LDFileFormat::Internal)
+  if (pSection->getKind() == LinkerSectionKind::Internal)
     return false;
   if (pSection->name() == ".note.gnu.property")
     return true;

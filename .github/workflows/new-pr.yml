@@ -1,4 +1,5 @@
 name: "New pull requests policy check"
+# owner: quic-seaswara
 
 permissions:
   contents: read
@@ -24,6 +25,7 @@ jobs:
       pull-requests: write
     if: >
       github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
       (github.event.action == 'opened' ||
        github.event.action == 'reopened' ||
        github.event.action == 'ready_for_review')
@@ -37,7 +39,8 @@ jobs:
   policy-checks:
     needs: automate-pr-labels
     if: >
-      always() && github.event.pull_request.draft == false
+      always() &&
+      github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -56,7 +59,8 @@ jobs:
             const pull = await github.rest.pulls.get({ owner, repo, pull_number: number });
 
             const labels = pull.data.labels.map(label => label.name);
-            core.setOutput('has-labels', labels.length > 0 ? 'true' : 'false');
+            core.setOutput('has_labels', labels.length > 0 ? 'true' : 'false');
+            core.setOutput('skip_pr_check', labels.includes('skip-pr-check') ? 'true' : 'false');
 
             const linked = await github.graphql(`
               query($owner: String!, $repo: String!, $number: Int!) {
@@ -80,15 +84,16 @@ jobs:
               .filter(issue => issue.state === 'CLOSED')
               .map(issue => `${issue.repository.nameWithOwner}#${issue.number}`);
 
-            core.setOutput('has-linked-issue', references.length > 0 ? 'true' : 'false');
-            core.setOutput('closed-issues', closed.join(', '));
+            core.setOutput('has_linked_issue', references.length > 0 ? 'true' : 'false');
+            core.setOutput('closed_issues', closed.join(', '));
 
       - name: Report PR policy warnings
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
-          HAS_LABELS: ${{ steps.metadata.outputs.has-labels }}
-          HAS_LINKED_ISSUE: ${{ steps.metadata.outputs.has-linked-issue }}
-          CLOSED_ISSUES: ${{ steps.metadata.outputs.closed-issues }}
+          SKIP_PR_CHECK: ${{ steps.metadata.outputs.skip_pr_check }}
+          HAS_LABELS: ${{ steps.metadata.outputs.has_labels }}
+          HAS_LINKED_ISSUE: ${{ steps.metadata.outputs.has_linked_issue }}
+          CLOSED_ISSUES: ${{ steps.metadata.outputs.closed_issues }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -97,10 +102,10 @@ jobs:
             if (process.env.HAS_LABELS !== 'true') {
               warnings.push('### Missing label\n\nThis PR has no labels.');
             }
-            if (process.env.HAS_LINKED_ISSUE !== 'true') {
+            if (process.env.SKIP_PR_CHECK !== 'true' && process.env.HAS_LINKED_ISSUE !== 'true') {
               warnings.push('### Missing linked issue\n\nThis PR does not reference an issue with a closing keyword such as `Fixes #123`.');
             }
-            if (process.env.CLOSED_ISSUES) {
+            if (process.env.SKIP_PR_CHECK !== 'true' && process.env.CLOSED_ISSUES) {
               warnings.push(`### Closed linked issue\n\nThis PR references an issue that is already closed: ${process.env.CLOSED_ISSUES}.`);
             }
 

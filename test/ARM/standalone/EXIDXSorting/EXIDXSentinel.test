@@ -11,6 +11,7 @@
 #START_TEST
 RUN: %clang %clangopts -target arm -c %p/Inputs/exidx_sentinel.s -o %t1.1.o
 RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t \
+RUN:   --no-merge-exidx-entries \
 RUN:   --defsym=__aeabi_unwind_cpp_pr0=0 \
 RUN:   -o %t2.out -Map %t2.map
 RUN: %filecheck %s --check-prefix=MAP < %t2.map

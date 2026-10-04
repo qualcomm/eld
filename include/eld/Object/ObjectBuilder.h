@@ -14,8 +14,8 @@
 #ifndef ELD_OBJECT_OBJECTBUILDER_H
 #define ELD_OBJECT_OBJECTBUILDER_H
 #include "eld/Input/ObjectFile.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/PluginAPI/SectionIteratorPlugin.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/Support/DataTypes.h"
 #include <mutex>
 #include <string>
@@ -45,7 +45,7 @@ public:
   ObjectBuilder(LinkerConfig &PConfig, Module &PTheModule);
 
   ELFSection *createSection(const std::string &PInputName,
-                            LDFileFormat::Kind PKind, uint32_t PType,
+                            LinkerSectionKind PKind, uint32_t PType,
                             uint32_t PFlag, uint32_t PAlign = 0x0);
 
   ELFSection *mergeSection(GNULDBackend &PGnuldBackend,

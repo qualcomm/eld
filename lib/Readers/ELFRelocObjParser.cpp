@@ -109,15 +109,15 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
     backend.mayWarnSection(S);
 
     switch (S->getKind()) {
-    case LDFileFormat::Group: {
+    case LinkerSectionKind::Group: {
       eld::Expected<bool> expReadGroupSection = readGroupSection(ELFReader, S);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadGroupSection);
     } break;
-    case LDFileFormat::LinkOnce: {
+    case LinkerSectionKind::LinkOnce: {
       auto expReadLinkOnceSection = readLinkOnceSection(ELFReader, S);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadLinkOnceSection);
     } break;
-    case LDFileFormat::Relocation: {
+    case LinkerSectionKind::Relocation: {
       ASSERT(S->getLink() != nullptr, "");
       size_t linkIndex = S->getLink()->getIndex();
       ELFSection *linkSect = EObj->getELFSection(linkIndex);
@@ -129,21 +129,21 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
         // Relocation sections of group members should also be part of the
         // group. Thus, if the associated member sections are ignored, the
         // related relocations should be also ignored.
-        S->setKind(LDFileFormat::Ignore);
+        S->setKind(LinkerSectionKind::Ignore);
       }
       break;
     }
     /** normal sections **/
     // FIXME: support Version Kind
-    case LDFileFormat::Version:
+    case LinkerSectionKind::Version:
     // FIXME: support GCCExceptTable Kind
-    case LDFileFormat::GCCExceptTable:
+    case LinkerSectionKind::GCCExceptTable:
     /** Fall through **/
-    case LDFileFormat::Regular:
-    case LDFileFormat::EhFrame:
-    case LDFileFormat::SFrame:
-    case LDFileFormat::Note:
-    case LDFileFormat::MetaData: {
+    case LinkerSectionKind::Regular:
+    case LinkerSectionKind::EhFrame:
+    case LinkerSectionKind::SFrame:
+    case LinkerSectionKind::Note:
+    case LinkerSectionKind::MetaData: {
       if (S->isCompressed()) {
         eld::Expected<bool> expReadCompressedSection =
             ELFReader.readCompressedSection(S);
@@ -158,7 +158,7 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
                                     {S->name().str()}));
       }
     } break;
-    case LDFileFormat::MergeStr: {
+    case LinkerSectionKind::MergeStr: {
       if (S->isCompressed())
         if (!ELFReader.readCompressedSection(S))
           return std::make_unique<plugin::DiagnosticEntry>(
@@ -166,18 +166,18 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
                                       {S->name().str()}));
       addMergeStringSection(S, mergeStrFragments);
     } break;
-    case LDFileFormat::Debug: {
+    case LinkerSectionKind::Debug: {
       eld::Expected<bool> expReadDebugSect = readDebugSection(ELFReader, S);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadDebugSect);
     } break;
-    case LDFileFormat::Timing: {
+    case LinkerSectionKind::Timing: {
       eld::Expected<bool> expTimingSection = readTimingSection(ELFReader, S);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expTimingSection);
     } break;
     /** target dependent sections **/
-    case LDFileFormat::StackNote:
-    case LDFileFormat::GNUProperty:
-    case LDFileFormat::Target: {
+    case LinkerSectionKind::StackNote:
+    case LinkerSectionKind::GNUProperty:
+    case LinkerSectionKind::Target: {
       if (S->isNoteGNUStack() && S->isCode() &&
           !config.options().hasStackSet() && !config.options().noGnuStack())
         config.raise(Diag::warn_execstack)
@@ -190,18 +190,18 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
       break;
     }
     // ignore
-    case LDFileFormat::Null:
-    case LDFileFormat::NamePool:
-    case LDFileFormat::Ignore:
+    case LinkerSectionKind::Null:
+    case LinkerSectionKind::NamePool:
+    case LinkerSectionKind::Ignore:
       continue;
 
-    case LDFileFormat::Discard: {
+    case LinkerSectionKind::Discard: {
       eld::Expected<bool> expReadDiscardSection =
           readDiscardSection(ELFReader, S);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadDiscardSection);
     } break;
     // warning
-    case LDFileFormat::EhFrameHdr:
+    case LinkerSectionKind::EhFrameHdr:
     default: {
       config.raise(Diag::warn_illegal_input_section)
           << S->name() << inputFile->getInput()->decoratedPath();
@@ -250,7 +250,7 @@ ELFRelocObjParser::readLinkOnceSection(ELFReaderBase &ELFReader,
 
   if (isPostLTOPhase && exist) {
     ELFSection *oldSect = signatureInfo->getSection();
-    oldSect->setKind(LDFileFormat::Ignore);
+    oldSect->setKind(LinkerSectionKind::Ignore);
     signatureInfo->getInfo()->setResolvedOrigin(ELFReader.getInputFile());
     signatureInfo->setSection(S);
     if (layoutInfo)
@@ -260,9 +260,9 @@ ELFRelocObjParser::readLinkOnceSection(ELFReaderBase &ELFReader,
 
   if (!exist) {
     if (S->name().starts_with(".gnu.linkonce.wi")) {
-      S->setKind(LDFileFormat::Debug);
+      S->setKind(LinkerSectionKind::Debug);
       if (config.options().stripDebug())
-        S->setKind(LDFileFormat::Ignore);
+        S->setKind(LinkerSectionKind::Ignore);
       else {
         if (!backend.readSection(*inputFile, S))
           return std::make_unique<plugin::DiagnosticEntry>(
@@ -270,7 +270,7 @@ ELFRelocObjParser::readLinkOnceSection(ELFReaderBase &ELFReader,
                                       {S->name().str()}));
       }
     } else {
-      S->setKind(LDFileFormat::Regular);
+      S->setKind(LinkerSectionKind::Regular);
       if (!backend.readSection(*inputFile, S)) {
         return std::make_unique<plugin::DiagnosticEntry>(
             plugin::DiagnosticEntry(Diag::err_cannot_read_section,
@@ -280,7 +280,7 @@ ELFRelocObjParser::readLinkOnceSection(ELFReaderBase &ELFReader,
   } else {
     if (layoutInfo)
       layoutInfo->recordSection(S, inputFile);
-    S->setKind(LDFileFormat::Ignore);
+    S->setKind(LinkerSectionKind::Ignore);
   }
   return true;
 }
@@ -348,7 +348,7 @@ ELFRelocObjParser::readGroupSection(ELFReaderBase &ELFReader, ELFSection *S) {
 
     // Discard member sections, if the group is preempted.
     if (alreadyExist) {
-      groupMemberSect->setKind(LDFileFormat::Ignore);
+      groupMemberSect->setKind(LinkerSectionKind::Ignore);
       if (layoutInfo)
         layoutInfo->recordSection(groupMemberSect, EObj);
     } else {
@@ -377,7 +377,7 @@ ELFRelocObjParser::readDebugSection(ELFReaderBase &ELFReader, ELFSection *S) {
   InputFile *inputFile = ELFReader.getInputFile();
 
   if (config.options().stripDebug()) {
-    S->setKind(LDFileFormat::Ignore);
+    S->setKind(LinkerSectionKind::Ignore);
   } else {
     // FIXME: Why don't we call GNULDBackend::readSection when S is compressed?
     if (S->isCompressed()) {

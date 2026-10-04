@@ -119,7 +119,8 @@ void FragmentRef::memcpy(void *PDest, size_t PNBytes, Offset POffset) const {
 }
 
 FragmentRef::Offset FragmentRef::getOutputOffset(Module &M) const {
-  if (ThisFragment->getOwningSection()->getKind() == LDFileFormat::EhFrame) {
+  if (ThisFragment->getOwningSection()->getKind() ==
+      LinkerSectionKind::EhFrame) {
     // Find the proper piece
     EhFrameSection *S =
         llvm::dyn_cast<eld::EhFrameSection>(ThisFragment->getOwningSection());

@@ -1,4 +1,5 @@
 name: Zephyr build and test (reusable)
+# owner: quic-areg
 
 # Reusable Zephyr build + twister body, called by zephyr-nightly.yml and
 # zephyr-pr.yml. Callers resolve a run id and pass the toolset artifact/tarball
@@ -59,7 +60,7 @@ jobs:
       image: ghcr.io/zephyrproject-rtos/ci-base:main
       options: --user 0
     env:
-      CPULLVM_VERSION: "22.1.0"
+      CPULLVM_VERSION: "23.1.0"
       CPULLVM_DIR: /opt/cpullvm
       CCACHE_DIR: /root/.ccache
       CCACHE_BASEDIR: ${{ github.workspace }}
@@ -130,10 +131,10 @@ jobs:
         if: inputs.toolchain == 'cpullvm'
         run: |
           # Download cpullvm release
-          wget -q --tries=3 --retry-on-http-error=429,500,502,503,504 --waitretry=5 https://github.com/qualcomm/cpullvm-toolchain/releases/download/cpullvm-${CPULLVM_VERSION}/cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
-          tar -xf cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
-          mv cpullvm-${CPULLVM_VERSION}-Linux-x86_64 ${CPULLVM_DIR}
-          rm cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
+          wget -q --tries=3 --retry-on-http-error=429,500,502,503,504 --waitretry=5 https://github.com/qualcomm/cpullvm-toolchain/releases/download/cpullvm-${CPULLVM_VERSION}/cpullvm-${CPULLVM_VERSION}-Linux-x86_64-Ubuntu24.tar.xz
+          tar -xf cpullvm-${CPULLVM_VERSION}-Linux-x86_64-Ubuntu24.tar.xz
+          mv cpullvm-${CPULLVM_VERSION}-Linux-x86_64-Ubuntu24 ${CPULLVM_DIR}
+          rm cpullvm-${CPULLVM_VERSION}-Linux-x86_64-Ubuntu24.tar.xz
 
           # Splice ELD (nightly or PR build) into cpullvm
           cp inst/bin/ld.eld ${CPULLVM_DIR}/bin/ld.eld
@@ -226,29 +227,6 @@ jobs:
             --install-base /opt/toolchains \
             --personal-access-token "${{ github.token }}"
 
-      # cpullvm's armv7m soft-float picolibc is PIC. Borrow the SDK's non-PIC one via
-      # SYSROOT_DIR so ARM can use PICOLIBC_USE_TOOLCHAIN=y like the other boards.
-      - name: Install SDK LLVM ARM picolibc (non-PIC, for ${{ inputs.arch }})
-        if: inputs.toolchain == 'cpullvm' && inputs.arch == 'arm'
-        shell: bash
-        env:
-          ARM_SYSROOT: /opt/arm-picolibc
-        run: |
-          west sdk install --llvm --no-gnu-toolchains --install-base /opt/toolchains
-          multilib="$(echo /opt/toolchains/zephyr-sdk-*/llvm/lib/clang-runtimes/arm-none-eabi/armv7m_soft_nofp)"
-          if [ ! -f "${multilib}/lib/libc.a" ]; then
-            echo "::error::expected non-PIC picolibc missing at ${multilib}"
-            exit 1
-          fi
-          # The multilib is a self-contained sysroot, so keep the 17MB we need
-          # and drop the ~3GB rest.
-          cp -r "${multilib}" "${ARM_SYSROOT}"
-          rm -rf /opt/toolchains/zephyr-sdk-*/llvm
-          echo "ARM_SYSROOT=${ARM_SYSROOT}" >> "$GITHUB_ENV"
-          # Some tests are compiled with their own -Werror. This turns -Wmultilib-not-founds into fatal
-          # errors that twister's -W can't reach, so disable that warning.
-          echo "ARM_CFLAGS=-Wno-multilib-not-found" >> "$GITHUB_ENV"
-
       - name: Build hello_world for ${{ inputs.board }} with ELD
         shell: bash
         env:
@@ -262,9 +240,6 @@ jobs:
           export LLVM_TOOLCHAIN_PATH=${CPULLVM_DIR}
           west build -p always -b "$BOARD" samples/hello_world -- \
             $ELD_SELECT_ARGS \
-            ${ARM_SYSROOT:+-DSYSROOT_DIR=$ARM_SYSROOT} \
-            ${ARM_SYSROOT:+-DCMAKE_C_FLAGS=$ARM_CFLAGS} \
-            ${ARM_SYSROOT:+-DCMAKE_CXX_FLAGS=$ARM_CFLAGS} \
             ${EXTRA_ARGS:+-D"$EXTRA_ARGS"}
 
       - name: Run hello_world on QEMU
@@ -308,9 +283,6 @@ jobs:
             --retry-interval 10 \
             -x=ZEPHYR_TOOLCHAIN_VARIANT=${TOOLCHAIN_VARIANT} \
             $ELD_SELECT_TWISTER_ARGS \
-            ${ARM_SYSROOT:+-x=SYSROOT_DIR=$ARM_SYSROOT} \
-            ${ARM_SYSROOT:+-x=CMAKE_C_FLAGS=$ARM_CFLAGS} \
-            ${ARM_SYSROOT:+-x=CMAKE_CXX_FLAGS=$ARM_CFLAGS} \
             ${EXTRA_ARGS:+-x="$EXTRA_ARGS"}
 
       - name: Upload twister results

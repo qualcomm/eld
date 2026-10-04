@@ -19,7 +19,7 @@ using namespace eld;
 EhFrameHdrSection::EhFrameHdrSection(std::string Name, uint32_t pType,
                                      uint32_t pFlag, uint32_t entSize,
                                      uint64_t pSize)
-    : ELFSection(Section::Kind::EhFrameHdr, LDFileFormat::EhFrameHdr, Name,
+    : ELFSection(Section::Kind::EhFrameHdr, LinkerSectionKind::EhFrameHdr, Name,
                  pFlag, entSize, /*AddrAlign=*/0, pType, /*Info=*/0,
                  /*Link=*/nullptr, pSize, /*PAddr=*/0) {}
 

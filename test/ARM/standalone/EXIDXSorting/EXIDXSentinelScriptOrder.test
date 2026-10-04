@@ -1,0 +1,64 @@
+REQUIRES: arm
+
+## Verify that the EXIDX sentinel follows the final rule
+## after sortEXIDX reorders explicit script rules.
+
+RUN: split-file %s %t
+RUN: %llvm-mc -filetype=obj -triple=armv7a-none-linux-gnueabi %t/input.s -o %t.o
+RUN: %link %linkopts -static -T %t/script.t --entry=low \
+RUN:   --defsym=__aeabi_unwind_cpp_pr0=0 %t.o -Map %t.map -o %t.out
+RUN: %filecheck %s --check-prefix=MAP < %t.map
+RUN: %readelf -u %t.out | %filecheck %s --check-prefix=UNW
+
+## sortEXIDX must restore address order and keep the sentinel last.
+# MAP: .ARM.exidx.text.low
+# MAP: .ARM.exidx.text.high1
+# MAP: .ARM.exidx.text.high2
+# MAP: .ARM.exidx{{[[:space:]]+}}0x{{[0-9a-f]+}}{{[[:space:]]+}}0x8{{[[:space:]]+}}Exceptions
+# MAP-NEXT: #EXIDX-sentinel{{[[:space:]]+}}addr=0x{{[0-9a-f]+}}{{[[:space:]]+}}sz=0x8
+
+# UNW: FunctionAddress: 0x1000
+# UNW: FunctionAddress: 0x2000
+# UNW: FunctionAddress: 0x3000
+# UNW: FunctionAddress: 0x3008
+
+#--- input.s
+.syntax unified
+
+.section .text.low, "ax", %progbits
+.globl low
+low:
+  .fnstart
+  push {lr}
+  pop {pc}
+  .save {lr}
+  .fnend
+
+.section .text.high1, "ax", %progbits
+.globl high1
+high1:
+  .fnstart
+  bx lr
+  .cantunwind
+  .fnend
+
+.section .text.high2, "ax", %progbits
+.globl high2
+high2:
+  .fnstart
+  push {r7, lr}
+  pop {r7, pc}
+  .save {r7, lr}
+  .fnend
+
+#--- script.t
+SECTIONS {
+  .text.low 0x1000 : { *(.text.low) }
+  .text.high1 0x2000 : { *(.text.high1) }
+  .text.high2 0x3000 : { *(.text.high2) }
+  .ARM.exidx : {
+    *(.ARM.exidx .ARM.exidx.text.low)
+    *(.ARM.exidx.text.high2)
+    *(.ARM.exidx.text.high1)
+  }
+}

@@ -53,10 +53,14 @@ void INIReader::addValues(INIReaderSection *S, llvm::StringRef L) {
   S->addItem(Key.str(), Value.str());
 }
 
-eld::Expected<bool> INIReader::readINIFile() {
+eld::Expected<bool>
+INIReader::readINIFile(const ReproduceTarReader *TarReader) {
   std::vector<std::string> Lines;
 
-  if (!((sys::fs::loadFileContents(INIFileName, Lines) == std::error_code()) &&
+  // loadFileContents() transparently reads from replay tarball when TarReader
+  // is provided, otherwise it reads from disk.
+  if (!((sys::fs::loadFileContents(INIFileName, Lines, TarReader) ==
+         std::error_code()) &&
         Lines.size()))
     return false;
 
