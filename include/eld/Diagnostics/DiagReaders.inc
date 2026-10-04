@@ -69,6 +69,8 @@ DIAG(error_unsupported_section_in_executable, DiagnosticEngine::Error,
      "Unsupported section %0 in executable input file %1")
 DIAG(error_executable_requires_just_symbols, DiagnosticEngine::Error,
      "executable input file `%0' can only be used with --just-symbols")
+DIAG(error_tar_archive_input, DiagnosticEngine::Error,
+     "%0: tar archives cannot be used as input files")
 DIAG(verbose_symbol_has_aliases, DiagnosticEngine::Verbose,
      "Global symbol %0 from input file %1 has aliases: %2")
 DIAG(error_create_archive_member_input, DiagnosticEngine::Error,
