@@ -1,0 +1,25 @@
+#---TarArchiveInput.test-------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Inputs that are not ELF, bitcode or ar archive files are parsed as linker
+# scripts. This tests that the linker recognizes a tar archive given as an
+# input file, on the command line or through INPUT() or GROUP(), and errors
+# out instead of lexing it. With -b binary, the archive is still raw data.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %python %p/Inputs/make_tar.py %t1.1.o %t1.a.tar
+RUN: %not %link %linkopts %t1.a.tar -o %t2.out 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %t1.1.o %t1.a.tar -o %t2.out 2>&1 | %filecheck %s
+RUN: echo "INPUT(%t1.a.tar)" > %t1.input.t
+RUN: %not %link %linkopts %t1.1.o %t1.input.t -o %t2.out 2>&1 | %filecheck %s
+RUN: echo "GROUP(%t1.a.tar)" > %t1.group.t
+RUN: %not %link %linkopts %t1.1.o %t1.group.t -o %t2.out 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o -b binary %t1.a.tar -o %t2.out
+RUN: %readelf -s %t2.out | %filecheck %s --check-prefix=BINARY
+#END_TEST
+
+CHECK-NOT: Ignoring invalid ASCII character
+CHECK: Error: {{.*}}a.tar: tar archives cannot be used as input files
+CHECK-NOT: has errors
+
+BINARY: _binary_{{.*}}_a_tar_start

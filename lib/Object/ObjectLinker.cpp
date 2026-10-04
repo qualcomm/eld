@@ -60,6 +60,7 @@
 #include "eld/Script/ScriptSymbol.h"
 #include "eld/Script/StrToken.h"
 #include "eld/Script/VersionScript.h"
+#include "eld/Support/InputTarReader.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/RegisterTimer.h"
@@ -3946,6 +3947,13 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
   }
   // try to parse input as a linker script
   else if (CurInput->getKind() == InputFile::GNULinkerScriptKind) {
+    // Inputs in an unrecognized format end up here. Diagnose tar archives
+    // instead of lexing their binary contents as a linker script.
+    if (InputTarReader::isTarArchive(CurInput->getContents())) {
+      ThisConfig.raise(Diag::error_tar_archive_input) << Input->decoratedPath();
+      ThisModule->setFailure(true);
+      return false;
+    }
     eld::RegisterTimer T("Read Linker Script", "Read all Input files",
                          ThisConfig.options().printTimingStats());
     if (layoutInfo)

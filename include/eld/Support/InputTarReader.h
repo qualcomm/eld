@@ -40,6 +40,10 @@ public:
 
   using FileMap = llvm::StringMap<std::string>;
 
+  /// Return true if \p Data starts with a tar header block, recognized by its
+  /// checksum.
+  static bool isTarArchive(llvm::StringRef Data);
+
   /// Parse tar bytes directly from memory.
   static eld::Expected<FileMap> untar(llvm::StringRef TarData);
 

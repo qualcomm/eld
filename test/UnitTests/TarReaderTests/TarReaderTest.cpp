@@ -16,6 +16,9 @@
 #include "llvm/Support/raw_ostream.h"
 #include "gtest/gtest.h"
 
+#include <algorithm>
+#include <cstdio>
+
 using namespace eld;
 
 namespace {
@@ -110,4 +113,42 @@ TEST(TarReaderTests, FindFileReturnsMemoryBufferRef) {
 
   auto MissingOrErr = InputTarReader::findFile(TarData, "missing.txt");
   EXPECT_FALSE(static_cast<bool>(MissingOrErr));
+}
+
+TEST(TarReaderTests, RecognizesTarArchives) {
+  std::string TarData = readFile(createTar({{"a.txt", "hello"}}));
+  EXPECT_TRUE(InputTarReader::isTarArchive(TarData));
+
+  // A name that does not fit in a ustar header makes TarWriter start the
+  // archive with a pax extended header.
+  std::string LongName(200, 'n');
+  EXPECT_TRUE(
+      InputTarReader::isTarArchive(readFile(createTar({{LongName, "hello"}}))));
+
+  // V7 headers have no magic: clear the fields that POSIX added to the first
+  // header and recompute its checksum.
+  std::string V7 = TarData;
+  std::fill(V7.begin() + 257, V7.begin() + 512, '\0');
+  std::fill(V7.begin() + 148, V7.begin() + 156, ' ');
+  unsigned Sum = 0;
+  for (size_t I = 0; I < 512; ++I)
+    Sum += static_cast<unsigned char>(V7[I]);
+  std::snprintf(&V7[148], 8, "%06o", Sum);
+  EXPECT_TRUE(InputTarReader::isTarArchive(V7));
+}
+
+TEST(TarReaderTests, RejectsNonTarData) {
+  std::string TarData = readFile(createTar({{"a.txt", "hello"}}));
+  // Any change to the header invalidates its checksum.
+  std::string Corrupted = TarData;
+  Corrupted[0] ^= 1;
+  EXPECT_FALSE(InputTarReader::isTarArchive(Corrupted));
+  EXPECT_FALSE(
+      InputTarReader::isTarArchive(llvm::StringRef(TarData).take_front(511)));
+  EXPECT_FALSE(InputTarReader::isTarArchive(std::string(1024, '\0')));
+
+  std::string Script;
+  while (Script.size() < 1024)
+    Script += "SECTIONS { .text : { *(.text) } }\n";
+  EXPECT_FALSE(InputTarReader::isTarArchive(Script));
 }
