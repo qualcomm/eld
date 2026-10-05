@@ -39,6 +39,11 @@ void RegionFragmentEx::deleteInstruction(uint32_t DeleteOffset,
   for (auto &Reloc : getOwningSection()->getRelocations()) {
     // Get the source offset of the relocation
     FragmentRef *Ref = Reloc->targetRef();
+    // Relocation offsets are local to their fragment. Sections can contain
+    // multiple RegionFragmentEx instances, so an offset in another fragment
+    // must not be adjusted when this fragment is compacted.
+    if (Ref->frag() != this)
+      continue;
     FragmentRef::Offset Off = Ref->offset();
     if (Off > DeleteOffset && Off < Size)
       Ref->setOffset(Off - DeleteSize);
@@ -47,6 +52,11 @@ void RegionFragmentEx::deleteInstruction(uint32_t DeleteOffset,
   // Fixup symbols.
   for (ResolveInfo *Info : Symbols) {
     FragmentRef *Ref = Info->outSymbol()->fragRef();
+    // A symbol can be canonicalized after it was registered with a
+    // fragment. Do not adjust a reference that no longer belongs to this
+    // fragment.
+    if (Ref->frag() != this)
+      continue;
     FragmentRef::Offset Off = Ref->offset();
     if (Off > DeleteOffset && Off <= Size)
       Ref->setOffset(Off - DeleteSize);
@@ -85,6 +95,10 @@ void RegionFragmentEx::insertInstruction(uint32_t InsertOffset,
   // Shift relocation offsets that are at or after the insertion point.
   for (auto &Reloc : getOwningSection()->getRelocations()) {
     FragmentRef *Ref = Reloc->targetRef();
+    // Relocation offsets are local to their fragment. Do not shift
+    // relocations belonging to a different fragment in this section.
+    if (Ref->frag() != this)
+      continue;
     FragmentRef::Offset Off = Ref->offset();
     if (Off >= InsertOffset && Off < Size)
       Ref->setOffset(Off + InsertSize);
@@ -93,6 +107,8 @@ void RegionFragmentEx::insertInstruction(uint32_t InsertOffset,
   // Shift symbol offsets similarly.
   for (ResolveInfo *Info : Symbols) {
     FragmentRef *Ref = Info->outSymbol()->fragRef();
+    if (Ref->frag() != this)
+      continue;
     FragmentRef::Offset Off = Ref->offset();
     if (Off >= InsertOffset && Off <= Size)
       Ref->setOffset(Off + InsertSize);
