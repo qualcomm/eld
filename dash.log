@@ -4812,3 +4812,4 @@ Mon Oct  5 12:03:53 PM UTC 2026 -> Add data lock for zephyr  build status data t
 Mon Oct  5 12:28:57 UTC 2026 -> Add data lock for linux-kernel arm build status data to be written
 Mon Oct  5 12:29:14 UTC 2026 -> Add data lock for linux-kernel riscv64 build status data to be written
 Mon Oct  5 12:29:32 UTC 2026 -> Add data lock for linux-kernel riscv32 build status data to be written
+Mon Oct  5 12:29:51 UTC 2026 -> Add data lock for linux-kernel aarch64 build status data to be written
