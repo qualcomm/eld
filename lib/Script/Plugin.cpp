@@ -409,6 +409,11 @@ bool Plugin::isRelocTypeRegistered(uint32_t RelocType, Relocation *R) {
   return false;
 }
 
+bool Plugin::hasRegisteredRelocations() const {
+  return RelocBitVector &&
+         (RelocBitVector->any() || SlowPathRelocBitVector->any());
+}
+
 plugin::LinkerPluginConfig *Plugin::getLinkerPluginConfig() const {
   return LinkerPluginConfigHandle;
 }
@@ -634,6 +639,4 @@ void Plugin::callActBeforeWritingOutputHook() {
   P->ActBeforeWritingOutput();
 }
 
-void Plugin::clearResources() {
-  PluginCommandLineOptions.clear();
-}
+void Plugin::clearResources() { PluginCommandLineOptions.clear(); }

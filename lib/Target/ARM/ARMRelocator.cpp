@@ -896,53 +896,15 @@ void ARMRelocator::handleScanForNonPreemptibleIFunc(Relocation &R,
   RI->setReserved(RI->reserved() | ReservePLT);
 }
 
-void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
-                                  ELFSection &pSection, InputFile &pInputFile,
-                                  CopyRelocs &CopyRelocs) {
-  if (LinkerConfig::Object == config().codeGenType())
-    return;
+void ARMRelocator::scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
+                                          ELFSection &Section,
+                                          CopyRelocs &CopyRelocSet) {
+  ResolveInfo *Sym = Reloc.symInfo();
 
-  if (!checkPICRelocSupported(pReloc))
-    return;
+  if (Reloc.type() == llvm::ELF::R_ARM_TARGET1)
+    Reloc.setType(llvm::ELF::R_ARM_ABS32);
 
-  // rsym - The relocation target symbol
-  ResolveInfo *rsym = pReloc.symInfo();
-  assert(nullptr != rsym &&
-         "ResolveInfo of relocation not set while scanRelocation");
-
-  // Check if we are tracing relocations.
-  if (m_Module.getPrinter()->traceReloc()) {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    std::string relocName = getName(pReloc.type());
-    if (config().options().traceReloc(relocName))
-      config().raise(Diag::reloc_trace)
-          << relocName << pReloc.symInfo()->name()
-          << pInputFile.getInput()->decoratedPath();
-  }
-
-  // check if we should issue undefined reference for the relocation target
-  // symbol
-  {
-    if (rsym->isUndef() || rsym->isBitCode()) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-      if (m_Target.canIssueUndef(rsym)) {
-        if (rsym->visibility() != ResolveInfo::Default)
-          issueInvisibleRef(pReloc, pInputFile);
-        issueUndefRef(pReloc, pInputFile, &pSection);
-      }
-    }
-  }
-
-  ELFSection *section = pSection.getLink();
-
-  if (!section->isAlloc())
-    return;
-
-  if (pReloc.type() == llvm::ELF::R_ARM_TARGET1) {
-    pReloc.setType(llvm::ELF::R_ARM_ABS32);
-  }
-
-  Relocation::Type Type = pReloc.type();
+  Relocation::Type Type = Reloc.type();
 
   // Set R_ARM_TARGET2 to R_ARM_ABS32/R_ARM_REL32/R_ARM_GOT_PREL.
   if (Type == llvm::ELF::R_ARM_TARGET2) {
@@ -959,18 +921,19 @@ void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
     }
   }
 
-  ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
+  ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&Input);
 
   // A reference to a non-preemptible IFunc in a static link is resolved
   // through an IRELATIVE PLT entry regardless of whether the symbol is local
   // or global.
-  if (rsym->isIFunc() && config().isCodeStatic())
-    return handleScanForNonPreemptibleIFunc(pReloc, Obj);
+  if (Sym->isIFunc() && config().isCodeStatic())
+    return handleScanForNonPreemptibleIFunc(Reloc, Obj);
 
-  if (rsym->isLocal()) // rsym is local
-    scanLocalReloc(pInputFile, Type, pReloc, *section);
-  else // rsym is external
-    scanGlobalReloc(pInputFile, Type, pReloc, pBuilder, *section, CopyRelocs);
+  if (Sym->isLocal())
+    scanLocalReloc(Input, Type, Reloc, Section);
+  else
+    scanGlobalReloc(Input, Type, Reloc, *module().getIRBuilder(), Section,
+                    CopyRelocSet);
 }
 
 //=========================================//

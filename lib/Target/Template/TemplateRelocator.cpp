@@ -61,51 +61,15 @@ const char *TemplateRelocator::getName(Relocation::Type pType) const {
   return "";
 }
 
-void TemplateRelocator::scanRelocation(Relocation &pReloc,
-                                       eld::IRBuilder &pLinker,
-                                       ELFSection &pSection,
-                                       InputFile &pInputFile,
-                                       CopyRelocs &CopyRelocs) {
-  if (LinkerConfig::Object == config().codeGenType())
-    return;
-
-  // rsym - The relocation target symbol
-  ResolveInfo *rsym = pReloc.symInfo();
-  assert(nullptr != rsym &&
-         "ResolveInfo of relocation not set while scanRelocation");
-
-  // Check if we are tracing relocations.
-  if (m_Module.getPrinter()->traceReloc()) {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    std::string relocName = getName(pReloc.type());
-    if (config().options().traceReloc(relocName))
-      config().raise(Diag::reloc_trace)
-          << relocName << pReloc.symInfo()->name()
-          << pInputFile.getInput()->decoratedPath();
-  }
-
-  // check if we should issue undefined reference for the relocation target
-  // symbol
-  {
-    if (rsym->isUndef() || rsym->isBitCode()) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-      if (m_Target.canIssueUndef(rsym)) {
-        if (rsym->visibility() != ResolveInfo::Default)
-          issueInvisibleRef(pReloc, pInputFile);
-        issueUndefRef(pReloc, pInputFile, &pSection);
-      }
-    }
-  }
-
-  ELFSection *section = pSection.getLink();
-
-  if (!section->isAlloc())
-    return;
-
-  if (rsym->isLocal()) // rsym is local
-    scanLocalReloc(pInputFile, pReloc, pLinker, *section);
-  else // rsym is external
-    scanGlobalReloc(pInputFile, pReloc, pLinker, *section);
+void TemplateRelocator::scanDeferredRelocation(InputFile &Input,
+                                               Relocation &Reloc,
+                                               ELFSection &Section,
+                                               CopyRelocs &CopyRelocSet) {
+  eld::IRBuilder &Linker = *module().getIRBuilder();
+  if (Reloc.symInfo()->isLocal())
+    scanLocalReloc(Input, Reloc, Linker, Section);
+  else
+    scanGlobalReloc(Input, Reloc, Linker, Section);
 }
 
 Relocation::Size TemplateRelocator::getSize(Relocation::Type pType) const {

@@ -28,10 +28,6 @@ public:
 
   Result applyRelocation(Relocation &pRelocation) override;
 
-  void scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
-                      ELFSection &pSection, InputFile &pInput,
-                      CopyRelocs &) override;
-
   // Handle partial linking
   void partialScanRelocation(Relocation &pReloc,
                              const ELFSection &pSection) override;
@@ -48,6 +44,13 @@ public:
 
   bool is32bit() const { return config().targets().is32Bits(); }
 
+protected:
+  bool isRelocSupported(const Relocation &Reloc) const override;
+
+  void scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
+                              ELFSection &Section,
+                              CopyRelocs &CopyRelocSet) override;
+
 private:
   bool isPICRelocTypeSupported(const Relocation &reloc) const override;
 
@@ -59,8 +62,6 @@ private:
                                CopyRelocs &);
 
   RISCVGOT *getTLSModuleID(ResolveInfo *R, bool isStatic);
-
-  bool isRelocSupported(Relocation &pReloc) const;
 
   RISCVGOT *getTLSModuleID(ResolveInfo *rsym);
 
