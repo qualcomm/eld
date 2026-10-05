@@ -5420,12 +5420,14 @@ bool GNULDBackend::allocateHeaders() {
     uint64_t ModifiedAddr =
         llvm::alignDown(VAddr.value() - headerSize, abiPageSize());
     uint64_t ModifiedPAddr = PAddr.value() + (ModifiedAddr - VAddr.value());
-    if (m_ehdr) {
+    if (isEhdrInLayout()) {
       m_ehdr->setAddr(ModifiedAddr);
       m_ehdr->setPaddr(ModifiedPAddr);
     }
-    m_phdr->setAddr(ModifiedAddr + getOneEhdrSize());
-    m_phdr->setPaddr(ModifiedPAddr + getOneEhdrSize());
+    if (isPhdrInLayout()) {
+      m_phdr->setAddr(ModifiedAddr + getOneEhdrSize());
+      m_phdr->setPaddr(ModifiedPAddr + getOneEhdrSize());
+    }
     return true;
   }
   return false;
