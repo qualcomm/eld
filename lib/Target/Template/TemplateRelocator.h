@@ -28,10 +28,6 @@ public:
 
   Result applyRelocation(Relocation &pRelocation) override;
 
-  void scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
-                      ELFSection &pSection, InputFile &pInput,
-                      CopyRelocs &) override;
-
   // Handle partial linking
   void partialScanRelocation(Relocation &pReloc,
                              const ELFSection &pSection) override;
@@ -45,6 +41,11 @@ public:
   Size getSize(Relocation::Type pType) const override;
 
   uint32_t getNumRelocs() const override;
+
+protected:
+  void scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
+                              ELFSection &Section,
+                              CopyRelocs &CopyRelocSet) override;
 
 private:
   virtual void scanLocalReloc(InputFile &pInput, Relocation &pReloc,

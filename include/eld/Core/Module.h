@@ -39,6 +39,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSet.h"
 #include <array>
+#include <atomic>
 #include <climits>
 #include <mutex>
 #include <optional>
@@ -702,7 +703,7 @@ private:
   LDSymbol *DotSymbol = nullptr;
   Linker *L = nullptr;
   LayoutInfo *ThisLayoutInfo = nullptr;
-  bool Failure = false;
+  std::atomic<bool> Failure = false;
   bool UsesLto = false;
   LinkState State = LinkState::Unknown;
   ReplaceFragsVectorT ReplaceFrags;

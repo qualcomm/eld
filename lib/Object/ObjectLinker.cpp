@@ -2290,67 +2290,112 @@ void ObjectLinker::createCopyRelocation(ResolveInfo &Sym,
     addCopyReloc(getTargetBackend(), *CopySym.resolveInfo(), Type);
 }
 
-void ObjectLinker::scanRelocationsHelper(InputFile *Input, bool IsPartialLink,
-                                         LinkerScript::PluginVectorT PVect,
-                                         Relocator::CopyRelocs &CopyRelocs) {
+void ObjectLinker::scanRelocationsHelper(InputFile *Input, size_t InputIndex,
+                                         bool IsPartialLink, bool IsParallel,
+                                         Relocator::CopyRelocs &CopyRelocSet) {
   ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(Input);
   if (!ObjFile)
     return;
-  uint32_t NumPlugins = PVect.size();
-  for (auto &Rs : ObjFile->getRelocationSections()) {
-    if (Rs->isIgnore())
+  size_t SectIndex = 0;
+  for (ELFSection *Rs : ObjFile->getRelocationSections()) {
+    const size_t ThisSectIndex = SectIndex++;
+    if (Rs->isIgnore() || Rs->isDiscard())
       continue;
-    if (Rs->isDiscard())
-      continue;
-    for (auto &Relocation : Rs->getLink()->getRelocations()) {
+    size_t RelocIndex = 0;
+    for (Relocation *Relocation : Rs->getLink()->getRelocations()) {
+      const size_t ThisRelocIndex = RelocIndex++;
       // Skip unneeded relocations
       if (getTargetBackend().maySkipRelocProcessing(Relocation))
         continue;
-      if (NumPlugins) {
-        for (auto &P : PVect)
-          P->callReloc(Relocation->type(), Relocation);
-      }
       ELFSection *RelocSection = Rs;
       // scan relocation
-      if (!IsPartialLink)
-        getTargetBackend().getRelocator()->scanRelocation(
-            *Relocation, *ThisModule->getIRBuilder(), *RelocSection, *Input,
-            CopyRelocs);
-      else
+      if (IsPartialLink) {
         getTargetBackend().getRelocator()->partialScanRelocation(*Relocation,
                                                                  *RelocSection);
+      } else if (!IsParallel) {
+        getTargetBackend().getRelocator()->scanRelocation(
+            *Relocation, *RelocSection, *Input, CopyRelocSet);
+      } else {
+        getTargetBackend().getRelocator()->scanRelocationParallel(
+            *Relocation, *RelocSection, *Input, InputIndex, ThisSectIndex,
+            ThisRelocIndex);
+      }
     } // for all relocations
   } // for all relocation section
 }
 
-LinkerScript::PluginVectorT ObjectLinker::getLinkerPluginWithLinkerConfigs() {
+LinkerScript::PluginVectorT ObjectLinker::getLinkerPluginsWithRelocCallbacks() {
   const LinkerScript::PluginVectorT PluginVect =
       ThisModule->getScript().getPlugins();
-  LinkerScript::PluginVectorT PluginVectHavingLinkerConfigs;
-  for (auto &P : PluginVect) {
-    if (P->getLinkerPluginConfig())
-      PluginVectHavingLinkerConfigs.push_back(P);
+  LinkerScript::PluginVectorT PluginsWithCallbacks;
+  for (Plugin *P : PluginVect) {
+    if (P->hasRegisteredRelocations())
+      PluginsWithCallbacks.push_back(P);
   }
-  return PluginVectHavingLinkerConfigs;
+  return PluginsWithCallbacks;
 }
 
 bool ObjectLinker::scanRelocations(bool IsPartialLink) {
-  LinkerScript::PluginVectorT PluginVect = getLinkerPluginWithLinkerConfigs();
+  const LinkerScript::PluginVectorT PluginVect =
+      getLinkerPluginsWithRelocCallbacks();
+  const bool HasRelocCallbacks = !PluginVect.empty();
 
   getTargetBackend().provideSymbols();
+  Relocator *Reloc = getTargetBackend().getRelocator();
 
-  // Slots are allocated as relocations are scanned in input order.
-  std::vector<std::unique_ptr<Relocator::CopyRelocs>> AllCopyRelocs;
-  for (auto &Input : ThisModule->getObjectList()) {
-    auto CopyRelocs = std::make_unique<Relocator::CopyRelocs>();
-    scanRelocationsHelper(Input, IsPartialLink, PluginVect, *CopyRelocs);
-    AllCopyRelocs.push_back(std::move(CopyRelocs));
+  const auto &Inputs = ThisModule->getObjectList();
+  const bool RunParallel = !IsPartialLink &&
+                           ThisConfig.options().numThreads() > 1 &&
+                           ThisConfig.isScanRelocationsMultiThreaded();
+
+  // Preserve the original serial callback order. Callbacks may change state
+  // used to filter later relocations or add relocations to later sections.
+  if (HasRelocCallbacks) {
+    for (InputFile *Input : Inputs) {
+      const auto *ObjFile = llvm::dyn_cast<ELFObjectFile>(Input);
+      if (!ObjFile)
+        continue;
+      for (ELFSection *Rs : ObjFile->getRelocationSections()) {
+        if (Rs->isIgnore() || Rs->isDiscard())
+          continue;
+        for (Relocation *R : Rs->getLink()->getRelocations()) {
+          if (getTargetBackend().maySkipRelocProcessing(R))
+            continue;
+          for (Plugin *P : PluginVect)
+            P->callReloc(R->type(), R);
+        }
+      }
+    }
   }
+
+  Relocator::CopyRelocs CopyRelocSet;
+  if (!RunParallel) {
+    if (ThisModule->getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_disabled) << "ScanRelocations";
+    for (size_t I = 0; I != Inputs.size(); ++I)
+      scanRelocationsHelper(Inputs[I], I, IsPartialLink, false, CopyRelocSet);
+  } else {
+    if (ThisModule->getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_enabled)
+          << "ScanRelocations" << ThisConfig.options().numThreads();
+    Reloc->initScanRelocations();
+    std::atomic<size_t> NextInput{0};
+    size_t NumWorkers =
+        std::min<size_t>(ThisConfig.options().numThreads(), Inputs.size());
+    llvm::parallelFor(0, NumWorkers, [&](size_t) {
+      for (size_t I; (I = NextInput.fetch_add(1, std::memory_order_relaxed)) <
+                     Inputs.size();)
+        scanRelocationsHelper(Inputs[I], I, IsPartialLink, true, CopyRelocSet);
+    });
+  }
+
+  if (RunParallel)
+    Reloc->replayScanRelocations(CopyRelocSet);
+
   // assume there is only one copy relocation type per target
   Relocation::Type CopyRelocType = getTargetBackend().getCopyRelType();
-  for (const auto &RelocVec : AllCopyRelocs)
-    for (auto &Reloc : *RelocVec)
-      createCopyRelocation(*Reloc, CopyRelocType);
+  for (ResolveInfo *Sym : CopyRelocSet)
+    createCopyRelocation(*Sym, CopyRelocType);
 
   // If there is a undefined symbol, fail the link. No point fixing the
   // relocations. This is overridden by --noinhibit-exec.
