@@ -67,13 +67,14 @@ public:
   enum EnableThreadsOpt {
     NoThreads = 0,
     AssignOutputSections = 0x1,
+    ScanRelocations = 0x2,
     SyncRelocations = 0x4,
     CheckCrossRefs = 0x8,
     CreateOutputSections = 0x10,
     ApplyRelocations = 0x20,
     LinkerRelaxation = 0x40,
     AssignVersionScriptNodes = 0x80,
-    AllThreads = 0x1 | 0x4 | 0x8 | 0x10 | 0x20 | 0x40 | 0x80,
+    AllThreads = 0x1 | 0x2 | 0x4 | 0x8 | 0x10 | 0x20 | 0x40 | 0x80,
   };
 
   enum SymDefStyle { Default, Provide, UnknownSymDefStyle };
@@ -151,6 +152,10 @@ public:
     return EnableThreads & LinkerConfig::AssignOutputSections;
   }
 
+  bool isScanRelocationsMultiThreaded() const {
+    return EnableThreads & LinkerConfig::ScanRelocations;
+  }
+
   bool isSyncRelocationsMultiThreaded() const {
     return EnableThreads & LinkerConfig::SyncRelocations;
   }
@@ -179,6 +184,8 @@ public:
     EnableThreads = NoThreads;
     if (EnableThreadsOpt & AssignOutputSections)
       EnableThreads |= AssignOutputSections;
+    if (EnableThreadsOpt & ScanRelocations)
+      EnableThreads |= ScanRelocations;
     if (EnableThreadsOpt & SyncRelocations)
       EnableThreads |= SyncRelocations;
     if (EnableThreadsOpt & CheckCrossRefs)

@@ -149,18 +149,18 @@ AArch64Relocator::AArch64Relocator(AArch64LDBackend &pParent,
                                    LinkerConfig &pConfig, Module &pModule)
     : Relocator(pConfig, pModule), m_Target(pParent) {}
 
-bool AArch64Relocator::isRelocSupported(Relocation &pReloc) const {
-  Relocation::Type type = pReloc.type();
+bool AArch64Relocator::isRelocSupported(const Relocation &Reloc) const {
+  Relocation::Type Type = Reloc.type();
   // valid types are 0x0, 0x100-0x244
-  if ((type < 0x100 || type > 0x244) && (type != 0x0) &&
-      (type != R_AARCH64_COPY_INSN))
+  if ((Type < 0x100 || Type > 0x244) && (Type != 0x0) &&
+      (Type != R_AARCH64_COPY_INSN))
     return false;
 
-  auto iter = ApplyFunctions.find(type);
+  auto Iter = ApplyFunctions.find(Type);
 
-  assert(iter != ApplyFunctions.end());
+  assert(Iter != ApplyFunctions.end());
 
-  return iter->second.func != unsupport;
+  return Iter->second.func != unsupport;
 }
 
 bool AArch64Relocator::isPICRelocTypeSupported(const Relocation &reloc) const {
@@ -600,71 +600,34 @@ void AArch64Relocator::partialScanRelocation(Relocation &pReloc,
   }
 }
 
-void AArch64Relocator::scanRelocation(Relocation &pReloc,
-                                      eld::IRBuilder &pBuilder,
-                                      ELFSection &pSection,
-                                      InputFile &pInputFile,
-                                      CopyRelocs &CopyRelocs) {
-  if (LinkerConfig::Object == config().codeGenType())
+void AArch64Relocator::diagnoseUnsupportedReloc(const Relocation &Reloc,
+                                                const ELFSection &Section,
+                                                const InputFile &Input) const {
+  Relocator::diagnoseUnsupportedReloc(Reloc, Section, Input);
+  m_Target.getModule().setFailure(true);
+}
+
+void AArch64Relocator::scanNonAllocReloc(Relocation &Reloc,
+                                         ELFSection &Section) {
+  // Cannot have authenticated relocations in non-alloc sections (like .debug)
+  if (!isAuthReloc(Reloc))
     return;
+  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  config().raise(Diag::reloc_nonalloc_section)
+      << getName(Reloc.type()) << Reloc.symInfo()->name()
+      << Section.getDecoratedName(config().options());
+  m_Target.getModule().setFailure(true);
+}
 
-  if (!isRelocSupported(pReloc)) {
-    config().raise(Diag::unsupported_reloc)
-        << pReloc.type() << pSection.getDecoratedName(config().options())
-        << pInputFile.getInput()->decoratedPath();
-    m_Target.getModule().setFailure(true);
-    return;
-  }
-
-  if (!checkPICRelocSupported(pReloc))
-    return;
-
-  // rsym - The relocation target symbol
-  ResolveInfo *rsym = pReloc.symInfo();
-  assert(nullptr != rsym &&
-         "ResolveInfo of relocation not set while scanRelocation");
-
-  // Check if we are tracing relocations.
-  if (m_Module.getPrinter()->traceReloc()) {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    std::string relocName = getName(pReloc.type());
-    if (config().options().traceReloc(relocName))
-      config().raise(Diag::reloc_trace)
-          << relocName << pReloc.symInfo()->name()
-          << pInputFile.getInput()->decoratedPath();
-  }
-
-  // check if we should issue undefined reference for the relocation target
-  // symbol
-  {
-    if (rsym->isUndef() || rsym->isBitCode()) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-      if (m_Target.canIssueUndef(rsym)) {
-        if (rsym->visibility() != ResolveInfo::Default)
-          issueInvisibleRef(pReloc, pInputFile);
-        issueUndefRef(pReloc, pInputFile, &pSection);
-      }
-    }
-  }
-
-  ELFSection *section = pSection.getLink();
-
-  if (!section->isAlloc()) {
-    // Cannot have authenticated relocations in non-alloc sections (like .debug)
-    if (isAuthReloc(pReloc)) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-      config().raise(Diag::reloc_nonalloc_section)
-          << getName(pReloc.type()) << pReloc.symInfo()->name()
-          << pSection.getDecoratedName(config().options());
-      m_Target.getModule().setFailure(true);
-    }
-    return;
-  }
-
-  if (rsym->isLocal()) // rsym is local
-    scanLocalReloc(pInputFile, pReloc, *section);
-  else // rsym is external
-    scanGlobalReloc(pInputFile, pReloc, pBuilder, *section, CopyRelocs);
+void AArch64Relocator::scanDeferredRelocation(InputFile &Input,
+                                              Relocation &Reloc,
+                                              ELFSection &Section,
+                                              CopyRelocs &CopyRelocSet) {
+  if (Reloc.symInfo()->isLocal())
+    scanLocalReloc(Input, Reloc, Section);
+  else
+    scanGlobalReloc(Input, Reloc, *module().getIRBuilder(), Section,
+                    CopyRelocSet);
 }
 
 //===----------------------------------------------------------------------===//

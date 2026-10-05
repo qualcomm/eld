@@ -32,16 +32,6 @@ public:
 
   Result applyRelocation(Relocation &pRelocation) override;
 
-  /// scanRelocation - determine the empty entries are needed or not and create
-  /// the empty entries if needed.
-  /// For Hexagon, following entries are check to create:
-  /// - GOT entry (for .got and .got.plt sections)
-  /// - PLT entry (for .plt section)
-  /// - dynamin relocation entries (for .rel.plt and .rel.dyn sections)
-  void scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
-                      ELFSection &pSection, InputFile &pInput,
-                      CopyRelocs &) override;
-
   uint32_t getAddend(const Relocation *R) const override {
     return R->addend() - m_Target.getPacketOffset(*R);
   }
@@ -73,6 +63,17 @@ protected:
   void defineSymbolforGuard(eld::IRBuilder &pLinker, ResolveInfo *pSym,
                             HexagonLDBackend &pTarget);
 
+  bool isRelocSupported(const Relocation &Reloc) const override;
+
+  /// Determine whether GOT, PLT, or dynamic relocation entries are needed and
+  /// create them. For Hexagon:
+  /// - GOT entry (for .got and .got.plt sections)
+  /// - PLT entry (for .plt section)
+  /// - dynamic relocation entries (for .rel.plt and .rel.dyn sections)
+  void scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
+                              ELFSection &Section,
+                              CopyRelocs &CopyRelocSet) override;
+
 private:
   bool isPICRelocTypeSupported(const Relocation &reloc) const override;
   virtual void scanLocalReloc(InputFile &pInput, Relocation &pReloc,
@@ -89,8 +90,6 @@ private:
   void CreateTLSPLT(ELFObjectFile *Obj, Relocation &pReloc,
                     HexagonTLSStub::StubType StaticStub,
                     HexagonTLSStub::StubType DynStub);
-
-  bool isRelocSupported(Relocation &pReloc) const;
 
   HexagonLDBackend &m_Target;
   LDSymbol *m_Guard;

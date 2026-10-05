@@ -141,6 +141,8 @@ public:
 
   bool isRelocTypeRegistered(uint32_t RelocType, Relocation *R);
 
+  bool hasRegisteredRelocations() const;
+
   plugin::LinkerPluginConfig *getLinkerPluginConfig() const;
 
   // -----------------Check if timing is enabled ---------------

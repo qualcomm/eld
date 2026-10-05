@@ -15,11 +15,13 @@
 
 #include "eld/Core/Module.h"
 #include "eld/Readers/Relocation.h"
+#include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/SetVector.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include <mutex>
-#include <unordered_set>
 
 namespace eld {
 
@@ -69,7 +71,10 @@ public:
     ReservePLT = 4,
   };
 
-  typedef std::unordered_set<ResolveInfo *> CopyRelocs;
+  /// Symbols needing a copy relocation, in the order phase 2 discovered them.
+  /// Insertion order is preserved so that the copy relocations, and the
+  /// .dynbss sections created for them, are deterministic.
+  using CopyRelocs = llvm::SetVector<ResolveInfo *>;
 
 public:
   Relocator(LinkerConfig &pConfig, Module &pModule)
@@ -80,9 +85,32 @@ public:
   /// apply - general apply function
   virtual Result applyRelocation(Relocation &pRelocation) = 0;
 
-  virtual void scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
-                              ELFSection &pSection, InputFile &pInput,
-                              CopyRelocs &CopyRelocs) = 0;
+  virtual bool shouldScanRelocations() const { return true; }
+
+  /// Parallel relocation scanning runs in two phases:
+  ///
+  /// Phase 1 (scanRelocationParallel) may run concurrently over input files.
+  /// It only performs the checks that are common to every backend and records
+  /// which relocations need further processing. It creates no GOT/PLT slots
+  /// and no dynamic relocations.
+  ///
+  /// Phase 2 (replayScanRelocations) is serial and visits the recorded
+  /// relocations in input order. Slot allocation happens here.
+  ///
+  /// Prepare for phase 1. Must be called before a parallel scan.
+  void initScanRelocations();
+
+  /// Serial single pass scan.
+  void scanRelocation(Relocation &Reloc, ELFSection &Section, InputFile &Input,
+                      CopyRelocs &CopyRelocSet);
+
+  void scanRelocationParallel(Relocation &Reloc, ELFSection &Section,
+                              InputFile &Input, size_t InputIndex,
+                              size_t SectIndex, size_t RelocIndex);
+
+  /// Phase 2: Replays the relocations recorded by phase 1 in input
+  /// order, serially.
+  void replayScanRelocations(CopyRelocs &CopyRelocSet);
 
   // Issue an undefined reference error if the symbol is a magic section symbol.
   void issueUndefRefForMagicSymbol(const Relocation &pReloc);
@@ -174,6 +202,23 @@ private:
 protected:
   bool reportNonPICRelocation(const Relocation &reloc) const;
 
+  virtual bool isRelocSupported(const Relocation &Reloc) const { return true; }
+
+  virtual void diagnoseUnsupportedReloc(const Relocation &Reloc,
+                                        const ELFSection &Section,
+                                        const InputFile &Input) const;
+
+  virtual bool canIssueUndefRef(ResolveInfo *Sym);
+
+  /// Phase 1:  Called for a relocation whose target section is not allocatable,
+  /// just before the relocation is dropped.
+  virtual void scanNonAllocReloc(Relocation &Reloc, ELFSection &Section) {}
+
+  /// Phase 2: Handle one relocation recorded by phase 1, serially.
+  virtual void scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
+                                      ELFSection &Section,
+                                      CopyRelocs &CopyRelocSet) = 0;
+
   virtual bool isPICRelocTypeSupported(const Relocation &reloc) const {
     return true;
   }
@@ -185,6 +230,15 @@ protected:
   Module &m_Module;
   std::mutex m_RelocMutex;
   std::unordered_map<std::string, uint32_t> RelocNameMap;
+
+private:
+  bool scanRelocationPrologue(Relocation &Reloc, ELFSection &Section,
+                              InputFile &Input);
+
+  struct DeferredInput {
+    llvm::SmallVector<llvm::BitVector, 0> RelocationsBySection;
+  };
+  llvm::SmallVector<DeferredInput, 0> DeferredRelocations;
 };
 
 Relocator::Result checkSignedRange(Relocation &Rel, Relocator &R, int64_t Value,

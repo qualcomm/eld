@@ -16,8 +16,8 @@ Relocator::Result X86_32Relocator::applyRelocation(Relocation &) {
   return Relocator::Unsupport;
 }
 
-void X86_32Relocator::scanRelocation(Relocation &, eld::IRBuilder &,
-                                     ELFSection &, InputFile &, CopyRelocs &) {}
+void X86_32Relocator::scanDeferredRelocation(InputFile &, Relocation &,
+                                             ELFSection &, CopyRelocs &) {}
 
 const char *X86_32Relocator::getName(Relocation::Type) const {
   return "<unsupported i386 relocation>";

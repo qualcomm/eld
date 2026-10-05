@@ -49,16 +49,6 @@ public:
       R->setTargetData(0);
   }
 
-  /// scanRelocation - determine the empty entries are needed or not and create
-  /// the empty entries if needed.
-  /// For ARM, following entries are check to create:
-  /// - GOT entry (for .got section)
-  /// - PLT entry (for .plt section)
-  /// - dynamin relocation entries (for .rel.plt and .rel.dyn sections)
-  void scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
-                      ELFSection &pSection, InputFile &pInputFile,
-                      CopyRelocs &) override;
-
   ELFSegment *getSBRELSegment() const { return m_Target.getSBRELSegment(); }
 
   void setSBRELSegment(ELFSegment *S) { m_Target.setSBRELSegment(S); }
@@ -70,6 +60,19 @@ public:
   std::optional<uint64_t> getStaticTLSBlockVarOffset() const {
     return StaticTLSBlockVarOffset;
   }
+
+protected:
+  /// Determine whether GOT, PLT, or dynamic relocation entries are needed and
+  /// create them. For ARM:
+  /// - GOT entry (for .got section)
+  /// - PLT entry (for .plt section)
+  /// - dynamic relocation entries (for .rel.plt and .rel.dyn sections)
+  ///
+  /// R_ARM_TARGET1 and R_ARM_TARGET2 are normalized to a concrete type here,
+  /// before the local/global dispatch.
+  void scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
+                              ELFSection &Section,
+                              CopyRelocs &CopyRelocSet) override;
 
 private:
   bool isPICRelocTypeSupported(const Relocation &reloc) const override;

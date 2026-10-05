@@ -31,6 +31,119 @@
 
 using namespace eld;
 
+void Relocator::initScanRelocations() {
+  const auto &Inputs = m_Module.getObjectList();
+  DeferredRelocations.clear();
+  DeferredRelocations.resize(Inputs.size());
+  for (size_t I = 0; I != Inputs.size(); ++I) {
+    auto *ObjFile = llvm::dyn_cast<ELFObjectFile>(Inputs[I]);
+    if (!ObjFile)
+      continue;
+    auto &RelocationsBySection = DeferredRelocations[I].RelocationsBySection;
+    for (ELFSection *Rs : ObjFile->getRelocationSections())
+      RelocationsBySection.emplace_back(Rs->getLink()->getRelocationCount());
+  }
+}
+
+void Relocator::diagnoseUnsupportedReloc(const Relocation &Reloc,
+                                         const ELFSection &Section,
+                                         const InputFile &Input) const {
+  config().raise(Diag::unsupported_reloc)
+      << Reloc.type() << Section.getDecoratedName(config().options())
+      << Input.getInput()->decoratedPath();
+}
+
+bool Relocator::canIssueUndefRef(ResolveInfo *Sym) {
+  return getTarget().canIssueUndef(Sym);
+}
+
+bool Relocator::scanRelocationPrologue(Relocation &Reloc, ELFSection &Section,
+                                       InputFile &Input) {
+  if (LinkerConfig::Object == config().codeGenType())
+    return false;
+
+  // TODO: phase 1 runs concurrently, so the order in which these diagnostics
+  // interleave between input files is not deterministic.
+  if (!isRelocSupported(Reloc)) {
+    diagnoseUnsupportedReloc(Reloc, Section, Input);
+    return false;
+  }
+
+  if (!checkPICRelocSupported(Reloc))
+    return false;
+
+  ResolveInfo *Sym = Reloc.symInfo();
+  assert(nullptr != Sym &&
+         "ResolveInfo of relocation not set while scanRelocation");
+
+  if (m_Module.getPrinter()->traceReloc()) {
+    std::string RelocName = getName(Reloc.type());
+    if (config().options().traceReloc(RelocName))
+      config().raise(Diag::reloc_trace)
+          << RelocName << Sym->name() << Input.getInput()->decoratedPath();
+  }
+
+  // Report an undefined reference for the relocation target symbol.
+  if ((Sym->isUndef() || Sym->isBitCode()) && canIssueUndefRef(Sym)) {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (Sym->visibility() != ResolveInfo::Default)
+      issueInvisibleRef(Reloc, Input);
+    issueUndefRef(Reloc, Input, &Section);
+  }
+
+  ELFSection *LinkedSection = Section.getLink();
+  if (!LinkedSection->isAlloc()) {
+    scanNonAllocReloc(Reloc, Section);
+    return false;
+  }
+
+  return true;
+}
+
+void Relocator::scanRelocation(Relocation &Reloc, ELFSection &Section,
+                               InputFile &Input, CopyRelocs &CopyRelocSet) {
+  if (!scanRelocationPrologue(Reloc, Section, Input))
+    return;
+  scanDeferredRelocation(Input, Reloc, *Section.getLink(), CopyRelocSet);
+}
+
+void Relocator::scanRelocationParallel(Relocation &Reloc, ELFSection &Section,
+                                       InputFile &Input, size_t InputIndex,
+                                       size_t SectIndex, size_t RelocIndex) {
+  if (!scanRelocationPrologue(Reloc, Section, Input))
+    return;
+
+  // Defer everything that reaches here to the serial phase, so that no slot is
+  // allocated and nothing is appended to a shared section off the main thread.
+  assert(InputIndex < DeferredRelocations.size() &&
+         "input missing from scan bookkeeping");
+  DeferredRelocations[InputIndex].RelocationsBySection[SectIndex].set(
+      RelocIndex);
+}
+
+void Relocator::replayScanRelocations(CopyRelocs &CopyRelocSet) {
+  const auto &Inputs = m_Module.getObjectList();
+  for (size_t I = 0; I != Inputs.size(); ++I) {
+    auto *ObjFile = llvm::dyn_cast<ELFObjectFile>(Inputs[I]);
+    if (!ObjFile)
+      continue;
+    auto &RelocationsBySection = DeferredRelocations[I].RelocationsBySection;
+    size_t SectIndex = 0;
+    for (ELFSection *Rs : ObjFile->getRelocationSections()) {
+      const llvm::BitVector &Deferred = RelocationsBySection[SectIndex++];
+      if (Deferred.none())
+        continue;
+      ELFSection *Section = Rs->getLink();
+      size_t RelocIndex = 0;
+      for (Relocation *Reloc : Section->getRelocations()) {
+        if (Deferred.test(RelocIndex++))
+          scanDeferredRelocation(*Inputs[I], *Reloc, *Section, CopyRelocSet);
+      }
+    }
+  }
+  DeferredRelocations.clear();
+}
+
 //===----------------------------------------------------------------------===//
 // Relocator
 //===----------------------------------------------------------------------===//

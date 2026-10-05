@@ -8,14 +8,24 @@
 # RUN: %clang %clangopts -c -fPIC %t/c.c -o %t/c.o
 # RUN: %clang %clangopts -c -fPIC %t/main.c -o %t/main.o
 
-# RUN: %link %linkopts -shared --enable-threads=all -o %t/out.1 %t/main.o %t/a.o %t/b.o %t/c.o
-# RUN: %link %linkopts -shared --enable-threads=all -o %t/out.2 %t/main.o %t/a.o %t/b.o %t/c.o
-# RUN: %link %linkopts -shared --enable-threads=all -o %t/out.3 %t/main.o %t/a.o %t/b.o %t/c.o
+# RUN: %link %linkopts -shared --enable-threads=all --thread-count=8 -o %t/out.1 %t/main.o %t/a.o %t/b.o %t/c.o
+# RUN: %link %linkopts -shared --enable-threads=all --thread-count=8 -o %t/out.2 %t/main.o %t/a.o %t/b.o %t/c.o
+# RUN: %link %linkopts -shared --enable-threads=all --thread-count=8 -o %t/out.3 %t/main.o %t/a.o %t/b.o %t/c.o
 # RUN: cmp %t/out.1 %t/out.2
 # RUN: cmp %t/out.1 %t/out.3
 
 # RUN: %link %linkopts -shared --no-threads -o %t/out.serial %t/main.o %t/a.o %t/b.o %t/c.o
 # RUN: cmp %t/out.1 %t/out.serial
+
+# RUN: %readelf -r -s %t/out.1 > %t/tables.parallel
+# RUN: %readelf -r -s %t/out.serial > %t/tables.serial
+# RUN: %diff %t/tables.parallel %t/tables.serial
+
+## Changing the input order is allowed to change slot order, but must still be
+## deterministic and must still agree between a serial and a parallel link.
+# RUN: %link %linkopts -shared --enable-threads=all --thread-count=8 -o %t/rev.parallel %t/main.o %t/c.o %t/b.o %t/a.o
+# RUN: %link %linkopts -shared --no-threads -o %t/rev.serial %t/main.o %t/c.o %t/b.o %t/a.o
+# RUN: cmp %t/rev.parallel %t/rev.serial
 
 #--- a.c
 extern int g0, g1, g2, g3, g4, g5, g6, g7;

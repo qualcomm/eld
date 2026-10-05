@@ -379,8 +379,8 @@ RISCVGOT *RISCVRelocator::getTLSModuleID(ResolveInfo *R, bool isStatic) {
   return G;
 }
 
-bool RISCVRelocator::isRelocSupported(Relocation &pReloc) const {
-  return RelocDescs.count(pReloc.type()) != 0;
+bool RISCVRelocator::isRelocSupported(const Relocation &Reloc) const {
+  return RelocDescs.count(Reloc.type()) != 0;
 }
 
 // Check if relocation type is legal in code-independent links.
@@ -402,111 +402,72 @@ bool RISCVRelocator::isPICRelocTypeSupported(const Relocation &reloc) const {
   }
 }
 
-void RISCVRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pLinker,
-                                    ELFSection &pSection, InputFile &pInputFile,
-                                    CopyRelocs &CopyRelocs) {
-  if (LinkerConfig::Object == config().codeGenType())
-    return;
+void RISCVRelocator::diagnoseUnsupportedReloc(const Relocation &Reloc,
+                                              const ELFSection &Section,
+                                              const InputFile &Input) const {
+  Relocator::diagnoseUnsupportedReloc(Reloc, Section, Input);
+  m_Target.getModule().setFailure(true);
+}
 
-  if (!isRelocSupported(pReloc)) {
-    config().raise(Diag::unsupported_reloc)
-        << pReloc.type() << pSection.getDecoratedName(config().options())
-        << pInputFile.getInput()->decoratedPath();
-    m_Target.getModule().setFailure(true);
+void RISCVRelocator::scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
+                                            ELFSection &Section,
+                                            CopyRelocs &CopyRelocSet) {
+  ResolveInfo *Sym = Reloc.symInfo();
+  eld::IRBuilder &Linker = *module().getIRBuilder();
+  ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&Input);
+
+  // Common relocation processing for both local and global symbols.
+  switch (Reloc.type()) {
+  case llvm::ELF::R_RISCV_TLSDESC_HI20:
+  case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
+  case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
+  case llvm::ELF::R_RISCV_TLSDESC_CALL: {
+    if (config().isBuildingExecutable()) {
+      // Non-preemptible symbols in executables will be optimized or relaxed,
+      // no GOT needed.
+      if (!m_Target.isSymbolPreemptible(*Sym))
+        return;
+
+      // RISC-V seems to dictate how each instruction in the sequence is
+      // transformed during IE/LE optimization. In particular, the instruction
+      // with R_RISCV_TLSDESC_ADD_LO12 is transformed to AUIPC, although it
+      // would be easier to keep the original AUIPC and remove the one with
+      // R_RISCV_TLSDESC_ADD_LO12. Therefore, the new load instruction will
+      // need a new relocation to indicate its base address. Reuse the
+      // existing R_RISCV_TLSDESC_ADD_LO12 as this is where the new auipc will
+      // be created.
+      if (Reloc.type() == llvm::ELF::R_RISCV_TLSDESC_ADD_LO12)
+        m_Target.setNewBaseForTLSDESCRelaxation(Reloc);
+
+      if (Sym->reserved() & ReserveGOT)
+        return;
+
+      RISCVGOT *G = m_Target.createGOT(GOT::TLS_IE, Sym);
+      G->setValueType(GOT::TLSStaticSymbolValue);
+      helper_DynRel_init(Obj, &Reloc, Sym, G, 0x0,
+                         is32bit() ? llvm::ELF::R_RISCV_TLS_TPREL32
+                                   : llvm::ELF::R_RISCV_TLS_TPREL64,
+                         m_Target);
+    } else {
+      if (Sym->reserved() & ReserveGOT)
+        return;
+      RISCVGOT *G = m_Target.createGOT(GOT::TLS_DESC, Sym);
+      helper_DynRel_init(Obj, &Reloc, Sym, G->getFirst(), 0x0,
+                         llvm::ELF::R_RISCV_TLSDESC, m_Target);
+    }
+
+    Sym->setReserved(Sym->reserved() | ReserveGOT);
     return;
   }
 
-  if (!checkPICRelocSupported(pReloc))
-    return;
+  default:
+    break;
+  }
 
-  auto ProcessOneReloc = [&](Relocation &pReloc) -> void {
-    // rsym - The relocation target symbol
-    ResolveInfo *rsym = pReloc.symInfo();
-    assert(nullptr != rsym &&
-           "ResolveInfo of relocation not set while scanRelocation");
-
-    // Check if we are tracing relocations.
-    if (m_Module.getPrinter()->traceReloc()) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-      std::string relocName = getName(pReloc.type());
-      if (config().options().traceReloc(relocName))
-        config().raise(Diag::reloc_trace)
-            << relocName << pReloc.symInfo()->name()
-            << pInputFile.getInput()->decoratedPath();
-    }
-
-    // check if we should issue undefined reference for the relocation target
-    // symbol
-    {
-      if (rsym->isUndef() || rsym->isBitCode()) {
-        std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-        if (m_Target.canIssueUndef(rsym)) {
-          if (rsym->visibility() != ResolveInfo::Default)
-            issueInvisibleRef(pReloc, pInputFile);
-          issueUndefRef(pReloc, pInputFile, &pSection);
-        }
-      }
-    }
-
-    ELFSection *section = pSection.getLink();
-
-    if (!section->isAlloc())
-      return;
-
-    ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
-
-    // Common relocation processing for both local and global symbols.
-    switch (pReloc.type()) {
-    case llvm::ELF::R_RISCV_TLSDESC_HI20:
-    case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
-    case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
-    case llvm::ELF::R_RISCV_TLSDESC_CALL: {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-      if (config().isBuildingExecutable()) {
-        // Non-preemptible symbols in executables will be optimized or relaxed,
-        // no GOT needed.
-        if (!m_Target.isSymbolPreemptible(*rsym))
-          return;
-
-        // RISC-V seems to dictate how each instruction in the sequence is
-        // transformed during IE/LE optimization. In particular, the instruction
-        // with R_RISCV_TLSDESC_ADD_LO12 is transformed to AUIPC, although it
-        // would be easier to keep the original AUIPC and remove the one with
-        // R_RISCV_TLSDESC_ADD_LO12. Therefore, the new load instruction will
-        // need a new relocation to indicate its base address. Reuse the
-        // existing R_RISCV_TLSDESC_ADD_LO12 as this is where the new auipc will
-        // be created.
-        if (pReloc.type() == llvm::ELF::R_RISCV_TLSDESC_ADD_LO12)
-          m_Target.setNewBaseForTLSDESCRelaxation(pReloc);
-
-        if (rsym->reserved() & ReserveGOT)
-          return;
-
-        RISCVGOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
-        G->setValueType(GOT::TLSStaticSymbolValue);
-        helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
-                           is32bit() ? llvm::ELF::R_RISCV_TLS_TPREL32
-                                     : llvm::ELF::R_RISCV_TLS_TPREL64,
-                           m_Target);
-      } else {
-        if (rsym->reserved() & ReserveGOT)
-          return;
-        RISCVGOT *G = m_Target.createGOT(GOT::TLS_DESC, rsym);
-        helper_DynRel_init(Obj, &pReloc, rsym, G->getFirst(), 0x0,
-                           llvm::ELF::R_RISCV_TLSDESC, m_Target);
-      }
-
-      rsym->setReserved(rsym->reserved() | ReserveGOT);
-      return;
-    }
-    }
-
-    if (rsym->isLocal()) // rsym is local
-      scanLocalReloc(pInputFile, pReloc, pLinker, *section);
-    else // rsym is external
-      scanGlobalReloc(pInputFile, pReloc, pLinker, *section, CopyRelocs);
-  };
-  ProcessOneReloc(pReloc);
+  if (Sym->isLocal())
+    scanLocalReloc(Input, Reloc, Linker, Section);
+  else
+    scanGlobalReloc(Input, Reloc, Linker, Section, CopyRelocSet);
 }
 
 uint32_t RISCVRelocator::getNumRelocs() const {
