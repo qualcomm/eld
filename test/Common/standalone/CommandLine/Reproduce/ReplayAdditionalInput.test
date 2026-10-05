@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 #---ReplayAdditionalInput.test-------------- Executable -------------------#
 #BEGIN_COMMENT
 # Verify --replay accepts additional user-provided input files after the

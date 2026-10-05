@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 #---Replay.test---------------------------- Executable --------------------#
 #BEGIN_COMMENT
 # Verify --replay can rebuild from a reproduce tarball and allow extra options.
