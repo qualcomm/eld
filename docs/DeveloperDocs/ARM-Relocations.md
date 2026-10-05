@@ -33,12 +33,15 @@ ARM and Thumb functions are distinguished by the least-significant bit of a bran
 | Relocation | Expression | Bits | Range Check |
 |------------|-----------|------|-------------|
 | `R_ARM_ABS32` | `(S + A) \| T` | 32 | none |
+| `R_ARM_ABS32_NOI` | `S + A` | 32 | none |
 | `R_ARM_ABS16` | `S + A` | 16 | none |
 | `R_ARM_ABS8` | `S + A` | 8 | none |
 | `R_ARM_MOVW_ABS_NC` | `(S + A) \| T` | `[15:0]` | none |
 | `R_ARM_MOVT_ABS` | `S + A` | `[31:16]` | none |
 | `R_ARM_THM_MOVW_ABS_NC` | `(S + A) \| T` | `[15:0]` | none |
 | `R_ARM_THM_MOVT_ABS` | `S + A` | `[31:16]` | none |
+
+`R_ARM_ABS32_NOI` is relocation number 55 and does not apply the Thumb/interworking bit.
 
 `R_ARM_MOVW_ABS_NC` and `R_ARM_MOVT_ABS` are used in pairs: `MOVW` loads bits `[15:0]` and `MOVT` loads bits `[31:16]` of a 32-bit address.
 
@@ -179,7 +182,6 @@ The table below lists every relocation that ELD's ARM backend maps to the `unsup
 | 39 | `R_ARM_SBREL31` | Deprecated 31-bit section-relative | |
 | 52 | `R_ARM_THM_JUMP6` | Thumb 6-bit branch (CBZ/CBNZ) | |
 | 53 | `R_ARM_THM_ALU_PREL_11_0` | Thumb-2 ALU PC-relative 11:0 | |
-| 55 | `R_ARM_ABS32_NOI` | 32-bit absolute, no interworking bit | |
 | 56 | `R_ARM_REL32_NOI` | 32-bit PC-relative, no interworking bit | |
 | 67 | `R_ARM_LDC_PC_G0` | Group reloc — LDC/STC PC-relative G0 | |
 | 68 | `R_ARM_LDC_PC_G1` | Group reloc — LDC/STC PC-relative G1 | |
