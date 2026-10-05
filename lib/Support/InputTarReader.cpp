@@ -245,7 +245,7 @@ InputTarReader::findFile(llvm::StringRef TarData, llvm::StringRef FileName) {
         // and suffix match (e.g. "reproduce.out/path/file" vs "file").
         std::string Suffix = ("/" + FileName).str();
         if (EntryNameRef == FileName || EntryNameRef.ends_with(Suffix)) {
-          Found = llvm::MemoryBufferRef(Payload, EntryNameRef);
+          Found = llvm::MemoryBufferRef(Payload, FileName);
         }
         return eld::Expected<void>();
       });
