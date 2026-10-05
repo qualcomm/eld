@@ -34,11 +34,20 @@ ELD still produces ELF images and does not link Mach-O. On macOS the linker
 binary is built natively for the host architecture (`arm64` or `x86_64`);
 universal binaries are not required.
 
-ELD depends on LLVM. You can build ELD either:
+ELD depends on LLVM. For development and validation of ELD `main`
+(tip-of-tree), use LLVM `main` as the default baseline. ELD relies on evolving
+LLVM internals, so older LLVM releases or snapshots may lack APIs required by
+ELD `main`.
+
+You can build ELD either:
 - Integrated into an `llvm-project` build (recommended for running tests), or
-- Against an external, prebuilt LLVM installation (faster iteration if you already have an LLVM release).
+- Against an external, prebuilt LLVM installation (using a compatible LLVM revision).
 
 You will need a recent C++ compiler for building LLVM and ELD.
+
+Use source and build directory paths without spaces. Some existing lit test
+`RUN` lines contain unquoted path substitutions, which can cause tests to fail
+when paths contain spaces.
 
 ```
 git clone https://github.com/llvm/llvm-project.git
@@ -62,7 +71,10 @@ cmake --build obj -- check-eld # Build test artifacts and run the tests
 
 ## Building ELD with an external LLVM installation
 
-If you already have an installed LLVM/Clang "release" directory (with `bin/clang`, `bin/clang++`, `bin/llvm-tblgen`, and `lib/cmake/llvm`), you can configure ELD directly against it:
+For ELD `main`, use an external LLVM installation built from LLVM `main` as
+well. An installed LLVM release is not necessarily compatible with ELD `main`.
+
+If you already have a compatible LLVM/Clang installation (with `bin/clang`, `bin/clang++`, `bin/llvm-tblgen`, and `lib/cmake/llvm`), you can configure ELD directly against it:
 
 ```bash
 ./configure_external_llvm.sh <LLVM_RELEASE_DIR> <ELD_BUILD_DIR>
