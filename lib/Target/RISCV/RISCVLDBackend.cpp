@@ -133,7 +133,7 @@ void RISCVLDBackend::initTargetSymbols() {
         m_Module.getIRBuilder()
             ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::InternalInputType::TableJump),
-                JvtName, ResolveInfo::NoType, ResolveInfo::Define,
+                JvtName, ResolveInfo::Object, ResolveInfo::Define,
                 ResolveInfo::Global,
                 /*Size=*/0x0, /*Value=*/0x0,
                 make<FragmentRef>(*TableJumpFragment, 0x0),

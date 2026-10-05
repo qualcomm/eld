@@ -9,8 +9,8 @@
 # CHECK8:      0 NOTYPE  LOCAL  DEFAULT {{.*}} $d
 #
 ## foo is the only JVT entry: 4 bytes (RV32) or 8 bytes (RV64).
-# CHECK4:      4 NOTYPE  GLOBAL HIDDEN {{.*}} __jvt_base$
-# CHECK8:      8 NOTYPE  GLOBAL HIDDEN {{.*}} __jvt_base$
+# CHECK4:      4 OBJECT  GLOBAL HIDDEN {{.*}} __jvt_base$
+# CHECK8:      8 OBJECT  GLOBAL HIDDEN {{.*}} __jvt_base$
 
 .global _start
 _start:
