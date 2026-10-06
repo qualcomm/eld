@@ -35,6 +35,14 @@ public:
     return nullptr;
   }
 
+  uint32_t getGNUPropertyFeatureAndType() const override {
+    return llvm::ELF::GNU_PROPERTY_X86_FEATURE_1_AND;
+  }
+
+  bool DoesOverrideMerge(ELFSection *pSection) const override;
+
+  ELFSection *mergeSection(ELFSection *S) override;
+
 private:
   size_t getRelEntrySize() override { return 0; }
   size_t getRelaEntrySize() override { return 0; }

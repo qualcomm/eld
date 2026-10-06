@@ -329,6 +329,10 @@ private:
   bool fitsInGP(Relocation::DWord, Relocation::DWord, Fragment *frag,
                 ELFSection *TargetSection, size_t) const;
 
+  uint32_t getGNUPropertyFeatureAndType() const override {
+    return llvm::ELF::GNU_PROPERTY_RISCV_FEATURE_1_AND;
+  }
+
   bool DoesOverrideMerge(ELFSection *pSection) const override;
 
   ELFSection *mergeSection(ELFSection *pSection) override;

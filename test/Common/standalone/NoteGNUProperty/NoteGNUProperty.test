@@ -1,0 +1,78 @@
+#---NoteGNUProperty.test----------------------- Executable --------------------#
+#BEGIN_COMMENT
+#This test checks .note.gnu.property handling on targets that merge
+#GNU_PROPERTY_<ARCH>_FEATURE_1_AND. The input carries both the AArch64/RISC-V
+#property (0xc0000000) and the x86 property (0xc0000002); each target consumes
+#only its own. It checks emission, alignment and size, AND merging,
+#missing/zero/disjoint features, linker script placement, discard, the
+#absence of a stale section symbol and malformed input.
+#END_COMMENT
+#START_TEST
+UNSUPPORTED: arm, hexagon, riscv32, i386
+
+RUN: %clang %clangopts -c -Wa,-defsym,FEAT=3 %p/Inputs/note.s -o %t.all.o
+RUN: %clang %clangopts -c -Wa,-defsym,FEAT=1 %p/Inputs/note.s -o %t.one.o
+RUN: %clang %clangopts -c -Wa,-defsym,FEAT=2 %p/Inputs/note.s -o %t.two.o
+RUN: %clang %clangopts -c -Wa,-defsym,FEAT=0 %p/Inputs/note.s -o %t.zero.o
+RUN: %clang %clangopts -c -Wa,-defsym,NONOTE=1 %p/Inputs/note.s -o %t.none.o
+RUN: %clang %clangopts -c -Wa,-defsym,FEAT=3 -Wa,-defsym,BAD=1 %p/Inputs/note.s -o %t.bad.o
+
+## Emit: one note, correct bits, no warnings
+RUN: %link %linkopts %t.all.o -o %t1.out 2>&1 | %filecheck --allow-empty --check-prefix=NOWARN %s
+RUN: %readelf -n %t1.out | %filecheck --check-prefix=ALL %s
+RUN: %readelf -n %t1.out | %filecheck --check-prefix=ONE %s
+
+## Alignment (8 on ELF64) and size (32 bytes)
+RUN: %readelf -S -W %t1.out | %filecheck --check-prefix=ALIGN %s
+
+## The input note's section symbol must not be left behind as an ABS symbol
+RUN: %readelf -s -W %t1.out | %filecheck --check-prefix=SYM %s
+
+## AND merge, both input orders
+RUN: %link %linkopts %t.all.o %t.one.o -o %t2.out
+RUN: %readelf -n %t2.out | %filecheck --check-prefix=AND %s
+RUN: %link %linkopts %t.one.o %t.all.o -o %t3.out
+RUN: %readelf -n %t3.out | %filecheck --check-prefix=AND %s
+
+## Missing note / zero features / disjoint features -> no output note
+RUN: %link %linkopts %t.all.o %t.none.o -o %t4.out
+RUN: %readelf -S -W %t4.out | %filecheck --check-prefix=NONOTE %s
+RUN: %link %linkopts %t.none.o %t.all.o -o %t5.out
+RUN: %readelf -S -W %t5.out | %filecheck --check-prefix=NONOTE %s
+RUN: %link %linkopts %t.all.o %t.zero.o -o %t6.out
+RUN: %readelf -S -W %t6.out | %filecheck --check-prefix=NONOTE %s
+RUN: %link %linkopts %t.zero.o -o %t7.out
+RUN: %readelf -S -W %t7.out | %filecheck --check-prefix=NONOTE %s
+RUN: %link %linkopts %t.one.o %t.two.o -o %t8.out
+RUN: %readelf -S -W %t8.out | %filecheck --check-prefix=NONOTE %s
+
+## Linker script placement keeps the alignment
+RUN: %link %linkopts %t.all.o -T %p/Inputs/ls.t -o %t9.out
+RUN: %readelf -S -W %t9.out | %filecheck --check-prefix=LS %s
+
+## /DISCARD/
+RUN: %link %linkopts %t.all.o -T %p/Inputs/discard.t -o %t10.out
+RUN: %readelf -S -W %t10.out | %filecheck --check-prefix=NONOTE %s
+
+## Malformed note
+RUN: %not %link %linkopts %t.bad.o -o %t11.out 2>&1 | %filecheck --check-prefix=ERR %s
+#END_TEST
+
+#NOWARN-NOT: {{[Ww]arning}}
+
+#ALL: {{aarch64 feature: BTI, PAC|x86 feature: IBT, SHSTK|RISC-V feature: ZICFILP-unlabeled, ZICFISS}}{{$}}
+
+#ONE: NT_GNU_PROPERTY_TYPE_0
+#ONE-NOT: NT_GNU_PROPERTY_TYPE_0
+
+#ALIGN: .note.gnu.property NOTE {{[0-9a-f]*[08]}} {{[0-9a-f]*[08]}} 000020 00 A 0 0 8
+
+#SYM-NOT: SECTION {{.*}} ABS
+
+#AND: {{aarch64 feature: BTI|x86 feature: IBT|RISC-V feature: ZICFILP-unlabeled}}{{$}}
+
+#NONOTE-NOT: .note.gnu.property
+
+#LS: .note NOTE {{[0-9a-f]*[08]}} {{[0-9a-f]*[08]}} 000020 00 A 0 0 8
+
+#ERR: Reading .note.gnu.property from {{.*}}.bad.o has error program property is too short

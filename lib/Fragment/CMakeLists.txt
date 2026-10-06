@@ -12,6 +12,7 @@ llvm_add_library(
   FragmentRef.cpp
   FragUtils.cpp
   GNUHashFragment.cpp
+  GNUPropertyFragment.cpp
   GOT.cpp
   MergeStringFragment.cpp
   OutputSectDataFragment.cpp
