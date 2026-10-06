@@ -86,8 +86,8 @@ void AArch64LDBackend::initDynamicSections(InputFile &InputFile) {
 }
 
 void AArch64LDBackend::initTargetSections(ObjectBuilder &pBuilder) {
-
-  createGNUPropertySection(false);
+  if (config().options().hasForceBTI() || config().options().hasForcePACPLT())
+    createGNUPropertySection();
 }
 
 void AArch64LDBackend::initTargetSymbols() {
@@ -116,63 +116,6 @@ bool AArch64LDBackend::initRelocator() {
     m_pRelocator = make<AArch64Relocator>(*this, config(), m_Module);
   }
   return true;
-}
-
-bool AArch64LDBackend::processInputFiles(
-    std::vector<InputFile *> &Inputs) {
-  if (!m_pGPF)
-    return config().getDiagEngine()->diagnose();
-  for (auto &I : Inputs) {
-    ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(I);
-    if (!ObjFile)
-      continue;
-    if (!ObjFile->getSize())
-      continue;
-    processInputFile(I);
-  }
-  return config().getDiagEngine()->diagnose();
-}
-
-bool AArch64LDBackend::processInputFile(InputFile *In) {
-  // Create features
-  uint32_t features = 0;
-  bool hasWarning = false;
-  auto Iter = NoteGNUPropertyMap.find(In);
-  if (Iter != NoteGNUPropertyMap.end())
-    features = Iter->second;
-  if (config().options().hasForceBTI() &&
-      !(features & llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_BTI)) {
-    features |= llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_BTI;
-    m_pGPF->updateInfo(features);
-    NoteGNUPropertyMap[In] = features;
-    config().raise(Diag::no_feature_found_in_file)
-        << "BTI features recorded" << In->getInput()->decoratedPath();
-    hasWarning = true;
-  }
-  if (config().options().hasForcePACPLT() &&
-      !(features & llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_PAC)) {
-    features |= llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_PAC;
-    m_pGPF->updateInfo(features);
-    NoteGNUPropertyMap[In] = features;
-    config().raise(Diag::no_feature_found_in_file)
-        << "PAC features recorded" << In->getInput()->decoratedPath();
-    hasWarning = true;
-  }
-  static bool hasBTIFlag = true;
-  static bool hasPACFlag = true;
-  // reset BTI feature if BTI flag is not seen
-  if ((!(features & llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_BTI)) ||
-      (!hasBTIFlag)) {
-    hasBTIFlag = false;
-    m_pGPF->resetFlag(llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_BTI);
-  }
-  // reset PAC feature if PAC flag is not seen
-  if ((!(features & llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_PAC)) ||
-      (!hasPACFlag)) {
-    hasPACFlag = false;
-    m_pGPF->resetFlag(llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_PAC);
-  }
-  return !hasWarning;
 }
 
 Relocator *AArch64LDBackend::getRelocator() const {
@@ -756,6 +699,22 @@ AArch64PLT *AArch64LDBackend::createPLT(ResolveInfo *R, bool isIRelative) {
   return P;
 }
 
+void AArch64LDBackend::adjustGNUPropertyFeatures(InputFile *In,
+                                                 uint32_t &Features) {
+  if (config().options().hasForceBTI() &&
+      !(Features & llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_BTI)) {
+    Features |= llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_BTI;
+    config().raise(Diag::no_feature_found_in_file)
+        << "BTI features recorded" << In->getInput()->decoratedPath();
+  }
+  if (config().options().hasForcePACPLT() &&
+      !(Features & llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_PAC)) {
+    Features |= llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_PAC;
+    config().raise(Diag::no_feature_found_in_file)
+        << "PAC features recorded" << In->getInput()->decoratedPath();
+  }
+}
+
 // Record GOT entry.
 void AArch64LDBackend::recordPLT(ResolveInfo *I, AArch64PLT *P) {
   m_PLTMap[I] = P;
@@ -780,119 +739,14 @@ AArch64PLT *AArch64LDBackend::findEntryInPLT(ResolveInfo *I) const {
   return Entry->second;
 }
 
-void AArch64LDBackend::createGNUPropertySection(bool force) {
-  if (!config().options().hasForceBTI() &&
-      !config().options().hasForcePACPLT() && !force)
-    return;
-  if (m_pNoteGNUProperty)
-    return;
-  m_pNoteGNUProperty = m_Module.createInternalSection(
-      Module::InternalInputType::Sections, LinkerSectionKind::Internal,
-      ".note.gnu.property", llvm::ELF::SHT_NOTE, llvm::ELF::SHF_ALLOC, 1);
-  m_pGPF = eld::make<AArch64NoteGNUPropertyFragment>(m_pNoteGNUProperty);
-  m_pNoteGNUProperty->addFragmentAndUpdateSize(m_pGPF);
-  m_pNoteGNUProperty->setWanted(true);
-}
-
-bool AArch64LDBackend::readSection(InputFile &pInput, ELFSection *S) {
-  // We need break them down to individual entry
-  if (S->getKind() == LinkerSectionKind::GNUProperty) {
-    // Force create GNU property section
-    createGNUPropertySection(true);
-    S->setWanted(true);
-    uint32_t featureSet = 0;
-    if (!readGNUProperty<llvm::object::ELF64LE>(pInput, S, featureSet))
-      return false;
-    NoteGNUPropertyMap[&pInput] = featureSet;
-    if (!m_pGPF->updateInfo(featureSet))
-      return false;
-    return true;
-  }
-  return GNULDBackend::readSection(pInput, S);
-}
-
 bool AArch64LDBackend::DoesOverrideMerge(ELFSection *pSection) const {
-  if (pSection->getKind() == LinkerSectionKind::Internal)
-    return false;
-  if (pSection->name() == ".note.gnu.property")
-    return true;
-  return false;
+  return isGNUPropertyMergeSection(pSection);
 }
 
 ELFSection *AArch64LDBackend::mergeSection(ELFSection *S) {
-  if (S->name() == ".note.gnu.property")
-    return m_pNoteGNUProperty;
+  if (isGNUPropertyMergeSection(S))
+    return getGNUPropertySection();
   return nullptr;
-}
-
-// Read .note.gnu.property and extract features for pointer authentication.
-template <class ELFT>
-bool AArch64LDBackend::readGNUProperty(InputFile &pInput, ELFSection *S,
-                                              uint32_t &featureSet) {
-  using Elf_Nhdr = typename ELFT::Nhdr;
-  using Elf_Note = typename ELFT::Note;
-
-  llvm::StringRef Contents = pInput.getSlice(S->offset(), S->size());
-  llvm::ArrayRef<uint8_t> data =
-      llvm::ArrayRef((const uint8_t *)Contents.data(), Contents.size());
-  auto reportFatal = [&](const char *msg) {
-    config().raise(Diag::gnu_property_read_error)
-        << pInput.getInput()->decoratedPath() << msg;
-  };
-  while (!data.empty()) {
-    // Read one NOTE record.
-    auto *nhdr = reinterpret_cast<const Elf_Nhdr *>(data.data());
-    if (data.size() < sizeof(Elf_Nhdr) ||
-        data.size() < nhdr->getSize(S->getAddrAlign())) {
-      reportFatal("data is too short");
-      return false;
-    }
-
-    Elf_Note note(*nhdr);
-    if (nhdr->n_type != llvm::ELF::NT_GNU_PROPERTY_TYPE_0 ||
-        note.getName() != "GNU") {
-      data = data.slice(nhdr->getSize(S->getAddrAlign()));
-      continue;
-    }
-
-    uint32_t featureAndType = llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_AND;
-
-    // Read a body of a NOTE record, which consists of type-length-value fields.
-    ArrayRef<uint8_t> desc = note.getDesc(S->getAddrAlign());
-    while (!desc.empty()) {
-      if (desc.size() < 8) {
-        reportFatal("program property is too short");
-        return false;
-      }
-      uint32_t type =
-          llvm::support::endian::read32<ELFT::Endianness>(desc.data());
-      uint32_t size =
-          llvm::support::endian::read32<ELFT::Endianness>(desc.data() + 4);
-      desc = desc.slice(8);
-      if (desc.size() < size) {
-        reportFatal("program property is too short");
-        return false;
-      }
-
-      if (type == featureAndType) {
-        // We found a FEATURE_1_AND field. There may be more than one of these
-        // in a .note.gnu.property section, for a relocatable object we
-        // accumulate the bits set.
-        if (size < 4) {
-          reportFatal("FEATURE_1_AND entry is too short");
-          return false;
-        }
-        featureSet |=
-            llvm::support::endian::read32<ELFT::Endianness>(desc.data());
-      }
-
-      // Padding is present in the note descriptor, if necessary.
-      desc = desc.slice(alignTo<(ELFT::Is64Bits ? 8 : 4)>(size));
-    }
-    // Go to next NOTE record to look for more FEATURE_1_AND descriptions.
-    data = data.slice(nhdr->getSize(S->getAddrAlign()));
-  }
-  return true;
 }
 
 void AArch64LDBackend::initializeAttributes() {
@@ -924,9 +778,4 @@ extern "C" void ELDInitializeAArch64LDBackend() {
   // Register the linker backend
   eld::TargetRegistry::RegisterGNULDBackend(TheAArch64Target,
                                             createAArch64LDBackend);
-}
-
-namespace eld {
-template bool AArch64LDBackend::readGNUProperty<llvm::object::ELF64LE>(
-    InputFile &pInput, ELFSection *S, uint32_t &featureSet);
 }
