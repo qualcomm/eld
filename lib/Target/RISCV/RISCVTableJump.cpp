@@ -174,7 +174,7 @@ static void selectEntries(
       Entries;
   const int WordSize = Backend.config().targets().is32Bits() ? 4 : 8;
   for (const auto &KV : Candidates)
-    if (KV.second.Saved >= WordSize)
+    if (KV.second.Saved > WordSize)
       Entries.push_back(KV);
 
   llvm::sort(Entries, [&Backend](const auto &A, const auto &B) {
@@ -213,7 +213,7 @@ static void selectCallEntries(
   const int WordSize = Backend.config().targets().is32Bits() ? 4 : 8;
   llvm::SmallVector<CallEntry, 0> Entries;
   auto AddCandidate = [&](const auto &KV, bool UseT0) {
-    if (KV.second.Saved >= WordSize)
+    if (KV.second.Saved > WordSize)
       Entries.push_back({KV.first, KV.second, UseT0});
   };
 

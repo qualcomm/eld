@@ -17,7 +17,7 @@
 #
 # NORELAX: {{0*}}2030 <target>:
 #
-# RELAX-COUNT-4: cm.jt
+# RELAX-COUNT-5: cm.jt
 # RELAX-NOT: cm.jalt
 # RELAX: {{0*}}2010 <target>:
 #
@@ -29,6 +29,7 @@
 .p2align 2
 _start:
   .4byte 0x00000013 # addi x0, x0, 0
+  tail target
   tail target
   tail target
   tail target
