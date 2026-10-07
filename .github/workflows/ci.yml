@@ -1,4 +1,5 @@
 name: CI
+run-name: "CI PR #${{ inputs.pr_number || github.event.pull_request.number }} (${{ inputs.request_id || 'automatic' }})"
 
 on:
   pull_request:
@@ -36,6 +37,15 @@ on:
         description: "PR number to build"
         required: true
         type: number
+      request_id:
+        description: "Optional request ID used to correlate an external workflow dispatch"
+        required: false
+        type: string
+      skip_tests:
+        description: "Build and package the PR toolset without running CI tests"
+        required: false
+        default: false
+        type: boolean
 
 permissions: {}
 jobs:
@@ -193,7 +203,7 @@ jobs:
         run: ccache --evict-older-than 7200s --dir=$CCACHE_DIR
 
       - name: Run tests
-        if: steps.file-check.outputs.skip_build == 'false'
+        if: steps.file-check.outputs.skip_build == 'false' && !inputs.skip_tests
         working-directory: pr-${{ env.PR_NUMBER }}/obj
         run: |
           export PATH="$PATH:/opt/qemu/bin"
@@ -222,7 +232,7 @@ jobs:
           ninja check-eld
 
       - name: Summarize test results
-        if: steps.file-check.outputs.skip_build == 'false'
+        if: steps.file-check.outputs.skip_build == 'false' && !inputs.skip_tests
         working-directory: pr-${{ env.PR_NUMBER }}/obj
         run: ninja check-eld-summary
 

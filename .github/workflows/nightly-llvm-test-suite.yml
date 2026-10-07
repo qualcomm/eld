@@ -74,6 +74,9 @@ jobs:
               labels: [label],
             });
 
+            const dispatchedAt = Date.now();
+            const commentName = context.payload.comment.body.trim();
+            const requestId = `${issueNumber}-${context.payload.comment.id}-${commentName}`;
             await github.rest.actions.createWorkflowDispatch({
               owner,
               repo,
@@ -81,6 +84,8 @@ jobs:
               ref: context.payload.repository.default_branch,
               inputs: {
                 pr_number: String(issueNumber),
+                request_id: requestId,
+                skip_tests: 'true',
               },
             });
 
@@ -90,6 +95,57 @@ jobs:
               issue_number: issueNumber,
               body: `Enabled **${label}**. CI will rebuild the PR toolset, then this workflow will run the LLVM test suite against that ld.eld.`,
             });
+
+            const sleep = (milliseconds) => new Promise(resolve => {
+              setTimeout(resolve, milliseconds);
+            });
+            const artifactName = `pr-eld-toolset-${issueNumber}`;
+            const runName = `CI PR #${issueNumber} (${requestId})`;
+
+            for (let attempt = 0; attempt < 120; attempt += 1) {
+              const workflowRuns = await github.paginate(
+                github.rest.actions.listWorkflowRuns,
+                {
+                  owner,
+                  repo,
+                  workflow_id: 'ci.yml',
+                  event: 'workflow_dispatch',
+                  per_page: 100,
+                }
+              );
+              const dispatchedRuns = workflowRuns
+                .filter(run =>
+                  run.display_title === runName &&
+                  new Date(run.created_at).getTime() >= dispatchedAt - 5000
+                )
+                .sort((left, right) => new Date(right.created_at) - new Date(left.created_at));
+
+              for (const run of dispatchedRuns) {
+                if (run.status !== 'completed') {
+                  continue;
+                }
+                if (run.conclusion !== 'success') {
+                  core.setFailed(`CI run ${run.id} finished with conclusion: ${run.conclusion}.`);
+                  return;
+                }
+
+                const artifacts = await github.paginate(
+                  github.rest.actions.listWorkflowRunArtifacts,
+                  { owner, repo, run_id: run.id, per_page: 100 }
+                );
+                if (artifacts.some(artifact => artifact.name === artifactName && !artifact.expired)) {
+                  core.info(`CI run ${run.id} completed and produced ${artifactName}.`);
+                  return;
+                }
+              }
+
+              if (attempt < 119) {
+                core.info('Waiting for the dispatched CI run to complete...');
+                await sleep(30000);
+              }
+            }
+
+            core.setFailed('Timed out waiting for the dispatched CI run and PR toolset artifact.');
 
   resolve:
     if: |
@@ -155,12 +211,13 @@ jobs:
     needs: resolve
     if: |
       github.repository == 'qualcomm/eld' &&
-      github.event_name != 'issue_comment' &&
-      (github.event_name != 'workflow_run' || needs.resolve.outputs.run_id != '')
+      (github.event_name == 'schedule' ||
+       (github.event_name == 'workflow_run' && needs.resolve.outputs.run_id != ''))
     runs-on: ubuntu-latest
     permissions:
       contents: write
       actions: write
+      issues: write
     env:
       ELD_SOURCE_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld
 
@@ -170,6 +227,32 @@ jobs:
         with:
           path: llvm-project/llvm/tools/eld
           persist-credentials: true # Required for BuildStatusDataRecorder's git push to dashboard branch
+
+      - name: Report workflow links on the PR
+        if: github.event_name == 'workflow_run'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        env:
+          PR_NUMBER: ${{ needs.resolve.outputs.pr_number }}
+          CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
+          LLVM_TEST_SUITE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issueNumber = Number(process.env.PR_NUMBER);
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              body: [
+                'LLVM test suite workflow started.',
+                '',
+                `- [CI run](${process.env.CI_RUN_URL})`,
+                `- [LLVM test suite run](${process.env.LLVM_TEST_SUITE_RUN_URL})`,
+              ].join('\n'),
+            });
 
       - name: Configure workflow environment variables
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
