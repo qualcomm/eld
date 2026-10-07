@@ -22,6 +22,7 @@
 #include "llvm/Support/Compression.h"
 #include <cstdint>
 #include <numeric>
+#include <string>
 #include <type_traits>
 
 namespace eld {
@@ -55,9 +56,10 @@ eld::Expected<ELFSection *> RelocELFReader<ELFT>::createSection(
   // FIXME: sectName can be extracted from rawSectHdr.
   LinkerSectionKind kind = this->classifySectionKind(rawSectHdr, sectName);
 
-  // FIXME: Emit some diagnostic here.
   if (kind == LinkerSectionKind::Error)
-    return static_cast<ELFSection *>(nullptr);
+    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+        Diag::err_unsupported_section,
+        {sectName, std::to_string(rawSectHdr.sh_type)}));
 
   bool LLVMBCSectionIsIgnore = false;
   // Embedded bitcode sections must be not regarded in linking. However they
@@ -198,16 +200,16 @@ eld::Expected<bool> RelocELFReader<ELFT>::readCompressedSection(ELFSection *S) {
     return true;
   llvm::StringRef rawData = S->getContents();
 
-  // FIXME: Return error here.
   if (rawData.size() < sizeof(typename ELFReader<ELFT>::Elf_Chdr))
-    return false;
+    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+        Diag::err_cannot_read_section, {S->name().str()}));
 
   const typename ELFReader<ELFT>::Elf_Chdr *hdr =
       reinterpret_cast<const typename ELFReader<ELFT>::Elf_Chdr *>(
           rawData.data());
-  // FIXME: Return error here.
   if (hdr->ch_type != llvm::ELF::ELFCOMPRESS_ZLIB)
-    return false;
+    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+        Diag::err_cannot_read_section, {S->name().str()}));
 
   // Check if zlib is available before calling decompress.
   if (!llvm::compression::zlib::isAvailable())
@@ -296,9 +298,9 @@ template <class ELFT>
 eld::Expected<bool> RelocELFReader<ELFT>::readOneGroup(ELFSection *S) {
   ELFObjectFile *EObj = llvm::cast<ELFObjectFile>(&this->m_InputFile);
   LDSymbol *signatureSymbol = EObj->getSymbol(S->getInfo());
-  // FIXME: Return an error instead!
   if (!signatureSymbol)
-    return false;
+    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+        Diag::err_cannot_read_section, {S->name().str()}));
   S->setSignatureSymbol(signatureSymbol->resolveInfo()->outSymbol());
   return true;
 }

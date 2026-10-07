@@ -9,6 +9,7 @@
 #include "eld/Core/Module.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/PluginAPI/Expected.h"
+#include <string>
 
 using namespace eld;
 
@@ -54,9 +55,10 @@ eld::Expected<ELFSection *> ExecELFReader<ELFT>::createSection(
   // FIXME: sectName can be extracted from rawSectHdr.
   LinkerSectionKind kind = this->classifySectionKind(rawSectHdr, sectName);
 
-  // FIXME: Emit some diagnostic here.
   if (kind == LinkerSectionKind::Error)
-    return static_cast<ELFSection *>(nullptr);
+    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+        Diag::err_unsupported_section,
+        {sectName, std::to_string(rawSectHdr.sh_type)}));
 
   bool SectionIsIgnore = false;
   // Embedded bitcode sections must be not regarded in linking. However they
