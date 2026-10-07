@@ -27,11 +27,7 @@ jobs:
     if: |
       github.repository == 'qualcomm/eld' &&
       github.event_name == 'issue_comment' &&
-      github.event.issue.pull_request != null &&
-      github.event.comment.body == 'check-llvm-test-suite' &&
-      (github.event.comment.author_association == 'COLLABORATOR' ||
-       github.event.comment.author_association == 'MEMBER' ||
-       github.event.comment.author_association == 'OWNER')
+      github.event.issue.pull_request != null
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -46,6 +42,19 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const issueNumber = context.issue.number;
+            const commentName = context.payload.comment.body.trim();
+            const allowedAssociations = new Set([
+              'COLLABORATOR',
+              'MEMBER',
+              'OWNER',
+            ]);
+
+            if (commentName !== 'check-llvm-test-suite' ||
+                !allowedAssociations.has(context.payload.comment.author_association)) {
+              core.info('Ignoring an unauthorized or unrelated issue comment.');
+              return;
+            }
+
             const label = 'llvm-test-suite-check';
 
             try {
