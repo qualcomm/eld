@@ -10,8 +10,11 @@
 #include "Defines.h"
 #include <functional>
 #include <future>
+#include <mutex>
+#include <vector>
 
 namespace llvm {
+class ThreadPoolStrategy;
 class ThreadPoolInterface;
 }
 
@@ -26,6 +29,7 @@ public:
   using TaskTy = std::function<void()>;
 
   explicit ThreadPool(uint32_t NumThreads);
+  explicit ThreadPool(const llvm::ThreadPoolStrategy &Strategy);
 
   // Disable copy operations.
   ThreadPool(const ThreadPool &) = delete;
@@ -60,6 +64,8 @@ private:
 
 private:
   llvm::ThreadPoolInterface *TPool;
+  std::mutex FuturesMutex;
+  std::vector<std::shared_future<void>> Futures;
 };
 
 } // namespace eld::plugin

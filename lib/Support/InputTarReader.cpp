@@ -13,8 +13,6 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
-#include <optional>
-
 namespace eld {
 
 namespace {
@@ -229,9 +227,9 @@ eld::Expected<void> InputTarReader::emitEntryNamesFile(llvm::StringRef TarPath,
   return {};
 }
 
-eld::Expected<llvm::MemoryBufferRef>
+eld::Expected<std::unique_ptr<llvm::MemoryBuffer>>
 InputTarReader::findFile(llvm::StringRef TarData, llvm::StringRef FileName) {
-  std::optional<llvm::MemoryBufferRef> Found;
+  std::unique_ptr<llvm::MemoryBuffer> Found;
   auto E = forEachEntry(
       TarData, [&](llvm::StringRef Header, llvm::StringRef Payload, size_t) {
         char TypeFlag = Header[TypeFlagOffset];
@@ -245,7 +243,8 @@ InputTarReader::findFile(llvm::StringRef TarData, llvm::StringRef FileName) {
         // and suffix match (e.g. "reproduce.out/path/file" vs "file").
         std::string Suffix = ("/" + FileName).str();
         if (EntryNameRef == FileName || EntryNameRef.ends_with(Suffix)) {
-          Found = llvm::MemoryBufferRef(Payload, FileName);
+          Found = llvm::MemoryBuffer::getMemBuffer(
+              Payload, FileName, /*RequiresNullTerminator=*/false);
         }
         return eld::Expected<void>();
       });
@@ -255,7 +254,7 @@ InputTarReader::findFile(llvm::StringRef TarData, llvm::StringRef FileName) {
   if (!Found)
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
         Diag::error_tar_file_not_found, {FileName.str()}));
-  return *Found;
+  return std::move(Found);
 }
 
 eld::Expected<void> InputTarReader::traceEntryNames(llvm::StringRef TarData,

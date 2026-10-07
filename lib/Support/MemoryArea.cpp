@@ -22,12 +22,11 @@ MemoryArea::MemoryArea(llvm::StringRef Filename) : m_FileName(Filename) {}
 bool MemoryArea::Init(DiagnosticEngine *DiagEngine,
                       const ReproduceTarReader *TarReader) {
   if (TarReader) {
-    auto BufferRefOrErr = TarReader->findFile(m_FileName);
-    if (BufferRefOrErr) {
-      // Build a MemoryBuffer view over bytes already owned by the replay tar.
-      // This avoids creating another copy for replayed inputs.
-      MB = llvm::MemoryBuffer::getMemBuffer(*BufferRefOrErr,
-                                            /*RequiresNullTerminator=*/false);
+    auto BufferOrErr = TarReader->findFile(m_FileName);
+    if (BufferOrErr) {
+      // The returned buffer retains the tar entry identifier while viewing
+      // bytes owned by the replay tar.
+      MB = std::move(*BufferOrErr);
       return true;
     }
   }

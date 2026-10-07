@@ -64,6 +64,8 @@ Module::Module(LinkerScript &CurScript, LinkerConfig &Config,
 }
 
 Module::~Module() {
+  if (LinkerThreadPool)
+    LinkerThreadPool->wait();
   InputObjectList.clear();
   ArchiveLibraryList.clear();
   DynLibraryList.clear();
@@ -854,11 +856,11 @@ void Module::addReferencedSymbol(Section &RefencingSection,
   BitcodeReferencedSymbols[&RefencingSection].push_back(&RefencedSymbol);
 }
 
-llvm::ThreadPoolInterface *Module::getThreadPool() {
+eld::plugin::ThreadPool *Module::getThreadPool() {
   if (LinkerThreadPool)
-    return LinkerThreadPool;
-  LinkerThreadPool = eld::make<llvm::StdThreadPool>(ThreadingStrategy);
-  return LinkerThreadPool;
+    return &*LinkerThreadPool;
+  LinkerThreadPool.emplace(ThreadingStrategy);
+  return &*LinkerThreadPool;
 }
 
 void Module::initThreading() {
