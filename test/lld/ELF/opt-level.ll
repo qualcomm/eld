@@ -12,6 +12,11 @@
 ; RUN: llvm-nm %t2 | FileCheck --check-prefix=CHECK-O2 %s
 
 ; Reject invalid optimization levels.
+; RUN: not %link %linkopts -o /dev/null -e main --lto-O4 %t.o 2>&1 | \
+; RUN:   FileCheck --check-prefix=INVALID4 %s
+; INVALID4: Error: Invalid value for --lto-O: 4
+; RUN: not %link %linkopts -o /dev/null -e main --plugin-opt=O4 %t.o 2>&1 | \
+; RUN:   FileCheck --check-prefix=INVALID4 %s
 ; RUN: not %link %linkopts -o /dev/null -e main --lto-O6 %t.o 2>&1 | \
 ; RUN:   FileCheck --check-prefix=INVALID1 %s
 ; INVALID1: Error: Invalid value for --lto-O: 6
