@@ -50,6 +50,7 @@
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
+#include <set>
 #include <thread>
 
 using namespace llvm;
@@ -1701,6 +1702,81 @@ void GnuLdDriver::writeReproduceTar(void *cookie) {
               outputTar->getMappings());
 }
 
+static inline bool matchesExcludeLibEntry(llvm::StringRef Entry,
+                                          const eld::Input &Input) {
+  // An exclusion can name an archive by its resolved path, basename, bare
+  // namespec ("foo"), or linker namespec ("-lfoo").
+  std::string resolvedPath = Input.getResolvedPath().native();
+  std::string resolved = Input.getResolvedPath().filename().native();
+  std::string namespec = "-l" + Input.getFileName();
+  return Entry == resolvedPath || Entry == resolved ||
+         Entry == Input.getFileName() || Entry == namespec;
+}
+
+static inline std::string
+getRewrittenExcludeLibName(const eld::Input &Input,
+                           eld::OutputTarWriter &OutputTar) {
+  // Use the same logical key used when the input was recorded in the mapping
+  // file. Replay uses the captured path, so --exclude-libs must match its
+  // basename rather than the original source path.
+  std::string key = Input.getInputFile()->hasMappedPath()
+                        ? Input.getInputFile()->getMappedPath()
+                        : Input.getName();
+  return llvm::sys::path::filename(OutputTar.rewritePath(key)).str();
+}
+
+static inline std::set<std::string>
+getRewrittenExcludeLibMatches(llvm::StringRef Entry,
+                              const std::vector<eld::InputAction *> &Actions,
+                              eld::OutputTarWriter &OutputTar) {
+  // A single exclusion can match multiple input actions, for example when
+  // two directories contain archives with the same basename. Keep every
+  // distinct captured basename so replay excludes all matching archives.
+  std::set<std::string> Matches;
+  for (eld::InputAction *Action : Actions) {
+    auto Kind = Action->getInputActionKind();
+    if (Kind != eld::InputAction::InputFile &&
+        Kind != eld::InputAction::Namespec)
+      continue;
+
+    eld::Input *Input = Action->getInput();
+    if (!Input || !Input->getInputFile() ||
+        !matchesExcludeLibEntry(Entry, *Input))
+      continue;
+
+    Matches.insert(getRewrittenExcludeLibName(*Input, OutputTar));
+  }
+  return Matches;
+}
+
+static std::string
+rewriteExcludeLibs(llvm::StringRef Value,
+                   const std::vector<eld::InputAction *> &Actions,
+                   eld::OutputTarWriter &OutputTar) {
+  // --exclude-libs accepts a comma-separated list. Rewrite each entry
+  // independently so one entry can expand to multiple replay archive names.
+  std::string Result;
+  bool First = true;
+  while (!Value.empty()) {
+    auto [Entry, Rest] = Value.split(',');
+    std::set<std::string> Matches;
+    // ALL applies to every archive and is independent of replay filenames.
+    if (Entry != "ALL")
+      Matches = getRewrittenExcludeLibMatches(Entry, Actions, OutputTar);
+
+    if (Matches.empty())
+      Matches.insert(Entry.str());
+    for (const std::string &Match : Matches) {
+      if (!First)
+        Result += ',';
+      Result += Match;
+      First = false;
+    }
+    Value = Rest;
+  }
+  return Result;
+}
+
 template <class T>
 bool GnuLdDriver::processReproduceOption(
     llvm::opt::InputArgList &Args, eld::OutputTarWriter *outputTar,
@@ -1795,6 +1871,12 @@ bool GnuLdDriver::processReproduceOption(
     case T::Map:
       os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
          << ' ';
+      break;
+    case T::exclude_libs:
+      // Keep exclusions synchronized with archive and namespec rewrites in
+      // the replay response file.
+      os << arg->getSpelling() << '='
+         << rewriteExcludeLibs(arg->getValue(), actions, *outputTar) << ' ';
       break;
     case T::dynamic_list:
     case T::extern_list:
