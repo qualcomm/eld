@@ -332,14 +332,15 @@ Section *Module::createBitcodeSection(const std::string &Section,
             << InputFile.getInput()->decoratedPath();
     }
 
-    S->setInputFile(
-        Internal ? getInternalInput(Module::InternalInputType::BitcodeSections)
-                 : &InputFile);
-
-    // TODO: Internal sections are also added to the bitcode file, not the
-    // internal file.
-    // TODO: Test if it's needed at all.
-    InputFile.addSection(S);
+    if (Internal) {
+      InternalInputFile *InternalFile = llvm::cast<InternalInputFile>(
+          getInternalInput(Module::InternalInputType::BitcodeSections));
+      S->setInputFile(InternalFile);
+      InternalFile->addSection(S);
+    } else {
+      S->setInputFile(&InputFile);
+      InputFile.addSection(S);
+    }
   }
   return S;
 }

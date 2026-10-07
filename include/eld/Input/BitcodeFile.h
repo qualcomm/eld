@@ -67,9 +67,7 @@ public:
 
   bool createPluginModule(plugin::LinkerPlugin &, uint64_t Hash);
 
-  // TODO: Used by BitcodeReader, may not be needed.
-  // TODO: class reference.
-  plugin::LTOModule *getPluginModule() { return PluginModule; }
+  plugin::LTOModule &getPluginModule() { return *PluginModule; }
 
   void createBitcodeFilePlugin(plugin::LinkerPlugin &LTOPlugin);
 
