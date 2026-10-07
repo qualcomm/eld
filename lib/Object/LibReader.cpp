@@ -85,6 +85,14 @@ bool LibReader::readLib(InputBuilder::InputIteratorT &CurNode,
     if (!Input->resolvePath(Config))
       return false;
 
+    if (Input->getInputFile() &&
+        Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
+        if (!MObjLinker->readAndProcessInput(Input, IsPostLtoPhase))
+            return false;
+        ++CurNode;
+        continue;
+    }
+
     // The synthetic archive below is what the linker processes, but the
     // response file still names the original inputs between --start-lib and
     // --end-lib.  Capture those inputs explicitly for --reproduce; unlike a

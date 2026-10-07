@@ -302,9 +302,10 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
     if ((*Begin)->kind() == Node::LibStart) {
       eld::RegisterTimer T("Read Start Lib and End Lib", "Read all Input files",
                            ThisConfig.options().printTimingStats());
-      getLibReader()->readLib(Begin,
+      if (!getLibReader()->readLib(Begin,
                               ThisModule->getIRBuilder()->getInputBuilder(),
-                              ThisConfig, MPostLtoPhase);
+                              ThisConfig, MPostLtoPhase))
+          return false;
       continue;
     }
 
