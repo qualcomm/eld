@@ -1,0 +1,9 @@
+---ProgressBar.test------------------------- Executable -----------------#
+# This checks the progress-bar output.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.o
+RUN: %link %linkopts --progress-bar %t.o -o %t.out 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: Linking : {{.*}} 100% {{.*}} Completed

@@ -22,6 +22,8 @@
 
 namespace eld {
 
+class ProgressBar;
+
 /** \class DiagnosticPrinter
  *  \brief DiagnosticPrinter provides the interface to customize diagnostic
  *  messages and output.
@@ -168,6 +170,8 @@ public:
 
   void setUseColor(bool PUseColor) { UseColor = PUseColor; }
 
+  void setProgressBar(ProgressBar *PProgressBar) { Progress = PProgressBar; }
+
 protected:
   llvm::raw_ostream &OStream;
   std::atomic<unsigned int> NumErrors = 0;
@@ -183,6 +187,7 @@ protected:
   uint32_t UserErrorLimit = 10;
   uint32_t UserWarningLimit = 10;
   bool IsNoInhibitExec = false;
+  ProgressBar *Progress = nullptr;
 };
 
 } // namespace eld
