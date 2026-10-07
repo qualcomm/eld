@@ -241,8 +241,8 @@ jobs:
           mkdir -p inst/bin inst/lib
 
           cp obj/bin/ld.eld          inst/bin/
-          cp -P obj/lib/libLW.so.4   inst/lib/
-          ln -sf libLW.so.4          inst/lib/libLW.so
+          cp -P obj/lib/libLW.so.5   inst/lib/
+          ln -sf libLW.so.5          inst/lib/libLW.so
 
           # Bundle libc++/libc++abi dependencies.
           bash llvm-project/llvm/tools/eld/.github/workflows/scripts/BundleSharedLibDeps.sh \

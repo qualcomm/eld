@@ -138,10 +138,10 @@ jobs:
 
           # Splice ELD (nightly or PR build) into cpullvm
           cp inst/bin/ld.eld ${CPULLVM_DIR}/bin/ld.eld
-          cp inst/lib/libLW.so.4 ${CPULLVM_DIR}/lib/libLW.so.4
-          ln -sf libLW.so.4 ${CPULLVM_DIR}/lib/libLW.so
+          cp inst/lib/libLW.so.5 ${CPULLVM_DIR}/lib/libLW.so.5
+          ln -sf libLW.so.5 ${CPULLVM_DIR}/lib/libLW.so
 
-          # ld.eld/libLW.so.4 link against the build's libc++; cpullvm/lib has
+          # ld.eld/libLW.so.5 link against the build's libc++; cpullvm/lib has
           # none, so bundle the matching libc++/libc++abi.
           cp -P inst/lib/libc++.so.1*    ${CPULLVM_DIR}/lib/
           cp -P inst/lib/libc++abi.so.1* ${CPULLVM_DIR}/lib/
