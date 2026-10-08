@@ -84,7 +84,6 @@ jobs:
             });
 
             const dispatchedAt = Date.now();
-            const commentName = context.payload.comment.body.trim();
             const requestId = `${issueNumber}-${context.payload.comment.id}-${context.runId}-${context.runAttempt}-${commentName}`;
             await github.rest.actions.createWorkflowDispatch({
               owner,
