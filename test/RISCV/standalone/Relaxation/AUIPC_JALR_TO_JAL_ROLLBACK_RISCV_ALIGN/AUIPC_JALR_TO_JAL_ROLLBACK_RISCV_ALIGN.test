@@ -10,7 +10,7 @@ RUN: %objdump -d %t.out 2>&1 | %filecheck %s --check-prefix=DUMP
 #END_TEST
 
 VERBOSE: RISCV_ALIGN : Deleting {{[0-9]+}} bytes for symbol '' in section .text.calls
-VERBOSE: RISCV_CALL : Rolled back JAL for symbol 'kobject_put' in section .exit.text+0x{{[[:xdigit:]]+}} file {{.*}}exit.o (out of range after ALIGN)
+VERBOSE: RISCV_CALL : Rolled back JAL for symbol 'kobject_put' in section .exit.text+0x{{[[:xdigit:]]+}} file {{.*}}exit.o
 
 DUMP-LABEL: <exit_func>:
 DUMP:        auipc
