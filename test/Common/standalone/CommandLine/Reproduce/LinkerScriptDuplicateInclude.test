@@ -1,0 +1,12 @@
+#---LinkerScriptDuplicateInclude.test----- Executable ---------------------#
+#BEGIN_COMMENT
+# Verify that repeated captures of the same included linker script are
+# represented by one mapping entry in the reproduce output.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %link %linkopts -L%p/Inputs -T %p/Inputs/script6.t %t.1.o -o %t.out --reproduce %t.repro.tar --dump-mapping-file %t.mapping
+RUN: %filecheck %s < %t.mapping
+CHECK: script6.t=
+CHECK-COUNT-1: script6bar.t=
+#END_TEST
