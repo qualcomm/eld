@@ -1,0 +1,38 @@
+#---GOTPLTLayout.test-----------------------------------------------------#
+#BEGIN_COMMENT
+# Verify correct .got.plt layout when TLSDESC and/or PLT entries are present.
+# GOTPLT0 (24 bytes) must always precede any TLSDESC or PLT entries.
+# DT_PLTGOT must point to the start of .got.plt.
+#END_COMMENT
+#START_TEST
+
+## Test 1: TLSDESC only
+RUN: %clang %clangopts -target aarch64 -fPIC -fno-asynchronous-unwind-tables \
+RUN:   -c %p/Inputs/tls.s -o %t.tls.o
+RUN: %link %linkopts -march aarch64 -shared %t.tls.o -o %t.tls.so
+RUN: %readelf -S -d -r %t.tls.so | %filecheck %s --check-prefix=TLS
+
+## Test 2: PLT only
+RUN: %clang %clangopts -target aarch64 -fPIC -fno-asynchronous-unwind-tables \
+RUN:   -c %p/Inputs/plt.s -o %t.plt.o
+RUN: %link %linkopts -march aarch64 -shared %t.plt.o -o %t.plt.so
+RUN: %readelf -S -d -r %t.plt.so | %filecheck %s --check-prefix=PLT
+
+## Test 3: Mixed TLSDESC + PLT
+RUN: %clang %clangopts -target aarch64 -fPIC -fno-asynchronous-unwind-tables \
+RUN:   -c %p/Inputs/mixed.s -o %t.mixed.o
+RUN: %link %linkopts -march aarch64 -shared %t.mixed.o -o %t.mixed.so
+RUN: %readelf -S -d -r %t.mixed.so | %filecheck %s --check-prefix=MIXED
+
+#END_TEST
+
+TLS: .got.plt          PROGBITS        [[#%x,GOTPLT:]] {{.*}} 000028
+TLS: (PLTGOT)    0x[[#%x,GOTPLT]]
+TLS: [[#%x,GOTPLT+24]] {{.*}} R_AARCH64_TLSDESC
+
+PLT: .got.plt          PROGBITS        [[#%x,GOTPLT:]] {{.*}} 000020
+PLT: (PLTGOT)    0x[[#%x,GOTPLT]]
+PLT: [[#%x,GOTPLT+24]] {{.*}} R_AARCH64_JUMP_SLOT
+
+MIXED: .got.plt          PROGBITS        [[#%x,GOTPLT:]] {{.*}}
+MIXED: (PLTGOT)    0x[[#%x,GOTPLT]]

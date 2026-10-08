@@ -660,13 +660,10 @@ AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T, ResolveInfo *R,
                                         bool SkipPLTRef) {
 
   traceGOTCreation(T, R);
-  // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->hasFragments()) {
-    // TODO: This should be GOT0, not GOTPLT0.
-    LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
-    AArch64GOTPLT0::Create(getGOTPLT(),
-                           Dynamic ? Dynamic->resolveInfo() : nullptr);
-  }
+
+  // Create GOTPLT0 when first .got.plt entry is needed.
+  if ((T == GOT::GOTPLTN || T == GOT::TLS_DESC) && !getGOTPLT()->hasFragments())
+    createGOT(GOT::GOTPLT0, nullptr, false);
 
   AArch64GOT *G = nullptr;
   bool GOT = true;
@@ -674,10 +671,13 @@ AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T, ResolveInfo *R,
   case GOT::Regular:
     G = AArch64GOT::Create(getGOT(), R);
     break;
-  case GOT::GOTPLT0:
-    G = llvm::dyn_cast<AArch64GOT>(*getGOTPLT()->getFragmentList().begin());
+  case GOT::GOTPLT0: {
+    LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
+    G = AArch64GOTPLT0::Create(getGOTPLT(),
+                               Dynamic ? Dynamic->resolveInfo() : nullptr);
     GOT = false;
     break;
+  }
   case GOT::GOTPLTN: {
     // If the symbol is IRELATIVE, the PLT slot contains the relative symbol
     // value. No need to fill the GOT slot with PLT0.
