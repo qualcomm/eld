@@ -5,9 +5,6 @@ on:
   pull_request:
     paths:
       - '.github/workflows/nightly-llvm-test-suite.yml'
-  workflow_run: # zizmor: ignore[dangerous-triggers] read-only token, no secrets, ephemeral runner
-    workflows: [CI]
-    types: [completed]
   issue_comment:
     types: [created, edited]
   schedule:
@@ -33,8 +30,14 @@ jobs:
       issues: write
       pull-requests: write
       actions: write
+    outputs:
+      run_id: ${{ steps.enable.outputs.run_id }}
+      artifact_name: ${{ steps.enable.outputs.artifact_name }}
+      pr_number: ${{ steps.enable.outputs.pr_number }}
+      ci_url: ${{ steps.enable.outputs.ci_url }}
     steps:
       - name: Enable LLVM test suite check
+        id: enable
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
         with:
           github-token: ${{ github.token }}
@@ -143,6 +146,10 @@ jobs:
                 );
                 if (artifacts.some(artifact => artifact.name === artifactName && !artifact.expired)) {
                   core.info(`CI run ${run.id} completed and produced ${artifactName}.`);
+                  core.setOutput('run_id', String(run.id));
+                  core.setOutput('artifact_name', artifactName);
+                  core.setOutput('pr_number', String(issueNumber));
+                  core.setOutput('ci_url', run.html_url);
                   return;
                 }
               }
@@ -155,72 +162,13 @@ jobs:
 
             core.setFailed('Timed out waiting for the dispatched CI run and PR toolset artifact.');
 
-  resolve:
-    if: |
-      github.repository == 'qualcomm/eld' &&
-      (github.event_name != 'workflow_run' ||
-       github.event.workflow_run.conclusion == 'success')
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      pull-requests: read
-    outputs:
-      run_id: ${{ steps.find.outputs.run_id }}
-      head_sha: ${{ steps.find.outputs.head_sha }}
-      pr_number: ${{ steps.find.outputs.pr_number }}
-      artifact_name: ${{ steps.find.outputs.artifact_name }}
-    steps:
-      - name: Resolve CI run and PR toolset
-        id: find
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            if (context.eventName !== 'workflow_run') {
-              return;
-            }
-
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const workflowRun = context.payload.workflow_run;
-            const artifacts = await github.paginate(
-              github.rest.actions.listWorkflowRunArtifacts,
-              { owner, repo, run_id: workflowRun.id, per_page: 100 }
-            );
-            const toolset = artifacts.find(
-              artifact => /^pr-eld-toolset-\d+$/.test(artifact.name) && !artifact.expired
-            );
-            if (!toolset) {
-              core.info(`CI run ${workflowRun.id} has no PR ELD toolset artifact.`);
-              return;
-            }
-
-            const artifactPrNumber = toolset.name.match(/^pr-eld-toolset-(\d+)$/)[1];
-            const pullRequest = (await github.rest.pulls.get({
-              owner,
-              repo,
-              pull_number: Number(artifactPrNumber),
-            })).data;
-            if (!pullRequest) {
-              core.info(`CI run ${workflowRun.id} is not an enabled LLVM test suite PR run.`);
-              return;
-            }
-            if (!pullRequest.labels.some(label => label.name === 'llvm-test-suite-check')) {
-              core.info(`PR ${pullRequest.number} is not enabled for the LLVM test suite.`);
-              return;
-            }
-
-            core.setOutput('run_id', String(workflowRun.id));
-            core.setOutput('head_sha', workflowRun.head_sha);
-            core.setOutput('pr_number', String(pullRequest.number));
-            core.setOutput('artifact_name', toolset.name);
-
   test-llvm-test-suite-x86_64:
-    needs: resolve
+    needs: request
     if: |
+      always() &&
       github.repository == 'qualcomm/eld' &&
       (github.event_name == 'schedule' ||
-       (github.event_name == 'workflow_run' && needs.resolve.outputs.run_id != ''))
+       (github.event_name == 'issue_comment' && needs.request.outputs.run_id != ''))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -237,11 +185,11 @@ jobs:
           persist-credentials: true # Required for BuildStatusDataRecorder's git push to dashboard branch
 
       - name: Report workflow links on the PR
-        if: github.event_name == 'workflow_run'
+        if: github.event_name == 'issue_comment'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
         env:
-          PR_NUMBER: ${{ needs.resolve.outputs.pr_number }}
-          CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
+          PR_NUMBER: ${{ needs.request.outputs.pr_number }}
+          CI_RUN_URL: ${{ needs.request.outputs.ci_url }}
           LLVM_TEST_SUITE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           github-token: ${{ github.token }}
@@ -286,11 +234,11 @@ jobs:
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
       - name: Overlay PR ELD toolset
-        if: needs.resolve.outputs.run_id != ''
+        if: github.event_name == 'issue_comment' && needs.request.outputs.run_id != ''
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchEldToolset
         with:
-          run-id: ${{ needs.resolve.outputs.run_id }}
-          artifact-name: ${{ needs.resolve.outputs.artifact_name || 'pr-eld-toolset' }}
+          run-id: ${{ needs.request.outputs.run_id }}
+          artifact-name: ${{ needs.request.outputs.artifact_name }}
           tarball: install-pr-toolset.tar.xz
 
       - name: Clone LLVM test suite
