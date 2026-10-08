@@ -1,0 +1,30 @@
+#---GOTBaseRelocation.test------------- i386 ELF32 relocations -------------#
+#BEGIN_COMMENT
+# Verify i386 GOT-base relocations use the laid-out GOT address for GOTOFF and
+# GOTPC, and define _GLOBAL_OFFSET_TABLE_ at that same address.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/got.s -o %t.got.o
+RUN: %link %linkopts -m elf_i386 -T %p/Inputs/got.t %t.got.o -o %t.got.out
+RUN: %readelf -x .text %t.got.out | %filecheck %s --check-prefix=BYTES
+RUN: %readelf -x .got %t.got.out | %filecheck %s --check-prefix=GOT
+RUN: %readelf -x .got.plt %t.got.out | %filecheck %s --check-prefix=GOTPLT
+RUN: %readelf -r %t.got.out | %filecheck %s --check-prefix=RELOCS
+RUN: %readelf -s %t.got.out | %filecheck %s --check-prefix=SYMBOLS
+
+# target is 0x1008, the input .got is 0x2000, and the generated GOTPLT0 is
+# 0x2004. The in-place addends are 5 and 6.
+BYTES:      Hex dump of section '.text':
+BYTES-NEXT: 0x00001000 09f0ffff 06100000 00
+
+GOT:      Hex dump of section '.got':
+GOT-NEXT: 0x00002000 00000000
+
+GOTPLT:      Hex dump of section '.got.plt':
+GOTPLT-NEXT: 0x00002004 00000000 00000000 00000000
+
+RELOCS:      R_386_GOTOFF
+RELOCS-NEXT: R_386_GOTPC
+
+SYMBOLS: {{.*}}00002004{{.*}}_GLOBAL_OFFSET_TABLE_
+#END_TEST
