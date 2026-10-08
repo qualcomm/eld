@@ -83,13 +83,11 @@ SectionMap::iterator SectionMap::findIter(std::string POutputSection) {
   return OutEnd;
 }
 
-SectionMap::mapping SectionMap::findIn(SectionMap::iterator OutBegin,
-                                       std::string PInputFile,
-                                       const ELFSection &CurInputSection,
-                                       bool IsArchive, std::string Name,
-                                       uint64_t InputSectionHash,
-                                       uint64_t InputFileHash,
-                                       uint64_t NameHash, bool GNUCompatible) {
+SectionMap::mapping
+SectionMap::findIn(SectionMap::iterator OutBegin, std::string PInputFile,
+                   const ELFSection &CurInputSection, bool IsArchive,
+                   std::string Name, uint64_t InputSectionHash,
+                   uint64_t InputFileHash, uint64_t NameHash) {
   bool IsCommonSection = llvm::isa<CommonELFSection>(&CurInputSection);
   iterator Out, OutEnd = end();
   for (Out = OutBegin; Out != OutEnd; ++Out) {
@@ -98,7 +96,7 @@ SectionMap::mapping SectionMap::findIn(SectionMap::iterator OutBegin,
     for (In = InBegin; In != InEnd; ++In) {
       if (matched(**In, nullptr, PInputFile, CurInputSection.name().str(),
                   IsArchive, Name, InputSectionHash, InputFileHash, NameHash,
-                  GNUCompatible, IsCommonSection))
+                  IsCommonSection))
         return std::make_pair(*Out, *In);
     }
   }
@@ -109,8 +107,7 @@ SectionMap::mapping
 SectionMap::findOnlyIn(SectionMap::iterator Out, std::string PInputFile,
                        const ELFSection &CurInputSection, bool IsArchive,
                        std::string Name, uint64_t InputSectionHash,
-                       uint64_t InputFileHash, uint64_t NameHash,
-                       bool GNUCompatible) {
+                       uint64_t InputFileHash, uint64_t NameHash) {
   OutputSectionEntry::iterator In, InBegin = (*Out)->begin(),
                                    InEnd = (*Out)->end();
   bool IsCommonSection = llvm::isa<CommonELFSection>(&CurInputSection);
@@ -120,7 +117,7 @@ SectionMap::findOnlyIn(SectionMap::iterator Out, std::string PInputFile,
       Special = (*In);
     if (matched(**In, nullptr, PInputFile, CurInputSection.name().str(),
                 IsArchive, Name, InputSectionHash, InputFileHash, NameHash,
-                GNUCompatible, IsCommonSection))
+                IsCommonSection))
       return std::make_pair(*Out, *In);
   }
   // If nothing matches, match the special rule.
@@ -325,7 +322,7 @@ bool SectionMap::matched(const RuleContainer &PInput, InputFile *I,
                          std::string const &CurInputSection, bool IsArchive,
                          std::string const &Name, uint64_t InputSectionHash,
                          uint64_t FileNameHash, uint64_t NameHash,
-                         bool GNUCompatible, bool IsCommonSection) const {
+                         bool IsCommonSection) const {
 
   bool MatchedArchiveMember = false;
 
@@ -382,7 +379,7 @@ bool SectionMap::matched(const RuleContainer &PInput, InputFile *I,
       if (!EF.empty() && DoOnce && MatchedRule)
         return false;
 
-      if (GNUCompatible && EF.empty() && PInput.spec().hasFile() &&
+      if (EF.empty() && PInput.spec().hasFile() &&
           PInput.spec().file().name() != "*" && IsArchive &&
           !PInput.spec().isArchive())
         return false;
@@ -615,9 +612,7 @@ bool SectionMap::doesRuleMatchWithSection(const RuleContainer &R,
                    llvm::dyn_cast<eld::ArchiveMemberInput>(IF->getInput());
   uint64_t InputFileHash = IF->getInput()->getResolvedPathHash();
   uint64_t ArchiveMemNameHash = IF->getInput()->getArchiveMemberNameHash();
-  return matched(
-      R, IF, InputFileName, SectName, IsArchive, IF->getInput()->getName(),
-      SectHash, InputFileHash, ArchiveMemNameHash,
-      (ThisConfig.options().getScriptOption() == GeneralOptions::MatchGNU),
-      IsCommonSection);
+  return matched(R, IF, InputFileName, SectName, IsArchive,
+                 IF->getInput()->getName(), SectHash, InputFileHash,
+                 ArchiveMemNameHash, IsCommonSection);
 }
