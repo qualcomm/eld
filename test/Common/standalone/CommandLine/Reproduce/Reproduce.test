@@ -10,7 +10,7 @@
 #START_TEST
 RUN: %rm %t1.1.o
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
-RUN: %link --no-threads %t1.1.o -o %t1.1.out -T %p/Inputs/1.script.t --reproduce %t1.1.reproduce.tar --dump-response-file %t1.1.response
+RUN: %link --no-threads %t1.1.o -o %t1.1.out -T %p/Inputs/1.script.t --reproduce %t1.1.reproduce.tar
 RUN: %mkdir %t1.1.reproduce
 RUN: %tar %gnutaropts -xvf %t1.1.reproduce.tar -C %t1.1.reproduce --strip-components=1
 RUN: cd %t1.1.reproduce
