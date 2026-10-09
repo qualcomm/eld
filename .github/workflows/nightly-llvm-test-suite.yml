@@ -5,9 +5,6 @@ on:
   pull_request:
     paths:
       - '.github/workflows/nightly-llvm-test-suite.yml'
-  workflow_run: # zizmor: ignore[dangerous-triggers] read-only token, no secrets, ephemeral runner
-    workflows: [CI]
-    types: [completed]
   issue_comment:
     types: [created, edited]
   schedule:
@@ -27,18 +24,20 @@ jobs:
     if: |
       github.repository == 'qualcomm/eld' &&
       github.event_name == 'issue_comment' &&
-      github.event.issue.pull_request != null &&
-      github.event.comment.body == 'check-llvm-test-suite' &&
-      (github.event.comment.author_association == 'COLLABORATOR' ||
-       github.event.comment.author_association == 'MEMBER' ||
-       github.event.comment.author_association == 'OWNER')
+      github.event.issue.pull_request != null
     runs-on: ubuntu-latest
     permissions:
       issues: write
       pull-requests: write
       actions: write
+    outputs:
+      run_id: ${{ steps.enable.outputs.run_id }}
+      artifact_name: ${{ steps.enable.outputs.artifact_name }}
+      pr_number: ${{ steps.enable.outputs.pr_number }}
+      ci_url: ${{ steps.enable.outputs.ci_url }}
     steps:
       - name: Enable LLVM test suite check
+        id: enable
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
         with:
           github-token: ${{ github.token }}
@@ -46,6 +45,24 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const issueNumber = context.issue.number;
+            const pullRequest = (await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: issueNumber,
+            })).data;
+            const commentName = context.payload.comment.body.trim();
+            const allowedAssociations = new Set([
+              'COLLABORATOR',
+              'MEMBER',
+              'OWNER',
+            ]);
+
+            if (commentName !== 'check-llvm-test-suite' ||
+                !allowedAssociations.has(context.payload.comment.author_association)) {
+              core.info('Ignoring an unauthorized or unrelated issue comment.');
+              return;
+            }
+
             const label = 'llvm-test-suite-check';
 
             try {
@@ -74,150 +91,155 @@ jobs:
               labels: [label],
             });
 
-            const dispatchedAt = Date.now();
-            const commentName = context.payload.comment.body.trim();
             const requestId = `${issueNumber}-${context.payload.comment.id}-${context.runId}-${context.runAttempt}-${commentName}`;
-            await github.rest.actions.createWorkflowDispatch({
-              owner,
-              repo,
-              workflow_id: 'ci.yml',
-              ref: context.payload.repository.default_branch,
-              inputs: {
-                pr_number: String(issueNumber),
-                request_id: requestId,
-                skip_tests: 'true',
-              },
+            const artifactName = `pr-eld-toolset-${issueNumber}`;
+            const runName = `CI PR #${issueNumber} @${pullRequest.head.sha} (${requestId})`;
+            const runNamePrefix = `CI PR #${issueNumber} @${pullRequest.head.sha} (`;
+            let ciRunId = '';
+            let ciUrl = '';
+            let reusedArtifact = false;
+            let dispatchedAt = 0;
+
+            const completedRuns = await github.paginate(
+              github.rest.actions.listWorkflowRuns,
+              {
+                owner,
+                repo,
+                workflow_id: 'ci.yml',
+                event: 'workflow_dispatch',
+                status: 'completed',
+                per_page: 100,
+              }
+            );
+            const reusableRuns = completedRuns
+              .filter(run =>
+                run.id !== context.runId &&
+                run.conclusion === 'success' &&
+                (run.display_title || '').startsWith(runNamePrefix)
+              )
+              .sort((left, right) => new Date(right.updated_at) - new Date(left.updated_at));
+
+            for (const run of reusableRuns) {
+              const artifacts = await github.paginate(
+                github.rest.actions.listWorkflowRunArtifacts,
+                { owner, repo, run_id: run.id, per_page: 100 }
+              );
+              if (artifacts.some(artifact => artifact.name === artifactName && !artifact.expired)) {
+                ciRunId = String(run.id);
+                ciUrl = run.html_url;
+                reusedArtifact = true;
+                core.info(`Reusing ${artifactName} from CI run ${ciRunId}: ${ciUrl}`);
+                break;
+              }
+            }
+
+            if (!reusedArtifact) {
+              dispatchedAt = Date.now();
+              await github.rest.actions.createWorkflowDispatch({
+                owner,
+                repo,
+                workflow_id: 'ci.yml',
+                ref: context.payload.repository.default_branch,
+                inputs: {
+                  pr_number: String(issueNumber),
+                  request_id: requestId,
+                  pr_sha: pullRequest.head.sha,
+                  skip_tests: 'true',
+                },
+              });
+            }
+
+            const sleep = (milliseconds) => new Promise(resolve => {
+              setTimeout(resolve, milliseconds);
             });
+
+            if (!reusedArtifact) {
+              for (let attempt = 0; attempt < 120; attempt += 1) {
+                const workflowRuns = await github.paginate(
+                  github.rest.actions.listWorkflowRuns,
+                  {
+                    owner,
+                    repo,
+                    workflow_id: 'ci.yml',
+                    event: 'workflow_dispatch',
+                    per_page: 100,
+                  }
+                );
+                const dispatchedRuns = workflowRuns
+                  .filter(run =>
+                    run.display_title === runName &&
+                    new Date(run.created_at).getTime() >= dispatchedAt - 5000
+                  )
+                  .sort((left, right) => new Date(right.created_at) - new Date(left.created_at));
+
+                for (const run of dispatchedRuns) {
+                  if (run.status !== 'completed') {
+                    continue;
+                  }
+                  if (run.conclusion !== 'success') {
+                    core.setFailed(`CI run ${run.id} finished with conclusion: ${run.conclusion}.`);
+                    return;
+                  }
+
+                  const artifacts = await github.paginate(
+                    github.rest.actions.listWorkflowRunArtifacts,
+                    { owner, repo, run_id: run.id, per_page: 100 }
+                  );
+                  if (artifacts.some(artifact => artifact.name === artifactName && !artifact.expired)) {
+                    ciRunId = String(run.id);
+                    ciUrl = run.html_url;
+                    core.info(`CI run ${ciRunId} completed and produced ${artifactName}.`);
+                    break;
+                  }
+                }
+
+                if (ciRunId !== '') {
+                  break;
+                }
+
+                if (attempt < 119) {
+                  core.info('Waiting for the dispatched CI run to complete...');
+                  await sleep(30000);
+                }
+              }
+            }
+
+            if (ciRunId === '') {
+              core.setFailed('Timed out waiting for the dispatched CI run and PR toolset artifact.');
+              return;
+            }
+
+            core.setOutput('run_id', ciRunId);
+            core.setOutput('artifact_name', artifactName);
+            core.setOutput('pr_number', String(issueNumber));
+            core.setOutput('ci_url', ciUrl);
 
             await github.rest.issues.createComment({
               owner,
               repo,
               issue_number: issueNumber,
-              body: `Enabled **${label}**. CI will rebuild the PR toolset, then this workflow will run the LLVM test suite against that ld.eld.`,
+              body: [
+                `Enabled **${label}**.`,
+                reusedArtifact
+                  ? `Reusing the PR toolset from [CI run](${ciUrl}).`
+                  : `Built the PR toolset in [CI run](${ciUrl}).`,
+                'This workflow will run the LLVM test suite against that ld.eld.',
+              ].join(' '),
             });
-
-            const sleep = (milliseconds) => new Promise(resolve => {
-              setTimeout(resolve, milliseconds);
-            });
-            const artifactName = `pr-eld-toolset-${issueNumber}`;
-            const runName = `CI PR #${issueNumber} (${requestId})`;
-
-            for (let attempt = 0; attempt < 120; attempt += 1) {
-              const workflowRuns = await github.paginate(
-                github.rest.actions.listWorkflowRuns,
-                {
-                  owner,
-                  repo,
-                  workflow_id: 'ci.yml',
-                  event: 'workflow_dispatch',
-                  per_page: 100,
-                }
-              );
-              const dispatchedRuns = workflowRuns
-                .filter(run =>
-                  run.display_title === runName &&
-                  new Date(run.created_at).getTime() >= dispatchedAt - 5000
-                )
-                .sort((left, right) => new Date(right.created_at) - new Date(left.created_at));
-
-              for (const run of dispatchedRuns) {
-                if (run.status !== 'completed') {
-                  continue;
-                }
-                if (run.conclusion !== 'success') {
-                  core.setFailed(`CI run ${run.id} finished with conclusion: ${run.conclusion}.`);
-                  return;
-                }
-
-                const artifacts = await github.paginate(
-                  github.rest.actions.listWorkflowRunArtifacts,
-                  { owner, repo, run_id: run.id, per_page: 100 }
-                );
-                if (artifacts.some(artifact => artifact.name === artifactName && !artifact.expired)) {
-                  core.info(`CI run ${run.id} completed and produced ${artifactName}.`);
-                  return;
-                }
-              }
-
-              if (attempt < 119) {
-                core.info('Waiting for the dispatched CI run to complete...');
-                await sleep(30000);
-              }
-            }
-
-            core.setFailed('Timed out waiting for the dispatched CI run and PR toolset artifact.');
-
-  resolve:
-    if: |
-      github.repository == 'qualcomm/eld' &&
-      (github.event_name != 'workflow_run' ||
-       github.event.workflow_run.conclusion == 'success')
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      pull-requests: read
-    outputs:
-      run_id: ${{ steps.find.outputs.run_id }}
-      head_sha: ${{ steps.find.outputs.head_sha }}
-      pr_number: ${{ steps.find.outputs.pr_number }}
-      artifact_name: ${{ steps.find.outputs.artifact_name }}
-    steps:
-      - name: Resolve CI run and PR toolset
-        id: find
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            if (context.eventName !== 'workflow_run') {
-              return;
-            }
-
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const workflowRun = context.payload.workflow_run;
-            const artifacts = await github.paginate(
-              github.rest.actions.listWorkflowRunArtifacts,
-              { owner, repo, run_id: workflowRun.id, per_page: 100 }
-            );
-            const toolset = artifacts.find(
-              artifact => /^pr-eld-toolset-\d+$/.test(artifact.name) && !artifact.expired
-            );
-            if (!toolset) {
-              core.info(`CI run ${workflowRun.id} has no PR ELD toolset artifact.`);
-              return;
-            }
-
-            const artifactPrNumber = toolset.name.match(/^pr-eld-toolset-(\d+)$/)[1];
-            const pullRequest = (await github.rest.pulls.get({
-              owner,
-              repo,
-              pull_number: Number(artifactPrNumber),
-            })).data;
-            if (!pullRequest) {
-              core.info(`CI run ${workflowRun.id} is not an enabled LLVM test suite PR run.`);
-              return;
-            }
-            if (!pullRequest.labels.some(label => label.name === 'llvm-test-suite-check')) {
-              core.info(`PR ${pullRequest.number} is not enabled for the LLVM test suite.`);
-              return;
-            }
-
-            core.setOutput('run_id', String(workflowRun.id));
-            core.setOutput('head_sha', workflowRun.head_sha);
-            core.setOutput('pr_number', String(pullRequest.number));
-            core.setOutput('artifact_name', toolset.name);
 
   test-llvm-test-suite-x86_64:
-    needs: resolve
+    needs: request
     if: |
+      always() &&
       github.repository == 'qualcomm/eld' &&
       (github.event_name == 'schedule' ||
-       (github.event_name == 'workflow_run' && needs.resolve.outputs.run_id != ''))
+       (github.event_name == 'issue_comment' && needs.request.outputs.run_id != ''))
     runs-on: ubuntu-latest
     permissions:
       contents: write
       actions: write
       issues: write
+      pull-requests: write
     env:
       ELD_SOURCE_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld
 
@@ -229,11 +251,11 @@ jobs:
           persist-credentials: true # Required for BuildStatusDataRecorder's git push to dashboard branch
 
       - name: Report workflow links on the PR
-        if: github.event_name == 'workflow_run'
+        if: github.event_name == 'issue_comment'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
         env:
-          PR_NUMBER: ${{ needs.resolve.outputs.pr_number }}
-          CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
+          PR_NUMBER: ${{ needs.request.outputs.pr_number }}
+          CI_RUN_URL: ${{ needs.request.outputs.ci_url }}
           LLVM_TEST_SUITE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           github-token: ${{ github.token }}
@@ -278,11 +300,11 @@ jobs:
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
       - name: Overlay PR ELD toolset
-        if: needs.resolve.outputs.run_id != ''
+        if: github.event_name == 'issue_comment' && needs.request.outputs.run_id != ''
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchEldToolset
         with:
-          run-id: ${{ needs.resolve.outputs.run_id }}
-          artifact-name: ${{ needs.resolve.outputs.artifact_name || 'pr-eld-toolset' }}
+          run-id: ${{ needs.request.outputs.run_id }}
+          artifact-name: ${{ needs.request.outputs.artifact_name }}
           tarball: install-pr-toolset.tar.xz
 
       - name: Clone LLVM test suite

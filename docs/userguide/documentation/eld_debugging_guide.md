@@ -557,6 +557,20 @@ Additional reproduce helpers:
 - `--dump-mapping-file <outputfilename>`: dump mapping info
 - `--dump-response-file <outputfilename>`: dump rewritten response file
 
+The tarball's `response.txt` contains linker arguments only. After extracting
+the tarball, replay it directly as a response file:
+
+```bash
+ld.eld @response.txt
+```
+
+It is not a shell script and should not be run with `bash`. ELD can also
+extract and replay the tarball in one step:
+
+```bash
+ld.eld --replay <tarball>
+```
+
 The reproduce tarball logic is wired through:
 
 - `GnuLdDriver::handleReproduce(...)` and `writeReproduceTar(...)` in

@@ -11,7 +11,7 @@ RUN: cp %t.1.o %t.repro/Object/in.o
 RUN: %echo "[Object Files]" > %t.repro/mapping.ini
 RUN: %echo "in.o=Object/in.o" >> %t.repro/mapping.ini
 RUN: %echo "Object/in.o" > %t.replay_args.rsp
-RUN: %echo "ld.eld @%t.replay_args.rsp --mapping-file=mapping.ini -o replay.out" > %t.repro/response.txt
+RUN: %echo "@%t.replay_args.rsp --mapping-file=mapping.ini -o replay.out" > %t.repro/response.txt
 RUN: %tar -cf %t.repro.tar -C %t.repro .
 RUN: %link --replay %t.repro.tar -o %t.replay.out
 RUN: %readelf -h %t.replay.out 2>&1 | %filecheck %s

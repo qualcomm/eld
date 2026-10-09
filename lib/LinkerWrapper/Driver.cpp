@@ -111,15 +111,9 @@ maybeExpandReplayTarball(llvm::ArrayRef<const char *> Args,
 
   llvm::SmallVector<const char *, 256> Merged;
   Merged.push_back(Args[0]);
-  size_t Start = 0;
   if (!ReplayTokens.empty()) {
-    llvm::StringRef First = ReplayTokens.front();
-    if (First.ends_with("ld.eld") || First.ends_with("eld"))
-      Start = 1;
-  }
-  if (Start < ReplayTokens.size()) {
     Merged.push_back("--__replay_begin");
-    Merged.append(ReplayTokens.begin() + Start, ReplayTokens.end());
+    Merged.append(ReplayTokens.begin(), ReplayTokens.end());
     Merged.push_back("--__replay_end");
   }
   for (size_t Index = 1; Index < Args.size() && Args[Index]; ++Index) {

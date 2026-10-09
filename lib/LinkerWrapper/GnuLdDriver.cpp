@@ -1709,8 +1709,6 @@ bool GnuLdDriver::processReproduceOption(
   // create response string
   llvm::SmallString<0> responseData;
   llvm::raw_svector_ostream os(responseData);
-  if (!Config.options().getDumpResponse())
-    os << getProgramName() << " ";
   size_t lastNamespecId = -1;
   size_t lastInputFileId = -1;
   size_t lastScriptId = -1;
