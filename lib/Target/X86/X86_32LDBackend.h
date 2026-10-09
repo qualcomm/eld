@@ -36,7 +36,7 @@ public:
   }
 
 private:
-  size_t getRelEntrySize() override { return 0; }
+  size_t getRelEntrySize() override { return 8; }
   size_t getRelaEntrySize() override { return 0; }
 
   Relocator *m_pRelocator = nullptr;
