@@ -125,6 +125,7 @@ DIAG(plugin_crash, DiagnosticEngine::Fatal,
      "!!!PLUGIN CRASHED!!!\nUser specified plugin %0 caused segmentation fault")
 DIAG(unable_to_create_temporary_file, DiagnosticEngine::Fatal,
      "Unable to create temporary file %0")
+DIAG(unable_to_open_file, DiagnosticEngine::Fatal, "Unable to open file %0: %1")
 DIAG(unable_to_write_json_file, DiagnosticEngine::Error,
      "Unable to write JSON file %0 due to error %1")
 DIAG(unsupported_linker_flavor, DiagnosticEngine::Error,
@@ -177,6 +178,8 @@ DIAG(verbose_using_basepath_for_mapfiles, DiagnosticEngine::Verbose,
      "Using '%0' for computing relative paths in map files")
 DIAG(fatal_invalid_diag_id, DiagnosticEngine::Fatal,
      "Invalid diagnostic ID: %0")
+DIAG(fatal_invalid_diag_format, DiagnosticEngine::Fatal,
+     "Invalid format for diagnostic %0: %1")
 DIAG(fatal_missing_diag_args, DiagnosticEngine::Fatal,
      "Missing argument %0 when reporting diagnostic '%1'")
 DIAG(error_invalid_input_format, DiagnosticEngine::Error,

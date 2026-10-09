@@ -458,9 +458,9 @@ eld::Expected<bool> ELFRelocObjParser::readGroups(ELFReaderBase &ELFReader) {
         ELFReader.readOneGroup(llvm::cast<ELFSection>(S));
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadOneGroup);
 
-    // FIXME: Return an error instead!
     if (!expReadOneGroup.value())
-      return false;
+      return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+          Diag::err_cannot_read_section, {S->name().str()}));
   }
   return true;
 }

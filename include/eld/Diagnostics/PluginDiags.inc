@@ -71,6 +71,8 @@ DIAG(error_plugin_opt_empty, DiagnosticEngine::Error,
      "Invalid option '%0'. Option cannot be just double-dash")
 DIAG(error_empty_input_file, DiagnosticEngine::Error,
      "Empty eld::plugin::InputFile object")
+DIAG(plugin_request_memory, DiagnosticEngine::Error,
+     "Plugin requested %0 bytes of memory, but the request failed")
 DIAG(error_invalid_input_file_for_api, DiagnosticEngine::Error,
      "Invalid input file '%0' for the API '%1'")
 DIAG(error_RM_sect_name_map_already_set, DiagnosticEngine::Error,
