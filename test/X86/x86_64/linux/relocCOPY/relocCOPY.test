@@ -17,6 +17,13 @@ RUN: %readelf -r %t.out | %filecheck %s --check-prefix=CHECK-COPY-RELOC
 RUN: %readelf -s %t.out | %filecheck %s --check-prefix=CHECK-BSS-SYMBOLS
 RUN: %run_and_print_exit %t.out | %filecheck %s --check-prefix=EXITCODE
 
+## Copy relocations are created after the relocation scan, so a threaded scan
+## must produce the same output as a serial one.
+RUN: %link %linkopts --enable-threads=all --thread-count=8 -o %t.threaded %t.1.o %t.libu.so
+RUN: %link %linkopts --no-threads -o %t.serial %t.1.o %t.libu.so
+RUN: cmp %t.threaded %t.serial
+RUN: %readelf -r %t.threaded | %filecheck %s --check-prefix=CHECK-COPY-RELOC
+
 CHECK-ABS-TYPE-DAG: {{.*}}R_X86_64_64{{.*}}v{{.*}}
 CHECK-ABS-TYPE-DAG: {{.*}}R_X86_64_32S{{.*}}u{{.*}}
 CHECK-COPY-RELOC-DAG: {{.*}}R_X86_64_COPY{{.*}}u{{.*}}

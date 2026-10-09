@@ -21,8 +21,7 @@ public:
 
   Result applyRelocation(Relocation &) override;
 
-  void scanRelocation(Relocation &, eld::IRBuilder &, ELFSection &, InputFile &,
-                      CopyRelocs &) override;
+  bool shouldScanRelocations() const override { return false; }
 
   X86_32LDBackend &getTarget() override { return m_Target; }
   const X86_32LDBackend &getTarget() const override { return m_Target; }
@@ -31,6 +30,10 @@ public:
 
   Size getSize(Relocation::Type) const override;
   uint32_t getNumRelocs() const override;
+
+protected:
+  void scanDeferredRelocation(InputFile &, Relocation &, ELFSection &,
+                              CopyRelocs &) override;
 
 private:
   X86_32LDBackend &m_Target;

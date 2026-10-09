@@ -1,0 +1,32 @@
+## A copy relocation must not change the scan classification of a deferred
+## PIC GOT reference to the same symbol.
+
+# RUN: split-file %s %t
+# RUN: %llvm-mc -triple=x86_64 -filetype=obj %t/copy.s -o %t/copy.o
+# RUN: %clang %clangopts -fPIC -c %t/pic.c -o %t/pic.o
+# RUN: %clang %clangopts -fPIC -c %t/lib.c -o %t/lib.o
+# RUN: %link %linkopts -shared %t/lib.o -o %t/libdata.so
+
+# RUN: %link %linkopts --enable-threads=all --thread-count=8 -Bdynamic \
+# RUN:   -e _start %t/copy.o %t/pic.o %t/libdata.so -o %t/out
+# RUN: %link %linkopts --no-threads -Bdynamic -e _start %t/copy.o %t/pic.o \
+# RUN:   %t/libdata.so -o %t/serial
+# RUN: %readelf -r -s %t/out | %filecheck %s
+# RUN: %readelf -r -s %t/serial | %filecheck %s
+
+# CHECK-DAG: R_X86_64_COPY{{.*}}data
+# CHECK-DAG: R_X86_64_GLOB_DAT{{.*}}data
+
+#--- copy.s
+        .text
+        .quad data
+        .globl _start
+_start:
+        retq
+
+#--- pic.c
+extern int data;
+int read_data(void) { return data; }
+
+#--- lib.c
+int data = 42;

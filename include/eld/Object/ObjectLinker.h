@@ -185,9 +185,10 @@ public:
   /// scanRelocations - scan all relocation entries by output symbols.
   bool scanRelocations(bool IsPartialLink = false);
 
-  void scanRelocationsHelper(InputFile *Input, bool IsPartialLink,
-                             LinkerScript::PluginVectorT PluginVect,
-                             Relocator::CopyRelocs &);
+  void scanRelocationsHelper(
+      InputFile *Input, size_t InputIndex, bool IsPartialLink, bool IsParallel,
+      Relocator::CopyRelocs &CopyRelocSet,
+      const llvm::DenseMap<Relocation *, bool> &SkipRelocProcessing);
 
   bool finalizeScanRelocations();
 
@@ -336,7 +337,7 @@ public:
   void applySubAlign();
 
   // Get Plugin list for Relocation registration callback.
-  LinkerScript::PluginVectorT getLinkerPluginWithLinkerConfigs();
+  LinkerScript::PluginVectorT getLinkerPluginsWithRelocCallbacks();
 
   // ------------------ All sections -------------------------
   const std::vector<Section *> &getAllInputSections() const {

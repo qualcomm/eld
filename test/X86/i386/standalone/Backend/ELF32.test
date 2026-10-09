@@ -9,8 +9,11 @@
 # RUN: %readelf -h %t.explicit | %filecheck %s --check-prefix=EXPLICIT
 # RUN: %link %t.o -o %t.inferred
 # RUN: %readelf -h %t.inferred | %filecheck %s --check-prefix=INFERRED
+# RUN: %link -m elf_i386 --enable-threads=all --thread-count=4 --trace=threads \
+# RUN:   %t.o -o %t.threaded 2>&1 | %filecheck %s --check-prefix=THREADS
 #
 # EXPLICIT: Class: ELF32
 # EXPLICIT: Machine: Intel 80386
 # INFERRED: Class: ELF32
 # INFERRED: Machine: Intel 80386
+# THREADS: Threads Disabled : ScanRelocations
