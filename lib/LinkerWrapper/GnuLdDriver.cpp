@@ -1753,13 +1753,20 @@ bool GnuLdDriver::processReproduceOption(
       break;
     case T::l:
     case T::namespec: {
+      bool foundAction = false;
       for (size_t i = lastNamespecId + 1; i < actions.size(); ++i) {
         auto action = actions[i];
         if (action->getInputActionKind() == eld::InputAction::Namespec) {
+          foundAction = true;
           lastNamespecId = i;
           auto ipt = action->getInput();
-          if (!ipt)
-            return false;
+          // Input activation may have failed before this action was fully
+          // resolved. Preserve the original namespec so replay reports the
+          // same failure instead of silently dropping the input.
+          if (!ipt || !ipt->getInputFile()) {
+            os << arg->getSpelling() << arg->getValue() << ' ';
+            break;
+          }
           // Use the mapped path as the rewrite key. For a namespec input
           // e.g. "-l2", use "2" instead of "lib2.so". This will match the
           // form in the mapping file "2=SharedLibrary/2.<hash>".
@@ -1770,6 +1777,8 @@ bool GnuLdDriver::processReproduceOption(
           break;
         }
       }
+      if (!foundAction)
+        os << arg->getSpelling() << arg->getValue() << ' ';
       break;
     }
     case T::INPUT: {
@@ -1803,10 +1812,34 @@ bool GnuLdDriver::processReproduceOption(
          << getRewrittenRemappedPath(arg->getValue()) << ' ';
       break;
     case T::T: {
+      // Capture the script before looking for its activated action. Input
+      // activation can stop at an earlier failing input, leaving this action
+      // without an Input even though the script itself is readable.
+      std::string ScriptPath = Input::expandSysrootMarkers(
+          arg->getValue(), Config.directories(), *Config.getDiagEngine());
+      std::string ResolvedPath;
+      if (llvm::sys::fs::exists(ScriptPath))
+        ResolvedPath = ScriptPath;
+      else if (const eld::sys::fs::Path *Resolved = Config.directories().find(
+                   arg->getValue(), eld::SearchDirs::SearchInputType::Script))
+        ResolvedPath = Resolved->native();
+      if (!ResolvedPath.empty())
+        outputTar->createAndAddScriptFile(arg->getValue(), ResolvedPath);
+
       auto path = getRewrittenActionInputPath(eld::InputAction::Script,
                                               lastScriptId, arg->getValue());
-      if (!path)
-        return false;
+      if (!path) {
+        // A preceding input can fail before this script action is activated.
+        // Capture a script that can still be resolved so replay does not
+        // replace the original input error with a missing-script error.
+        if (!ResolvedPath.empty()) {
+          os << arg->getSpelling() << ' '
+             << outputTar->rewritePath(arg->getValue()) << ' ';
+        } else {
+          os << arg->getAsString(Args) << ' ';
+        }
+        break;
+      }
       os << arg->getSpelling() << ' ' << *path << ' ';
       break;
     }

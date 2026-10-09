@@ -1,0 +1,27 @@
+#---ReplayFailedInput.test----------------------------- Executable ------------#
+#BEGIN_COMMENT
+# Verify that --reproduce captures a linker script and preserves an unresolved
+# namespec when an earlier input prevents normal input processing from reaching
+# the script.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t.A %t.repro.tar %t.repro
+RUN: %mkdir %t.A
+RUN: %echo "INPUT(/lib1.so)" > %t.A/script.t
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: %link %linkopts --no-default-plugins -shared -soname foo %t.1.o -o %t.A/lib1.so
+RUN: %not %link %linkopts --no-default-plugins %t.2.o -l1 -T %t.A/script.t \
+RUN:   -o %t.out --sysroot %t.A --reproduce %t.repro.tar 2>&1 | %filecheck %s --check-prefix=ORIGINAL
+RUN: %mkdir %t.repro
+RUN: cd %t.repro && %tar -xf %t.repro.tar --strip-components=1
+RUN: %filecheck %s --check-prefix=MAPPING < %t.repro/mapping.ini
+RUN: %filecheck %s --check-prefix=RESPONSE < %t.repro/response.txt
+RUN: cd %t.repro && %not bash response.txt 2>&1 | %filecheck %s --check-prefix=REPLAY
+
+ORIGINAL: Fatal: cannot recognize namespec -l1
+MAPPING: [Linker Scripts]
+MAPPING-NEXT: {{.*}}script.t=LinkerScript/
+RESPONSE: -l1
+REPLAY: Fatal: cannot recognize namespec -l1
+#END_TEST
