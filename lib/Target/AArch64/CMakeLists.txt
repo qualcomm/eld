@@ -9,7 +9,6 @@ llvm_add_library(
   AArch64ErrataIslandFactory.cpp
   AArch64FarcallStub.cpp
   AArch64LDBackend.cpp
-  AArch64NoteGNUPropertyFragment.cpp
   AArch64PLT.cpp
   AArch64Relocator.cpp)
 

@@ -27,6 +27,7 @@
 #include "eld/Fragment/EhFrameFragment.h"
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/GNUHashFragment.h"
+#include "eld/Fragment/GNUPropertyFragment.h"
 #include "eld/Fragment/GOT.h"
 #include "eld/Script/OverlayDesc.h"
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
@@ -1232,7 +1233,97 @@ void GNULDBackend::sizeSymTab() {
   }
 }
 
+// Read .note.gnu.property and accumulate the target's FEATURE_1_AND bits.
+template <class ELFT>
+bool GNULDBackend::readGNUProperty(InputFile &pInput, ELFSection *S,
+                                   uint32_t &Features) {
+  using Elf_Nhdr = typename ELFT::Nhdr;
+  using Elf_Note = typename ELFT::Note;
+
+  const uint32_t FeatureAndType = getGNUPropertyFeatureAndType();
+  llvm::StringRef Contents = pInput.getSlice(S->offset(), S->size());
+  llvm::ArrayRef<uint8_t> Data(
+      reinterpret_cast<const uint8_t *>(Contents.data()), Contents.size());
+
+  auto ReportFatal = [&] (const char *Msg) {
+    config().raise(Diag::gnu_property_read_error)
+        << pInput.getInput()->decoratedPath() << Msg;
+  };
+
+  while (!Data.empty()) {
+    // Read one note record. Check the header fits before reading it.
+    if (Data.size() < sizeof(Elf_Nhdr)) {
+      ReportFatal("data is too short");
+      return false;
+    }
+    const auto *Nhdr = reinterpret_cast<const Elf_Nhdr *>(Data.data());
+    const uint64_t NoteSize = Nhdr->getSize(S->getAddrAlign());
+    if (NoteSize > Data.size()) {
+      ReportFatal("data is too short");
+      return false;
+    }
+
+    Elf_Note Note(*Nhdr);
+    if (Nhdr->n_type != llvm::ELF::NT_GNU_PROPERTY_TYPE_0 ||
+        Note.getName() != "GNU") {
+      Data = Data.drop_front(NoteSize);
+      continue;
+    }
+
+    // The descriptor is a sequence of type-length-value properties.
+    llvm::ArrayRef<uint8_t> Desc = Note.getDesc(S->getAddrAlign());
+    while (!Desc.empty()) {
+      if (Desc.size() < 8) {
+        ReportFatal("program property is too short");
+        return false;
+      }
+      const uint32_t Type =
+          llvm::support::endian::read32<ELFT::Endianness>(Desc.data());
+      const uint32_t Size =
+          llvm::support::endian::read32<ELFT::Endianness>(Desc.data() + 4);
+      Desc = Desc.drop_front(8);
+      if (static_cast<uint64_t>(Size) > Desc.size()) {
+        ReportFatal("program property is too short");
+        return false;
+      }
+      if (Type == FeatureAndType) {
+        // A relocatable input may carry several FEATURE_1_AND entries;
+        // accumulate their bits.
+        if (Size < sizeof(uint32_t) || Desc.size() < sizeof(uint32_t)) {
+          ReportFatal("FEATURE_1_AND entry is too short");
+          return false;
+        }
+        Features |=
+            llvm::support::endian::read32<ELFT::Endianness>(Desc.data());
+      }
+      // Properties are padded to 8 bytes (ELF64) or 4 bytes (ELF32).
+      const uint64_t AlignedSize = llvm::alignTo<(ELFT::Is64Bits ? 8 : 4)>(
+          static_cast<uint64_t>(Size));
+      if (AlignedSize > Desc.size()) {
+        ReportFatal("program property is too short");
+        return false;
+      }
+      Desc = Desc.drop_front(AlignedSize);
+    }
+    Data = Data.drop_front(NoteSize);
+  }
+  return true;
+}
+
 bool GNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
+  if (S->getKind() == LinkerSectionKind::GNUProperty &&
+      getGNUPropertyFeatureAndType()) {
+    createGNUPropertySection();
+    S->setWanted(true);
+    uint32_t F = 0;
+    bool OK = config().targets().is64Bits()
+                  ? readGNUProperty<llvm::object::ELF64LE>(pInput, S, F)
+                  : readGNUProperty<llvm::object::ELF32LE>(pInput, S, F);
+    if (!OK)
+      return false;
+    NoteGNUPropertyMap[&pInput] = F;
+    return m_pGPF->updateInfo(F);
+  }
   Fragment *F = nullptr;
   static LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   if (!S->size() || S->isNoBits())
@@ -1248,6 +1339,48 @@ bool GNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
   if (layoutInfo)
     layoutInfo->recordFragment(&pInput, S, F);
   return F;
+}
+
+void GNULDBackend::createGNUPropertySection() {
+  if (m_pNoteGNUProperty)
+    return;
+  bool Is64 = config().targets().is64Bits();
+  const uint32_t Align = Is64 ? 8 : 4;
+  m_pNoteGNUProperty = m_Module.createInternalSection(
+      Module::InternalInputType::Sections, LinkerSectionKind::Internal,
+      ".note.gnu.property", llvm::ELF::SHT_NOTE, llvm::ELF::SHF_ALLOC, Align);
+  m_pGPF = eld::make<GNUPropertyFragment>(
+      m_pNoteGNUProperty, getGNUPropertyFeatureAndType(), Is64);
+  m_pNoteGNUProperty->addFragmentAndUpdateSize(m_pGPF);
+  m_pNoteGNUProperty->setWanted(true);
+}
+
+bool GNULDBackend::isGNUPropertyMergeSection(const ELFSection *S) const {
+  return m_pNoteGNUProperty &&
+         S->getKind() != LinkerSectionKind::Internal &&
+         S->name() == ".note.gnu.property";
+}
+
+bool GNULDBackend::processInputFiles(std::vector<InputFile *> &Inputs) {
+  if (!m_pGPF)
+    return config().getDiagEngine()->diagnose();
+  uint32_t And = ~0u;
+  for (InputFile *I : Inputs) {
+    if (I->isInternal())
+      continue;
+    auto *Obj = llvm::dyn_cast<ELFObjectFile>(I);
+    if (!Obj || !Obj->getSize())
+      continue;
+    uint32_t F = 0;
+    if (auto It = NoteGNUPropertyMap.find(I); It != NoteGNUPropertyMap.end())
+      F = It->second;
+    adjustGNUPropertyFeatures(I, F);
+    NoteGNUPropertyMap[I] = F;
+    m_pGPF->updateInfo(F);
+    And &= F;
+  }
+  m_pGPF->resetFlag(~And);
+  return config().getDiagEngine()->diagnose();
 }
 
 // emit section data.

@@ -37,4 +37,14 @@ GNULDBackend *createX86_32LDBackend(Module &pModule) {
                                make<X86_32StandaloneInfo>(pModule.getConfig()));
 }
 
+bool X86_32LDBackend::DoesOverrideMerge(ELFSection *pSection) const {
+  return isGNUPropertyMergeSection(pSection);
+}
+
+ELFSection *X86_32LDBackend::mergeSection(ELFSection *S) {
+  if (isGNUPropertyMergeSection(S))
+    return getGNUPropertySection();
+  return nullptr;
+}
+
 } // namespace eld
