@@ -18,6 +18,6 @@ RUN: %readelf -p .comment %t2.lto.exe | %filecheck %s -check-prefix LTO
 RUN: %readelf -p .comment %t2.out.lto.dso | %filecheck %s -check-prefix LTO
 RUN: %readelf -p .comment %t2.out.lto.pie | %filecheck %s -check-prefix LTO
 
-#CHECK: Linker
-#LTO: LTO Enabled
+#CHECK: Linker: {{.*}}ELD
+#LTO: Linker: {{.*}}ELD
 #END_TEST

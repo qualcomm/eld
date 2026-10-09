@@ -17,7 +17,7 @@ RUN: %filecheck %s < %t1.1.revision_info.txt
 RUN: %git -C %eldsrcroot reset HEAD~
 RUN: %cmake --build %llvmobjroot --target ld.eld 1>/dev/null 2>&1
 RUN: %not %diff %t1.1.revision_info.txt %t1.2.revision_info.txt 2>&1 | %filecheck %s --check-prefix=DIFF
-#CHECK: Linker {{.*}} ({{.*}})
+#CHECK: Linker: {{.*}}ELD {{.*}} ({{.*}})
 #CHECK: {{(LLVM .* \(.*\))?}}
 #DIFF: 3c3
 #END_TEST
