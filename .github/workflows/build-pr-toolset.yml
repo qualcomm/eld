@@ -1,0 +1,171 @@
+name: Build PR ELD toolset
+run-name: "Build PR #${{ inputs.pr_number }} @${{ inputs.pr_sha }} (${{ inputs.request_id }})"
+
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        required: true
+        type: string
+      pr_sha:
+        required: true
+        type: string
+      request_id:
+        required: true
+        type: string
+    outputs:
+      artifact_name:
+        description: "Name of the uploaded PR toolset artifact"
+        value: ${{ jobs.build.outputs.artifact_name }}
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull request number"
+        required: true
+        type: number
+      pr_sha:
+        description: "Exact PR head SHA to build"
+        required: true
+        type: string
+      request_id:
+        description: "Request identifier"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: write
+  pull-requests: read
+
+jobs:
+  resolve:
+    if: github.repository == 'qualcomm/eld'
+    runs-on: ubuntu-latest
+    outputs:
+      pr_number: ${{ steps.find.outputs.pr_number }}
+      head_repo: ${{ steps.find.outputs.head_repo }}
+      head_sha: ${{ steps.find.outputs.head_sha }}
+      base_ref: ${{ steps.find.outputs.base_ref }}
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Resolve and validate PR revision
+        id: find
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          REQUESTED_SHA: ${{ inputs.pr_sha }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const prNumber = Number(process.env.PR_NUMBER);
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
+              core.setFailed('A valid pr_number is required.');
+              return;
+            }
+
+            const pullRequest = (await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            })).data;
+            const requestedSha = process.env.REQUESTED_SHA;
+            if (pullRequest.head.sha !== requestedSha) {
+              core.setFailed(
+                `PR #${prNumber} moved from ${requestedSha} to ${pullRequest.head.sha}; refusing to build a different revision.`
+              );
+              return;
+            }
+
+            core.setOutput('pr_number', String(prNumber));
+            core.setOutput('head_repo', pullRequest.head.repo.full_name);
+            core.setOutput('head_sha', requestedSha);
+            core.setOutput('base_ref', pullRequest.base.ref);
+
+  build:
+    needs: resolve
+    if: needs.resolve.result == 'success'
+    outputs:
+      artifact_name: ${{ format('pr-eld-toolset-{0}', needs.resolve.outputs.head_sha) }}
+    runs-on: self-hosted
+    concurrency:
+      group: pr-eld-toolset-${{ needs.resolve.outputs.pr_number }}-${{ needs.resolve.outputs.head_sha }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      actions: write
+      pull-requests: read
+    env:
+      PR_NUMBER: ${{ needs.resolve.outputs.pr_number }}
+      HEAD_SHA: ${{ needs.resolve.outputs.head_sha }}
+      BASE_BRANCH_NAME: ${{ needs.resolve.outputs.base_ref }}
+      CCACHE_DIR: /local/mnt/workspace/ccache/${{ needs.resolve.outputs.base_ref }}
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_COMPILERCHECK: content
+      CCACHE_NOHASHDIR: true
+    steps:
+      - name: Checkout llvm-project
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+        with:
+          repository: llvm/llvm-project
+          ref: ${{ env.BASE_BRANCH_NAME }}
+          path: pr-${{ env.PR_NUMBER }}/llvm-project
+
+      - name: Checkout exact ELD PR revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+        with:
+          repository: ${{ needs.resolve.outputs.head_repo }}
+          ref: ${{ env.HEAD_SHA }}
+          path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
+          fetch-depth: 0
+
+      - name: Setup musl environment
+        run: echo "/opt/musl/bin" >> "$GITHUB_PATH"
+
+      - name: Configure
+        working-directory: pr-${{ env.PR_NUMBER }}
+        run: |
+          mkdir -p "$CCACHE_DIR" obj
+          ccache --set-config "max_size=0"
+          cmake -G Ninja \
+            -S llvm-project/llvm \
+            -B obj \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
+            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
+            -DLLVM_ENABLE_ASSERTIONS:BOOL=ON \
+            -DCMAKE_INSTALL_RPATH:STRING="$ORIGIN/../lib" \
+            -DCMAKE_C_COMPILER="$(which clang)" \
+            -DCMAKE_CXX_COMPILER="$(which clang++)" \
+            -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+            -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
+            -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86;Template' \
+            -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+            -DLLVM_CCACHE_BUILD:BOOL=ON \
+            -DLLVM_CCACHE_DIR:STRING="$CCACHE_DIR" \
+            -DELD_ENABLE_SYMBOL_VERSIONING=ON \
+            -DLLVM_ENABLE_WERROR:BOOL=ON \
+            -DELD_ENABLE_RUN_TESTS:BOOL=OFF
+
+      - name: Build ld.eld
+        working-directory: pr-${{ env.PR_NUMBER }}/obj
+        run: ninja ld.eld
+
+      - name: Package PR ELD toolset
+        working-directory: pr-${{ env.PR_NUMBER }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p inst/bin inst/lib
+          cp obj/bin/ld.eld inst/bin/
+          cp -P obj/lib/libLW.so.5 inst/lib/
+          ln -sf libLW.so.5 inst/lib/libLW.so
+          bash llvm-project/llvm/tools/eld/.github/workflows/scripts/BundleSharedLibDeps.sh inst ld.eld
+          XZ_OPT=-T0 tar -Jcf install-pr-toolset.tar.xz inst
+
+      - name: Upload PR ELD toolset
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+        with:
+          name: pr-eld-toolset-${{ env.HEAD_SHA }}
+          path: pr-${{ env.PR_NUMBER }}/install-pr-toolset.tar.xz
+          retention-days: 7
