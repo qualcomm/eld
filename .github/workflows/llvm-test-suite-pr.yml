@@ -1,58 +1,74 @@
-name: Nightly LLVM Test Suite (x86_64)
-# owner: BhoumikPatidar
+name: PR LLVM test suite
+run-name: "LLVM test suite PR #${{ inputs.pr_number }} @${{ inputs.pr_sha }}"
 
 on:
-  schedule:
-    - cron: '0 11 * * *' # 5:00 AM CST
+  workflow_call:
+    inputs:
+      pr_number:
+        required: true
+        type: string
+      pr_sha:
+        required: true
+        type: string
+      build_run_id:
+        required: true
+        type: string
+      artifact_name:
+        required: true
+        type: string
   workflow_dispatch:
-
-concurrency:
-  group: llvm-test-suite-nightly
-  cancel-in-progress: true
+    inputs:
+      pr_number:
+        description: "Pull request number"
+        required: true
+        type: number
+      pr_sha:
+        description: "Exact PR head SHA"
+        required: true
+        type: string
+      build_run_id:
+        description: "Build workflow run containing the toolset artifact"
+        required: true
+        type: string
+      artifact_name:
+        description: "PR toolset artifact name"
+        required: true
+        type: string
 
 permissions:
-  contents: write
+  contents: read
   actions: read
 
 jobs:
-  test-llvm-test-suite-x86_64:
-    if: github.repository == 'qualcomm/eld' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+  test:
+    if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
+    concurrency:
+      group: llvm-test-suite-pr-${{ inputs.pr_number }}-${{ inputs.pr_sha }}
+      cancel-in-progress: true
     permissions:
-      contents: write
+      contents: read
       actions: read
     env:
       ELD_SOURCE_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld
-
     steps:
-      - name: Checkout eld
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout eld workflow sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
         with:
           path: llvm-project/llvm/tools/eld
-          persist-credentials: true
-
-      - name: Configure workflow environment variables
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
-
-      - name: Record pre-build entry
-        if: github.event_name == 'schedule'
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
-        with:
-          enabled: true
-          project: "llvm-project/llvm/tools/eld"
-          stage: "pre-"
-          workflow-name: "llvm-test-suite"
-          record-mode: "record"
-          status: "fail"
-          run-id: ${{ github.run_id }}
-          arch-name: "x86_64"
-          branch-name: "${{ env.BUILD_BRANCH }}"
 
       - name: Install dependencies
         run: pip3 install lit
 
       - name: Fetch nightly ELD
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+
+      - name: Overlay PR ELD toolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchEldToolset
+        with:
+          run-id: ${{ inputs.build_run_id }}
+          artifact-name: ${{ inputs.artifact_name }}
+          tarball: install-pr-toolset.tar.xz
 
       - name: Clone LLVM test suite
         run: git clone --depth 1 https://github.com/llvm/llvm-test-suite.git
@@ -110,29 +126,8 @@ jobs:
 
       - name: Upload test output
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
-          name: llvm-test-suite-results
+          name: llvm-test-suite-results-${{ inputs.pr_sha }}
           path: test-output.txt
           retention-days: 7
-
-      - name: Update build entry
-        if: github.event_name == 'schedule'
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
-        with:
-          enabled: true
-          project: "llvm-project/llvm/tools/eld"
-          stage: "post-"
-          workflow-name: "llvm-test-suite"
-          record-mode: "update"
-          status: "pass"
-          run-id: ${{ github.run_id }}
-          arch-name: "x86_64"
-          branch-name: "${{ env.BUILD_BRANCH }}"
-
-      - name: Delete older LLVM test-suite results
-        if: success()
-        continue-on-error: true
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts
-        with:
-          artifact-names: llvm-test-suite-results
