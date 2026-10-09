@@ -1,0 +1,16 @@
+#--TLSLDRelax_TwoVars.test----------Executable--------#
+# Static link with two DTPOFF32 references after a single TLSLD leaq.
+# After LD→LE relaxation, %rax holds %fs:0 and dtpoff accesses remain intact.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ld_two_vars.s -o %t.o
+RUN: %link %linkopts -static -e get_tls_pair -o %t.eld %t.o
+RUN: %objdump -d %t.eld | %filecheck %s
+RUN: %readelf -r %t.eld | %filecheck %s --check-prefix=NORELOC
+#END_TEST
+
+# Relaxed 12-byte sequence present.
+CHECK: <get_tls_pair>:
+CHECK-NEXT: {{[0-9a-f]+}}: 66 66 66 64 48 8b 04 25 00 00 00 00
+
+# No DTPMOD64 dynamic reloc; link is fully static.
+NORELOC-NOT: R_X86_64_DTPMOD64
