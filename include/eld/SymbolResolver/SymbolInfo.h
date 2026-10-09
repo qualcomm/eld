@@ -23,7 +23,7 @@ namespace eld {
 class SymbolInfo {
 public:
   SymbolInfo() = default;
-  SymbolInfo(const InputFile *InputFile, size_t Size,
+  SymbolInfo(llvm::StringRef Name, const InputFile *InputFile, size_t Size,
              ResolveInfo::Binding Binding, ResolveInfo::Type SymType,
              ResolveInfo::Visibility Visibility, ResolveInfo::Desc SymDesc,
              bool IsBitcode);
@@ -59,6 +59,11 @@ public:
 
   bool isBitcodeSymbol() const { return SymbolInfoBitfield.IsBitcode; }
 
+  bool isDefaultVersion() const { return SymbolInfoBitfield.IsDefaultVersion; }
+  void setDefaultVersion(bool Val) {
+    SymbolInfoBitfield.IsDefaultVersion = Val;
+  }
+
   llvm::StringRef getSymbolBindingAsStr() const;
 
   llvm::StringRef getSymbolTypeAsStr() const;
@@ -69,17 +74,20 @@ public:
 
   size_t getSize() const { return SymbolSize; }
 
+  llvm::StringRef getName() const { return SymbolName; }
+
 private:
   struct SymbolInfoBitField {
     SymbolInfoBitField()
         : SymBinding(0), SymType(0), SymVisibility(0), SymSectIndexKind(0),
-          IsBitcode(0) {}
+          IsBitcode(0), IsDefaultVersion(0) {}
     unsigned int SymBinding : 2;
     // FIXME: SymType needs 4 bits.
     unsigned int SymType : 2;
     unsigned int SymVisibility : 2;
     unsigned int SymSectIndexKind : 3;
     unsigned int IsBitcode : 1;
+    unsigned int IsDefaultVersion : 1;
   };
 
   void setSymbolBinding(ResolveInfo::Binding Binding);
@@ -96,8 +104,9 @@ private:
   /// v: bits used to represent symbol visibility.
   /// s: bits used to represent symbol section index kind.
   SymbolInfoBitField SymbolInfoBitfield;
-  const InputFile *SymbolOrigin;
-  size_t SymbolSize;
+  const InputFile *SymbolOrigin = nullptr;
+  size_t SymbolSize = 0;
+  llvm::StringRef SymbolName;
 };
 } // namespace eld
 

@@ -48,9 +48,12 @@ def symbol_info_string(sym):
 def should_select_symbol(sym, name_re, filter_re):
     """Return true if the symbol should be displayed.
 
-    --symbol matches by Name. --filter matches the rendered symbol info string.
+    --symbol matches by Name or GroupKey. --filter matches the rendered
+    symbol info string.
     """
-    if name_re and not name_re.search(sym["Name"]):
+    if name_re and not name_re.search(sym["Name"]) and not (
+        sym.get("GroupKey") and name_re.search(sym["GroupKey"])
+    ):
         return False
     if filter_re and not filter_re.search(symbol_info_string(sym)):
         return False
@@ -61,20 +64,26 @@ def selected_label(sym):
     return "{}({})".format(sym["InputFile"], sym["Name"])
 
 
+def canonical_group_key(name):
+    return re.sub(r"@@", "@", name)
+
+
 def print_symbols(symbols):
     groups = []
     by_name = {}
     for sym in symbols:
-        group = by_name.get(sym["Name"])
+        key = sym.get("GroupKey", canonical_group_key(sym["Name"]))
+        group = by_name.get(key)
         if group is None:
             group = []
-            by_name[sym["Name"]] = group
-            groups.append((sym["Name"], group))
+            by_name[key] = group
+            groups.append((key, group))
         group.append(sym)
 
-    for name, group in groups:
-        print(name)
+    for group_key, group in groups:
         selected = next((s for s in group if s.get("IsSelected")), None)
+        header = selected["Name"] if selected else group_key
+        print(header)
         if selected:
             print("\tSelected: {}".format(selected_label(selected)))
         for sym in group:

@@ -8,11 +8,12 @@
 #include "llvm/Support/ErrorHandling.h"
 using namespace eld;
 
-SymbolInfo::SymbolInfo(const InputFile *InputFile, size_t Size,
-                       ResolveInfo::Binding Binding, ResolveInfo::Type SymType,
+SymbolInfo::SymbolInfo(llvm::StringRef Name, const InputFile *InputFile,
+                       size_t Size, ResolveInfo::Binding Binding,
+                       ResolveInfo::Type SymType,
                        ResolveInfo::Visibility Visibility,
                        ResolveInfo::Desc SymDesc, bool IsBitcode)
-    : SymbolOrigin(InputFile), SymbolSize(Size) {
+    : SymbolOrigin(InputFile), SymbolSize(Size), SymbolName(Name) {
   setSymbolBinding(Binding);
   setSymbolType(SymType);
   setSymbolVisibility(Visibility);
