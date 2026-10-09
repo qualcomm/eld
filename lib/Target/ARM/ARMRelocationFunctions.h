@@ -26,6 +26,7 @@
 #define DECL_ARM_APPLY_RELOC_FUNCS                                             \
   DECL_ARM_APPLY_RELOC_FUNC(none)                                              \
   DECL_ARM_APPLY_RELOC_FUNC(abs32)                                             \
+  DECL_ARM_APPLY_RELOC_FUNC(abs32_noi)                                         \
   DECL_ARM_APPLY_RELOC_FUNC(rel32)                                             \
   DECL_ARM_APPLY_RELOC_FUNC(gotoff32)                                          \
   DECL_ARM_APPLY_RELOC_FUNC(base_prel)                                         \
@@ -76,6 +77,7 @@
   Func(llvm::ELF::R_ARM_NONE, none, "R_ARM_NONE")                              \
   Func(llvm::ELF::R_ARM_PC24, call, "R_ARM_PC24")                              \
   Func(llvm::ELF::R_ARM_ABS32, abs32, "R_ARM_ABS32")                           \
+  Func(llvm::ELF::R_ARM_ABS32_NOI, abs32_noi, "R_ARM_ABS32_NOI")               \
   Func(llvm::ELF::R_ARM_REL32, rel32, "R_ARM_REL32")                           \
   Func(llvm::ELF::R_ARM_SBREL32, rel32, "R_ARM_SBREL32")                       \
   Func(llvm::ELF::R_ARM_THM_CALL, thm_call, "R_ARM_THM_CALL")                  \
