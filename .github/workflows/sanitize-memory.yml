@@ -27,7 +27,7 @@ jobs:
           sudo apt update
           sudo apt install -y clang-22 lld-22 ninja-build libc++-22-dev libc++abi-22-dev ccache libclang-rt-22-dev libunwind-22-dev
           echo "PATH=/usr/lib/llvm-22/bin:$PATH" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=/usr/lib/llvm-22/lib:$PATH" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=/usr/lib/llvm-22/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
       - name: Build and Test with Clang and show versions
         run: |
@@ -93,6 +93,30 @@ jobs:
           arch-name: "all"
           branch-name: "${{env.BUILD_BRANCH}}"
 
+      - name: Build MSan-instrumented libc++ and libc++abi
+        run: |
+          cmake -G Ninja \
+            -S ./llvm-project/runtimes \
+            -B ./msan-libcxx-build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER:STRING=`which clang` \
+            -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+            -DLLVM_ENABLE_RUNTIMES="libcxxabi;libcxx" \
+            -DLLVM_USE_SANITIZER="MemoryWithOrigins" \
+            -DLIBCXX_ENABLE_SHARED=ON \
+            -DLIBCXXABI_ENABLE_SHARED=ON \
+            -DLIBCXX_INCLUDE_TESTS=OFF \
+            -DLIBCXXABI_INCLUDE_TESTS=OFF \
+            -DLIBUNWIND_INCLUDE_TESTS=OFF \
+            -DLIBCXX_USE_COMPILER_RT=ON \
+            -DLIBCXXABI_USE_COMPILER_RT=ON \
+            -DLIBCXXABI_USE_LLVM_UNWINDER=OFF \
+            -DCMAKE_INSTALL_PREFIX:PATH=${{ github.workspace }}/msan-libcxx
+          ninja -C ./msan-libcxx-build cxxabi cxx
+          ninja -C ./msan-libcxx-build install-cxxabi install-cxx
+          echo "MSAN_LIBCXX=${{ github.workspace }}/msan-libcxx" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=${{ github.workspace }}/msan-libcxx/lib:/usr/lib/llvm-22/lib:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
+
       - name: Run CMake
         run: |
           mkdir -p obj
@@ -101,9 +125,13 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_USE_SANITIZER="MemoryWithOrigins" \
-            -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
+            -DCMAKE_C_FLAGS:STRING="-fsanitize=memory -fsanitize-memory-track-origins=2" \
+            -DCMAKE_CXX_FLAGS:STRING="-fsanitize=memory -fsanitize-memory-track-origins=2 -nostdinc++ -isystem $MSAN_LIBCXX/include/c++/v1" \
+            -DCMAKE_EXE_LINKER_FLAGS:STRING="-fsanitize=memory -fsanitize-memory-track-origins=2 -stdlib=libc++ -L$MSAN_LIBCXX/lib -Wl,-rpath,$MSAN_LIBCXX/lib" \
+            -DCMAKE_SHARED_LINKER_FLAGS:STRING="-fsanitize=memory -fsanitize-memory-track-origins=2 -stdlib=libc++ -L$MSAN_LIBCXX/lib -Wl,-rpath,$MSAN_LIBCXX/lib" \
             -DCMAKE_C_COMPILER:STRING=`which clang` \
             -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+            -DLLVM_ENABLE_PROJECTS:STRING="clang" \
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
             -DLLVM_CCACHE_BUILD:BOOL=ON \
             -DLLVM_CCACHE_DIR:STRING=$PWD/ccache/ \
@@ -116,7 +144,7 @@ jobs:
       - name: Build Project
         run: |
           cd obj
-          ninja ld.eld
+          ninja
 
       - name: Prune ccache before save
         if: always()
@@ -131,13 +159,10 @@ jobs:
           path: ${{ github.workspace }}/obj/ccache
           key: memory-sanitizer-ccache-${{ runner.os }}-${{ github.run_id }}
 
-      - name: Fetch nightly toolset
-        uses: ./llvm-project//llvm/tools/eld/.github/workflows/FetchNightlyToolset
-
       - name: Run tests
         run: |
           cd obj
-          ninja check-eld
+          ninja -k 0 check-eld
 
       - name: Update build entry
         if: github.event_name == 'schedule'
