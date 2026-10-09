@@ -161,6 +161,11 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
   }
   Config.options().setRISCVRelaxTbljal(TbljalMode);
 
+  // --relax-ilut, --no-relax-ilut (default)
+  Config.options().setRISCVRelaxIlut(
+      ArgList.hasFlag(OPT_RISCVLinkOptTable::relax_ilut,
+                      OPT_RISCVLinkOptTable::no_relax_ilut, false));
+
   // --no-relax-got
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::no_relax_got))
     Config.options().setRISCVRelaxGOT(false);

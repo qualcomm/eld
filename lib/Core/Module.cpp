@@ -202,6 +202,11 @@ bool Module::createInternalInputs() {
       I = make<Input>("RISC-V table jump sections", ThisConfig.getDiagEngine());
       break;
 
+    case Module::InternalInputType::ILUT:
+      I = make<Input>("RISC-V instruction lookup table sections",
+                      ThisConfig.getDiagEngine());
+      break;
+
     case Module::InternalInputType::SmallData:
       I = make<Input>("SmallData", ThisConfig.getDiagEngine());
       break;

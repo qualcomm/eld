@@ -1,0 +1,21 @@
+## Verify Xqccmp return instructions are not copied into an Xqccmi ILUT.
+#
+# REQUIRES: riscv32
+#
+# RUN: %llvm-mc -filetype=obj -mattr=+relax,+experimental-xqccmi,+xqccmp %s -o %t.o
+# RUN: %link %linkopts %t.o --no-relax --relax-ilut -o %t
+# RUN: %readelf -S %t | %filecheck --check-prefix=SECTIONS %s
+# RUN: %objdump -d --section=.text -M no-aliases --mattr=+experimental-xqccmi,+xqccmp --no-show-raw-insn %t | %filecheck --check-prefix=DISASM %s
+#
+# SECTIONS-NOT: .riscv.ilut
+# DISASM-COUNT-6: qc.cm.popret{{[ \t]}}
+# DISASM-COUNT-6: qc.cm.popretz
+
+.global _start
+_start:
+  .rept 6
+  qc.cm.popret {ra}, 16
+  .endr
+  .rept 6
+  qc.cm.popretz {ra}, 16
+  .endr

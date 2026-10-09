@@ -1001,6 +1001,10 @@ public:
     return RiscvRelaxTbljal == RISCVRelaxTbljalMode::Xqccmt;
   }
 
+  void setRISCVRelaxIlut(bool Value) { RiscvRelaxIlut = Value; }
+
+  bool getRISCVRelaxIlut() const { return RiscvRelaxIlut; }
+
   void setRISCVRelaxGOT(bool Value) { BRiscvRelaxGOT = Value; }
 
   bool getRISCVRelaxGOT() const { return BRiscvRelaxGOT; }
@@ -1374,6 +1378,8 @@ private:
   bool BRiscvRelaxTLSDESC = true; // enable riscv relaxations for TLSDESC
   RISCVRelaxTbljalMode RiscvRelaxTbljal =
       RISCVRelaxTbljalMode::None; // enable Zcmt/Xqccmt table jump relaxation
+  bool RiscvRelaxIlut =
+      false; // enable Xqccmi instruction lookup table relaxation
   bool BRiscvRelaxGOT = true;     // enable RISC-V GOT load relaxations
   bool AllowIncompatibleSectionsMix = false; // Allow incompatibleSections;
   bool ProgressBar = false;                  // Show progressbar.
