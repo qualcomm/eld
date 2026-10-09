@@ -136,6 +136,20 @@ bool LibReader::readLib(InputBuilder::InputIteratorT &CurNode,
     if (!Input->resolvePath(Config))
       return false;
 
+    // Classify the input
+    if (!Input->getInputFile()) {
+      InputFile *File =
+          InputFile::create(Input, Config.getDiagEngine());
+      if (!File) {
+        Config.raise(Diag::err_unrecognized_input_file)
+          << Input->getResolvedPath()
+          << Config.targets().triple().str();
+        MModule.setFailure(true);
+        return false;
+      }
+      Input->setInputFile(File);
+    }
+
     if (Input->getInputFile() &&
         Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
       auto *LSFile =
