@@ -1,0 +1,37 @@
+#---ImplicitInputInStartLib.test------------------- Executable --------------------#
+#BEGIN_COMMENT
+# Objects introduced through INPUT() by an implicit linker script
+# inside --start-lib/--end-lib must behave as lazy library members.
+# An unreferenced object remains unselected; a referenced object
+# is selected.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/main_ref.c -o %t.main_ref.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/extra.c -o %t.extra.o
+
+# Generate an implicit script naming the test-specific object.
+RUN: echo "INPUT(%t.extra.o)" > %t.input.t
+
+# extra_marker is unreferenced: extra.o must remain unselected.
+RUN: %link %linkopts %t.main.o \
+RUN:   --start-lib %t.foo.o %t.input.t --end-lib \
+RUN:   -o %t.unreferenced.out
+RUN: %nm %t.unreferenced.out | %filecheck %s --check-prefix=UNREFERENCED
+RUN: %nm %t.unreferenced.out | %filecheck %s --check-prefix=BASE
+
+# extra_marker is referenced: extra.o must be selected.
+RUN: %link %linkopts %t.main_ref.o \
+RUN:   --start-lib %t.foo.o %t.input.t --end-lib \
+RUN:   -o %t.referenced.out
+RUN: %nm %t.referenced.out | %filecheck %s --check-prefix=REFERENCED
+RUN: %nm %t.referenced.out | %filecheck %s --check-prefix=BASE
+
+UNREFERENCED-NOT: extra_marker
+REFERENCED: {{[Tt]}} extra_marker{{$}}
+BASE-DAG: {{[Tt]}} foo{{$}}
+BASE-DAG: {{[Tt]}} main{{$}}
+
+#END_TEST

@@ -16,6 +16,7 @@
 #include "eld/Input/Input.h"
 #include "eld/Input/InputFile.h"
 #include "eld/Input/InputTree.h"
+#include "eld/Input/LinkerScriptFile.h"
 #include "eld/Object/ObjectLinker.h"
 #include "eld/Support/MemoryArea.h"
 #include "eld/Support/OutputTarWriter.h"
@@ -30,11 +31,62 @@ using namespace eld;
 LibReader::LibReader(Module &M, ObjectLinker *ObjLinker)
     : MModule(M), MObjLinker(ObjLinker) {}
 
+struct LibReader::ArchiveMemberList {
+  std::vector<llvm::NewArchiveMember> Members;
+  llvm::SmallVector<std::string, 0> MemberNames;
+};
+
 LibReader::~LibReader() {}
 
 static std::string getStartLibArchiveName(bool IsThin, uint64_t Id) {
   llvm::StringRef Prefix = IsThin ? "<start-lib-thin:" : "<start-lib:";
   return (llvm::Twine(Prefix) + llvm::Twine(Id) + ">").str();
+}
+
+bool LibReader::addArchiveMember(Input *MemberInput, bool IsThin,
+                                 LinkerConfig &Config,
+                                 ArchiveMemberList &Archive) {
+  // The synthetic archive below is what the linker processes, but the
+  // response file still names the original inputs between --start-lib and
+  // --end-lib. Capture those inputs explicitly for --reproduce; unlike a
+  // normal archive, the synthetic archive has no on-disk parent archive
+  // from which the reproducer can recover them.
+  assert(MemberInput && "expected a valid archive member input");
+
+  if (MModule.getOutputTarWriter()) {
+    InputFile *MemberFile = MemberInput->getInputFile();
+
+    if (!MemberFile) {
+      MemberFile =
+          InputFile::create(MemberInput, Config.getDiagEngine());
+      if (!MemberFile)
+        return false;
+
+      MemberInput->setInputFile(MemberFile);
+    }
+
+    MappingFile::Kind Kind =
+        MemberFile->isBitcode() ? MappingFile::Kind::Bitcode
+                                : MappingFile::Kind::ObjectFile;
+
+    MemberFile->setMappedPath(MemberInput->getName());
+    MemberFile->setMappingFileKind(Kind);
+    MModule.getOutputTarWriter()->addInputFile(
+        MemberFile, /*isLTOObject=*/false);
+  }
+
+  if (IsThin)
+    Archive.MemberNames.push_back(
+        MemberInput->getResolvedPath().getFullPath());
+  else
+    Archive.MemberNames.push_back(
+        MemberInput->getResolvedPath().filename().native());
+
+  llvm::NewArchiveMember Member(MemberInput->getMemoryBufferRef());
+  Member.MemberName = Archive.MemberNames.back();
+  Archive.Members.push_back(std::move(Member));
+
+  return true;
 }
 
 bool LibReader::readLib(InputBuilder::InputIteratorT &CurNode,
@@ -50,8 +102,7 @@ bool LibReader::readLib(InputBuilder::InputIteratorT &CurNode,
   if (layoutInfo)
     layoutInfo->recordInputActions(LayoutInfo::StartLib, nullptr);
 
-  std::vector<llvm::NewArchiveMember> Members;
-  llvm::SmallVector<std::string, 0> MemberNames;
+  ArchiveMemberList Archive;
 
   // Build archive members from the in-between inputs.
   while ((*CurNode)->kind() != Node::LibEnd) {
@@ -85,35 +136,46 @@ bool LibReader::readLib(InputBuilder::InputIteratorT &CurNode,
     if (!Input->resolvePath(Config))
       return false;
 
-    // The synthetic archive below is what the linker processes, but the
-    // response file still names the original inputs between --start-lib and
-    // --end-lib.  Capture those inputs explicitly for --reproduce; unlike a
-    // normal archive, the synthetic archive has no on-disk parent archive
-    // from which the reproducer can recover them.
-    if (MModule.getOutputTarWriter()) {
-      InputFile *InputFile = Input->getInputFile();
-      if (!InputFile) {
-        InputFile = eld::InputFile::create(Input, Config.getDiagEngine());
-        if (!InputFile)
-          return false;
-        Input->setInputFile(InputFile);
+    // Classify the input
+    if (!Input->getInputFile()) {
+      InputFile *File =
+          InputFile::create(Input, Config.getDiagEngine());
+      if (!File) {
+        Config.raise(Diag::err_unrecognized_input_file)
+          << Input->getResolvedPath()
+          << Config.targets().triple().str();
+        MModule.setFailure(true);
+        return false;
       }
-      MappingFile::Kind Kind = InputFile->isBitcode()
-                                   ? MappingFile::Kind::Bitcode
-                                   : MappingFile::Kind::ObjectFile;
-      InputFile->setMappedPath(Input->getName());
-      InputFile->setMappingFileKind(Kind);
-      MModule.getOutputTarWriter()->addInputFile(InputFile,
-                                                 /*isLTOObject=*/false);
+      Input->setInputFile(File);
     }
 
-    if (IsThin)
-      MemberNames.push_back(Input->getResolvedPath().getFullPath());
-    else
-      MemberNames.push_back(Input->getResolvedPath().filename().native());
-    llvm::NewArchiveMember NM(Input->getMemoryBufferRef());
-    NM.MemberName = MemberNames.back();
-    Members.push_back(std::move(NM));
+    if (Input->getInputFile() &&
+        Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
+      auto *LSFile =
+        llvm::cast<eld::LinkerScriptFile>(Input->getInputFile());
+
+      if (!MObjLinker->readAndProcessInput(Input, IsPostLtoPhase))
+        return false;
+
+      for (auto *N : LSFile->getNodes()) {
+        auto *FN = llvm::dyn_cast<FileNode>(N);
+        if (!FN)
+          continue;
+
+        auto *ScriptInput = FN->getInput();
+        if (!ScriptInput->resolvePath(Config))
+          return false;
+
+        if (!addArchiveMember(ScriptInput, IsThin, Config, Archive))
+          return false;
+      }
+      ++CurNode;
+      continue;
+    }
+
+    if (!addArchiveMember(Input, IsThin, Config, Archive))
+      return false;
 
     ++CurNode;
   }
@@ -127,7 +189,7 @@ bool LibReader::readLib(InputBuilder::InputIteratorT &CurNode,
     eld::RegisterTimer T("Build --start-lib archive", "Read all Input files",
                          Config.options().printTimingStats());
     llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> ExpArchiveBuf =
-        llvm::writeArchiveToBuffer(Members,
+        llvm::writeArchiveToBuffer(Archive.Members,
                                    llvm::SymtabWritingMode::NormalSymtab,
                                    llvm::object::Archive::K_GNU,
                                    /*Deterministic=*/true, /*Thin=*/IsThin);
