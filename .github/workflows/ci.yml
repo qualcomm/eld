@@ -191,7 +191,12 @@ jobs:
       - name: Build
         if: steps.file-check.outputs.skip_build == 'false'
         working-directory: pr-${{ env.PR_NUMBER }}/obj
-        run: ninja
+        run: |
+          if [[ "${{ inputs.skip_tests }}" == "true" ]]; then
+            ninja ld.eld
+          else
+            ninja
+          fi
 
       - name: Cache usage after build
         if: steps.file-check.outputs.skip_build == 'false'
