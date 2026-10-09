@@ -127,6 +127,10 @@ void GeneralOptions::setEntry(const std::string &PEntry) { Entry = PEntry; }
 
 bool GeneralOptions::hasEntry() const { return !Entry.empty(); }
 
+bool GeneralOptions::isEntryFromCmdLine() const { return EntryFromCmdLine; }
+
+void GeneralOptions::setEntryFromCmdLine() { EntryFromCmdLine = true; }
+
 void GeneralOptions::setTrace(bool EnableTrace) {
   DiagEngine->getPrinter()->setTrace(DiagEngine->getPrinter()->TraceFiles);
 }
