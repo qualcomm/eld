@@ -1,0 +1,14 @@
+#---R_ARM_LDC_PC_G1_Overflow.test------------ Executable ------------------#
+#BEGIN_COMMENT
+# Verify R_ARM_LDC_PC_G1 reports overflow when the selected G1 residual
+# cannot fit in the LDC/STC scaled 8-bit immediate.
+#
+# X = 0x40400.
+# G1 residual = 0x400 = 1024, which is outside [0, 1023].
+#END_COMMENT
+#START_TEST
+RUN: %clangas -c %p/Inputs/overflow.s -o %t.o
+RUN: %not %link %linkopts -march arm -static %t.o -o %t.out 2>&1 | %filecheck %s
+
+CHECK: R_ARM_LDC_PC_G1 out of range: 1024 is not in [0, 1023]
+#END_TEST

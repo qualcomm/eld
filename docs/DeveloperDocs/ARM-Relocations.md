@@ -85,15 +85,17 @@ movt r0, #:upper16:symbol   @ R_ARM_THM_MOVT_ABS
 | `R_ARM_LDRS_PC_G1` | `S + A - P` | U bit + imm4H:imm4L | [0, 255] |
 | `R_ARM_LDRS_PC_G2` | `S + A - P` | U bit + imm4H:imm4L | [0, 255] |
 | `R_ARM_LDC_PC_G0` | `S + A - P` | U bit + imm8, scaled by 4 | [0, 1023], 4-byte aligned |
+| `R_ARM_LDC_PC_G1` | `S + A - P` | U bit + imm8, scaled by 4 | [0, 1023], 4-byte aligned |
 
 `R_ARM_LDRS_PC_G0`, `R_ARM_LDRS_PC_G1`, and `R_ARM_LDRS_PC_G2` are memory-form group relocations.
 They compute `X = S + A - P` and encode the residual selected by the
 corresponding LDRS group mask. `U` encodes the sign and `imm4H:imm4L`
 encodes the resulting 8-bit offset.
-`R_ARM_LDC_PC_G0` is an LDC/STC PC-relative group relocation. It computes
-`X = S + A - P` and encodes the G0 residual. `U` encodes the sign and
-`imm8` encodes the residual divided by four, requiring the residual
-to be 4-byte aligned and no greater than 1023.
+`R_ARM_LDC_PC_G0` and `R_ARM_LDC_PC_G1` are LDC/STC PC-relative group
+relocations. They compute `X = S + A - P` and encode the residual selected
+by the corresponding LDC group mask. `U` encodes the sign and `imm8`
+encodes the residual divided by four, requiring the residual to be
+4-byte aligned and no greater than 1023.
 
 | `R_ARM_THM_PC8` | `S + A - Pa` | imm8, scaled by 4 | [0, 1023], 4-byte aligned |
 | `R_ARM_THM_PC12` | `((S + A) \| T) - Pa` | U bit + imm12 | [-4095, 4095] |
@@ -187,7 +189,6 @@ The table below lists every relocation that ELD's ARM backend maps to the `unsup
 | 53 | `R_ARM_THM_ALU_PREL_11_0` | Thumb-2 ALU PC-relative 11:0 | |
 | 55 | `R_ARM_ABS32_NOI` | 32-bit absolute, no interworking bit | |
 | 56 | `R_ARM_REL32_NOI` | 32-bit PC-relative, no interworking bit | |
-| 68 | `R_ARM_LDC_PC_G1` | Group reloc — LDC/STC PC-relative G1 | |
 | 69 | `R_ARM_LDC_PC_G2` | Group reloc — LDC/STC PC-relative G2 | |
 | 70 | `R_ARM_ALU_SB_G0_NC` | Group reloc — ALU section-base G0, no overflow | Implement ALU_SB_G group |
 | 71 | `R_ARM_ALU_SB_G0` | Group reloc — ALU section-base G0 | Implement ALU_SB_G group |
