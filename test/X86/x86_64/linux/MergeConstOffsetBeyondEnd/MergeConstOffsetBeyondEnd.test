@@ -1,0 +1,36 @@
+#--MergeConstOffsetBeyondEnd.test--------- Shared Library --------------------#
+#BEGIN_COMMENT
+# A symbol defined in a SHF_MERGE (non-SHF_STRINGS) section may have a value at
+# or beyond the end of that section. The linker must not crash: matching GNU
+# ld, clamp the offset to the end of the OUTPUT section and warn only when the
+# offset is more than 1-byte past the input merge section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/beyond.s -o %t.beyond.o
+RUN: %clang %clangopts -c %p/Inputs/second.s -o %t.second.o
+
+# Single input: out-of-range 'way_past' clamps to section end and warns;
+# in-range 'midsym' resolves normally with no warning.
+RUN: %link %linkopts -shared -o %t.one.so %t.beyond.o 2>&1 \
+RUN:   | %filecheck %s --check-prefix=WARN
+RUN: %readelf -S -s -W %t.one.so | %filecheck %s --check-prefix=ONE
+
+# Multiple inputs sharing the output section: 'way_past' (from the first
+# fragment) must clamp to the OUTPUT section end, past 'other' (second frag).
+RUN: %link %linkopts -shared -o %t.multi.so %t.beyond.o %t.second.o
+RUN: %readelf -S -s -W %t.multi.so | %filecheck %s --check-prefix=MULTI
+#END_TEST
+
+WARN: Warning: Offset 100 is past the {{.*}}beyond.o:(.rodata.cst4) section size (4); clamped the value to the output section '.rodata' end
+
+# Section addr + size == section end. way_past clamps to the end; midsym is at +2.
+ONE: .rodata {{.*}} [[#%x,SADDR:]] {{[0-9a-f]+}} [[#%x,SSIZE:]] {{.*}} AM
+ONE-DAG: {{0*}}[[#%x,SADDR+SSIZE]] {{.*}} way_past
+ONE-DAG: {{0*}}[[#%x,SADDR+2]] {{.*}} midsym
+
+# The output .rodata contains two 4-byte constants. way_past clamps to its end
+# (addr+8); other (second fragment) sits at addr+4; midsym points at addr+2.
+MULTI: .rodata {{.*}} [[#%x,MADDR:]] {{[0-9a-f]+}} [[#%x,MSIZE:]] {{.*}} AM
+MULTI-DAG: {{0*}}[[#%x,MADDR+MSIZE]] {{.*}} way_past
+MULTI-DAG: {{0*}}[[#%x,MADDR+2]] {{.*}} midsym
+MULTI-DAG: {{0*}}[[#%x,MADDR+4]] {{.*}} other

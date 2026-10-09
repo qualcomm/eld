@@ -1,0 +1,21 @@
+#---Trace.test------------------------- Executable----------------------#
+#BEGIN_COMMENT
+# Check that --trace=merge-constants reports both canonical constant merging
+# and relocation retargeting when a section relocation is updated.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/TraceMerge1.c -o %t.merge1.o
+RUN: %clang %clangopts -c %p/Inputs/TraceMerge2.c -o %t.merge2.o
+RUN: %link %linkopts --entry=_start --trace=merge-constants %t.merge1.o %t.merge2.o -o %t.merge.out 2>&1 | %filecheck %s --check-prefix=MERGE
+RUN: %clang %clangopts -c %p/Inputs/TraceReloc1.c -o %t.reloc1.o
+RUN: %clang %clangopts -c %p/Inputs/TraceReloc2.c -o %t.reloc2.o
+RUN: %link %linkopts --entry=_start --trace=merge-constants %t.reloc1.o %t.reloc2.o -o %t.reloc.out 2>&1 | %filecheck %s --check-prefix=RELOC
+#END_TEST
+
+#MERGE: Trace: Merging constant from file {{.*}}merge2.o in section .rodata.cst4 at offset 0 with alignment 4
+#MERGE: with constant from file {{.*}}merge1.o in section .rodata.cst4 at offset 0 with alignment 4
+#MERGE: to output section .rodata
+
+#RELOC: Trace: Modified relocation .rodata.cst4 + 0 from relocation section .rel{{a?}}.data in file {{.*}}reloc1.o:
+#RELOC: Old constant: offset 0 in section .rodata.cst4 from file {{.*}}reloc1.o
+#RELOC: New constant: offset 0 in section .rodata.cst4 from file {{.*}}reloc2.o

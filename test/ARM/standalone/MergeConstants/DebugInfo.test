@@ -1,0 +1,24 @@
+#---DebugInfo.test--------------------- Executable----------------------#
+#BEGIN_COMMENT
+# Check that DWARF variable locations continue to point at the deduplicated
+# constant after mergeable constant sections are merged.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fmerge-all-constants -g -c %p/Inputs/debugvar1.c -o %t1.o
+RUN: %clang %clangopts -fmerge-all-constants -g -c %p/Inputs/debugvar2.c -o %t2.o
+RUN: %link %linkopts --entry=fa %t1.o %t2.o -o %t.out
+RUN: %dwarfdump -debug-info %t.out | %filecheck %s --check-prefix=INFO
+RUN: %dwarfdump --debug-addr %t.out | %filecheck %s --check-prefix=ADDR
+#END_TEST
+
+#INFO: DW_AT_name ("ca")
+#INFO: DW_AT_location (DW_OP_addrx 0x{{[0-9]+}})
+#INFO: DW_AT_name ("cb")
+#INFO: DW_AT_location (DW_OP_addrx 0x{{[0-9]+}})
+#ADDR: Addrs: [
+#ADDR: 0x{{[0-9a-f]+}}
+#ADDR: 0x{{[0-9a-f]+}}
+#ADDR: ]
+#ADDR: Addrs: [
+#ADDR: 0x{{[0-9a-f]+}}
+#ADDR: 0x{{[0-9a-f]+}}

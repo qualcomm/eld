@@ -125,7 +125,7 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
       else
         FragRef = FragmentRef::null();
     } else {
-      if (CurSection->isMergeKind()) {
+      if (CurSection->isMergeStringKind()) {
         auto *Strings =
             llvm::cast<MergeStringFragment>(CurSection->getFrontFragment());
         FragRef = make<FragmentRef>(*Strings, Value);

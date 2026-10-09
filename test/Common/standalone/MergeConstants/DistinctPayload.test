@@ -1,0 +1,17 @@
+#---DistinctPayload.test--------------- Executable----------------------#
+#BEGIN_COMMENT
+# Check that distinct constant payloads remain distinct even when section flags
+# and entry sizes match.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/5.c -o %t5.o
+RUN: %clang %clangopts -c %p/Inputs/6.c -o %t6.o
+RUN: %link %linkopts --entry=d1 %t5.o %t6.o -o %t.out
+RUN: %readelf -S -W %t.out | %filecheck %s --check-prefix=SECTIONS
+RUN: %readelf -s -W %t.out | %filecheck %s --check-prefix=SYMS
+#END_TEST
+
+#SECTIONS: .rodata {{.*}} 000008 {{.*}} AM
+#SYMS-DAG: {{[0-9]+}}: [[D1VAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} d1
+#SYMS-DAG: {{[0-9]+}}: [[D2VAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} d2
+#SYMS-NOT: [[D1VAL]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} d2
