@@ -36,11 +36,13 @@ constexpr size_t TarBlockSize = 512;
 //   We consume only what we need for linking workflows: `name`, `size`,
 //   `typeflag`, and `prefix`; parse numeric values as octal; advance each entry
 //   by payload size rounded up to 512-byte alignment; and keep only regular
-//   files in the in-memory map.
+//   files in the in-memory map. `chksum` is only used to recognize tar data.
 constexpr size_t NameOffset = 0;
 constexpr size_t NameSize = 100;
 constexpr size_t SizeOffset = 124;
 constexpr size_t SizeSize = 12;
+constexpr size_t ChecksumOffset = 148;
+constexpr size_t ChecksumSize = 8;
 constexpr size_t TypeFlagOffset = 156;
 constexpr size_t PrefixOffset = 345;
 constexpr size_t PrefixSize = 155;
@@ -130,6 +132,25 @@ static eld::Expected<void> forEachEntry(llvm::StringRef TarData,
 }
 
 } // namespace
+
+bool InputTarReader::isTarArchive(llvm::StringRef Data) {
+  if (Data.size() < TarBlockSize)
+    return false;
+
+  // Every header format, including V7 which has no magic, stores in `chksum`
+  // the octal sum of the header bytes, with `chksum` itself counted as spaces.
+  llvm::StringRef Field =
+      Data.substr(ChecksumOffset, ChecksumSize).trim(llvm::StringRef(" \0", 2));
+  uint64_t Checksum = 0;
+  if (Field.getAsInteger(/*Radix=*/8, Checksum))
+    return false;
+
+  uint64_t Sum = ChecksumSize * ' ';
+  for (size_t I = 0; I < TarBlockSize; ++I)
+    if (I < ChecksumOffset || I >= ChecksumOffset + ChecksumSize)
+      Sum += static_cast<unsigned char>(Data[I]);
+  return Sum == Checksum;
+}
 
 eld::Expected<InputTarReader::FileMap>
 InputTarReader::untar(llvm::StringRef TarData) {
