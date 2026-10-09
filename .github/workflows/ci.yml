@@ -1,5 +1,5 @@
 name: CI
-run-name: "CI PR #${{ inputs.pr_number || github.event.pull_request.number }} (${{ inputs.request_id || 'automatic' }})"
+run-name: "CI PR #${{ inputs.pr_number || github.event.pull_request.number }} @${{ inputs.pr_sha || 'unknown' }} (${{ inputs.request_id || 'automatic' }})"
 
 on:
   pull_request:
@@ -40,6 +40,10 @@ on:
         type: number
       request_id:
         description: "Optional request ID used to correlate an external workflow dispatch"
+        required: false
+        type: string
+      pr_sha:
+        description: "PR head SHA used to identify reusable toolset artifacts"
         required: false
         type: string
       skip_tests:
