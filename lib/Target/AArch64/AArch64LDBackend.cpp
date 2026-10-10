@@ -803,7 +803,7 @@ bool AArch64LDBackend::readSection(InputFile &pInput, ELFSection *S) {
     uint32_t featureSet = 0;
     if (!readGNUProperty<llvm::object::ELF64LE>(pInput, S, featureSet))
       return false;
-    NoteGNUPropertyMap[&pInput] = featureSet;
+    NoteGNUPropertyMap[&pInput] |= featureSet;
     if (!m_pGPF->updateInfo(featureSet))
       return false;
     return true;
