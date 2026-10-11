@@ -1,0 +1,41 @@
+#--LocalREXGOTPCRELX.test----------Executable/PIE--------#
+# R_X86_64_REX_GOTPCRELX against a local symbol must reserve a GOT slot.
+# The linker used to crash with SIGSEGV here.
+# In an executable the GOT slot holds the address of sym_local and the
+# instruction reads that slot. With -pie the slot gets an R_X86_64_RELATIVE
+# whose addend is the address of sym_local.
+# eld does not relax R_X86_64_REX_GOTPCRELX, so --relax keeps the GOT load.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/local_rex.s -o %t.o
+RUN: %readelf -rW %t.o | %filecheck %s --check-prefix=INPUT
+
+RUN: %link %linkopts --relax -e test_local_rex -T %p/Inputs/near.t -o %t.relax %t.o
+RUN: %readelf -SW -x .got %t.relax > %t.relax.txt
+RUN: %objdump -d %t.relax >> %t.relax.txt
+RUN: %filecheck %s --check-prefix=EXE < %t.relax.txt
+
+RUN: %link %linkopts --no-relax -e test_local_rex -T %p/Inputs/near.t -o %t.norelax %t.o
+RUN: %readelf -SW -x .got %t.norelax > %t.norelax.txt
+RUN: %objdump -d %t.norelax >> %t.norelax.txt
+RUN: %filecheck %s --check-prefix=EXE < %t.norelax.txt
+
+RUN: %link %linkopts --no-relax -pie -e test_local_rex -o %t.pie %t.o
+RUN: %readelf -SrsW %t.pie > %t.pie.txt
+RUN: %objdump -d %t.pie >> %t.pie.txt
+RUN: %filecheck %s --check-prefix=PIE < %t.pie.txt
+#END_TEST
+
+INPUT: R_X86_64_REX_GOTPCRELX {{.*}} sym_local - 4
+
+# near.t places .data, and so sym_local, at 0x1000.
+EXE: .got PROGBITS [[#%x,GOT:]]
+EXE: Hex dump of section '.got':
+EXE-NEXT: 0x[[#%.8x,GOT]] 00100000 00000000
+EXE: <test_local_rex>:
+EXE-NEXT: {{[0-9a-f]+}}: 48 8b 05 {{.*}}movq {{.*}}# 0x[[#%x,GOT]]
+
+PIE: .got PROGBITS [[#%x,GOT:]]
+PIE: [[#%.16x,GOT]] {{[0-9a-f]+}} R_X86_64_RELATIVE [[#%x,SYM:]]
+PIE: [[#%.16x,SYM]] 8 OBJECT LOCAL DEFAULT {{[0-9]+}} sym_local
+PIE: <test_local_rex>:
+PIE-NEXT: {{[0-9a-f]+}}: 48 8b 05 {{.*}}movq {{.*}}# 0x[[#%x,GOT]]
