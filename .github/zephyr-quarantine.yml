@@ -28,6 +28,7 @@
   - qemu_riscv32/.*
   - qemu_riscv32_xip/.*
   - qemu_riscv64/.*
+  - qemu_cortex_m3/.*
   - qemu_cortex_a53/.*
   comment: >-
     zephyr/subsys/fs/ext2/ext2_impl.c declares `strchrnul` static, colliding
@@ -95,6 +96,14 @@
       These overflow and are meant to be skipped | FLASH/RAM overflow" but the
       test expects a GNU ld diagnostic. ELD's is slightly different so the tests
       fail instead.
+
+- scenarios:
+  - libraries\.heap_stats_log(?:\.(?:no_thread_name|no_caller|random_canary|no_runtime_stats))?
+  platforms:
+  - qemu_cortex_m3/.*
+  comment: >-
+    Same overflow diagnostic mismatch described in the
+    bluetooth.shell.shell_br entry.
 
 - scenarios:
   - buildsystem.sbom.spdx
