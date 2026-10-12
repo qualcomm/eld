@@ -153,6 +153,21 @@ the instruction loads the actual symbol address from the GOT.
 > instruction sequence to avoid the GOT load entirely (see
 > [Relaxations](#relaxations)).
 
+### Local-Symbol GOT Reservations
+
+For local symbols referenced by `R_X86_64_GOTPCREL` or
+`R_X86_64_REX_GOTPCRELX`, ELD reserves a GOT entry during
+`scanLocalReloc()` before applying the relocation.
+
+In a non-PIE executable, the GOT entry contains the resolved
+address of the local symbol. In PIE output, the GOT entry is
+initialized at load time using an `R_X86_64_RELATIVE` relocation
+whose addend is the local symbol address.
+
+Without this reservation, relocation processing can access a
+missing GOT entry and crash. This fix does not change the
+existing GOT-load relaxation behavior.
+
 ### Dynamic / Runtime Relocations
 
 Written by the dynamic linker at load time; not applied statically by ELD.
