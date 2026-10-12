@@ -11,3 +11,5 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
 
   set(BUILD_SHARED_LIBS ${bsl})
 endif()
+
+eld_register_plugin_tests(${CMAKE_CURRENT_SOURCE_DIR}/test HelloWorldPlugin)
