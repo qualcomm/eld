@@ -1,0 +1,49 @@
+#---NoCopyRelocWritable.test---------------- Executable ----------------------#
+#BEGIN_COMMENT
+# Verify that references to shared-library data from writable executable
+# sections are resolved using ordinary dynamic relocations.
+#
+# Such writable relocation sites do not require COPY relocations. In
+# particular, -z nocopyreloc must not diagnose copyrelocs_is_error.
+#
+# Test both a direct reference to foo and a reference containing an addend.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -fPIC -c %p/Inputs/lib.c -o %t.lib.o
+RUN: %link %linkg0opts -shared %t.lib.o -o %t.lib.so
+
+RUN: %clang %clangg0opts -fno-pic -fno-pie \
+RUN:   -c %p/Inputs/writable.c -o %t.main.o
+
+# The regression case: writable references must remain valid when COPY
+# relocations are disabled.
+RUN: %link %linkg0opts -e ptr -z nocopyreloc \
+RUN:   %t.main.o %t.lib.so -o %t.nocopy.out
+RUN: %readelf -rW %t.nocopy.out \
+RUN:   | %filecheck %s --check-prefix=RELOC \
+RUN:   --implicit-check-not="{{R_[A-Za-z0-9_]*COPY}}"
+RUN: %readelf --dyn-syms -W %t.nocopy.out \
+RUN:   | %filecheck %s --check-prefix=DYNSYM
+RUN: %readelf -dW %t.nocopy.out \
+RUN:   | %filecheck %s --check-prefix=DYNAMIC \
+RUN:   --implicit-check-not=TEXTREL
+
+# The default link must make the same relocation-selection decision.
+RUN: %link %linkg0opts -e ptr \
+RUN:   %t.main.o %t.lib.so -o %t.default.out
+RUN: %readelf -rW %t.default.out \
+RUN:   | %filecheck %s --check-prefix=RELOC \
+RUN:   --implicit-check-not="{{R_[A-Za-z0-9_]*COPY}}"
+RUN: %readelf --dyn-syms -W %t.default.out \
+RUN:   | %filecheck %s --check-prefix=DYNSYM
+RUN: %readelf -dW %t.default.out \
+RUN:   | %filecheck %s --check-prefix=DYNAMIC \
+RUN:   --implicit-check-not=TEXTREL
+#END_TEST
+
+RELOC: Relocation section '{{\.rela?\.dyn}}'
+RELOC-COUNT-2: {{R_[A-Za-z0-9_]+}} {{[0-9a-fA-F]+}} foo{{([[:space:]]|$)}}
+
+DYNSYM: UND foo{{$}}
+
+DYNAMIC: (NEEDED)

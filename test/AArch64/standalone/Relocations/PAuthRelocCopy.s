@@ -9,14 +9,14 @@
 # RUN: %link %linkopts -shared a.o -soname=a.so -o a.so
 # RUN: %llvm-mc -filetype=obj -triple=aarch64 main.s -o main.o
 
-# Test non-PIE executable - this is where COPY relocations would be needed
-# RUN: %not %link %linkopts main.o -no-pie a.so -o main 2>&1
+# Read-only authenticated references select the unsupported COPY path.
+# RUN: %not %link %linkopts main.o -no-pie a.so -o main 2>&1 | %filecheck %s
 
-# CHECK: {{.*}}relocation{{.*}}R_AARCH64_AUTH_ABS64{{.*}}cannot be used{{.*}}foo
-# CHECK: {{.*}}relocation{{.*}}R_AARCH64_AUTH_ABS64{{.*}}cannot be used{{.*}}bar
+# CHECK: does not support relocation type `R_AARCH64_AUTH_ABS64' for symbol `foo'
+# CHECK: does not support relocation type `R_AARCH64_AUTH_ABS64' for symbol `bar'
 
 # PIE executable should work (uses dynamic relocations, not COPY)
-# RUN: %link %linkopts main.o -pie a.so -o main.pie
+# RUN: %link %linkopts main.o -pie -z notext a.so -o main.pie
 # RUN: %readelf --elf-output-style LLVM -r main.pie | %filecheck %s --check-prefix=PIE
 
 # PIE-DAG: {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 bar 0x0
@@ -41,8 +41,8 @@ foo:
 .global _start
 _start:
   ret
-
-.section .data
+  
+.section .rodata,"a",@progbits
 .p2align 3
 .quad foo@AUTH(da,42)
 .quad bar@AUTH(ia,43)
