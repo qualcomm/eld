@@ -336,9 +336,8 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     bool isSymbolPreemptible = m_Target.isSymbolPreemptible(*rsym);
     if (getTarget().symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
                                       true)) {
-      // COPY relocations for data symbols referenced from non-PIC
-      // executables
-      if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
+    if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)){
+
         if (config().options().hasNoCopyReloc()) {
           // Honor -z nocopyreloc
           config().raise(Diag::copyrelocs_is_error)

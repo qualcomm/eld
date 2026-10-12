@@ -1,0 +1,33 @@
+#---NoCopyRelocWritable.test---------------- Executable ----------------------#
+#BEGIN_COMMENT
+# Validates that writable pointer initializers referencing shared-library
+# data produce dynamic relocations without unnecessary COPY relocations.
+# Tests both default linking and -z nocopyreloc.
+# Relocation names are matched independently of the target architecture.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -fPIC -c %p/Inputs/lib.c -o %t.lib.o
+RUN: %link %linkg0opts -shared %t.lib.o -o %t.lib.so
+RUN: %clang %clangg0opts -fno-pic -fno-pie -c %p/Inputs/writable.c -o %t.main.o
+
+RUN: %link %linkg0opts -e ptr -z nocopyreloc %t.main.o %t.lib.so -o %t.nocopy.out
+RUN: %readelf -rW %t.nocopy.out | %filecheck %s --check-prefix=RELOC \
+RUN:   --implicit-check-not="{{R_[A-Za-z0-9_]*COPY}}"
+RUN: %readelf --dyn-syms -W %t.nocopy.out | %filecheck %s --check-prefix=DYNSYM
+RUN: %readelf -dW %t.nocopy.out | %filecheck %s --check-prefix=DYNAMIC \
+RUN:   --implicit-check-not=TEXTREL
+
+RUN: %link %linkg0opts -e ptr %t.main.o %t.lib.so -o %t.default.out
+RUN: %readelf -rW %t.default.out | %filecheck %s --check-prefix=RELOC \
+RUN:   --implicit-check-not="{{R_[A-Za-z0-9_]*COPY}}"
+RUN: %readelf --dyn-syms -W %t.default.out | %filecheck %s --check-prefix=DYNSYM
+RUN: %readelf -dW %t.default.out | %filecheck %s --check-prefix=DYNAMIC \
+RUN:   --implicit-check-not=TEXTREL
+#END_TEST
+
+RELOC: Relocation section '{{\.rela?\.dyn}}'
+RELOC-COUNT-2: {{R_[A-Za-z0-9_]+}} {{[0-9a-fA-F]+}} foo{{([[:space:]]|$)}}
+
+DYNSYM: UND foo{{$}}
+
+DYNAMIC: (NEEDED)

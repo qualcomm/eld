@@ -4042,14 +4042,22 @@ bool GNULDBackend::symbolNeedsCopyReloc(const Relocation &pReloc,
   if (config().isCodeIndep() || !pSym.isDyn() ||
       pSym.type() == ResolveInfo::Function || pSym.size() == 0)
     return false;
+  
+  const ELFSection *InputSection =
+       pReloc.targetRef()->frag()->getOwningSection();
 
-  // TODO: Is this check necessary?
-  // if relocation target place is readonly, a copy relocation is needed
-  uint32_t flag = pReloc.targetRef()->getOutputELFSection()->getFlags();
-  if (0 == (flag & llvm::ELF::SHF_WRITE))
+  if (!InputSection->isAlloc() || InputSection->isWritable())
+    return false;
+
+  const ELFSection *OutputSection = InputSection->getOutputELFSection();
+
+  if (OutputSection && OutputSection->isWritable())
+    return false;
+
+  if (!OutputSection || !InputSection->getOutputSection())
     return true;
 
-  return false;
+  return isTargetReadOnly(*InputSection);
 }
 
 uint64_t GNULDBackend::getImageBase(bool HasInterp, bool LoadEHdr) const {
