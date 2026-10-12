@@ -1,2 +1,3 @@
 add_subdirectory(INIFileTests)
 add_subdirectory(ThreadPoolTests)
+add_subdirectory(TracePluginTests)

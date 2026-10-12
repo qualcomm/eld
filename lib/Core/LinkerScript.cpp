@@ -78,7 +78,8 @@ void LinkerScript::unloadPlugins(Module *Module) {
       continue;
     // Run the cleanup function
     H.second->cleanup();
-    Plugin::unload(H.first, H.second->getLibraryHandle(), Module);
+    Plugin::unload(H.first, H.second->getLibraryHandle(), Module,
+                   H.second->isTraced());
     if (Module->getPrinter()->isVerbose())
       Diag->raise(Diag::unloaded_plugin) << H.first;
   }
@@ -574,7 +575,7 @@ bool LinkerScript::loadPlugin(Plugin &P, Module &M) {
   void *Handle = nullptr;
   auto &PAL = M.getPluginActivityLog();
   if (I == MLibraryToPluginMap.end()) {
-    Handle = Plugin::loadPlugin(ResolvedPath, &M);
+    Handle = Plugin::loadPlugin(ResolvedPath, &M, P.isTraced());
     MLibraryToPluginMap.insert(std::make_pair(ResolvedPath, &P));
   } else {
     Handle = I->second->getLibraryHandle();

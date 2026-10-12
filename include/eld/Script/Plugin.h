@@ -61,6 +61,10 @@ public:
 
   std::string getPluginOptions() const { return PluginOptions; }
 
+  /// Returns true if diagnostics should be traced for this plugin, honoring
+  /// both bare --trace=plugin and scoped --trace=plugin=<name>.
+  bool isTraced() const;
+
   plugin::PluginBase *getLinkerPlugin() const { return UserPluginHandle; }
 
   void *getLibraryHandle() const { return PluginLibraryHandle; }
@@ -96,9 +100,10 @@ public:
   bool registerPlugin(void *Handle);
 
   // -------------- Load/Unload/Reset Plugin ------------------------
-  static void *loadPlugin(std::string Name, Module *Module);
+  static void *loadPlugin(std::string Name, Module *Module, bool IsTraced);
 
-  static bool unload(std::string Name, void *LibraryHandle, Module *Module);
+  static bool unload(std::string Name, void *LibraryHandle, Module *Module,
+                     bool IsTraced);
 
   void reset();
 
