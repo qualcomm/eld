@@ -1,0 +1,15 @@
+#UNSUPPORTED: windows, darwin
+#BEGIN_COMMENT
+# Global object aliases sharing the same address in a DSO must not
+# acquire distinct storage through separate copy relocations.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIC -c %p/Inputs/alias-global-lib.c -o %t.lib.o
+RUN: %link %linkopts -shared -o %t.lib.so %t.lib.o
+RUN: %clang %clangopts -fno-pic -fno-pie -c %p/Inputs/alias-global-main.c -o %t.main.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.main.o %t.lib.so -Wl,-rpath,'$ORIGIN' -o %t.out
+RUN: %readelf -r %t.out | grep -c R_X86_64_COPY | %filecheck %s --check-prefix=COPY
+RUN: %run_and_print_exit %t.out | %filecheck %s --check-prefix=EXITCODE
+
+COPY: {{^1$}}
+EXITCODE: 0

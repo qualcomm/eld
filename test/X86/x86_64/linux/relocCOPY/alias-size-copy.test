@@ -1,0 +1,18 @@
+#UNSUPPORTED: windows, darwin
+#BEGIN_COMMENT
+# Global object aliases with the same section and address,
+# but different ELF sizes, must share one copy relocation.
+# The largest definition must be used to copy all bytes.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIC -c %p/Inputs/alias-size-lib.s -o %t.lib.o
+RUN: %link %linkopts -shared -o %t.lib.so %t.lib.o
+RUN: %clang %clangopts -fno-pic -fno-pie -c %p/Inputs/alias-size-main.c -o %t.main.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.main.o %t.lib.so -Wl,-rpath,'$ORIGIN' -o %t.out
+RUN: %readelf -r %t.out | grep -c R_X86_64_COPY | %filecheck %s --check-prefix=COPY
+RUN: %readelf -r %t.out | %filecheck %s --check-prefix=CANON
+RUN: %run_and_print_exit %t.out | %filecheck %s --check-prefix=EXITCODE
+
+COPY: {{^1$}}
+CANON: R_X86_64_COPY{{.*}}full_alias
+EXITCODE: 0
