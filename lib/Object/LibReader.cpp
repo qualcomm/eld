@@ -25,6 +25,11 @@
 #include "llvm/ADT/Twine.h"
 #include "llvm/Object/Archive.h"
 #include "llvm/Object/ArchiveWriter.h"
+#include "llvm/BinaryFormat/Magic.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "eld/Input/ArchiveFile.h"
+#include "eld/Readers/ArchiveParser.h"
 
 using namespace eld;
 
@@ -33,8 +38,98 @@ LibReader::LibReader(Module &M, ObjectLinker *ObjLinker)
 
 struct LibReader::ArchiveMemberList {
   std::vector<llvm::NewArchiveMember> Members;
-  llvm::SmallVector<std::string, 0> MemberNames;
+  bool RequiresRegularArchive = false;
 };
+
+static bool appendMember(
+    llvm::MemoryBufferRef Buffer, llvm::StringRef Name,
+    std::vector<llvm::NewArchiveMember> &Members,
+    bool &RequiresRegularArchive,
+    std::unique_ptr<llvm::object::Archive> &ParsedArchive,
+    LinkerConfig &Config) {
+  auto AppendObject =
+      [&] (llvm::MemoryBufferRef Object,
+          llvm::StringRef ObjectName) -> bool {
+    const auto Magic = llvm::identify_magic(Object.getBuffer());
+
+    if (Magic != llvm::file_magic::elf_relocatable &&
+        Magic != llvm::file_magic::bitcode) {
+      Config.raise(Diag::error_start_lib_member_type)
+          << ObjectName;
+      return false;
+    }
+
+    llvm::NewArchiveMember Member;
+    Member.Buf = llvm::MemoryBuffer::getMemBufferCopy(
+        Object.getBuffer(), ObjectName);
+    Member.MemberName = Member.Buf->getBufferIdentifier();
+
+    Members.push_back(std::move(Member));
+    return true;
+  };
+
+  if (llvm::identify_magic(Buffer.getBuffer()) !=
+      llvm::file_magic::archive)
+    return AppendObject(Buffer, Name);
+
+  auto ArchiveOrErr = llvm::object::Archive::create(Buffer);
+  if (!ArchiveOrErr) {
+    Config.raise(Diag::error_start_lib_input)
+        << Name
+        << llvm::toString(ArchiveOrErr.takeError());
+    return false;
+  }
+
+  ParsedArchive = std::move(*ArchiveOrErr);
+  RequiresRegularArchive = true;
+
+  llvm::Error IterationError = llvm::Error::success();
+
+  for (const auto &Child :
+       ParsedArchive->children(IterationError,
+                               /*SkipInternal=*/true)) {
+    auto ChildName = Child.getName();
+    if (!ChildName) {
+      Config.raise(Diag::error_start_lib_input)
+          << Name
+          << llvm::toString(llvm::joinErrors(
+                 ChildName.takeError(),
+                 std::move(IterationError)));
+      return false;
+    }
+
+    const std::string Identity =
+        Name.str() + "(" + ChildName->str() + ")";
+
+    auto ChildBuffer = Child.getMemoryBufferRef();
+    if (!ChildBuffer) {
+      Config.raise(Diag::error_start_lib_input)
+          << Identity
+          << llvm::toString(llvm::joinErrors(
+                 ChildBuffer.takeError(),
+                 std::move(IterationError)));
+      return false;
+    }
+
+    // Do not recurse. Genuine nested archives are outside this PR's scope.
+    if (!AppendObject(*ChildBuffer, Identity)) {
+      if (IterationError) {
+        Config.raise(Diag::error_start_lib_input)
+            << Name
+            << llvm::toString(std::move(IterationError));
+      }
+      return false;
+    }
+  }
+
+  if (IterationError) {
+    Config.raise(Diag::error_start_lib_input)
+        << Name << llvm::toString(std::move(IterationError));
+    return false;
+  }
+
+  return true;
+}
 
 LibReader::~LibReader() {}
 
@@ -46,45 +141,90 @@ static std::string getStartLibArchiveName(bool IsThin, uint64_t Id) {
 bool LibReader::addArchiveMember(Input *MemberInput, bool IsThin,
                                  LinkerConfig &Config,
                                  ArchiveMemberList &Archive) {
-  // The synthetic archive below is what the linker processes, but the
-  // response file still names the original inputs between --start-lib and
-  // --end-lib. Capture those inputs explicitly for --reproduce; unlike a
-  // normal archive, the synthetic archive has no on-disk parent archive
-  // from which the reproducer can recover them.
   assert(MemberInput && "expected a valid archive member input");
 
+  InputFile *MemberFile = MemberInput->getInputFile();
+
+  if (!MemberFile) {
+    MemberFile =
+        InputFile::create(MemberInput, Config.getDiagEngine());
+    if (!MemberFile)
+      return false;
+
+    MemberInput->setInputFile(MemberFile);
+  }
+
+  const std::string Name =
+      IsThin
+          ? MemberInput->getResolvedPath().getFullPath()
+          : MemberInput->getResolvedPath().filename().native();
+
+  // Expand transactionally. Do not modify Archive until every operation
+  // required for this input has succeeded.
+  std::vector<llvm::NewArchiveMember> Members;
+  bool RequiresRegularArchive = false;
+  std::unique_ptr<llvm::object::Archive> ParsedArchive;
+
+  if (!appendMember(MemberInput->getMemoryBufferRef(), Name,
+                    Members, RequiresRegularArchive,
+                    ParsedArchive, Config)) {
+    MModule.setFailure(true);
+    return false;
+  }
+
   if (MModule.getOutputTarWriter()) {
-    InputFile *MemberFile = MemberInput->getInputFile();
+    if (ParsedArchive) {
+      auto *OriginalArchiveFile =
+          llvm::dyn_cast<ArchiveFile>(MemberFile);
 
-    if (!MemberFile) {
-      MemberFile =
-          InputFile::create(MemberInput, Config.getDiagEngine());
-      if (!MemberFile)
+      if (!OriginalArchiveFile) {
+        Config.raise(Diag::error_start_lib_input)
+            << MemberInput->getResolvedPath().getFullPath()
+            << "input was identified as an archive, but its ELD "
+               "InputFile is not an ArchiveFile";
+        MModule.setFailure(true);
         return false;
+      }
 
-      MemberInput->setInputFile(MemberFile);
+      ArchiveParser Parser(MModule);
+      eld::Expected<bool> Prepared =
+          Parser.prepareMembers(*ParsedArchive,
+                                OriginalArchiveFile);
+
+      if (!Prepared) {
+        Config.raiseDiagEntry(std::move(Prepared.error()));
+        return false;
+      }
+
+      if (!Prepared.value()) {
+        MModule.setFailure(true);
+        return false;
+      }
     }
 
-    MappingFile::Kind Kind =
-        MemberFile->isBitcode() ? MappingFile::Kind::Bitcode
-                                : MappingFile::Kind::ObjectFile;
+    MappingFile::Kind Kind;
+
+    if (llvm::isa<ArchiveFile>(MemberFile))
+      Kind = MappingFile::Kind::Archive;
+    else if (MemberFile->isBitcode())
+      Kind = MappingFile::Kind::Bitcode;
+    else
+      Kind = MappingFile::Kind::ObjectFile;
 
     MemberFile->setMappedPath(MemberInput->getName());
     MemberFile->setMappingFileKind(Kind);
+
+    // For a prepared thin ArchiveFile, this automatically calls
+    // OutputTarWriter::addThinArchiveMembers().
     MModule.getOutputTarWriter()->addInputFile(
         MemberFile, /*isLTOObject=*/false);
   }
 
-  if (IsThin)
-    Archive.MemberNames.push_back(
-        MemberInput->getResolvedPath().getFullPath());
-  else
-    Archive.MemberNames.push_back(
-        MemberInput->getResolvedPath().filename().native());
+  Archive.RequiresRegularArchive |=
+      RequiresRegularArchive;
 
-  llvm::NewArchiveMember Member(MemberInput->getMemoryBufferRef());
-  Member.MemberName = Archive.MemberNames.back();
-  Archive.Members.push_back(std::move(Member));
+  for (auto &Member : Members)
+    Archive.Members.push_back(std::move(Member));
 
   return true;
 }
@@ -188,11 +328,12 @@ bool LibReader::readLib(InputBuilder::InputIteratorT &CurNode,
   if (!MemArea) {
     eld::RegisterTimer T("Build --start-lib archive", "Read all Input files",
                          Config.options().printTimingStats());
+    const bool EffectiveThin = IsThin && !Archive.RequiresRegularArchive;
     llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> ExpArchiveBuf =
         llvm::writeArchiveToBuffer(Archive.Members,
                                    llvm::SymtabWritingMode::NormalSymtab,
                                    llvm::object::Archive::K_GNU,
-                                   /*Deterministic=*/true, /*Thin=*/IsThin);
+                                   /*Deterministic=*/true, /*Thin=*/EffectiveThin);
     if (!ExpArchiveBuf) {
       plugin::DiagnosticEntry DiagEntry =
           Config.getDiagEngine()->convertToDiagEntry(ExpArchiveBuf.takeError());
@@ -213,9 +354,8 @@ bool LibReader::readLib(InputBuilder::InputIteratorT &CurNode,
 
   bool Success = MObjLinker->readAndProcessInput(ArchiveInput, IsPostLtoPhase);
   if (Success && MModule.getOutputTarWriter() && ArchiveInput->getInputFile()) {
-    // Archive parsing populates the thin member list. Register the synthetic
-    // archive once more so its archive/member mapping is available during
-    // reproduction.
+    // Register the generated synthetic archive so the response-file input and
+    // mapping remain available during reproduction.
     InputFile *ArchiveFile = ArchiveInput->getInputFile();
     ArchiveFile->setMappedPath(ArchiveName);
     ArchiveFile->setMappingFileKind(MappingFile::Kind::Archive);
