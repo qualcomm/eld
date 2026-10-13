@@ -128,7 +128,7 @@ void GeneralOptions::setEntry(const std::string &PEntry) { Entry = PEntry; }
 bool GeneralOptions::hasEntry() const { return !Entry.empty(); }
 
 void GeneralOptions::setTrace(bool EnableTrace) {
-  DiagEngine->getPrinter()->setTrace(DiagEngine->getPrinter()->TraceFiles);
+  DiagEngine->enableTrace(TraceFiles);
 }
 
 void GeneralOptions::setVerbose(int8_t Verbose) {
@@ -187,38 +187,38 @@ bool GeneralOptions::shouldTraceMergeStrSection(const ELFSection *S) const {
 }
 
 eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {
-  std::optional<uint32_t> TraceMe = DiagEngine->getPrinter()->trace();
+  std::optional<TraceCategory> TraceMe;
+  bool HasFilter = false;
   StringRef TraceType = PTraceType;
-  if (TraceType.starts_with("reloc")) {
-    TraceMe = DiagEngine->getPrinter()->TraceReloc;
-    size_t Pos = TraceType.find_last_of('=');
+  if (TraceType.starts_with("reloc=")) {
+    TraceMe = TraceReloc;
+    size_t Pos = TraceType.find('=');
     std::string Reloc = TraceType.substr(Pos + 1).str();
-    RelocTrace.emplace_back(llvm::Regex(Reloc));
-    RelocsToTrace.emplace_back(Reloc);
-  } else if (TraceType.starts_with("symbol") &&
-             TraceType != "symbol-versioning") {
+    DiagEngine->addTraceFilter(*TraceMe, Reloc);
+    HasFilter = true;
+  } else if (TraceType.starts_with("symbol=")) {
     setSymbolTracingRequested();
-    TraceMe = DiagEngine->getPrinter()->TraceSym;
-    size_t Pos = TraceType.find_last_of('=');
+    TraceMe = TraceSymbol;
+    size_t Pos = TraceType.find('=');
     std::string Sym = TraceType.substr(Pos + 1).str();
-    SymbolTrace.emplace_back(llvm::Regex(Sym));
-    SymbolsToTrace.emplace_back(Sym);
-  } else if (TraceType.starts_with("section")) {
+    DiagEngine->addTraceFilter(*TraceMe, Sym);
+    HasFilter = true;
+  } else if (TraceType.starts_with("section=")) {
     setSectionTracingRequested();
-    TraceMe = DiagEngine->getPrinter()->TraceSection;
-    size_t Pos = TraceType.find_last_of('=');
+    TraceMe = TraceSection;
+    size_t Pos = TraceType.find('=');
     std::string Sym = TraceType.substr(Pos + 1).str();
-    SectionTrace.emplace_back(llvm::Regex(Sym));
-    SectionsToTrace.emplace_back(Sym);
-  } else if (TraceType.starts_with("plugin") && TraceType.contains('=')) {
+    DiagEngine->addTraceFilter(*TraceMe, Sym);
+    HasFilter = true;
+  } else if (TraceType.starts_with("plugin=")) {
     setPluginTracingRequested();
-    TraceMe = DiagEngine->getPrinter()->TracePlugin;
-    size_t Pos = TraceType.find_last_of('=');
+    TraceMe = TracePlugin;
+    size_t Pos = TraceType.find('=');
     std::string PluginName = TraceType.substr(Pos + 1).str();
-    PluginTrace.emplace_back(llvm::Regex(PluginName));
-    PluginsToTrace.emplace_back(PluginName);
-  } else if (TraceType.starts_with("merge-strings")) {
-    size_t Pos = TraceType.find_last_of('=');
+    DiagEngine->addTraceFilter(*TraceMe, PluginName);
+    HasFilter = true;
+  } else if (TraceType.starts_with("merge-strings=")) {
+    size_t Pos = TraceType.find('=');
     std::string Arg = TraceType.substr(Pos + 1).str();
     GeneralOptions::MergeStrTraceType Type =
         llvm::StringSwitch<GeneralOptions::MergeStrTraceType>(Arg)
@@ -229,44 +229,39 @@ eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {
     MergeStrTraceValue = Type;
     if (Type == SECTIONS)
       addMergeStrTraceSection(Arg);
-    TraceMe = DiagEngine->getPrinter()->TraceMergeStrings;
-  } else if (TraceType.starts_with("merge-constants")) {
-    TraceMe = DiagEngine->getPrinter()->TraceMergeConstants;
+    TraceMe = TraceMergeStrings;
   } else {
-    TraceMe =
-        llvm::StringSwitch<std::optional<uint32_t>>(TraceType)
-            .Case("all-symbols", DiagEngine->getPrinter()->TraceSymbols)
-            .Case("assignments", DiagEngine->getPrinter()->TraceAssignments)
-            .Case("command-line", DiagEngine->getPrinter()->TraceCommandLine)
-            .Case("files", DiagEngine->getPrinter()->TraceFiles)
-            .Case("garbage-collection", DiagEngine->getPrinter()->TraceGC)
-            .Case("live-edges", DiagEngine->getPrinter()->TraceGCLive)
-            .Case("lto", DiagEngine->getPrinter()->TraceLTO)
-            .Case("merge-strings", DiagEngine->getPrinter()->TraceMergeStrings)
-            .Case("merge-constants",
-                  DiagEngine->getPrinter()->TraceMergeConstants)
-            .Case("plugin", DiagEngine->getPrinter()->TracePlugin)
-            .Case("relax", DiagEngine->getPrinter()->TraceRelax)
-            .Case("threads", DiagEngine->getPrinter()->TraceThreads)
-            .Case("trampolines", DiagEngine->getPrinter()->TraceTrampolines)
-            .Case("wrap-symbols", DiagEngine->getPrinter()->TraceWrap)
-            .Case("dynamic-linking",
-                  DiagEngine->getPrinter()->TraceDynamicLinking)
-            .Case("linker-script", DiagEngine->getPrinter()->TraceLinkerScript)
-            .Case("untar", DiagEngine->getPrinter()->TraceUntar)
-            .Case("symdef", DiagEngine->getPrinter()->TraceSymDef)
+    TraceMe = llvm::StringSwitch<std::optional<TraceCategory>>(TraceType)
+                  .Case("all-symbols", TraceAllSymbols)
+                  .Case("assignments", TraceAssignments)
+                  .Case("command-line", TraceCommandLine)
+                  .Case("files", TraceFiles)
+                  .Case("garbage-collection", TraceGC)
+                  .Case("live-edges", TraceGCLive)
+                  .Case("lto", TraceLTO)
+                  .Case("merge-strings", TraceMergeStrings)
+                  .Case("merge-constants", TraceMergeConstants)
+                  .Case("plugin", TracePlugin)
+                  .Case("relax", TraceRelax)
+                  .Case("threads", TraceThreads)
+                  .Case("trampolines", TraceTrampolines)
+                  .Case("wrap-symbols", TraceWrap)
+                  .Case("dynamic-linking", TraceDynamicLinking)
+                  .Case("linker-script", TraceLinkerScript)
+                  .Case("untar", TraceUntar)
+                  .Case("symdef", TraceSymDef)
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-            .Case("symbol-versioning",
-                  DiagEngine->getPrinter()->TraceSymbolVersioning)
+                  .Case("symbol-versioning", TraceSymbolVersioning)
 #endif
-            .Default(std::nullopt);
+                  .Default(std::nullopt);
   }
   // Warn if trace category is unknown.
   if (!TraceMe)
     return std::make_unique<plugin::DiagnosticEntry>(
         plugin::WarningDiagnosticEntry(Diag::warn_unknown_trace_option,
                                        {PTraceType}));
-  DiagEngine->getPrinter()->setTrace(*TraceMe);
+  if (!HasFilter)
+    DiagEngine->enableTrace(*TraceMe);
   return {};
 }
 
@@ -362,33 +357,11 @@ void GeneralOptions::setLTOOptions(uint32_t LtoOption) {
 }
 
 bool GeneralOptions::traceSymbol(std::string const &PSym) const {
-  StringRef SymRef(PSym);
-  // Try to improve performance a bit.
-  if (!SymbolTrace.size())
-    return false;
-  if (DiagEngine->getPrinter()->traceSym()) {
-    return llvm::any_of(SymbolsToTrace,
-                        [&](const std::string &S) { return S == PSym; }) ||
-           llvm::any_of(SymbolTrace, [&](const llvm::Regex &Regex) {
-             return Regex.match(SymRef);
-           });
-  }
-  return false;
+  return DiagEngine->shouldTrace(TraceSymbol, PSym);
 }
 
 bool GeneralOptions::traceSection(std::string const &PSec) const {
-  StringRef SecRef(PSec);
-  // Try to improve performance a bit.
-  if (SectionTrace.empty())
-    return false;
-  if (DiagEngine->getPrinter()->traceSection()) {
-    return llvm::any_of(SectionsToTrace,
-                        [&](const std::string &S) { return S == PSec; }) ||
-           llvm::any_of(SectionTrace, [&](const llvm::Regex &Regex) {
-             return Regex.match(SecRef);
-           });
-  }
-  return false;
+  return DiagEngine->shouldTrace(TraceSection, PSec);
 }
 
 bool GeneralOptions::traceSection(const Section *S) const {
@@ -404,27 +377,11 @@ bool GeneralOptions::traceSection(const Section *S) const {
 }
 
 bool GeneralOptions::traceReloc(std::string const &RelocName) const {
-  StringRef RelocRef(RelocName);
-  // Look for an exact match first
-  return llvm::any_of(RelocsToTrace,
-                      [&](const std::string &S) { return S == RelocName; }) ||
-         llvm::any_of(RelocTrace, [&](const llvm::Regex &Regex) {
-           return Regex.match(RelocRef);
-         });
+  return DiagEngine->shouldTrace(TraceReloc, RelocName);
 }
 
 bool GeneralOptions::tracePlugin(std::string const &PluginName) const {
-  if (!DiagEngine->getPrinter()->tracePlugins())
-    return false;
-  // Bare "--trace=plugin" (no scoped names given): trace every plugin.
-  if (!PluginTracingRequested)
-    return true;
-  StringRef PluginRef(PluginName);
-  return llvm::any_of(PluginsToTrace,
-                      [&](const std::string &S) { return S == PluginName; }) ||
-         llvm::any_of(PluginTrace, [&](const llvm::Regex &Regex) {
-           return Regex.match(PluginRef);
-         });
+  return DiagEngine->shouldTrace(TracePlugin, PluginName);
 }
 
 std::vector<llvm::StringRef> GeneralOptions::getLTOOptionsAsString() const {
@@ -445,8 +402,7 @@ std::vector<llvm::StringRef> GeneralOptions::getLTOOptionsAsString() const {
 
 /// Returns true if LTO trace is required
 bool GeneralOptions::traceLTO(void) const {
-  return (trace() & DiagEngine->getPrinter()->TraceLTO) ||
-         (LTOOptions & LTOVerbose);
+  return DiagEngine->shouldTrace(TraceLTO) || (LTOOptions & LTOVerbose);
 }
 
 /// Returns true if LTO has to preserve all bitcode symbols
@@ -640,7 +596,7 @@ bool GeneralOptions::setMapStyle(llvm::StringRef MapStyle) {
 }
 
 bool GeneralOptions::shouldTraceLinkerScript() const {
-  return DiagEngine->getPrinter()->traceLinkerScript();
+  return DiagEngine->hasTrace(TraceLinkerScript);
 }
 
 bool GeneralOptions::checkAndUpdateMapStyleForPrintMap() {

@@ -11,5 +11,5 @@
 //
 //===----------------------------------------------------------------------===//
 
-DIAG(trace_file, DiagnosticEngine::Trace, "%0")
-DIAG(trace_untar_entry, DiagnosticEngine::Trace, "untar: %0")
+TRACE_DIAG(trace_file, "%0", TraceFiles)
+TRACE_DIAG(trace_untar_entry, "untar: %0", TraceUntar)

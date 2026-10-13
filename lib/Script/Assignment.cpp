@@ -239,7 +239,7 @@ bool Assignment::assign(Module &CurModule, const ELFSection *Section) {
   auto &Backend = CurModule.getBackend();
   Backend.updateLatestAssignment(Name, this);
 
-  if (CurModule.getPrinter()->traceAssignments())
+  if (CurModule.getConfig().getDiagEngine()->hasTrace(TraceAssignments))
     trace(llvm::errs());
   return true;
 }

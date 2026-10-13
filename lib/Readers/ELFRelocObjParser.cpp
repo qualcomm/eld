@@ -92,8 +92,8 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
   InputFile *inputFile = ELFReader.getInputFile();
   GNULDBackend &backend = m_Module.getBackend();
 
-  if (m_Module.getPrinter()->traceFiles())
-    config.raise(Diag::trace_file) << inputFile->getInput()->decoratedPath();
+  config.getDiagEngine()->trace(Diag::trace_file)
+      << inputFile->getInput()->decoratedPath();
   ELFObjectFile *EObj = llvm::cast<ELFObjectFile>(inputFile);
   llvm::SmallVector<MergeStringFragment *, 0> mergeStrFragments;
 

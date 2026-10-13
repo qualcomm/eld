@@ -30,33 +30,6 @@ class ProgressBar;
  */
 class DiagnosticPrinter {
 public:
-  enum TraceType {
-    TraceFiles = 0x1,
-    TraceTrampolines = 0x2,
-    TraceSymbols = 0x4,
-    TraceCommandLine = 0x8,
-    TraceGC = 0x10,
-    TraceSym = 0x20,
-    TraceLTO = 0x40,
-    TraceAssignments = 0x80,
-    TraceReloc = 0x100,
-    TraceThreads = 0x200,
-    TracePlugin = 0x400,
-    TraceGCLive = 0x800,
-    TraceWrap = 0x1000,
-    TraceSection = 0x2000,
-    TraceDynamicLinking = 0x4000,
-    TraceMergeStrings = 0x8000,
-    TraceLinkerScript = 0x10000,
-    TraceUntar = 0x20000,
-    TraceRelax = 0x40000,
-    TraceMergeConstants = 0x80000,
-    TraceSymDef = 0x100000,
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-    TraceSymbolVersioning = 0x200000
-#endif
-  };
-
   enum Verbose : uint16_t { None = 0x0, Default = 0x1 };
 
   enum VerifyType { VerifyReloc = 0x1 };
@@ -69,56 +42,6 @@ public:
   ~DiagnosticPrinter();
 
   enum StatsType { AllStats = 0xFF };
-
-  void setTrace(uint32_t PTrace) { Trace |= PTrace; }
-
-  bool traceTrampolines() { return Trace & TraceTrampolines; }
-
-  bool traceAssignments() { return Trace & TraceAssignments; }
-
-  bool traceFiles() { return Trace & TraceFiles; }
-
-  bool traceSymbols() { return Trace & TraceSymbols; }
-
-  bool traceDynamicLinking() { return Trace & TraceDynamicLinking; }
-
-  bool traceCommandLine() { return Trace & TraceCommandLine; }
-
-  bool traceGC() { return Trace & TraceGC; }
-
-  bool traceGCLive() { return Trace & TraceGCLive; }
-
-  bool traceSym() { return Trace & TraceSym; }
-
-  bool traceReloc() { return Trace & TraceReloc; }
-
-  bool traceThreads() { return Trace & TraceThreads; }
-
-  bool tracePlugins() { return Trace & TracePlugin; }
-
-  bool traceWrapSymbols() { return Trace & TraceWrap; }
-
-  bool traceSection() { return Trace & TraceSection; }
-
-  bool traceMergeStrings() { return Trace & TraceMergeStrings; }
-
-  bool traceMergeConstants() { return Trace & TraceMergeConstants; }
-
-  bool traceLinkerScript() { return (Trace & TraceLinkerScript); }
-
-  bool traceUntar() { return (Trace & TraceUntar); }
-
-  bool traceRelax() { return (Trace & TraceRelax); }
-
-  bool traceSymDef() { return (Trace & TraceSymDef); }
-
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-  bool traceSymbolVersioning() const { return (Trace & TraceSymbolVersioning); }
-#else
-  bool traceSymbolVersioning() const { return false; }
-#endif
-
-  uint32_t trace() { return Trace; }
 
   uint32_t isVerbose() const { return VerboseLevel & Verbose::Default; }
 
@@ -184,7 +107,6 @@ protected:
   std::atomic<unsigned int> NumInternalErrors = 0;
   bool UseColor = false;
   Verbose VerboseLevel;
-  uint32_t Trace = 0;
   uint32_t Verify = 0;
   uint32_t Stats = 0;
   uint32_t UserErrorLimit = 10;

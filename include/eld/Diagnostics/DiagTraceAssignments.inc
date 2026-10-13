@@ -11,9 +11,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-DIAG(output_section_fill, DiagnosticEngine::Trace, "OUTPUT_SECTION(FILL) >> %0")
-DIAG(padding_map, DiagnosticEngine::Trace, "Start Offset = %0\nEnd Offset = %1")
-DIAG(output_section_eval, DiagnosticEngine::Trace,
-     "OUTPUT_SECTION(EVALUATE) >>  %0")
-DIAG(trace_output_section_addr, DiagnosticEngine::Trace,
-     "OUTPUT_SECTION(EVALUATE) >> %0 VMA : 0x%1 LMA : 0x%2")
+TRACE_DIAG(output_section_fill, "OUTPUT_SECTION(FILL) >> %0", TraceAssignments)
+TRACE_DIAG(padding_map, "Start Offset = %0\nEnd Offset = %1", TraceAssignments)
+TRACE_DIAG(output_section_eval, "OUTPUT_SECTION(EVALUATE) >>  %0",
+           TraceAssignments)
+TRACE_DIAG(trace_output_section_addr,
+           "OUTPUT_SECTION(EVALUATE) >> %0 VMA : 0x%1 LMA : 0x%2",
+           TraceAssignments)

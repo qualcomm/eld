@@ -232,8 +232,7 @@ bool GarbageCollection::run(const std::string &Phase, bool CommonSectionsOnly) {
     eld::RegisterTimer T("Find Dead Code", "Garbage Collection",
                          ThisConfig.options().printTimingStats());
     // 3. find all the referenced sections those can be reached by entry
-    if (ThisModule.getPrinter()->traceGCLive())
-      ThisConfig.raise(Diag::tracing_gc_phase) << Phase;
+    ThisConfig.getDiagEngine()->trace(Diag::tracing_gc_phase) << Phase;
     findReferencedSectionsAndSymbols(Entry, LiveSet);
   }
 
@@ -266,7 +265,7 @@ void GarbageCollection::setUpReachedSectionsAndSymbols() {
 
   size_t column = 54;
   size_t SpaceBwField = 4;
-  if (ThisModule.getPrinter()->traceGC()) {
+  if (ThisConfig.getDiagEngine()->hasTrace(TraceGC)) {
     stream = &(llvm::outs());
     ThisConfig.raise(Diag::trace_gc_header)
         << std::string(column - strlen("Referring site"), ' ');
@@ -291,7 +290,7 @@ void GarbageCollection::setUpReachedSectionsAndSymbols() {
       std::string name;
       bool FirstField = true;
 
-      if (ThisModule.getPrinter()->traceGC() && ApplySect &&
+      if (ThisConfig.getDiagEngine()->hasTrace(TraceGC) && ApplySect &&
           mayProcessGC(*ApplySect)) {
         name = ApplySect->getDecoratedName(ThisConfig.options());
         if (name.size() > (column - SpaceBwField))
@@ -368,7 +367,7 @@ void GarbageCollection::setUpReachedSectionsAndSymbols() {
                 ReachedSects->insert(TargetSec);
               }
 
-              if (Result.second && ThisModule.getPrinter()->traceGC() &&
+              if (Result.second && ThisConfig.getDiagEngine()->hasTrace(TraceGC) &&
                   ApplySect && mayProcessGC(*ApplySect)) {
                 if (FirstField)
                   stream->indent(column - name.size());
@@ -416,7 +415,7 @@ void GarbageCollection::setUpReachedSectionsAndSymbols() {
           ReachedSects->insert(TargetSect);
           ReachedSyms->insert(Sym->outSymbol());
 
-          if (ThisModule.getPrinter()->traceGC() && ApplySect &&
+          if (ThisConfig.getDiagEngine()->hasTrace(TraceGC) && ApplySect &&
               mayProcessGC(*ApplySect)) {
             if (FirstField)
               stream->indent(column - name.size());
@@ -666,7 +665,7 @@ void GarbageCollection::findReferencedSectionsAndSymbols(
       if (!MReferencedSections.insert(Sect).second)
         continue;
 
-      if (ThisModule.getPrinter()->traceGCLive()) {
+      if (ThisConfig.getDiagEngine()->hasTrace(TraceGCLive)) {
         ThisConfig.raise(Diag::refers_to)
             << Sect->getDecoratedName(ThisConfig.options());
         if (Sect->getInputFile())
@@ -742,7 +741,7 @@ void GarbageCollection::stripSections(SectionSetTy &S,
         }
         // Print the GC collected input section if Tracing is enabled.
         if (ThisConfig.options().printGCSections() ||
-            ThisModule.getPrinter()->traceGC()) {
+            ThisConfig.getDiagEngine()->hasTrace(TraceGC)) {
           if (CommonELFSection *CommonSection =
                   dyn_cast<CommonELFSection>(Section)) {
             ResolveInfo *CommResolveInfo =

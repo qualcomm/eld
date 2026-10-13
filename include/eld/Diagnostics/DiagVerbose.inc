@@ -46,8 +46,9 @@ DIAG(relax_align_undone, DiagnosticEngine::Verbose,
 DIAG(relax_to_compress, DiagnosticEngine::Verbose,
      "%0 : relaxing instruction 0x%1 to compressed instruction 0x%2 for symbol "
      "%3 in section %4+0x%5 file %6")
-DIAG(trace_relax_gotpcrelx, DiagnosticEngine::Trace,
-     "%0: relaxed GOTPCRELX (%1) for symbol '%2' to PC-relative access")
+TRACE_DIAG(trace_relax_gotpcrelx,
+           "%0: relaxed GOTPCRELX (%1) for symbol '%2' to PC-relative access",
+           TraceRelax)
 DIAG(verbose_ehframe_remove_fde, DiagnosticEngine::Verbose, "EhFrame %0")
 DIAG(verbose_ehframe_read_fde, DiagnosticEngine::Verbose, "EhFrame %0")
 DIAG(verbose_ehframe_read_cie, DiagnosticEngine::Verbose, "EhFrame %0")
@@ -68,8 +69,7 @@ DIAG(reproduce_signal_handler, DiagnosticEngine::Verbose,
      "Registered reproduce signal handler")
 DIAG(keeping_section, DiagnosticEngine::Verbose,
      "Keeping section %0 from file %1")
-DIAG(retaining_section, DiagnosticEngine::Trace,
-     "Retaining section %0 from file %1")
+TRACE_DIAG(retaining_section, "Retaining section %0 from file %1", TraceSection)
 DIAG(default_signal_handler, DiagnosticEngine::Verbose,
      "Registered default signal handler")
 DIAG(reading_timing_data, DiagnosticEngine::Verbose,
@@ -160,22 +160,26 @@ DIAG(handling_merge_strings_for_section, DiagnosticEngine::Verbose,
      "Handling merge string relocations for section %0 in file %1")
 DIAG(handling_merge_constants_for_section, DiagnosticEngine::Verbose,
      "Handling merge constant relocations for section %0 in file %1")
-DIAG(merging_fragments, DiagnosticEngine::Trace,
-     "Merging fragment from file %0 in section %1\n\twith fragment "
-     "from file %2 in section %3\n\tand content %4 to output section "
-     "%5")
-DIAG(modifying_mergestr_reloc, DiagnosticEngine::Trace,
-     "Modified relocation %0 + %1 from relocation section %2 in file %3:\n\t "
-     "Old fragment: offset %4 in section %5 "
-     "from file %6\n\t New fragment: offset %7 in section %8 from file %9")
-DIAG(merging_constant_fragments, DiagnosticEngine::Trace,
-     "Merging constant from file %0 in section %1 at offset %2 with alignment "
-     "%3\n\twith constant from file %4 in section %5 at offset %6 with "
-     "alignment %7\n\tto output section %8")
-DIAG(modifying_mergeconst_reloc, DiagnosticEngine::Trace,
-     "Modified relocation %0 + %1 from relocation section %2 in file %3:\n\t "
-     "Old constant: offset %4 in section %5 from file %6\n\t New constant: "
-     "offset %7 in section %8 from file %9")
+TRACE_DIAG(merging_fragments,
+           "Merging fragment from file %0 in section %1\n\twith fragment "
+           "from file %2 in section %3\n\tand content %4 to output section "
+           "%5",
+           TraceMergeStrings)
+TRACE_DIAG(modifying_mergestr_reloc,
+           "Modified relocation %0 + %1 from relocation section %2 in file "
+           "%3:\n\t Old fragment: offset %4 in section %5 from file %6\n\t New "
+           "fragment: offset %7 in section %8 from file %9",
+           TraceMergeStrings)
+TRACE_DIAG(merging_constant_fragments,
+           "Merging constant from file %0 in section %1 at offset %2 with "
+           "alignment %3\n\twith constant from file %4 in section %5 at offset "
+           "%6 with alignment %7\n\tto output section %8",
+           TraceMergeConstants)
+TRACE_DIAG(modifying_mergeconst_reloc,
+           "Modified relocation %0 + %1 from relocation section %2 in file "
+           "%3:\n\t Old constant: offset %4 in section %5 from file %6\n\t New "
+           "constant: offset %7 in section %8 from file %9",
+           TraceMergeConstants)
 DIAG(splitting_merge_string_section, DiagnosticEngine::Verbose,
      "%0: created mergeable string fragment with contents %1 and align "
      "%2")

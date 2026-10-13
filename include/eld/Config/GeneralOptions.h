@@ -160,7 +160,7 @@ public:
 
   bool asmopts(void) const;
 
-  uint32_t trace() const { return DiagEngine->getPrinter()->trace(); }
+  TraceMask trace() const { return DiagEngine->traceMask(); }
 
   void setBsymbolic(bool PBsymbolic = true) { Bsymbolic = PBsymbolic; }
 
@@ -1417,14 +1417,6 @@ private:
   std::string MappingDumpFile;           // --dump-mapping-file
   std::string ResponseDumpFile;          // --dump-response-file
   llvm::StringMap<int32_t> InputFileMap; // InputFile Map
-  std::vector<llvm::Regex> SymbolTrace;
-  std::vector<llvm::Regex> RelocTrace;
-  std::vector<llvm::Regex> SectionTrace;
-  std::vector<llvm::Regex> PluginTrace;
-  std::vector<std::string> SymbolsToTrace;
-  std::vector<std::string> SectionsToTrace;
-  std::vector<std::string> RelocsToTrace;
-  std::vector<std::string> PluginsToTrace;
   std::vector<llvm::Regex> MergeStrSectionsToTrace;
   MergeStrTraceType MergeStrTraceValue = MergeStrTraceType::NONE;
   std::set<std::string> RelocVerify;

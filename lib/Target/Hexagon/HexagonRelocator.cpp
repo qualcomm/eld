@@ -297,7 +297,7 @@ void HexagonRelocator::scanRelocation(Relocation &pReloc,
          "ResolveInfo of relocation not set while scanRelocation");
 
   // Check if we are tracing relocations.
-  if (m_Module.getPrinter()->traceReloc()) {
+  if (config().getDiagEngine()->hasTrace(TraceReloc)) {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     std::string relocName = getName(pReloc.type());
     if (config().options().traceReloc(relocName))

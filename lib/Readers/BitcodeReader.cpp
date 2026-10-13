@@ -98,9 +98,8 @@ bool BitcodeReader::readInput(InputFile &InputFile,
     layoutInfo->recordInputActions(LayoutInfo::Load, InputFile.getInput());
   }
 
-  if (m_Module.getPrinter()->traceFiles())
-    m_Module.getConfig().raise(Diag::trace_file)
-        << InputFile.getInput()->decoratedPath();
+  m_Module.getConfig().getDiagEngine()->trace(Diag::trace_file)
+      << InputFile.getInput()->decoratedPath();
 
   BitcodeFile *BitcodeFile = llvm::dyn_cast<eld::BitcodeFile>(&InputFile);
   assert(BitcodeFile);
@@ -212,7 +211,7 @@ bool BitcodeReader::readInput(InputFile &InputFile,
     if (sym && !sym->resolveInfo()->isBitCode())
       continue;
     std::string wrapName = std::string("__wrap_") + name.str();
-    if (m_Module.getConfig().getPrinter()->traceWrapSymbols())
+    if (m_Module.getConfig().getDiagEngine()->hasTrace(TraceWrap))
       m_Module.getConfig().raise(Diag::insert_wrapper) << wrapName;
     Resolver::Result result;
     m_Module.getNamePool().insertSymbol(

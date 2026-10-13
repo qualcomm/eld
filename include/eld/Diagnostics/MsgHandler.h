@@ -41,7 +41,11 @@ namespace eld {
  */
 class MsgHandler {
 public:
+  MsgHandler() = default;
   MsgHandler(DiagnosticEngine &PEngine, std::unique_lock<std::timed_mutex> Lock);
+  MsgHandler(const MsgHandler &) = delete;
+  MsgHandler &operator=(const MsgHandler &) = delete;
+  MsgHandler &operator=(MsgHandler &&) = delete;
   ~MsgHandler();
 
   bool emit();
@@ -54,11 +58,11 @@ public:
                     DiagnosticEngine::ArgumentKind PKind) const;
 
 private:
-  void flushCounts() { DiagEngine.state().NumArgs = NumArgs; }
+  void flushCounts() { DiagEngine->state().NumArgs = NumArgs; }
 
 private:
-  DiagnosticEngine &DiagEngine;
-  mutable unsigned int NumArgs;
+  DiagnosticEngine *DiagEngine = nullptr;
+  mutable unsigned int NumArgs = 0;
   std::unique_lock<std::timed_mutex> Lock;
 };
 

@@ -11,18 +11,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-DIAG(trace_gc_header, DiagnosticEngine::Trace,
-     "\nReachability map for mark phase of GC:\nReferring site%0Referred "
-     "site(s)")
-DIAG(symbols_referring, DiagnosticEngine::Trace, "Symbols referring %0 [%1]")
-DIAG(referred_symbol, DiagnosticEngine::Trace, "\t%0\t%1\t[%2]")
-DIAG(tracing_gc_phase, DiagnosticEngine::Trace,
-     "Tracing references in %0 phase")
-DIAG(refers_to, DiagnosticEngine::Trace, "Refers to = %0")
-DIAG(referenced_input_file, DiagnosticEngine::Trace, "\t[%0]")
-DIAG(referenced_bc_file, DiagnosticEngine::Trace, "\tBC : [%0]")
-DIAG(referenced_by_root_symbol, DiagnosticEngine::Trace,
-     "\tReferenced by = Root symbol")
-DIAG(referenced_by, DiagnosticEngine::Trace, "\tReferenced by = %0")
-DIAG(trace_gc_section, DiagnosticEngine::Trace, "GC : %0[%1]")
-DIAG(trace_gc_symbol, DiagnosticEngine::Trace, "GC (Common Symbol): %0[%1]")
+TRACE_DIAG(trace_gc_header,
+           "\nReachability map for mark phase of GC:\nReferring site%0Referred "
+           "site(s)",
+           TraceGC)
+TRACE_DIAG(symbols_referring, "Symbols referring %0 [%1]", TraceGC)
+TRACE_DIAG(referred_symbol, "\t%0\t%1\t[%2]", TraceGC)
+TRACE_DIAG(tracing_gc_phase, "Tracing references in %0 phase", TraceGCLive)
+TRACE_DIAG(refers_to, "Refers to = %0", TraceGCLive)
+TRACE_DIAG(referenced_input_file, "\t[%0]", TraceGCLive)
+TRACE_DIAG(referenced_bc_file, "\tBC : [%0]", TraceGCLive)
+TRACE_DIAG(referenced_by_root_symbol, "\tReferenced by = Root symbol",
+           TraceGCLive)
+TRACE_DIAG(referenced_by, "\tReferenced by = %0", TraceGCLive)
+TRACE_DIAG(trace_gc_section, "GC : %0[%1]", TraceGC)
+TRACE_DIAG(trace_gc_symbol, "GC (Common Symbol): %0[%1]", TraceGC)

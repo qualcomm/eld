@@ -283,9 +283,9 @@ bool Relocation::apply(Relocator &pRelocator) {
   pRelocator.issueUndefRefForMagicSymbol(*this);
 
   Module &module = pRelocator.module();
-  if (symInfo() && module.getPrinter()->traceSym() &&
-      pRelocator.config().options().traceSymbol(*symInfo())) {
-    pRelocator.config().raise(Diag::apply_relocation)
+  if (symInfo() && pRelocator.config().options().traceSymbol(*symInfo())) {
+    pRelocator.config().getDiagEngine()->trace(Diag::apply_relocation,
+                                               symInfo()->name())
         << symInfo()->name()
         << llvm::utohexstr(place(module),
                            /*LowerCase*/ true);

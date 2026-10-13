@@ -843,9 +843,9 @@ bool GNULDBackend::applyVersionScriptScopes() {
     if (found != SymbolScopes.end() && !(found->second->isGlobal()) &&
         !R->isUndef() && !R->isDyn()) {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-      if (config().getPrinter()->traceSymbolVersioning())
-        config().raise(Diag::trace_clear_export_due_to_local_scope)
-            << R->name();
+      config().getDiagEngine()->trace(
+          Diag::trace_clear_export_due_to_local_scope)
+          << R->name();
 #endif
       R->clearExportToDyn();
     }
@@ -1013,12 +1013,10 @@ void GNULDBackend::sizeDynNamePools() {
   if (!config().getDiagEngine()->diagnose())
     return;
 
-  const DiagnosticPrinter *DP = m_Module.getPrinter();
-
   if (GNUVerSymSection) {
-    if (DP->traceSymbolVersioning())
-      config().raise(Diag::trace_creating_symbol_versioning_fragment)
-          << GNUVerSymSection->name();
+    config().getDiagEngine()->trace(
+        Diag::trace_creating_symbol_versioning_fragment)
+        << GNUVerSymSection->name();
     Fragment *F = make<GNUVerSymFragment>(GNUVerSymSection, DynamicSymbols, 2);
     GNUVerSymSection->addFragmentAndUpdateSize(F);
   }
@@ -1026,9 +1024,9 @@ void GNULDBackend::sizeDynNamePools() {
   DiagnosticEngine *DE = config().getDiagEngine();
 
   if (GNUVerDefSection) {
-    if (DP->traceSymbolVersioning())
-      config().raise(Diag::trace_creating_symbol_versioning_fragment)
-          << GNUVerDefSection->name();
+    config().getDiagEngine()->trace(
+        Diag::trace_creating_symbol_versioning_fragment)
+        << GNUVerDefSection->name();
     GNUVerDefFragment *F =
         make<GNUVerDefFragment>(GNUVerDefSection, sizeof(uint32_t));
     bool is32Bits = config().targets().is32Bits();
@@ -1044,9 +1042,9 @@ void GNULDBackend::sizeDynNamePools() {
   }
 
   if (GNUVerNeedSection) {
-    if (DP->traceSymbolVersioning())
-      config().raise(Diag::trace_creating_symbol_versioning_fragment)
-          << GNUVerNeedSection->name();
+    config().getDiagEngine()->trace(
+        Diag::trace_creating_symbol_versioning_fragment)
+        << GNUVerNeedSection->name();
     GNUVerNeedFragment *F =
         make<GNUVerNeedFragment>(GNUVerNeedSection, sizeof(uint32_t));
     bool is32Bits = config().targets().is32Bits();
@@ -1804,7 +1802,7 @@ void GNULDBackend::traceGOTCreation(GOT::GOTType T,
     return;
   if ((config().options().isSymbolTracingRequested() &&
        config().options().traceSymbol(*R)) ||
-      m_Module.getPrinter()->traceDynamicLinking())
+      config().getDiagEngine()->hasTrace(TraceDynamicLinking))
     config().raise(Diag::create_got_entry)
         << GOT::getGOTTypeAsStr(T) << R->name();
 }
@@ -1814,7 +1812,7 @@ void GNULDBackend::tracePLTCreation(const ResolveInfo *R) const {
     return;
   if ((config().options().isSymbolTracingRequested() &&
        config().options().traceSymbol(*R)) ||
-      m_Module.getPrinter()->traceDynamicLinking())
+      config().getDiagEngine()->hasTrace(TraceDynamicLinking))
     config().raise(Diag::create_plt_entry) << R->name();
 }
 
@@ -2037,11 +2035,10 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out) {
   dotSymbol->setValue(OutSection->addr());
   LDSymbol::ValueType InitialDotValue = OutSection->addr();
 
-  if (m_Module.getPrinter()->traceAssignments())
-    config().raise(Diag::trace_output_section_addr)
-        << (out->name().empty() ? "<nullptr>" : out->name())
-        << utility::toHex(static_cast<uint64_t>(OutSection->addr()))
-        << utility::toHex(static_cast<uint64_t>(OutSection->pAddr()));
+  config().getDiagEngine()->trace(Diag::trace_output_section_addr)
+      << (out->name().empty() ? "<nullptr>" : out->name())
+      << utility::toHex(static_cast<uint64_t>(OutSection->addr()))
+      << utility::toHex(static_cast<uint64_t>(OutSection->pAddr()));
 
   uint64_t offset = 0;
 
@@ -2177,7 +2174,7 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out) {
   if (!OutSection->isAlloc())
     dotSymbol->setValue(InitialDotValue);
 
-  if (!(m_Module.getPrinter()->traceAssignments()))
+  if (!config().getDiagEngine()->hasTrace(TraceAssignments))
     return;
 
   config().raise(Diag::output_section_fill)
@@ -2197,9 +2194,8 @@ void GNULDBackend::evaluatePostOutputSectionAssignments(
     OutputSectionEntry *out) {
   eld::RegisterTimer T("Evaluate Expressions", "Establish Layout",
                        m_Module.getConfig().options().printTimingStats());
-  if (m_Module.getPrinter()->traceAssignments())
-    config().raise(Diag::output_section_eval)
-        << (out->name().empty() ? "<nullptr>" : out->name()) << "\n";
+  config().getDiagEngine()->trace(Diag::output_section_eval)
+      << (out->name().empty() ? "<nullptr>" : out->name()) << "\n";
   for (auto *assign : out->getPostOutputSectionAssignments()) {
     // We do not need to evaluate PROVIDE expressions for PROVIDE
     // symbols that are not being used in the link.
@@ -2785,13 +2781,13 @@ bool GNULDBackend::checkCrossReferences() {
                        m_Module.getConfig().options().printTimingStats());
   if (config().options().numThreads() <= 1 ||
       !config().isCheckCrossRefsMultiThreaded()) {
-    if (m_Module.getPrinter()->traceThreads())
+    if (config().getDiagEngine()->hasTrace(TraceThreads))
       config().raise(Diag::threads_disabled) << "CheckCrossRefs";
     for (auto &input : m_Module.getObjectList()) {
       checkCrossReferencesHelper(input);
     }
   } else {
-    if (m_Module.getPrinter()->traceThreads())
+    if (config().getDiagEngine()->hasTrace(TraceThreads))
       config().raise(Diag::threads_enabled)
           << "CheckCrossRefs" << config().options().numThreads();
     eld::plugin::ThreadPool *Pool = m_Module.getThreadPool();
@@ -4950,7 +4946,7 @@ LDSymbol *GNULDBackend::canProvideSymbol(llvm::StringRef symName) {
     if (isPSymDef &&
         ((config().options().isSymbolTracingRequested() &&
           config().options().traceSymbol(*(provided_sym->resolveInfo()))) ||
-         m_Module.getPrinter()->traceSymDef()))
+         config().getDiagEngine()->hasTrace(TraceSymDef)))
       config().raise(Diag::note_resolving_from_provide_symdef_file)
           << symName << file->getInput()->decoratedPath();
   }
@@ -5488,10 +5484,9 @@ bool GNULDBackend::setupTLS() {
 
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 void GNULDBackend::initSymbolVersioningSections() {
-  const DiagnosticPrinter *DP = config().getPrinter();
-  if (DP->traceSymbolVersioning())
-    config().raise(Diag::trace_creating_symbol_versioning_section)
-        << ".gnu.version";
+  config().getDiagEngine()->trace(
+      Diag::trace_creating_symbol_versioning_section)
+      << ".gnu.version";
   GNUVerSymSection = m_Module.createInternalSection(
       Module::InternalInputType::SymbolVersioning,
       LinkerSectionKind::SymbolVersion, ".gnu.version",
@@ -5500,9 +5495,9 @@ void GNULDBackend::initSymbolVersioningSections() {
       /*EntrySize=*/2);
 
   // Add .gnu.version_d section creation
-  if (DP->traceSymbolVersioning())
-    config().raise(Diag::trace_creating_symbol_versioning_section)
-        << ".gnu.version_d";
+  config().getDiagEngine()->trace(
+      Diag::trace_creating_symbol_versioning_section)
+      << ".gnu.version_d";
   GNUVerDefSection = m_Module.createInternalSection(
       Module::InternalInputType::SymbolVersioning,
       LinkerSectionKind::SymbolVersion, ".gnu.version_d",
@@ -5510,9 +5505,9 @@ void GNULDBackend::initSymbolVersioningSections() {
       /*Align=*/sizeof(uint32_t));
   GNUVerDefSection->setLink(m_pDynStrSection);
 
-  if (DP->traceSymbolVersioning())
-    config().raise(Diag::trace_creating_symbol_versioning_section)
-        << ".gnu.version_r";
+  config().getDiagEngine()->trace(
+      Diag::trace_creating_symbol_versioning_section)
+      << ".gnu.version_r";
   GNUVerNeedSection = m_Module.createInternalSection(
       Module::InternalInputType::SymbolVersioning,
       LinkerSectionKind::SymbolVersion, ".gnu.version_r",
@@ -5548,10 +5543,7 @@ std::string GNULDBackend::getSymbolTableName(const ResolveInfo &R) const {
 }
 
 void GNULDBackend::assignOutputVersionIDs() {
-  bool shouldTraceSymbolVersioning =
-      m_Module.getPrinter()->traceSymbolVersioning();
-  if (shouldTraceSymbolVersioning)
-    config().raise(Diag::trace_assign_output_version_ids);
+  config().getDiagEngine()->trace(Diag::trace_assign_output_version_ids);
   if (DynamicSymbols.empty())
     return;
   // 0 and 1 are reserved!
@@ -5570,17 +5562,15 @@ void GNULDBackend::assignOutputVersionIDs() {
   uint16_t defaultVersionID = llvm::ELF::VER_NDX_GLOBAL;
 
   setSymbolVersionID(DynamicSymbols[0], llvm::ELF::VER_NDX_LOCAL);
-  if (shouldTraceSymbolVersioning)
-    config().raise(Diag::trace_symbol_to_output_version_id)
-        << DynamicSymbols[0]->name() << llvm::ELF::VER_NDX_LOCAL;
+  config().getDiagEngine()->trace(Diag::trace_symbol_to_output_version_id)
+      << DynamicSymbols[0]->name() << llvm::ELF::VER_NDX_LOCAL;
   // First, assign default version to any symbol without an explicit one.
   for (std::size_t i = 1, e = DynamicSymbols.size(); i < e; ++i) {
     ResolveInfo *R = DynamicSymbols[i];
     if (!getSymbolVersionID(R)) {
       setSymbolVersionID(R, defaultVersionID);
-      if (shouldTraceSymbolVersioning)
-        config().raise(Diag::trace_symbol_to_output_version_id)
-            << R->name() << defaultVersionID;
+      config().getDiagEngine()->trace(Diag::trace_symbol_to_output_version_id)
+          << R->name() << defaultVersionID;
     }
   }
 
@@ -5619,9 +5609,8 @@ void GNULDBackend::assignOutputVersionIDs() {
     if (!isDefaultVersionSymbol)
       VernID |= llvm::ELF::VERSYM_HIDDEN;
     setSymbolVersionID(R, VernID);
-    if (shouldTraceSymbolVersioning)
-      config().raise(Diag::trace_symbol_to_output_version_id)
-          << R->name() << (VernID & ~llvm::ELF::VERSYM_HIDDEN);
+    config().getDiagEngine()->trace(Diag::trace_symbol_to_output_version_id)
+        << R->name() << (VernID & ~llvm::ELF::VERSYM_HIDDEN);
   }
 
   for (std::size_t i = 1, e = DynamicSymbols.size(); i < e; ++i) {
@@ -5647,9 +5636,8 @@ void GNULDBackend::assignOutputVersionIDs() {
       DynObjFile->setOutputVernAuxID(InputVersionID, VernAuxID);
     }
     setSymbolVersionID(R, VernAuxID);
-    if (shouldTraceSymbolVersioning)
-      config().raise(Diag::trace_symbol_to_output_version_id)
-          << R->name() << VernAuxID;
+    config().getDiagEngine()->trace(Diag::trace_symbol_to_output_version_id)
+        << R->name() << VernAuxID;
   }
 }
 #endif

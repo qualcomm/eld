@@ -510,7 +510,7 @@ void ELFDynamic::emit(const ELFSection &pSection, MemoryRegion &pRegion) const {
 }
 
 void ELFDynamic::applySoname(uint64_t pStrTabIdx) {
-  if (m_Config.getPrinter()->traceDynamicLinking())
-    m_Config.raise(Diag::trace_set_soname) << m_Config.options().soname();
+  m_Config.getDiagEngine()->trace(Diag::trace_set_soname)
+      << m_Config.options().soname();
   applyOne(llvm::ELF::DT_SONAME, pStrTabIdx); // DT_SONAME
 }

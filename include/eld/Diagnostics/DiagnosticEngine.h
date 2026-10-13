@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 #ifndef ELD_DIAGNOSTICS_DIAGNOSTICENGINE_H
 #define ELD_DIAGNOSTICS_DIAGNOSTICENGINE_H
+#include "eld/Diagnostics/Trace.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/DataTypes.h"
@@ -54,6 +55,7 @@ class Input;
 class LinkerConfig;
 class MsgHandler;
 class Plugin;
+class TraceConfig;
 
 using DiagnosticEntry = plugin::DiagnosticEntry;
 
@@ -137,6 +139,22 @@ public:
 
   // report - issue the message to the printer
   MsgHandler raise(DiagIDType PId);
+
+  MsgHandler trace(DiagIDType ID);
+
+  MsgHandler trace(DiagIDType ID, llvm::StringRef Key);
+
+  void enableTrace(TraceCategory Category);
+
+  void addTraceFilter(TraceCategory Category, llvm::StringRef Pattern);
+
+  bool hasTrace(TraceMask Mask) const { return ActiveTraceMask & Mask; }
+
+  bool shouldTrace(TraceMask Mask) const;
+
+  bool shouldTrace(TraceMask Mask, llvm::StringRef Key) const;
+
+  TraceMask traceMask() const { return ActiveTraceMask; }
 
   /// Raise a plugin diagnostic.
   /// Plugin diagnostic function has two differences from the already
@@ -276,6 +294,8 @@ private:
 private:
   DiagnosticPrinter *Printer = nullptr;
   std::unique_ptr<DiagnosticInfos> InfoMap;
+  std::unique_ptr<TraceConfig> TraceConfigData;
+  TraceMask ActiveTraceMask = TraceNone;
   State State;
   mutable std::timed_mutex Mutex;
 
@@ -292,6 +312,8 @@ class Diag {
 
 public:
 #define DIAG(diagName, severity, formatStr)                                    \
+  static const DiagnosticEngine::DiagIDType diagName;
+#define TRACE_DIAG(diagName, formatStr, categories)                            \
   static const DiagnosticEngine::DiagIDType diagName;
 
 // clang-format on
@@ -316,6 +338,7 @@ public:
 #include "eld/Diagnostics/DiagVerbose.inc"
 #include "eld/Diagnostics/DiagWriters.inc"
 #include "eld/Diagnostics/PluginDiags.inc"
+#undef TRACE_DIAG
 #undef DIAG
   static DiagnosticEngine::DiagIDType const NumOfBuildinDiagnosticInfo;
 }; // struct diag

@@ -227,9 +227,9 @@ eld::Expected<void> DynamicELFReader<ELFT>::readVerDefSection() {
       llvm::cast<ELFDynObjectFile>(&this->m_InputFile);
   const ELFSection *S = DynObjFile->getVerDefSection();
 
-  if (this->m_Module.getPrinter()->traceSymbolVersioning())
-    this->m_Module.getConfig().raise(Diag::trace_reading_symbol_versioning_section)
-        << this->m_InputFile.getInput()->decoratedPath() << S->name();
+  this->m_Module.getConfig().getDiagEngine()->trace(
+      Diag::trace_reading_symbol_versioning_section)
+      << this->m_InputFile.getInput()->decoratedPath() << S->name();
 
   ASSERT(S->getType() == llvm::ELF::SHT_GNU_verdef,
          "S must be SHT_GNU_verdef section");
@@ -254,9 +254,9 @@ eld::Expected<void> DynamicELFReader<ELFT>::readVerNeedSection() {
       llvm::cast<ELFDynObjectFile>(&this->m_InputFile);
   const ELFSection *S = DynObjFile->getVerNeedSection();
 
-  if (this->m_Module.getPrinter()->traceSymbolVersioning())
-    this->m_Module.getConfig().raise(Diag::trace_reading_symbol_versioning_section)
-        << this->m_InputFile.getInput()->decoratedPath() << S->name();
+  this->m_Module.getConfig().getDiagEngine()->trace(
+      Diag::trace_reading_symbol_versioning_section)
+      << this->m_InputFile.getInput()->decoratedPath() << S->name();
 
   ASSERT(S->getType() == llvm::ELF::SHT_GNU_verneed,
          "S must be SHT_GNU_verneed section");
@@ -289,9 +289,9 @@ eld::Expected<void> DynamicELFReader<ELFT>::readVerSymSection() {
       llvm::cast<ELFDynObjectFile>(&this->m_InputFile);
   const ELFSection *S = DynObjFile->getVerSymSection();
 
-  if (this->m_Module.getPrinter()->traceSymbolVersioning())
-    this->m_Module.getConfig().raise(Diag::trace_reading_symbol_versioning_section)
-        << this->m_InputFile.getInput()->decoratedPath() << S->name();
+  this->m_Module.getConfig().getDiagEngine()->trace(
+      Diag::trace_reading_symbol_versioning_section)
+      << this->m_InputFile.getInput()->decoratedPath() << S->name();
 
   ASSERT(S->getType() == llvm::ELF::SHT_GNU_versym,
          "S must be SHT_GNU_versym section");

@@ -528,8 +528,8 @@ void Plugin::callInitHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T("Init", ThisModule.saveString(UserPluginHandle->GetName()),
                   Stats);
-  if (isTraced())
-    ThisConfig.raise(Diag::trace_plugin_init) << getPluginName();
+  ThisConfig.getDiagEngine()->trace(Diag::trace_plugin_init, getPluginType())
+      << getPluginName();
   P->Init(PluginOptions);
 }
 
@@ -537,22 +537,22 @@ void Plugin::callDestroyHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T("Destroy", ThisModule.saveString(UserPluginHandle->GetName()),
                   Stats);
-  if (isTraced())
-    ThisConfig.raise(Diag::trace_plugin_destroy) << getPluginName();
+  ThisConfig.getDiagEngine()->trace(Diag::trace_plugin_destroy, getPluginType())
+      << getPluginName();
   P->Destroy();
 }
 
 void Plugin::registerCommandLineOption(
     const std::string &Option, bool HasValue,
     const CommandLineOptionSpec::OptionHandlerType &OptionHandler) {
-  if (isTraced()) {
-    if (HasValue)
-      ThisConfig.raise(Diag::trace_plugin_register_opt_with_val)
-          << getPluginName() << Option;
-    else
-      ThisConfig.raise(Diag::trace_plugin_register_opt_without_val)
-          << getPluginName() << Option;
-  }
+  if (HasValue)
+    ThisConfig.getDiagEngine()->trace(Diag::trace_plugin_register_opt_with_val,
+                                      getPluginType())
+        << getPluginName() << Option;
+  else
+    ThisConfig.getDiagEngine()->trace(
+        Diag::trace_plugin_register_opt_without_val, getPluginType())
+        << getPluginName() << Option;
   PluginCommandLineOptions.push_back({Option, HasValue, OptionHandler});
 }
 
@@ -574,9 +574,9 @@ void Plugin::callVisitSectionsHook(InputFile &IF) {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T("VisitSections",
                   ThisModule.saveString(UserPluginHandle->GetName()), Stats);
-  if (isTraced())
-    ThisConfig.raise(Diag::trace_plugin_visit_sections)
-        << getPluginName() << IF.getInput()->decoratedPath();
+  ThisConfig.getDiagEngine()->trace(Diag::trace_plugin_visit_sections,
+                                    getPluginType())
+      << getPluginName() << IF.getInput()->decoratedPath();
   P->VisitSections(plugin::InputFile(&IF));
 }
 
@@ -585,9 +585,9 @@ void Plugin::callVisitSymbolHook(LDSymbol *Sym, llvm::StringRef SymName,
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T("VisitSymbol",
                   ThisModule.saveString(UserPluginHandle->GetName()), Stats);
-  if (isTraced())
-    ThisConfig.raise(Diag::trace_plugin_visit_symbol)
-        << getPluginName() << SymName;
+  ThisConfig.getDiagEngine()->trace(Diag::trace_plugin_visit_symbol,
+                                    getPluginType())
+      << getPluginName() << SymName;
   std::unique_ptr<SymbolInfo> UpSymInfo = std::make_unique<SymbolInfo>(SymInfo);
   P->VisitSymbol(
       plugin::InputSymbol(Sym, std::string_view(SymName.data(), SymName.size()),
@@ -599,8 +599,8 @@ void Plugin::callActBeforeRuleMatchingHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),
                   Stats);
-  if (isTraced())
-    ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
+  ThisConfig.getDiagEngine()->trace(Diag::trace_plugin_hook, getPluginType())
+      << getPluginName() << HookName;
   P->ActBeforeRuleMatching();
 }
 
@@ -609,8 +609,8 @@ void Plugin::callActBeforeSectionMergingHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),
                   Stats);
-  if (isTraced())
-    ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
+  ThisConfig.getDiagEngine()->trace(Diag::trace_plugin_hook, getPluginType())
+      << getPluginName() << HookName;
   P->ActBeforeSectionMerging();
 }
 
@@ -619,8 +619,8 @@ void Plugin::callActBeforePerformingLayoutHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),
                   Stats);
-  if (isTraced())
-    ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
+  ThisConfig.getDiagEngine()->trace(Diag::trace_plugin_hook, getPluginType())
+      << getPluginName() << HookName;
   P->ActBeforePerformingLayout();
 }
 
@@ -629,8 +629,8 @@ void Plugin::callActBeforeWritingOutputHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),
                   Stats);
-  if (isTraced())
-    ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
+  ThisConfig.getDiagEngine()->trace(Diag::trace_plugin_hook, getPluginType())
+      << getPluginName() << HookName;
   P->ActBeforeWritingOutput();
 }
 

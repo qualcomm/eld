@@ -81,7 +81,7 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
   if (!ThisConfig.options().renameMap().empty()) {
     auto RenameSym = ThisConfig.options().renameMap().find(SymbolName);
     if (ThisConfig.options().renameMap().end() != RenameSym) {
-      bool TraceWrap = ThisModule.getPrinter()->traceWrapSymbols();
+      bool TraceWrap = ThisConfig.getDiagEngine()->hasTrace(eld::TraceWrap);
       // If the renameMap is not empty, some symbols should be renamed.
       // --wrap and --portable defines the symbol rename map.
       if (ResolveInfo::Undefined == Desc && (!EObj || !EObj->isLTOObject())) {
@@ -271,10 +271,9 @@ LDSymbol *IRBuilder::addSymbolFromObject(
         ResolvedResult.Info->setOutSymbol(SharedLibSym);
     }
 
-    if (ThisModule.getPrinter()->traceSymbols())
-      ThisConfig.raise(Diag::obj_symbol_created)
-          << InputSym->name() << InputSym->sectionIndex()
-          << InputSym->resolveInfo()->infoAsString();
+    ThisConfig.getDiagEngine()->trace(Diag::obj_symbol_created)
+        << InputSym->name() << InputSym->sectionIndex()
+        << InputSym->resolveInfo()->infoAsString();
     return InputSym;
   };
 
@@ -325,9 +324,8 @@ LDSymbol *IRBuilder::addSymbolFromObject(
     if (NonCanonicalSym && CanonicalSym)
       VersionedSymbols.push_back({CanonicalSym, NonCanonicalSym});
 
-    if (ThisModule.getPrinter()->traceSymbolVersioning())
-      ThisConfig.raise(Diag::trace_object_versioned_symbol)
-          << SymbolName << Input.getInput()->decoratedPath();
+    ThisConfig.getDiagEngine()->trace(Diag::trace_object_versioned_symbol)
+        << SymbolName << Input.getInput()->decoratedPath();
 
     return CanonicalSym;
   }

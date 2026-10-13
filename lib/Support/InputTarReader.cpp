@@ -260,14 +260,14 @@ InputTarReader::findFile(llvm::StringRef TarData, llvm::StringRef FileName) {
 eld::Expected<void> InputTarReader::traceEntryNames(llvm::StringRef TarData,
                                                     LinkerConfig &Config) {
   // Keep this cheap in normal links; only walk tar entries when trace=untar.
-  if (!Config.getPrinter()->traceUntar())
+  if (!Config.getDiagEngine()->hasTrace(TraceUntar))
     return {};
 
   auto NamesOrErr = listEntryNames(TarData);
   if (!NamesOrErr)
     return std::move(NamesOrErr.error());
   for (const auto &Name : *NamesOrErr)
-    Config.raise(Diag::trace_untar_entry) << Name;
+    Config.getDiagEngine()->trace(Diag::trace_untar_entry) << Name;
   return {};
 }
 

@@ -30,7 +30,6 @@ eld::Expected<void> GNUVerNeedFragment::computeVersionNeeds(
     DiagnosticEngine &DE) {
   VerNeedEntrySize = sizeof(typename ELFT::Verneed);
   VernAuxEntrySize = sizeof(typename ELFT::Vernaux);
-  bool traceSV = DE.getPrinter()->traceSymbolVersioning();
   for (auto *IF : DynamicObjectFiles) {
     auto *DynObjFile = llvm::cast<ELFDynObjectFile>(IF);
     const auto &VernAuxIDMap = DynObjFile->getOutputVernAuxIDMap();
@@ -46,9 +45,8 @@ eld::Expected<void> GNUVerNeedFragment::computeVersionNeeds(
       VernAuxInfo AuxInfo = {
           static_cast<uint32_t>(DynStr->addString(VerName.str())),
           VernAuxIDMap[i], verdef->vd_hash};
-      if (traceSV)
-        DE.raise(Diag::trace_adding_verneed_entry)
-            << VernAuxIDMap[i] << VerName.str();
+      DE.trace(Diag::trace_adding_verneed_entry)
+          << VernAuxIDMap[i] << VerName.str();
       VNI.Vernauxs.push_back(AuxInfo);
     }
     if (!VNI.Vernauxs.empty())

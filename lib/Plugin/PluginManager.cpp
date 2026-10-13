@@ -111,8 +111,8 @@ bool PluginManager::callVisitSymbolHook(LDSymbol *Sym, llvm::StringRef SymName,
 
 void PluginManager::addSymbolVisitor(eld::Plugin *P) {
   SymbolVisitors.insert(P);
-  if (P->isTraced())
-    DE.raise(Diag::trace_plugin_enable_visit_symbol) << P->getPluginName();
+  DE.trace(Diag::trace_plugin_enable_visit_symbol, P->getPluginType())
+      << P->getPluginName();
 }
 
 bool PluginManager::callActBeforeSectionMergingHook() {
@@ -127,7 +127,8 @@ bool PluginManager::callActBeforeSectionMergingHook() {
 
 void PluginManager::enableShowRMSectNameInDiag(LinkerConfig &Config,
                                                const eld::Plugin &P) {
-  DE.raise(Diag::trace_show_RM_sect_name_in_diag) << P.getPluginName();
+  DE.trace(Diag::trace_show_RM_sect_name_in_diag, P.getPluginType())
+      << P.getPluginName();
   Config.options().enableShowRMSectNameInDiag();
 }
 
@@ -136,9 +137,8 @@ void PluginManager::setAuxiliarySymbolNameMap(
     const ObjectFile::AuxiliarySymbolNameMap &AuxSymNameMap, const Plugin *P) {
   ObjFile->setAuxiliarySymbolNameMap(AuxSymNameMap);
   AuxSymNameMapProvider[ObjFile] = P;
-  if (P->isTraced())
-    DE.raise(Diag::trace_set_aux_sym_name_map)
-        << P->getPluginName() << ObjFile->getInput()->decoratedPath();
+  DE.trace(Diag::trace_set_aux_sym_name_map, P->getPluginType())
+      << P->getPluginName() << ObjFile->getInput()->decoratedPath();
 }
 
 bool PluginManager::callActBeforePerformingLayoutHook() {
