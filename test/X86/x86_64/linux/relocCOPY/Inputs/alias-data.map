@@ -1,0 +1,1 @@
+V1 { global: foo_v1; foo_v2; lib_*; local: *; };

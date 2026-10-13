@@ -1,0 +1,29 @@
+UNSUPPORTED: ndk-build
+#---CopyRelocGlobalAliases.test-----------Copy Relocations-------------------#
+#BEGIN_COMMENT
+# Target-independent part of #2145: a non-PIC object references one of two
+# GLOBAL aliases defined by a shared library. The link must emit a single COPY
+# relocation for the alias group and define both aliases at the same address
+# in the dynamic symbol table of the output.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/lib.c -o %t1.lib.o
+RUN: %link %linkopts -shared %t1.lib.o -o %t1.lib.so
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/main.c -o %t1.main.o
+RUN: %link %linkopts %t1.main.o -Bdynamic %t1.lib.so -o %t1.out
+RUN: %readelf -r %t1.out | %filecheck %s --check-prefix=RELOC
+RUN: %nm -D --defined-only %t1.out | %filecheck %s --check-prefix=SYMS
+# Count the two dynamic symbol names without assuming target architecture.
+RUN: %nm -D --defined-only %t1.out | %python -c "import sys; rows=[s.split() for s in sys.stdin if s.split()]; print(*[sum(row[-1]==name for row in rows) for name in ('foo_v1', 'foo_v2')])" | %filecheck %s --check-prefix=NUMSYM
+RUN: %readelf -r %t1.out | %python -c "import re,sys; print(sum(bool(re.search(r'R_[A-Za-z0-9_]+_COPY\b',line)) for line in sys.stdin))" | %filecheck %s --check-prefix=NUMCOPY
+#END_TEST
+
+RELOC: {{R_[A-Z0-9_]+_COPY}}
+RELOC-NOT: {{R_[A-Z0-9_]+_COPY}}
+
+SYMS: [[ADDR:[0-9a-f]+]] {{[BbDd]}} foo_v1
+SYMS-NEXT: [[ADDR]] {{[BbDd]}} foo_v2
+
+NUMSYM: {{^1 1$}}
+
+NUMCOPY: {{^1$}}

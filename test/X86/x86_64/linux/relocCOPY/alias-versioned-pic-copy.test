@@ -1,0 +1,13 @@
+REQUIRES: symbol_versioning, linux
+# A PIC object's GLOB_DAT for environ must remain resolvable when a non-PIC
+# object also triggers a COPY for glibc's default-versioned environ alias.
+RUN: %clang %clangopts -fPIC -O0 -c %p/Inputs/alias-versioned-pic.c -o %t.pic.o
+RUN: %clang %clangopts -fno-pic -fno-pie -O0 -c %p/Inputs/alias-versioned-mix-main.c -o %t.main.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.pic.o %t.main.o -ldl -o %t.out
+RUN: %readelf -Wr %t.out | %filecheck %s --check-prefix=GLOB
+RUN: %readelf -Wr %t.out | grep -c 'R_X86_64_COPY' | %filecheck %s --check-prefix=COUNT
+RUN: %run_and_print_exit %t.out | %filecheck %s --check-prefix=EXEC
+GLOB: R_X86_64_GLOB_DAT {{.*}}environ@GLIBC_
+COUNT: {{^1$}}
+EXEC: PASSED
+EXEC-NEXT: {{^}}0

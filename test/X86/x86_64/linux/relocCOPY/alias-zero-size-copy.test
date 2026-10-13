@@ -1,0 +1,14 @@
+REQUIRES: linux
+# A zero-sized OBJECT alias of payload must resolve to the same executable
+# COPY storage and be visible in the dynamic symbol table. Merely copying
+# payload's 4 bytes is not enough: DSO GOT references must also preempt.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/alias-zero-size-lib.s -o %t.lib.o
+RUN: %link %linkopts -shared %t.lib.o -o %t.lib.so
+RUN: %clang %clangopts -O0 -fno-pic -fno-pie -c %p/Inputs/alias-zero-size-main.c -o %t.main.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.main.o %t.lib.so -Wl,-rpath,$ORIGIN -o %t.out
+RUN: %readelf -Wr %t.out | grep -c R_X86_64_COPY | %filecheck %s --check-prefix=COUNT
+RUN: %readelf --dyn-syms --wide %t.out | grep -E '(payload|empty_alias)' | %filecheck %s --check-prefix=DYNSYM
+RUN: %t.out
+COUNT: {{^1$}}
+DYNSYM-DAG: 4 OBJECT{{.*}} payload
+DYNSYM-DAG: 0 OBJECT{{.*}} empty_alias

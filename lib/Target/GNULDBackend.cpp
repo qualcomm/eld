@@ -4400,47 +4400,17 @@ void GNULDBackend::mayWarnSection(ELFSection *sect) const {
 /// defineSymbolforCopyReloc
 /// For a symbol needing copy relocation, define a copy symbol in the BSS
 /// section and all other reference to this symbol should refer to this
-/// copy.
+/// copy. \p pSym owns the storage and \p origSym is the symbol whose
+/// relocation requested the copy; aliases sharing the copy are defined by
+/// the caller.
 /// @note This is executed at `scan relocation' stage.
 LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
                                                  ResolveInfo *pSym,
                                                  ResolveInfo *origSym) {
 
   LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
-  ResolveInfo *curSym = pSym;
-  ResolveInfo *aliasSym = pSym->alias();
-
   eld::RegisterTimer T("Define Symbol for COPY Reloc", "Perform Layout",
                        m_Module.getConfig().options().printTimingStats());
-  // If the alias symbol and the aliasee are from different input files,
-  // they are not really aliases.
-  if (aliasSym && (aliasSym->resolvedOrigin() != curSym->resolvedOrigin())) {
-    aliasSym = nullptr;
-    pSym->setAlias(nullptr);
-  }
-
-  // If the alias has a fragment already, just use the fragment from the alias
-  // symbol.
-  if (aliasSym && aliasSym->outSymbol() &&
-      aliasSym->outSymbol()->hasFragRef()) {
-    LDSymbol *cpy_sym =
-        pBuilder.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-            pSym->resolvedOrigin(), pSym->name(),
-            (ResolveInfo::Type)pSym->type(), ResolveInfo::Define,
-            ResolveInfo::Global,
-            pSym->size(), // size
-            0x0,          // value
-            aliasSym->outSymbol()->fragRef(),
-            (ResolveInfo::Visibility)pSym->other());
-    cpy_sym->setShouldIgnore(false);
-    return *cpy_sym;
-  }
-
-  // If the alias symbol doesn't have a fragment, first create a fragment for
-  // the alias.
-  if (aliasSym && aliasSym->outSymbol() && !aliasSym->outSymbol()->hasFragRef())
-    pSym = aliasSym;
-
   // Create a unique section for each copy relocation symbol.
   ELFSection *copyRelocSect = m_Module.createInternalSection(
       Module::InternalInputType::CopyRelocSymbols, LinkerSectionKind::Internal,
@@ -4478,21 +4448,6 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
       make<FragmentRef>(*frag, 0x0), (ResolveInfo::Visibility)pSym->other());
 
   cpy_sym->setShouldIgnore(false);
-
-  if ((curSym != pSym) && aliasSym && aliasSym->outSymbol() &&
-      aliasSym->outSymbol()->hasFragRef()) {
-    LDSymbol *new_cur_sym =
-        pBuilder.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-            curSym->resolvedOrigin(), curSym->name(),
-            (ResolveInfo::Type)curSym->type(), ResolveInfo::Define,
-            ResolveInfo::Global,
-            curSym->size(), // size
-            0x0,            // value
-            aliasSym->outSymbol()->fragRef(),
-            (ResolveInfo::Visibility)curSym->other());
-    new_cur_sym->setShouldIgnore(false);
-    return *new_cur_sym;
-  }
   return *cpy_sym;
 }
 
