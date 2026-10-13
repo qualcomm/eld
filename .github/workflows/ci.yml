@@ -1,5 +1,5 @@
 name: CI
-run-name: "CI PR #${{ inputs.pr_number || github.event.pull_request.number }} @${{ inputs.pr_sha || 'unknown' }} (${{ inputs.request_id || 'automatic' }})"
+run-name: "CI PR #${{ inputs.pr_number || github.event.pull_request.number || 'automatic' }} @${{ inputs.pr_sha || 'unknown' }} (${{ inputs.request_id || 'automatic' }})"
 
 on:
   pull_request:
@@ -26,32 +26,39 @@ on:
       - '.github/workflows/update-build-dashboard-data.yml'
       - '.github/workflows/scripts/record_builds.py'
       - '.github/workflows/BuildStatusDataRecorder/action.yaml'
+      - '.github/workflows/pr-comment-router.yml'
       - '.github/workflows/clang-format-pr.yml'
       - '.github/workflows/cpp-linter-pr.yml'
       - '.github/workflows/new-pr.yml'
       - '.github/pr-labeler.yml'
       - 'etc/**/*.sh'
       - '**/configure_external_llvm.sh'
-  workflow_dispatch:
+  workflow_call:
     inputs:
       pr_number:
         description: "PR number to build"
         required: true
-        type: number
+        type: string
       request_id:
         description: "Optional request ID used to correlate an external workflow dispatch"
-        required: false
+        required: true
         type: string
       pr_sha:
         description: "PR head SHA used to identify reusable toolset artifacts"
-        required: false
+        required: true
         type: string
       skip_tests:
         description: "Build and package the PR toolset without running CI tests"
         required: false
         default: false
         type: boolean
-
+    outputs:
+      artifact_name:
+        description: "Name of the uploaded PR ELD toolset artifact"
+        value: ${{ jobs.build.outputs.artifact_name }}
+      artifact_run_id:
+        description: "CI workflow run containing the toolset artifact"
+        value: ${{ jobs.build.outputs.artifact_run_id }}
 permissions: {}
 jobs:
   resolve:
@@ -64,12 +71,14 @@ jobs:
       head_ref: ${{ steps.find.outputs.head_ref }}
       head_repo: ${{ steps.find.outputs.head_repo }}
       base_ref: ${{ steps.find.outputs.base_ref }}
+      head_sha: ${{ steps.find.outputs.head_sha }}
     steps:
       - name: Resolve PR
         id: find
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
         env:
           PR_NUMBER: ${{ inputs.pr_number }}
+          REQUESTED_SHA: ${{ inputs.pr_sha }}
         with:
           github-token: ${{ github.token }}
           script: |
@@ -77,7 +86,7 @@ jobs:
             const repo = context.repo.repo;
             let pullRequest;
 
-            if (context.eventName === 'workflow_dispatch') {
+            if (process.env.PR_NUMBER && process.env.REQUESTED_SHA) {
               const prNumber = Number(process.env.PR_NUMBER);
               if (!Number.isInteger(prNumber) || prNumber <= 0) {
                 core.setFailed('A valid pr_number is required.');
@@ -88,6 +97,12 @@ jobs:
                 repo,
                 pull_number: prNumber,
               })).data;
+              if (pullRequest.head.sha !== process.env.REQUESTED_SHA) {
+                core.setFailed(
+                  `PR #${prNumber} moved from ${process.env.REQUESTED_SHA} to ${pullRequest.head.sha}.`
+                );
+                return;
+              }
             } else {
               pullRequest = context.payload.pull_request;
             }
@@ -96,10 +111,14 @@ jobs:
             core.setOutput('head_ref', pullRequest.head.ref);
             core.setOutput('head_repo', pullRequest.head.repo.full_name);
             core.setOutput('base_ref', pullRequest.base.ref);
+            core.setOutput('head_sha', pullRequest.head.sha);
 
   build:
     needs: resolve
     if: needs.resolve.result == 'success'
+    outputs:
+      artifact_name: ${{ (inputs.pr_sha != '' && format('pr-eld-toolset-{0}', needs.resolve.outputs.head_sha)) || 'pr-eld-toolset' }}
+      artifact_run_id: ${{ github.run_id }}
     runs-on: self-hosted
     concurrency:
       group: ${{ github.workflow }}-${{ needs.resolve.outputs.pr_number }}
@@ -249,11 +268,7 @@ jobs:
       # Package the PR-built ld.eld (+ libs) for PR integration workflows.
       # `inst/` layout matches FetchNightlyToolset (~27MB compressed).
       - name: Package PR ELD toolset
-        if: |
-          steps.file-check.outputs.skip_build == 'false' &&
-          (github.event_name == 'workflow_dispatch' ||
-           contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
-           contains(github.event.pull_request.labels.*.name, 'kernel-check'))
+        if: steps.file-check.outputs.skip_build == 'false'
         working-directory: pr-${{ env.PR_NUMBER }}
         shell: bash
         run: |
@@ -271,14 +286,10 @@ jobs:
           XZ_OPT=-T0 tar -Jcf install-pr-toolset.tar.xz inst
 
       - name: Upload PR ELD toolset
-        if: |
-          steps.file-check.outputs.skip_build == 'false' &&
-          (github.event_name == 'workflow_dispatch' ||
-           contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
-           contains(github.event.pull_request.labels.*.name, 'kernel-check'))
+        if: steps.file-check.outputs.skip_build == 'false'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
-          name: ${{ github.event_name == 'workflow_dispatch' && format('pr-eld-toolset-{0}', needs.resolve.outputs.pr_number) || 'pr-eld-toolset' }}
+          name: ${{ (inputs.pr_sha != '' && format('pr-eld-toolset-{0}', needs.resolve.outputs.head_sha)) || 'pr-eld-toolset' }}
           # Keep a fallback copy in case the workflow fails before cleanup.
           retention-days: 7
           path: pr-${{ env.PR_NUMBER }}/install-pr-toolset.tar.xz
@@ -286,25 +297,17 @@ jobs:
       # Local action paths must be literal, so copy the PR version to a fixed
       # workspace path before invoking it.
       - name: Stage DeleteOldArtifacts action
-        if: |
-          steps.file-check.outputs.skip_build == 'false' &&
-          (github.event_name == 'workflow_dispatch' ||
-           contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
-           contains(github.event.pull_request.labels.*.name, 'kernel-check'))
+        if: steps.file-check.outputs.skip_build == 'false'
         run: |
           mkdir -p .github/workflows/DeleteOldArtifacts
           cp "pr-${PR_NUMBER}/llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts/action.yaml" .github/workflows/DeleteOldArtifacts/action.yaml
 
       - name: Delete older PR ELD toolsets
-        if: |
-          steps.file-check.outputs.skip_build == 'false' &&
-          (github.event_name == 'workflow_dispatch' ||
-           contains(github.event.pull_request.labels.*.name, 'zephyr-check') ||
-           contains(github.event.pull_request.labels.*.name, 'kernel-check'))
+        if: steps.file-check.outputs.skip_build == 'false'
         continue-on-error: true
         uses: ./.github/workflows/DeleteOldArtifacts
         with:
-          artifact-names: ${{ github.event_name == 'workflow_dispatch' && format('pr-eld-toolset-{0}', needs.resolve.outputs.pr_number) || 'pr-eld-toolset' }}
+          artifact-names: ${{ (inputs.pr_sha != '' && format('pr-eld-toolset-{0}', needs.resolve.outputs.head_sha)) || 'pr-eld-toolset' }}
           pull-request-number: ${{ needs.resolve.outputs.pr_number }}
 
       - name: Clean up
