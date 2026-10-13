@@ -1,0 +1,14 @@
+REQUIRES: symbol_versioning, linux
+# A non-default WEAK mixed@V1 shares DSO storage with GLOBAL mixed@@V2.
+# They must remain separate COPY relocations in the output executable.
+# Build the fixture with ELD to exercise a DSO with both GNU versions.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/alias-weak-version-lib.c -o %t.lib.o
+RUN: %link %linkopts -shared %t.lib.o --version-script=%p/Inputs/alias-weak-version.map -o %t.lib.so
+RUN: %clang %clangopts -O0 -fno-pic -fno-pie -c %p/Inputs/alias-weak-version-main.c -o %t.main.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.main.o %t.lib.so -Wl,-rpath,$ORIGIN -o %t.out
+RUN: %readelf -Wr %t.out | grep 'R_X86_64_COPY' | %filecheck %s --check-prefix=COPY
+RUN: %readelf -Wr %t.out | grep -c 'R_X86_64_COPY' | %filecheck %s --check-prefix=COUNT
+RUN: %t.out
+COPY-DAG: R_X86_64_COPY{{.*}}mixed@V1
+COPY-DAG: R_X86_64_COPY{{.*}}mixed@V2
+COUNT: {{^2$}}

@@ -1,0 +1,41 @@
+#REQUIRES: symbol_versioning
+#UNSUPPORTED: windows, darwin
+#---alias-versioned-copy.test-------------Copy Relocations-------------------#
+#BEGIN_COMMENT
+# Alias groups in a shared library whose symbols carry a default version (V1).
+# A plain reference binds to the unversioned half of `name@@V1`, so the alias
+# handling must work from that half as well.
+# (1) Same shape as glibc's environ/__environ: the library stores through the
+#     GLOBAL vglobal and the executable must see it through the WEAK vweak.
+# (2) The GLOBAL pair from #2145, exported with a version.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/alias-versioned-lib.c -o %t.vlib.o
+RUN: %link %linkopts -shared %t.vlib.o -o %t.libv.so --version-script=%p/Inputs/alias-versioned.map
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/alias-versioned-main.c -o %t.vmain.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.vmain.o %t.libv.so -o %t.v.out
+RUN: %readelf -r %t.v.out | %filecheck %s --check-prefix=VRELOC
+RUN: %readelf --dyn-syms %t.v.out | %filecheck %s --check-prefix=VG
+RUN: %readelf --dyn-syms %t.v.out | %filecheck %s --check-prefix=VW
+RUN: %run_and_print_exit %t.v.out | %filecheck %s --check-prefix=EXEC
+RUN: %clang %clangopts -c -fPIC %p/Inputs/alias-data-lib.c -o %t.dlib.o
+RUN: %link %linkopts -shared %t.dlib.o -o %t.libd.so --version-script=%p/Inputs/alias-data.map
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/alias-libview-main.c -o %t.dmain.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.dmain.o %t.libd.so -o %t.d.out
+RUN: %readelf -r %t.d.out | %filecheck %s --check-prefix=DRELOC
+RUN: %run_and_print_exit %t.d.out | %filecheck %s --check-prefix=EXEC
+#END_TEST
+
+VRELOC: R_X86_64_COPY {{.*}} v{{weak|global}}
+VRELOC-NOT: R_X86_64_COPY
+# Each alias is defined (not UND) exactly once in the executable's .dynsym.
+VG: {{ 4 OBJECT +(GLOBAL|WEAK) +DEFAULT +[0-9]+ vglobal(@.*)?$}}
+VG-NOT: {{ vglobal(@.*)?$}}
+VW: {{ 4 OBJECT +(GLOBAL|WEAK) +DEFAULT +[0-9]+ vweak(@.*)?$}}
+VW-NOT: {{ vweak(@.*)?$}}
+DRELOC: R_X86_64_COPY {{.*}} foo_v{{[12]}}
+DRELOC-NOT: R_X86_64_COPY
+
+EXEC-NOT: FAIL:
+EXEC: PASSED
+EXEC-NEXT: {{^}}0

@@ -1,0 +1,57 @@
+#UNSUPPORTED: windows, darwin
+#---alias-order-copy.test-----------------Copy Relocations-------------------#
+#BEGIN_COMMENT
+# Two members of one alias group are referenced from different objects, so
+# their copy relocations are requested in input order. In either order the
+# group must get exactly one R_X86_64_COPY, the initial value must be copied,
+# and all members must share the copy. Covers a WEAK+GLOBAL pair (the alias
+# path that already existed) and the GLOBAL+GLOBAL pair from #2145.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/alias-weak-lib.c -o %t.weak.o
+RUN: %link %linkopts -shared %t.weak.o -o %t.libweak.so
+RUN: %clang %clangopts -c -fPIC %p/Inputs/alias-data-lib.c -o %t.data.o
+RUN: %link %linkopts -shared %t.data.o -o %t.libdata.so
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/alias-use-w.c -o %t.use-w.o
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/alias-use-s.c -o %t.use-s.o
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/alias-use-v1.c -o %t.use-v1.o
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/alias-use-v2.c -o %t.use-v2.o
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/alias-order-main.c -o %t.order.o
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/alias-pair-main.c -o %t.pair.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.order.o %t.use-w.o %t.use-s.o %t.libweak.so -o %t.ws.out
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.order.o %t.use-s.o %t.use-w.o %t.libweak.so -o %t.sw.out
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.pair.o %t.use-v1.o %t.use-v2.o %t.libdata.so -o %t.12.out
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.pair.o %t.use-v2.o %t.use-v1.o %t.libdata.so -o %t.21.out
+RUN: %readelf -r %t.ws.out | %filecheck %s --check-prefix=WEAK
+RUN: %readelf -r %t.sw.out | %filecheck %s --check-prefix=WEAK
+RUN: %readelf -r %t.12.out | %filecheck %s --check-prefix=PAIR
+RUN: %readelf -r %t.21.out | %filecheck %s --check-prefix=PAIR
+# Check each alias is exported exactly once in both input orders.
+RUN: %nm -D --defined-only %t.ws.out | %python -c "import sys; rows=[s.split() for s in sys.stdin if s.split()]; print(*[sum(row[-1]==name for row in rows) for name in ('w_obj', 's_obj')])" | %filecheck %s --check-prefix=NUMWEAK
+RUN: %nm -D --defined-only %t.sw.out | %python -c "import sys; rows=[s.split() for s in sys.stdin if s.split()]; print(*[sum(row[-1]==name for row in rows) for name in ('w_obj', 's_obj')])" | %filecheck %s --check-prefix=NUMWEAK
+RUN: %nm -D --defined-only %t.12.out | %python -c "import sys; rows=[s.split() for s in sys.stdin if s.split()]; print(*[sum(row[-1]==name for row in rows) for name in ('foo_v1', 'foo_v2')])" | %filecheck %s --check-prefix=NUMPAIR
+RUN: %nm -D --defined-only %t.21.out | %python -c "import sys; rows=[s.split() for s in sys.stdin if s.split()]; print(*[sum(row[-1]==name for row in rows) for name in ('foo_v1', 'foo_v2')])" | %filecheck %s --check-prefix=NUMPAIR
+RUN: %readelf -r %t.ws.out | %python -c "import re,sys; print(sum(bool(re.search(r'R_[A-Za-z0-9_]+_COPY\b',line)) for line in sys.stdin))" | %filecheck %s --check-prefix=NUMCOPY
+RUN: %readelf -r %t.sw.out | %python -c "import re,sys; print(sum(bool(re.search(r'R_[A-Za-z0-9_]+_COPY\b',line)) for line in sys.stdin))" | %filecheck %s --check-prefix=NUMCOPY
+RUN: %readelf -r %t.12.out | %python -c "import re,sys; print(sum(bool(re.search(r'R_[A-Za-z0-9_]+_COPY\b',line)) for line in sys.stdin))" | %filecheck %s --check-prefix=NUMCOPY
+RUN: %readelf -r %t.21.out | %python -c "import re,sys; print(sum(bool(re.search(r'R_[A-Za-z0-9_]+_COPY\b',line)) for line in sys.stdin))" | %filecheck %s --check-prefix=NUMCOPY
+RUN: %run_and_print_exit %t.ws.out | %filecheck %s --check-prefix=EXEC
+RUN: %run_and_print_exit %t.sw.out | %filecheck %s --check-prefix=EXEC
+RUN: %run_and_print_exit %t.12.out | %filecheck %s --check-prefix=EXEC
+RUN: %run_and_print_exit %t.21.out | %filecheck %s --check-prefix=EXEC
+#END_TEST
+
+WEAK: R_X86_64_COPY {{.*}} {{[sw]}}_obj
+WEAK-NOT: R_X86_64_COPY
+PAIR: R_X86_64_COPY {{.*}} foo_v{{[12]}}
+PAIR-NOT: R_X86_64_COPY
+
+EXEC-NOT: FAIL:
+EXEC: PASSED
+EXEC-NEXT: {{^}}0
+
+NUMCOPY: {{^1$}}
+
+NUMWEAK: {{^1 1$}}
+
+NUMPAIR: {{^1 1$}}

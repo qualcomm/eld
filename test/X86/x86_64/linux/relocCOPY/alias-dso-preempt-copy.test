@@ -1,0 +1,30 @@
+#UNSUPPORTED: windows, darwin
+#---alias-dso-preempt-copy.test-----------Copy Relocations-------------------#
+#BEGIN_COMMENT
+# foo_v2 aliases foo_v1 inside libdata, but an earlier library also defines
+# foo_v2, so the name resolves there. Copying foo_v1 must not drag foo_v2 onto
+# the copy: the executable must not define foo_v2, and libdata must keep
+# seeing the earlier definition at run time.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/alias-first-lib.c -o %t.first.o
+RUN: %link %linkopts -shared %t.first.o -o %t.libfirst.so
+RUN: %clang %clangopts -c -fPIC %p/Inputs/alias-data-lib.c -o %t.data.o
+RUN: %link %linkopts -shared %t.data.o -o %t.libdata.so
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/alias-dso-preempt-main.c -o %t.main.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.main.o %t.libfirst.so %t.libdata.so -o %t.out
+RUN: %readelf -r %t.out | %filecheck %s --check-prefix=RELOC
+RUN: %nm -D --defined-only %t.out | %filecheck %s --check-prefix=SYMS
+RUN: %run_and_print_exit %t.out | %filecheck %s --check-prefix=EXEC
+#END_TEST
+
+RELOC: R_X86_64_COPY {{.*}} foo_v1
+RELOC-NOT: R_X86_64_COPY
+
+SYMS-NOT: foo_v2
+SYMS: foo_v1
+SYMS-NOT: foo_v2
+
+EXEC-NOT: FAIL:
+EXEC: PASSED
+EXEC-NEXT: {{^}}0

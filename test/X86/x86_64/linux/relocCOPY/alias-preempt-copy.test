@@ -1,0 +1,18 @@
+#UNSUPPORTED: windows, darwin
+#BEGIN_COMMENT
+# Symbols resolved from different shared libraries must not
+# be grouped as aliases, even when one DSO exports aliases
+# with the same original address.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIC -c %p/Inputs/alias-preempt-lib.c -o %t.over.o
+RUN: %clang %clangopts -fPIC -c %p/Inputs/alias-global-lib.c -o %t.alias.o
+RUN: %link %linkopts -shared -o %t.over.so %t.over.o
+RUN: %link %linkopts -shared -o %t.alias.so %t.alias.o
+RUN: %clang %clangopts -fno-pic -fno-pie -c %p/Inputs/alias-preempt-main.c -o %t.main.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.main.o %t.over.so %t.alias.so -Wl,-rpath,'$ORIGIN' -o %t.out
+RUN: %readelf -r %t.out | grep -c R_X86_64_COPY | %filecheck %s --check-prefix=COPY
+RUN: %run_and_print_exit %t.out | %filecheck %s --check-prefix=EXITCODE
+
+COPY: {{^2$}}
+EXITCODE: 0

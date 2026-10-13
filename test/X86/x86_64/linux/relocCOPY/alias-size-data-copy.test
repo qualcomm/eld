@@ -1,0 +1,35 @@
+#UNSUPPORTED: windows, darwin
+#---alias-size-data-copy.test-------------Copy Relocations-------------------#
+#BEGIN_COMMENT
+# `small` (1 byte) and `big` (8 bytes) start at the same address. The
+# executable only references `small`, but the copy must be as large as the
+# largest alias and the COPY relocation must name it: the dynamic loader
+# copies min(st_size) bytes, so a COPY against `small` leaves `big` truncated
+# for the library.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/alias-size-data-lib.s -o %t.lib.o
+RUN: %link %linkopts -shared %t.lib.o -o %t.lib.so
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/alias-size-data-main.c -o %t.main.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.main.o %t.lib.so -o %t.out
+RUN: %readelf -r %t.out | %filecheck %s --check-prefix=RELOC
+RUN: %readelf --dyn-syms %t.out | %filecheck %s --check-prefix=SYMS
+# Keep both different-sized names unique in .dynsym.
+RUN: %nm -D --defined-only %t.out | %python -c "import sys; rows=[s.split() for s in sys.stdin if s.split()]; print(*[sum(row[-1]==name for row in rows) for name in ('small', 'big')])" | %filecheck %s --check-prefix=NUMSYM
+RUN: %readelf -r %t.out | %python -c "import re,sys; print(sum(bool(re.search(r'R_[A-Za-z0-9_]+_COPY\b',line)) for line in sys.stdin))" | %filecheck %s --check-prefix=NUMCOPY
+RUN: %run_and_print_exit %t.out | %filecheck %s --check-prefix=EXEC
+#END_TEST
+
+RELOC: R_X86_64_COPY {{.*}} big
+RELOC-NOT: R_X86_64_COPY
+
+SYMS-DAG: {{[0-9a-f]+}} 1 OBJECT {{.*}} small
+SYMS-DAG: {{[0-9a-f]+}} 8 OBJECT {{.*}} big
+
+EXEC-NOT: FAIL:
+EXEC: PASSED
+EXEC-NEXT: {{^}}0
+
+NUMSYM: {{^1 1$}}
+
+NUMCOPY: {{^1$}}

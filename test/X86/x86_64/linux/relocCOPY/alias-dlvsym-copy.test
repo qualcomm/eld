@@ -1,0 +1,17 @@
+REQUIRES: symbol_versioning, linux
+# A COPY relocation must export all default-versioned data aliases under
+# their canonical versioned names, including names never referenced by
+# the executable's relocatable inputs. dlvsym must find the executable copy.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/alias-dlvsym-lib.c -o %t.lib.o
+RUN: %link %linkopts -shared -o %t.lib.so %t.lib.o --version-script %p/Inputs/alias-dlvsym.map
+RUN: %clang %clangopts -O0 -fno-pic -fno-pie -c %p/Inputs/alias-dlvsym-main.c -o %t.main.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie -o %t.out %t.main.o %t.lib.so -Wl,-rpath,$ORIGIN -ldl
+RUN: %readelf -Wr %t.out | grep -c R_X86_64_COPY | %filecheck %s --check-prefix=COPY
+RUN: %readelf --dyn-syms --wide %t.out | grep -E 'alias_[ab]' | %filecheck %s --check-prefix=VERSYM
+RUN: %readelf --dyn-syms --wide %t.out | grep -E 'alias_[ab]' | wc -l | %filecheck %s --check-prefix=NUMSYM
+RUN: %t.out
+
+COPY: {{^1$}}
+VERSYM-DAG: alias_a@V1
+VERSYM-DAG: alias_b@V1
+NUMSYM: {{^ *2 *$}}
