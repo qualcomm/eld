@@ -42,8 +42,8 @@ public:
                       ELFSection &pSection, InputFile &pInput,
                       CopyRelocs &) override;
 
-  uint32_t getAddend(const Relocation *R) const override {
-    return R->addend() - m_Target.getPacketOffset(*R);
+  int64_t getAddend(const Relocation *R) const override {
+    return static_cast<int64_t>(R->addend()) - m_Target.getPacketOffset(*R);
   }
 
   /// Merge string relocations are modified to point directly to the string so

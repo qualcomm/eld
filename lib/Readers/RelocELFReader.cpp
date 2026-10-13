@@ -18,6 +18,7 @@
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/Resolver.h"
 #include "eld/Target/GNULDBackend.h"
+#include "eld/Target/Relocator.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/Compression.h"
 #include <cstdint>
@@ -25,6 +26,56 @@
 #include <type_traits>
 
 namespace eld {
+
+static bool checkMergeStringRelocation(GNULDBackend &backend,
+                                       ELFObjectFile &object,
+                                       const ELFSection *linkSection,
+                                       const Relocation &reloc,
+                                       const LDSymbol &symbol) {
+  ELFSection *symbolSection = object.getELFSection(symbol.sectionIndex());
+  if (!symbolSection || !symbolSection->isMergeKind())
+    return true;
+
+  LinkerConfig &config = backend.config();
+  uint64_t sectionSize = symbolSection->size();
+  int64_t relocAddend = backend.getRelocator()->getAddend(&reloc);
+  llvm::errs() << "relocAddend: " << relocAddend << "\n";
+  // We cannot simply do static_cast<uint64_t>(-relocAddend) because
+  // that's an undefined behaviour when relocAddend value is
+  // INT64_MIN.
+  uint64_t relocAddendMagnitude =
+      (relocAddend >= 0 ? relocAddend
+                        : (uint64_t{0} - static_cast<uint64_t>(relocAddend)));
+  uint64_t symbolValue = symbol.value();
+  if (relocAddend < 0 && symbolValue < relocAddendMagnitude) {
+    int64_t targetOffset = static_cast<int64_t>(symbolValue) + relocAddend;
+    config.raise(Diag::error_merge_string_relocation_negative_offset)
+        << linkSection->getLocation(reloc.getOffset(), config.options())
+        << backend.getRelocator()->getName(reloc.type()) << targetOffset
+        << symbolSection->getLocation(0, config.options());
+    return false;
+  }
+
+  uint64_t targetOffset = symbolValue;
+  if (relocAddend > 0) {
+    if (relocAddendMagnitude <= UINT64_MAX - targetOffset)
+      targetOffset += relocAddendMagnitude;
+    else
+      targetOffset = UINT64_MAX;
+  } else if (relocAddend < 0) {
+    targetOffset -= relocAddendMagnitude;
+  }
+
+  if (targetOffset <= sectionSize)
+    return true;
+
+  config.raise(Diag::error_merge_string_relocation_beyond_end)
+      << linkSection->getLocation(reloc.getOffset(), config.options())
+      << backend.getRelocator()->getName(reloc.type()) << targetOffset
+      << symbolSection->getLocation(0, config.options()) << sectionSize;
+  return false;
+}
+
 template <class ELFT>
 RelocELFReader<ELFT>::RelocELFReader(Module &module, InputFile &inputFile,
                                      plugin::DiagnosticEntry &diagEntry)
@@ -371,13 +422,28 @@ RelocELFReader<ELFT>::readRelocationSection(ELFSection *RS) {
         ELFReader<ELFT>::template getRelocationType<isRela>(R);
     typename ELFReader<ELFT>::intX_t rAddend = ELFReader<ELFT>::getAddend(R);
 
+    // FIXME: We need to create a temporary relocation here just for the
+    // checkMergeStringRelocation check. The alternative is to
+    // explicitly add the check in each Backend::handleRelocation function.
+    // We should improve the design such that this function or some
+    // central place can do some checks/verification on the relocations
+    // added by the backend::handleRelocation function.
+    FragmentRef targetRef(*linkSect->getFrontFragment(), R.r_offset);
+    Relocation tempInputReloc(backend.getRelocator(), rType, &targetRef,
+                              rAddend);
+    tempInputReloc.setSymInfo(symbol->resolveInfo());
+    if (!checkMergeStringRelocation(backend, *EObj, linkSect, tempInputReloc,
+                                    *symbol))
+      return false;
+
     if (backend.handleRelocation(linkSect, rType, *symbol, R.r_offset, rAddend))
       continue;
 
     Relocation *relocation = eld::IRBuilder::addRelocation(
         backend.getRelocator(), linkSect, rType, *symbol, R.r_offset, rAddend);
-    if (relocation)
-      linkSect->addRelocation(relocation);
+    if (!relocation)
+      continue;
+    linkSect->addRelocation(relocation);
   }
   return backend.handlePendingRelocations(RS->getLink());
 }

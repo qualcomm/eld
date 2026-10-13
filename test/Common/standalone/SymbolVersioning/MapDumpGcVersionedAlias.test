@@ -1,0 +1,31 @@
+REQUIRES: symbol_versioning
+#---MapDumpGcVersionedAlias.test------------------ SymbolVersioning ------#
+#BEGIN_COMMENT
+# Regression test for a null-pointer dereference in SymbolContainer::dump.
+#
+# Object-file versioned symbols (e.g. `bar@@V1`) are resolved as a
+# canonical/non-canonical alias pair. The non-canonical half is marked
+# should-ignore during IRBuilder::normalizeSymbols(). When such a symbol's
+# defining section is garbage collected in a non-shared --emit-relocs link,
+# it could still be matched by a `{ global: *; }` version script and reach
+# SymbolContainer::dump with a null resolved origin, crashing the map dump
+# (observed on RISCV builders with symbol versioning enabled).
+#
+# The fix skips should-ignore symbols in assignVersionNodesToSymbols so they
+# are never matched, and SymbolContainer::dump guards the null origin. This
+# test reproduces the builder command (VersionScript.test line 80 style) and
+# must complete without crashing.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fpic -O2 -ffunction-sections %p/Inputs/versioned-alias.c -o %t.o
+
+RUN: %link -MapStyle txt %linkopts --emit-relocs --image-base 0 --gc-sections \
+RUN:   --version-script=%p/../VersionScript/Inputs/vs5 %t.o \
+RUN:   -o %t.out -Map %t.map
+RUN: %filecheck %s --check-prefix=MAP < %t.map
+#END_TEST
+
+MAP: Version Script Information
+MAP: Version Script file
+MAP: Global:
+MAP: #<Pattern: *>
