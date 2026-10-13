@@ -33,15 +33,18 @@ HIDDEN3: Preserving symbol a
 RUN: %clang %clangopts -c %p/Inputs/5.c  -o %t7.o %clangg0opts
 RUN: %clang %clangopts -c %p/Inputs/6.c  -o %t8.o %clangg0opts
 RUN: %ar cr %aropts %t.eight.a %t2.o
-RUN: %link %linkopts %t1.o %t.eight.a  -o %t41.out -t 2>&1 | %grep eight | wc -l |  %filecheck --check-prefix="HIDDEN41" %s
+RUN: %link %linkopts %t1.o %t.eight.a  -o %t41.out -t 2>&1 | %filecheck --check-prefix="HIDDEN41" %s
 RUN: %ar cr %aropts %t.nine.a %t7.o
-RUN: %link %linkopts %t1.o %t.nine.a  -o %t42.out -t 2>&1 | %grep nine | wc -l |  %filecheck --check-prefix="HIDDEN42" %s
+RUN: %link %linkopts %t1.o %t.nine.a  -o %t42.out -t 2>&1 | %filecheck --check-prefix="HIDDEN42" %s
 RUN: %ar cr %aropts %t.ten.a %t8.o
-RUN: %link %linkopts %t1.o %t.ten.a %t.eight.a  %t.nine.a  -o %t43.out -t 2>&1 | %grep ten | wc -l |  %filecheck --check-prefix="HIDDEN43" %s
+RUN: %link %linkopts %t1.o %t.ten.a %t.eight.a  %t.nine.a  -o %t43.out -t 2>&1 | %filecheck --check-prefix="HIDDEN43" %s
 
-HIDDEN41: 1
-HIDDEN42: 1
-HIDDEN43: 1
+HIDDEN41: eight
+HIDDEN41-NOT: eight
+HIDDEN42: nine
+HIDDEN42-NOT: nine
+HIDDEN43: ten
+HIDDEN43-NOT: ten
 
 #Check that a protected reference from an application must result in undefined
 #reference if the definition is in a shared object

@@ -67,6 +67,11 @@ VersionScriptBlock *VersionScriptNode::switchToGlobal() {
 void VersionScriptNode::dump(
     llvm::raw_ostream &Ostream,
     std::function<std::string(const Input *)> GetDecoratedPath) const {
+  if (!isAnonymous()) {
+    Ostream << "\nVersion node: " << getName();
+    if (hasDependency())
+      Ostream << "\nDependency: " << getDependency();
+  }
   if (MGlobal)
     MGlobal->dump(Ostream, GetDecoratedPath);
   if (MLocal)

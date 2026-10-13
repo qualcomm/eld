@@ -241,7 +241,7 @@ BranchIslandFactory::createBranchIsland(Relocation &PReloc, Stub *S,
       std::lock_guard<std::mutex> Guard(Mutex);
       TrampolineInputSection =
           PModule.getLinkerScript().sectionMap().createELFSection(
-              ".text." + SymbolName, LDFileFormat::Internal,
+              ".text." + SymbolName, LinkerSectionKind::Internal,
               llvm::ELF::SHT_PROGBITS, MatchedSection->getFlags(),
               /*EntSize=*/0);
       TrampolineInputSection->setMatchedLinkerScriptRule(MatchedRule);

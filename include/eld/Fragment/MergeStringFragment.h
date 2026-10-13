@@ -48,7 +48,7 @@ struct MergeableString {
 };
 
 /// MergeStringFrgament is a Fragment that manages MergeableStrings of a
-/// LDFileFormat::MergeStr input section.
+/// LinkerSectionKind::MergeStr input section.
 class MergeStringFragment : public Fragment {
   llvm::SmallVector<MergeableString> Strings;
 

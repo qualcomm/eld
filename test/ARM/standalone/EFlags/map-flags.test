@@ -1,0 +1,197 @@
+#---map-flags.test---------------------- Executable --------------------#
+#BEGIN_COMMENT
+# Check that ARM e_flags are decoded in map-file input records and that the
+# output emulation in YAML maps reflects the final output e_flags.
+#
+# Pre-EABI5 objects may use the legacy EF_ARM_SOFT_FLOAT / EF_ARM_VFP_FLOAT
+# meanings. EABI5 relocatable objects normally carry the float ABI in
+# Tag_ABI_VFP_args instead; executable/shared output flags are derived from
+# those merged build attributes.
+#END_COMMENT
+#START_TEST
+# RUN: split-file %s %t
+
+# Input e_flags decoding. The BE8 input is a synthetic little-endian fixture
+# that only exercises flag formatting; eld does not produce big-endian ARM.
+# RUN: %yaml2obj --docnum=1 %t/inputs.yaml -o %t.unknown.o
+# RUN: %yaml2obj --docnum=2 %t/inputs.yaml -o %t.eabi4soft.o
+# RUN: %yaml2obj --docnum=3 %t/inputs.yaml -o %t.eabi4vfp.o
+# RUN: %yaml2obj --docnum=4 %t/inputs.yaml -o %t.eabi5.o
+# RUN: %yaml2obj --docnum=5 %t/inputs.yaml -o %t.eabi5hardbe8.so
+#
+# RUN: %link %emulation --no-warn-mismatch -Map %t.inputs.map \
+# RUN:   %t.eabi4soft.o %t.eabi4vfp.o %t.eabi5.o %t.eabi5hardbe8.so \
+# RUN:   -o %t.inputs.out
+# RUN: %filecheck %s --check-prefix=INPUT < %t.inputs.map
+#
+# RUN: %link %emulation --no-warn-mismatch -MapStyle yaml \
+# RUN:   -Map %t.inputs.yaml.map \
+# RUN:   %t.eabi4soft.o %t.eabi4vfp.o %t.eabi5.o %t.eabi5hardbe8.so \
+# RUN:   -o %t.inputs.yaml.out
+# RUN: %filecheck %s --check-prefix=INPUT < %t.inputs.yaml.map
+#
+# EABI_UNKNOWN keeps the historic [arm] representation.
+# RUN: %link %emulation -Map %t.unknown.map %t.unknown.o -o %t.unknown.out
+# RUN: %filecheck %s --check-prefix=UNKNOWN < %t.unknown.map
+
+# Output float ABI is derived from Tag_ABI_VFP_args by the ARM backend.
+# RUN: llvm-mc -filetype=obj -triple=armv7a-none-linux-gnueabi \
+# RUN:   %t/hard.s -o %t/hard.o
+# RUN: llvm-mc -filetype=obj -triple=armv7a-none-linux-gnueabi \
+# RUN:   %t/base.s -o %t/base.o
+#
+# Executable hard-float output.
+# RUN: %link %emulation %t/hard.o -MapStyle yaml -Map %t.hard.yaml \
+# RUN:   -o %t.hard.out
+# RUN: %readelf -h %t.hard.out | %filecheck %s --check-prefix=HARD-FLAGS
+# RUN: %filecheck %s --check-prefix=HARD-MAP < %t.hard.yaml
+#
+# Executable base/soft-float output.
+# RUN: %link %emulation %t/base.o -MapStyle yaml -Map %t.soft.yaml \
+# RUN:   -o %t.soft.out
+# RUN: %readelf -h %t.soft.out | %filecheck %s --check-prefix=SOFT-FLAGS
+# RUN: %filecheck %s --check-prefix=SOFT-MAP < %t.soft.yaml
+#
+# Partial links preserve the attribute but must not materialize the EABI5
+# executable float-ABI bits in e_flags.
+# RUN: %link %emulation -r %t/hard.o -MapStyle yaml -Map %t.rel.yaml \
+# RUN:   -o %t.rel.o
+# RUN: %readelf -h %t.rel.o | %filecheck %s --check-prefix=REL-FLAGS
+# RUN: %filecheck %s --check-prefix=REL-MAP < %t.rel.yaml
+
+#END_TEST
+
+# INPUT: LOAD {{.*}}eabi4soft.o[arm|EABI4|SoftFloat]
+# INPUT: LOAD {{.*}}eabi4vfp.o[arm|EABI4|VFPFloat]
+# INPUT: LOAD {{.*}}eabi5.o[arm|EABI5]
+# INPUT: LOAD {{.*}}eabi5hardbe8.so[arm|EABI5|FloatABIHard|BE8]
+
+# UNKNOWN: LOAD {{.*}}unknown.o[arm]
+
+# HARD-FLAGS: Flags: 0x5000400
+# HARD-MAP: Header:
+# HARD-MAP: Emulation:{{ *}}'arm|EABI5|FloatABIHard'
+
+# SOFT-FLAGS: Flags: 0x5000200
+# SOFT-MAP: Header:
+# SOFT-MAP: Emulation:{{ *}}'arm|EABI5|FloatABISoft'
+
+# REL-FLAGS: Flags: 0x5000000
+# REL-MAP: Header:
+# REL-MAP: Emulation:{{ *}}'arm|EABI5'
+
+#--- hard.s
+.text
+.syntax unified
+.eabi_attribute 28, 1
+.globl hard_entry
+hard_entry:
+  bx lr
+
+#--- base.s
+.text
+.syntax unified
+.eabi_attribute 28, 0
+.globl base_entry
+base_entry:
+  bx lr
+
+#--- inputs.yaml
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_UNKNOWN ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+Symbols:
+  - Name:            unknown
+    Section:         .text
+    Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER4, EF_ARM_SOFT_FLOAT ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+Symbols:
+  - Name:            eabi4soft
+    Section:         .text
+    Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER4, EF_ARM_VFP_FLOAT ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+Symbols:
+  - Name:            eabi4vfp
+    Section:         .text
+    Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER5 ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+Symbols:
+  - Name:            eabi5
+    Section:         .text
+    Binding:         STB_GLOBAL
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_DYN
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER5, EF_ARM_VFP_FLOAT, EF_ARM_BE8 ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    4
+    Content:         1EFF2FE1
+  - Name:            .dynstr
+    Type:            SHT_STRTAB
+    Flags:           [ SHF_ALLOC ]
+    AddressAlign:    1
+    Content:         00
+  - Name:            .dynamic
+    Type:            SHT_DYNAMIC
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    4
+    Link:            .dynstr
+    Entries:
+      - Tag:             DT_NULL
+        Value:           0

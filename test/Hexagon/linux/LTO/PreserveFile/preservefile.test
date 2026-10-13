@@ -2,6 +2,6 @@
 RUN: %clang %clangopts -c  %p/Inputs/a.c -flto -o %t1
 RUN: %clang %clangopts -c  %p/Inputs/b.c -flto -o %t2
 RUN: %link %linkopts -M --flto-options preserve-file=%p/Inputs/preserve1 %t1 %t2 -o %t3
-RUN: %readelf -s %t3 | %grep "boo" | wc -l | %filecheck %s -check-prefix YES
+RUN: %readelf -s %t3 | %filecheck %s -check-prefix YES_boo
 
-YES: 1
+YES_boo: boo

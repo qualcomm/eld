@@ -14,4 +14,4 @@
 #RUN: %readelf -h %t.empty | %filecheck %s
 #RUN: %readelf -h %t.symdef | %filecheck %s
 #END_TEST
-#CHECK: Flags: 0x5000000
+#CHECK: Flags: 0x5000200

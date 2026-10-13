@@ -87,7 +87,7 @@ protected:
   }
 
   ELFSection *textSection() {
-    return make<ELFSection>(LDFileFormat::Kind::Regular, ".text.foo",
+    return make<ELFSection>(LinkerSectionKind::Regular, ".text.foo",
                             llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 0,
                             0, llvm::ELF::SHT_PROGBITS, 0, nullptr, 0, 0);
   }

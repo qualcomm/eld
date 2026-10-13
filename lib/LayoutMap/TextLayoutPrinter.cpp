@@ -15,6 +15,7 @@
 #include "eld/Fragment/FragUtils.h"
 #include "eld/Fragment/Fragment.h"
 #include "eld/Fragment/FragmentRef.h"
+#include "eld/Fragment/MergeDataFragment.h"
 #include "eld/Fragment/RegionFragment.h"
 #include "eld/Fragment/RegionFragmentEx.h"
 #include "eld/Fragment/TimingFragment.h"
@@ -670,6 +671,24 @@ void TextLayoutPrinter::printMergeString(MergeableString *S, Module &M) const {
   }
 }
 
+void TextLayoutPrinter::printMergeConstant(MergeableConstant *C,
+                                           Module &M) const {
+  if (C->Exclude) {
+    outputStream() << "\n";
+    return;
+  }
+  outputStream() << "\n";
+  for (MergeableConstant *Merged : ThisLayoutInfo->getMergedConstants(C)) {
+    assert(Merged->Exclude);
+    outputStream() << "	# ";
+    ELFSection *S = Merged->Fragment->getOwningSection();
+    outputStream() << S->getDecoratedName(M.getConfig().options()) << "	0x";
+    outputStream().write_hex(Merged->InputOffset);
+    outputStream() << "	" << getDecoratedPath(S->getInputFile()->getInput());
+    outputStream() << "\n";
+  }
+}
+
 void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
                                       ELFSection *Section, Module &M) const {
 
@@ -736,6 +755,19 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
       if (!ThisLayoutInfo->showStrings())
         outputStream() << "\n";
       printMergeString(&S, M);
+    }
+  } else if (llvm::isa<MergeDataFragment>(Frag) &&
+             !M.isLinkStateBeforeLayout()) {
+    auto *Constants = llvm::cast<MergeDataFragment>(Frag);
+    for (MergeableConstant &C : Constants->getConstants()) {
+      if (C.Exclude)
+        continue;
+      if (!GC && HasFragInfo)
+        AddressOrOffset =
+            C.OutputOffset +
+            (Section->isAlloc() ? Section->addr() : Section->offset());
+      PrintOneFragOrString(C.getSize(), AddressOrOffset);
+      printMergeConstant(&C, M);
     }
   } else {
     if (!GC && HasFragInfo)
@@ -1068,8 +1100,10 @@ void TextLayoutPrinter::printDynamicList(Module &CurModule, bool UseColor) {
 
 // If version list is present, add it to map file along with the symbol list.
 void TextLayoutPrinter::printVersionList(Module &CurModule, bool UseColor) {
-  auto &VersionScripts = CurModule.getVersionScripts();
-  if (!VersionScripts.size())
+  const auto &VersionScripts = CurModule.getVersionScripts();
+  const auto &LinkerScriptVersionScripts =
+      CurModule.getLinkerScriptVersionScripts();
+  if (VersionScripts.empty() && LinkerScriptVersionScripts.empty())
     return;
   outputStream() << "\nVersion Script Information\n";
   if (UseColor)
@@ -1077,6 +1111,8 @@ void TextLayoutPrinter::printVersionList(Module &CurModule, bool UseColor) {
   std::function<std::string(const Input *)> GetDecoratedPath =
       [=](const Input *I) { return this->getDecoratedPath(I); };
   for (const auto *Item : VersionScripts)
+    Item->dump(outputStream(), GetDecoratedPath);
+  for (const auto *Item : LinkerScriptVersionScripts)
     Item->dump(outputStream(), GetDecoratedPath);
   if (UseColor)
     outputStream().resetColor();
@@ -1103,6 +1139,18 @@ void TextLayoutPrinter::printScriptIncludes(bool UseColor) {
     outputStream() << Indent << LinkerScriptName;
     outputStream() << "\n";
   }
+  if (UseColor)
+    outputStream().resetColor();
+}
+
+void TextLayoutPrinter::printLinkerScriptHash(eld::Module &Module,
+                                              bool UseColor) {
+  if (!Module.getScript().isHashingEnabled())
+    return;
+  if (UseColor)
+    outputStream().changeColor(llvm::raw_ostream::GREEN);
+  outputStream() << "\nLinker script hash: " << Module.getScript().getHash()
+                 << "\n";
   if (UseColor)
     outputStream().resetColor();
 }
@@ -1293,7 +1341,7 @@ void TextLayoutPrinter::printAssignment(const Assignment &A, Module &M,
 // etc. If use of color for text is enabled, print text with a foreground
 // color. Reset the colors to terminal defaults after writing.
 void TextLayoutPrinter::printMapFile(eld::Module &Module) {
-  ThisLayoutInfo->buildMergedStringMap(Module);
+  ThisLayoutInfo->buildMergedMaps(Module);
   GNULDBackend &Backend = Module.getBackend();
   bool UseColor = Backend.config().options().color() &&
                   Backend.config().options().colorMap();
@@ -1324,6 +1372,7 @@ void TextLayoutPrinter::printMapFile(eld::Module &Module) {
   printBuildStatistics(Module, UseColor);
   printScriptIncludes(UseColor);
   printVersionScripts(UseColor);
+  printLinkerScriptHash(Module, UseColor);
   printGlobalPluginInfo(Module, UseColor);
 
   if (Backend.getEntrySymbol())

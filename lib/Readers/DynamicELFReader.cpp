@@ -164,10 +164,10 @@ eld::Expected<ELFSection *> DynamicELFReader<ELFT>::createSection(
   std::string sectionName = expSectionName.value();
 
   // Setup all section properties.
-  LDFileFormat::Kind kind = this->getSectionKind(rawSectHdr, sectionName);
+  LinkerSectionKind kind = this->classifySectionKind(rawSectHdr, sectionName);
 
   // FIXME: Emit some diagnostic here.
-  if (kind == LDFileFormat::Error)
+  if (kind == LinkerSectionKind::Error)
     return static_cast<ELFSection *>(nullptr);
 
   ELFSection *section =

@@ -1,0 +1,15 @@
+REQUIRES: symbol_versioning
+#---VersionScriptWithLinkerScriptSymbols.test----------------------------------#
+#BEGIN_COMMENT
+# Check that version script patterns are applied to linker-script symbols.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.o %p/Inputs/source.c -c -fPIC
+RUN: %link %linkopts -o %t.so %t.o -shared -T %p/Inputs/linker-script.t \
+RUN:   --version-script=%p/Inputs/version-script.t
+RUN: %readelf --dyn-syms %t.so | %filecheck %s
+#END_TEST
+
+CHECK: Symbol table '.dynsym'
+CHECK-DAG: foo@@V1
+CHECK-DAG: abs_foo@@V1

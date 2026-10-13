@@ -311,6 +311,15 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
+  case llvm::ELF::R_X86_64_GOTPCREL:
+  case llvm::ELF::R_X86_64_REX_GOTPCRELX: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (rsym->reserved() & ReserveGOT)
+      return;
+    CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
+    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
+  }
   case llvm::ELF::R_X86_64_TLSLD: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     getTLSModuleID(pReloc.symInfo(), config().isCodeStatic());

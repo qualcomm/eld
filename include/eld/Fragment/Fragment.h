@@ -49,6 +49,7 @@ public:
     Timing,
     Null,
     MergeString,
+    MergeData,
     BuildID,
     SFrame,
     DynStr,
@@ -128,6 +129,7 @@ public:
   virtual void addSymbol(ResolveInfo *R) {}
 
   bool isMergeStr() const;
+  bool isMergeData() const;
 
   bool isNull() const { return Kind == Null; }
 

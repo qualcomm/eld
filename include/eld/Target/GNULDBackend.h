@@ -99,7 +99,7 @@ public:
 
   typedef std::tuple<ResolveInfo::Type, uint64_t, InputFile *> SymDefInfo;
 
-  // Based on Kind in LDFileFormat to define basic section orders for ELF,
+  // Based on LinkerSectionKind to define basic section orders for ELF,
   // and refer gold linker to add more enumerations to handle Regular and
   // BSS kind
   enum SectionOrder {
@@ -164,7 +164,7 @@ public:
 
   /// createOutputSection - helper to create and register an output section
   ELFSection *createOutputSection(llvm::StringRef pName,
-                                  LDFileFormat::Kind pKind, uint32_t pType,
+                                  LinkerSectionKind pKind, uint32_t pType,
                                   uint32_t pFlag, uint32_t pAlign);
 
   ELFSection *getShStrTab() const { return m_pShStrTab; }
@@ -277,8 +277,8 @@ public:
 
   /// getSectionOrder - compute the layout order of the section
   /// Layout calls this function to get the default order of the pSectHdr.
-  /// If the pSectHdr.type() is LDFileFormat::Target, then getSectionOrder()
-  /// will call getTargetSectionOrder().
+  /// If the pSectHdr.type() is LinkerSectionKind::Target, then
+  /// getSectionOrder() will call getTargetSectionOrder().
   ///
   /// If targets favors certain order for general sections, please override
   /// this function.

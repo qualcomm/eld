@@ -38,7 +38,8 @@ eld::TimingSection::TimingSection(DiagnosticEngine *E,
                                   llvm::StringRef SectionData,
                                   uint32_t SectionSize, uint32_t Flags,
                                   InputFile *File)
-    : ELFSection(LDFileFormat::Timing, ".note.qc.timing", Flags, /*EntSize=*/1,
+    : ELFSection(LinkerSectionKind::Timing, ".note.qc.timing", Flags,
+                 /*EntSize=*/1,
                  /*AddrAlign=*/0, /*Type=*/0, /*Info=*/0, /*Link=*/nullptr,
                  /*SectionSize=*/0, /*PAddr=*/0) {
   // should hold at least two 8 byte integers plus module name

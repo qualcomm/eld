@@ -12,11 +12,13 @@
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/Input.h"
 #include "eld/Readers/ELFSection.h"
+#include "eld/Script/Assignment.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/Target/Relocator.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/DataTypes.h"
 #include "llvm/Support/ManagedStatic.h"
 
@@ -215,19 +217,33 @@ static std::string getLocation(FragmentRef *Ref, Relocator &R) {
   return "";
 }
 
-// Returns the text following "references " in the overflow diagnostic.
-static std::string getReferenceClause(const Relocation &Reloc,
+// Returns the text following "references " in the overflow diagnostic, naming
+// where the referenced symbol is defined.
+static std::string getReferenceClause(const Relocation &Reloc, Relocator &R,
                                       const std::string &SymName) {
   ResolveInfo *Info = Reloc.symInfo();
+
+  // Section symbols carry no useful origin, and an undefined symbol's origin is
+  // just the referencing file: name the symbol alone.
   if (!Info || Info == ResolveInfo::null() || Info->isSection() ||
       Info->isUndef())
     return "'" + SymName + "'";
+
   InputFile *Origin = Info->resolvedOrigin();
-  if (!Origin || !Origin->getInput() ||
-      !(Origin->isObjectFile() || Origin->isBitcode() ||
-        Origin->isDynamicLibrary()))
-    return "'" + SymName + "'";
-  return Origin->getInput()->decoratedPath() + "('" + SymName + "')";
+  if (!Origin || Origin->isInternal() || !Origin->getInput())
+    return "linker internal symbol '" + SymName + "'";
+
+  if (Origin->getInput()->isDefSym())
+    return "'--defsym " + SymName + "'";
+
+  std::string DefinedIn;
+  if (const Assignment *A = R.module().getAssignmentForSymbol(Info->getName()))
+    if (A->getInputFileInContext() == Origin)
+      DefinedIn = A->getContextWithLineNumber();
+  if (DefinedIn.empty())
+    DefinedIn = Origin->getInput()->decoratedPath();
+
+  return DefinedIn + "('" + SymName + "')";
 }
 
 template <typename ValueT>
@@ -236,9 +252,10 @@ static void raiseOverflow(const Relocation &Reloc, Relocator &R, ValueT Value,
   std::string Location = getLocation(Reloc.targetRef(), R);
   std::string SymName =
       Relocation::getSymbolName(Reloc.symInfo(), R.doDeMangle());
+  std::string Reference = getReferenceClause(Reloc, R, SymName);
   R.config().getDiagEngine()->raise(Diag::result_overflow_moreinfo)
       << Location << R.getName(Reloc.type()) << Value << Min << Max
-      << getReferenceClause(Reloc, SymName);
+      << Reference;
   ASSERT(!Location.empty(), "expected a section location.");
 }
 
@@ -390,5 +407,6 @@ bool Relocation::isMergeKind() const {
   FragmentRef *Target =
       targetFragRef() ? targetFragRef() : symInfo()->outSymbol()->fragRef();
   return Target && Target->frag() &&
-         Target->frag()->getOwningSection()->isMergeKind();
+         (Target->frag()->getOwningSection()->getFlags() &
+          llvm::ELF::SHF_MERGE);
 }

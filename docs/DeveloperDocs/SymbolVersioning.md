@@ -35,6 +35,31 @@ Regular static non-PIE executables do not create the node.
 If `ELD_ENABLE_SYMBOL_VERSIONING` is disabled, eld warns that `--default-symver`
 is unsupported and does not synthesize the node.
 
+## `--wrap` with versioned symbols
+
+`--wrap` matches the complete undefined symbol name before versioned-symbol
+resolution. A version suffix is therefore part of the name being matched:
+
+- `--wrap=foo` rewrites references to `foo` as `__wrap_foo`; it does not wrap
+  references to `foo@V1`.
+- `--wrap=foo@V1` rewrites references to `foo@V1` as `__wrap_foo@V1`; it does
+  not wrap references to plain `foo`.
+
+The wrapper must define the corresponding rewritten name. For example,
+`--wrap=foo@V1` requires a definition of `__wrap_foo@V1`. The matching
+`__real_` alias also preserves the complete name: `__real_foo@V1` refers to
+`foo@V1` when `--wrap=foo@V1` is used.
+
+This exact matching remains important for a default-versioned definition such
+as `foo@@V1`, which can otherwise satisfy both plain `foo` and `foo@V1`
+references:
+
+| Link options | `foo` reference | `foo@V1` reference |
+| --- | --- | --- |
+| `--wrap=foo` | `__wrap_foo` | `foo@V1` |
+| `--wrap=foo@V1` | `foo` | `__wrap_foo@V1` |
+| `--wrap=foo --wrap=foo@V1` | `__wrap_foo` | `__wrap_foo@V1` |
+
 ## Symbol resolution of versioned symbols
 
 A versioned symbol is of two types:
@@ -62,6 +87,36 @@ definition `bar@@V1`, then eld inserts two symbols to the symbol resolution
 machinery: a canonical symbol `bar@V1` and a non-canonical symbol `bar`.
 With this, `bar@@V1` definition resolves undefined references to both
 `bar` and `bar@V1`, as it should.
+
+### Static executable links without version scripts
+
+For regular static executable links, even when there is no version script, eld
+uses the same GNU-compliant resolution model described above. A default-versioned
+definition such as `foo@@V1` participates in both resolution buckets:
+
+- the canonical `foo@V1` bucket, used by `foo@V1` references;
+- the non-canonical `foo` bucket, used by plain `foo` references.
+
+This means `foo@@V1` can resolve both `foo` and `foo@V1` references in a static
+executable. If another definition causes those two buckets to choose different
+strong definitions, eld reports a multiple-definition error instead of allowing
+the default-versioned symbol to split into two independent definitions.
+
+Important static-executable cases:
+
+| Definitions | Plain `foo` reference resolves to | Result |
+| --- | --- | --- |
+| `foo@@V1`, `foo@V2` | `foo@@V1` | succeeds |
+| `foo@@V1`, `foo@V1` | - | multiple definition error |
+| weak `foo@@V1`, `foo@V1` | `foo@V1` | succeeds; the strong `foo@V1` wins |
+| `foo@@V1`, weak `foo`, weak `foo@V1` | `foo@@V1` | succeeds; the strong default version wins |
+| weak `foo@@V1`, `foo`, `foo@V1` | - | multiple definition error |
+
+This intentionally differs from lld. When creating a static executable, lld does
+not use `foo@@V1` to resolve references to `foo@V1`; it only uses `foo@@V1` for
+plain `foo` references. lld also does not report a multiple-definition error for
+`foo@@V1` and `foo@V1` definitions, likely because it keeps `foo@@V1` only in
+the plain `foo` bucket. eld follows GNU ld behavior here.
 
 One fundamental rule of versioned-symbol resolution is that, for a default
 versioned symbol, both the canonical symbol (`foo@V1`) and the non-canonical

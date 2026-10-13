@@ -1,0 +1,14 @@
+REQUIRES: run_test, linux, x86_64
+#---MergeData.test-------------------- MergeConstants, RunTest -----------#
+#BEGIN_COMMENT
+# Verify that SHF_MERGE constant-data dedup merges two byte-identical
+# .rodata.cst4 constants from separate object files, so that two getter
+# functions return the same address at runtime.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc %clangopts -c %p/Inputs/a.s -o %t.a.o
+RUN: %run_cc %clangopts -c %p/Inputs/b.s -o %t.b.o
+RUN: %run_cc %clangopts -c %p/Inputs/start.s -o %t.start.o
+RUN: %run_cc %clangopts -o %t.out %t.start.o %t.a.o %t.b.o -Wl,--entry=_start -nostdlib
+RUN: %run %t.out
+#END_TEST

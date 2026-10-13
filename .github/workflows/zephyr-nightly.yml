@@ -1,4 +1,5 @@
 name: Zephyr Nightly with ELD
+# owner: quic-areg
 
 on:
   pull_request:

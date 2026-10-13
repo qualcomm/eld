@@ -1,0 +1,15 @@
+#---GlobalAfterLocal.test------------ SharedLib,VersionScript ----------------#
+#BEGIN_COMMENT
+# This test verifies that version-script diagnostics point at a global block
+# that appears after a local block.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c -fPIC
+RUN: %not %link %linkopts -o %t1.so %t1.o -shared \
+RUN:   --version-script %p/Inputs/vs.t 2>&1 \
+RUN:   | %filecheck %s --strict-whitespace --match-full-lines
+#END_TEST
+
+CHECK:Error: {{.*}}vs.t:4:3: global scope must appear before local scope{{.*}}
+CHECK-NEXT:>>>   global:
+CHECK-NEXT:>>>   ^

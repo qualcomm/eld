@@ -6,11 +6,18 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.1.o
-RUN: %link %linkopts %t.1.o -o %t.1.out 2>&1 | %filecheck %s
+RUN: %link %linkopts --image-base=0x8050000 --section-start .text=0x8052000 \
+RUN: --section-start .got=0x8053000 --no-relax %t.1.o -o %t.1.out 2>&1 | %filecheck %s
+RUN: %objdump -dr %t.1.out | %filecheck %s --check-prefix=DISASM
 #END_TEST
 
 CHECK: {{.*}}: ignoring addend for relocation `R_RISCV_PCREL_LO12_I' referring symbol external
 CHECK: {{.*}}: ignoring addend for relocation `R_RISCV_PCREL_LO12_S' referring symbol external
+CHECK: {{.*}}: ignoring addend for relocation `R_RISCV_GOT_HI20' referring symbol external
 CHECK: {{.*}}: ignoring addend for relocation `R_RISCV_TLSDESC_LOAD_LO12' referring symbol tlsdesc
 CHECK: {{.*}}: ignoring addend for relocation `R_RISCV_TLSDESC_ADD_LO12' referring symbol tlsdesc
 CHECK: {{.*}}: ignoring addend for relocation `R_RISCV_TLSDESC_CALL' referring symbol tlsdesc
+
+# Verify the GOT_HI20 addend was set to zero
+DISASM: auipc a0, 0x1{{$}}
+DISASM-NEXT: R_RISCV_GOT_HI20 external{{$}}

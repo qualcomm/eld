@@ -1,0 +1,13 @@
+#---TLSSymbolPTTLSOrder.test------------------------------- TLS, Executable, LS -#
+#BEGIN_COMMENT
+# Check that TLS symbol values use the lowest-address PT_TLS segment rather
+# than the first PT_TLS entry in PHDRS order.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts -o %t.out %t.o -T %p/Inputs/script.t --defsym __aeabi_read_tp=0
+RUN: %readelf -s %t.out | %filecheck %s --check-prefix=SYMBOLS
+#END_TEST
+
+SYMBOLS: {{[0-9]+}}: {{0+}} 4 TLS {{.*}} low
+SYMBOLS: {{[0-9]+}}: {{0+}}1000 4 TLS {{.*}} high

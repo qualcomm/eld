@@ -130,8 +130,8 @@ also accept `--plugin-opt=...` aliases for compatibility with LLVMgold and lld.
 
 ### LTO optimization control
 
-- `--lto-O=<level>`
-  Set the LTO optimization level (0-4).
+- `--lto-O<level>`
+  Set the LTO optimization level (0-3).
   Alias: `--plugin-opt=O`.
 - `--lto-partitions=<number>`
   Set the number of code generation partitions.

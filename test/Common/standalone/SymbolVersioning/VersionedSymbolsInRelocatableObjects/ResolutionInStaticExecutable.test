@@ -4,19 +4,66 @@ REQUIRES: symbol_versioning
 # Validate versioned symbols in executable static symbol tables.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -o %t.strong_default.o %p/Inputs/strong_default.c -c -fPIC
-RUN: %clang %clangopts -o %t.strong_nondefault.o %p/Inputs/strong_nondefault.c -c -fPIC
+RUN: %clang %clangopts -o %t.strong_default.o %p/Inputs/strong_default.c -c
+RUN: %clang %clangopts -o %t.strong_nondefault.o %p/Inputs/strong_nondefault.c -c
 RUN: %clang %clangopts -o %t.main_default.o %p/Inputs/main_default.c -c
 RUN: %clang %clangopts -o %t.main_nondefault.o %p/Inputs/main_nondefault.c -c
+RUN: %clang %clangopts -o %t.foo_default_v1.o %p/Inputs/foo_default_v1.c -c
+RUN: %clang %clangopts -o %t.foo_nondefault_v1.o %p/Inputs/foo_nondefault_v1.c -c
+RUN: %clang %clangopts -o %t.foo_nondefault_v2.o %p/Inputs/foo_nondefault_v2.c -c
+RUN: %clang %clangopts -o %t.weak_foo_default_v1.o %p/Inputs/weak_foo_default_v1.c -c
+RUN: %clang %clangopts -o %t.foo_unversioned.o %p/Inputs/foo_unversioned.c -c
+RUN: %clang %clangopts -o %t.weak_foo_unversioned.o %p/Inputs/weak_foo_unversioned.c -c
+RUN: %clang %clangopts -o %t.weak_foo_nondefault_v1.o %p/Inputs/weak_foo_nondefault_v1.c -c
+RUN: %clang %clangopts -o %t.main_foo.o %p/Inputs/main_foo.c -c
 
 RUN: %link %linkopts -o %t.exec_default.exe %t.strong_default.o %t.main_default.o
 RUN: %readelf -sW %t.exec_default.exe | %filecheck %s --check-prefix=ExecDefault
 
 RUN: %link %linkopts -o %t.exec_nondefault.exe %t.strong_nondefault.o %t.main_nondefault.o
 RUN: %readelf -sW %t.exec_nondefault.exe | %filecheck %s --check-prefix=ExecNonDefault
+
+RUN: %link %linkopts -o %t.foo_default_vs_v2.exe \
+RUN:   %t.foo_default_v1.o %t.foo_nondefault_v2.o %t.main_foo.o
+RUN: %readelf -sW %t.foo_default_vs_v2.exe \
+RUN:   | %filecheck %s --check-prefix=FooDefaultVsV2
+
+RUN: %not %link %linkopts -o %t.foo_default_vs_nondefault.exe \
+RUN:   %t.foo_default_v1.o %t.foo_nondefault_v1.o %t.main_foo.o 2>&1 \
+RUN:   | %filecheck %s --check-prefix=FooDefaultVsNonDefault
+
+RUN: %link %linkopts -o %t.weak_foo_default_vs_nondefault.exe \
+RUN:   %t.weak_foo_default_v1.o %t.foo_nondefault_v1.o %t.main_foo.o
+RUN: %readelf -sW %t.weak_foo_default_vs_nondefault.exe \
+RUN:   | %filecheck %s --check-prefix=WeakFooDefaultVsNonDefault
+
+RUN: %link %linkopts -o %t.foo_default_vs_weak_plain_and_weak_nondefault.exe \
+RUN:   %t.foo_default_v1.o %t.weak_foo_unversioned.o \
+RUN:   %t.weak_foo_nondefault_v1.o %t.main_foo.o
+RUN: %readelf -sW %t.foo_default_vs_weak_plain_and_weak_nondefault.exe \
+RUN:   | %filecheck %s --check-prefix=FooDefaultVsWeakPlainAndWeakNonDefault
+
+RUN: %not %link %linkopts -o %t.weak_default_vs_plain_and_nondefault.exe \
+RUN:   %t.weak_foo_default_v1.o %t.foo_unversioned.o \
+RUN:   %t.foo_nondefault_v1.o %t.main_foo.o 2>&1 \
+RUN:   | %filecheck %s --check-prefix=WeakDefaultVsPlainAndNonDefault
 #END_TEST
 
 ExecDefault-DAG:           bar@@V1
 
 ExecNonDefault-DAG:        bar@V1
 ExecNonDefault-NOT:        bar@@V1
+
+FooDefaultVsV2-DAG:        [[V1:[0-9a-f]+]] {{.*}} foo@@V1
+FooDefaultVsV2-DAG:        [[V1]] {{.*}} foo_v1_default
+FooDefaultVsV2-DAG:        {{[0-9a-f]+}} {{.*}} foo@V2
+
+FooDefaultVsNonDefault:    multiple definition of symbol `foo@V1'
+
+WeakFooDefaultVsNonDefault-DAG: [[V1:[0-9a-f]+]] {{.*}} foo_v1
+WeakFooDefaultVsNonDefault-DAG: [[V1]] {{.*}} foo@@V1
+
+FooDefaultVsWeakPlainAndWeakNonDefault-DAG: [[V1:[0-9a-f]+]] {{.*}} foo_v1_default
+FooDefaultVsWeakPlainAndWeakNonDefault-DAG: [[V1]] {{.*}} foo@@V1
+
+WeakDefaultVsPlainAndNonDefault: multiple definition of symbol `foo@V1'

@@ -1,0 +1,16 @@
+REQUIRES: symbol_versioning
+#---UndefinedVersion.test---------------- SymbolVersioning ----------------#
+#BEGIN_COMMENT
+# This test verifies --[no-]undefined-version with named version nodes.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c -fPIC
+RUN: %link %linkopts -o %t1.default.so %t1.o -shared --version-script %p/Inputs/vs.t
+RUN: %link %linkopts -o %t1.allow.so %t1.o -shared --version-script %p/Inputs/vs.t --undefined-version
+RUN: %not %link %linkopts -o %t1.strict.so %t1.o -shared --version-script %p/Inputs/vs.t --no-undefined-version 2>&1 | %filecheck %s --check-prefix=STRICT
+RUN: %link %linkopts -o %t1.reassign.so %t1.o -shared --version-script %p/Inputs/vs-reassign.t --no-undefined-version
+RUN: %readelf --dyn-syms --version-info %t1.reassign.so | %filecheck %s --check-prefix=REASSIGN
+#END_TEST
+
+STRICT: Error: version script assignment of 'V1(global)' to symbol 'foo' failed: symbol not defined
+REASSIGN: {{[0-9]+}} bar@@V1

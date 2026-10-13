@@ -1,7 +1,8 @@
 #---Tag_ABI_VFP_args.test-------------------- Executable --------------------#
 #BEGIN_COMMENT
 #This checks that the linker warns on mixing objects with inconsistent VFP ABI
-#tags.
+#tags, and that with --no-warn-mismatch the convention of the first input
+#decides the output float ABI.
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts  -c %p/Inputs/vfp1.s -o %t1.o
@@ -9,7 +10,15 @@ RUN: %clang %clangopts  -c %p/Inputs/vfp2.s -o %t2.o
 # smoke test, this should not fail
 RUN: %link --fatal-warnings  --warn-mismatch %linkopts -T %p/Inputs/script.t %t1.o -o %t2.out.1 2>&1
 RUN: %not %link --fatal-warnings --warn-mismatch %linkopts -T %p/Inputs/script.t  %t1.o %t2.o -o %t2.out.2 2>&1 | %filecheck %s
+# With --no-warn-mismatch the conflict is only a note and the first input wins.
+RUN: %link --no-warn-mismatch %linkopts -T %p/Inputs/script.t %t1.o %t2.o -o %t12.out 2>&1 | %filecheck %s --check-prefix=NOTE
+RUN: %readelf -h %t12.out | %filecheck %s --check-prefix=HARD
+RUN: %link --no-warn-mismatch %linkopts -T %p/Inputs/script.t %t2.o %t1.o -o %t21.out 2>&1 | %filecheck %s --check-prefix=NOTE
+RUN: %readelf -h %t21.out | %filecheck %s --check-prefix=SOFT
 #END_TEST
 
 #CHECK: incompatible Tag_ABI_VFP_args
+#NOTE: Note: {{.*}}incompatible Tag_ABI_VFP_args
+#HARD: Flags: 0x5000400
+#SOFT: Flags: 0x5000200
 

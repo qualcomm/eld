@@ -1,0 +1,50 @@
+#---Orphan.test------------------------ Executable----------------------#
+#BEGIN_COMMENT
+# Check SHF_MERGE constant handling when output sections are created as
+# orphans: preserving input occurrences, --no-merge-constants, linker-script
+# interaction, and input offset/alignment layout.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/orphan1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/orphan2.c -o %t2.o
+RUN: %link %linkopts --entry=orphan1 %t1.o %t2.o -o %t.out
+RUN: %readelf -S -W %t.out | %filecheck %s --check-prefix=SECTIONS
+RUN: %readelf -s -W %t.out | %filecheck %s --check-prefix=SYMS
+RUN: %link %linkopts --no-merge-constants --entry=orphan1 %t1.o %t2.o -o %t.no-merge.out
+RUN: %readelf -S -W %t.no-merge.out | %filecheck %s --check-prefix=NO-MERGE-SECTIONS
+RUN: %readelf -s -W %t.no-merge.out | %filecheck %s --check-prefix=NO-MERGE-SYMS
+RUN: %link %linkopts --entry=orphan1 -T %p/Inputs/orphan-script.t %t1.o %t2.o -o %t.script.out
+RUN: %readelf -S -W %t.script.out | %filecheck %s --check-prefix=SCRIPT-SECTIONS
+RUN: %readelf -s -W %t.script.out | %filecheck %s --check-prefix=SCRIPT-SYMS
+RUN: %clang %clangopts -c %p/Inputs/orphan-align1.s -o %t.align1.o
+RUN: %clang %clangopts -c %p/Inputs/orphan-align2.s -o %t.align2.o
+RUN: %link %linkopts %t.align1.o %t.align2.o -o %t.align.out
+RUN: %readelf -S -W %t.align.out | %filecheck %s --check-prefix=ALIGN-SECTIONS
+RUN: %readelf -s -W %t.align.out | %filecheck %s --check-prefix=ALIGN-SYMS
+RUN: %readelf -x .orphan.align.cst4 %t.align.out | %filecheck %s --check-prefix=ALIGN-HEX
+#END_TEST
+
+#SECTIONS: .orphan.cst4 {{.*}} 000008 {{.*}} AM {{.*}}
+#SYMS-DAG: {{[0-9]+}}: [[ORPHAN1VAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan1
+#SYMS-DAG: {{[0-9]+}}: [[ORPHAN2VAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan2
+#SYMS-NOT: [[ORPHAN1VAL]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan2
+
+#NO-MERGE-SECTIONS: .orphan.cst4 {{.*}} 000008 {{.*}} AM {{.*}}
+#NO-MERGE-SYMS-DAG: {{[0-9]+}}: [[NOMERGE1:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan1
+#NO-MERGE-SYMS-DAG: {{[0-9]+}}: [[NOMERGE2:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan2
+#NO-MERGE-SYMS-NOT: [[NOMERGE1]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan2
+
+#SCRIPT-SECTIONS: .orphan.cst4 {{.*}} 000008 {{.*}} AM {{.*}}
+#SCRIPT-SYMS-DAG: {{[0-9]+}}: [[SCRIPT1VAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan1
+#SCRIPT-SYMS-DAG: {{[0-9]+}}: [[SCRIPT2VAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan2
+#SCRIPT-SYMS-NOT: [[SCRIPT1VAL]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan2
+
+#ALIGN-SECTIONS: .orphan.align.cst4 {{.*}} 00001c {{.*}} AM {{.*}} 16
+#ALIGN-SYMS-DAG: {{[0-9]+}}: [[ALIGN111:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan_align1
+#ALIGN-SYMS-DAG: {{[0-9]+}}: [[ALIGN111D:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan_align_incompatible
+#ALIGN-SYMS-DAG: {{[0-9]+}}: [[ALIGN222:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan_align_compatible
+#ALIGN-SYMS-DAG: {{[0-9]+}}: [[ALIGN222D:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan_align_compatible_duplicate
+#ALIGN-SYMS-NOT: [[ALIGN111]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan_align_incompatible
+#ALIGN-SYMS-NOT: [[ALIGN222]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} orphan_align_compatible_duplicate
+#ALIGN-HEX: 11111111 00000000 22222222 00000000
+#ALIGN-HEX-NEXT: 33333333 11111111 22222222

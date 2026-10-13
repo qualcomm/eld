@@ -1,0 +1,36 @@
+name: Reset Dashboard Data Lock
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  reset-dashboard-data-lock:
+    runs-on: ubuntu-latest
+    if: github.repository == 'qualcomm/eld'
+
+    steps:
+      - name: Checkout ELD
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: llvm-project/llvm/tools/eld
+
+      - name: Remove Dashboard Data Lock
+        shell: bash
+        run: |
+          cd llvm-project/llvm/tools/eld
+          git config user.name 'github-actions'
+          git config user.email 'github-actions@github.com'
+          git fetch --all
+          git checkout dashboard
+          git reset --hard origin/dashboard
+          if [[ -e data.lock ]]; then
+            rm -f data.lock
+            git add -u -- data.lock
+            git commit -m "Remove dashboard data lock"
+            git push -f origin HEAD:refs/heads/dashboard
+          else
+            echo "data.lock is not present on dashboard"
+          fi

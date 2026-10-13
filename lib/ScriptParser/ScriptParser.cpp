@@ -475,6 +475,7 @@ bool ScriptParser::isValidSymbolName(StringRef S) {
 bool ScriptParser::readSymbolAssignment(StringRef Tok,
                                         Assignment::Type AssignType) {
   StringRef Name = unquote(Tok);
+  size_t AssignLine = getCurrentLineNumber();
   StringRef Op = next(LexState::Expr);
 
   assert(Op == "=" || Op == "*=" || Op == "/=" || Op == "+=" || Op == "-=" ||
@@ -519,7 +520,8 @@ bool ScriptParser::readSymbolAssignment(StringRef Tok,
     }
     E->setAssign();
   }
-  ThisScriptFile.addAssignment(Name.str(), E, AssignType);
+  Assignment *Assign = ThisScriptFile.addAssignment(Name.str(), E, AssignType);
+  Assign->setLineNumberInContext(AssignLine);
   return true;
 }
 
@@ -1566,6 +1568,10 @@ void ScriptParser::readVersionSymbols(VersionScriptNode &VSN) {
         continue;
       }
       if (Tok == "global:" || (Tok == "global" && consume(":"))) {
+        if (VSN.getLocalBlock()) {
+          setError("global scope must appear before local scope", Tok);
+          return;
+        }
         VSN.switchToGlobal();
         continue;
       }

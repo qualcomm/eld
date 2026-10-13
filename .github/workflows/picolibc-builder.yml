@@ -1,7 +1,11 @@
 name: nightly picolibc builder
+# owner: kushpal
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request:
+    paths:
+      - '.github/workflows/picolibc-builder.yml'
+
   workflow_run:
     # Runs after the nightly toolchain build ("Nightly check" =
     # nightly-test.yml) finishes, so we always consume a freshly built
@@ -16,57 +20,64 @@ permissions:
   contents: write
 jobs:
   build-and-test:
+    if: github.repository == 'qualcomm/eld'
     name: ${{ matrix.arch.name }}
-    # Only run on the canonical repo, and (for workflow_run) only when the
-    # triggering nightly toolchain build succeeded. Manual dispatch always runs.
-    if: >-
-      github.repository == 'qualcomm/eld' &&
-      (github.event_name == 'workflow_dispatch' ||
-       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         arch:
           - name: hexagon
-            picolibc-name: hexagon
+            configure-script: do-clang-hexagon-configure
             triple: hexagon-unknown-none-elf
             llvm-target: Hexagon
             picolibc-default-config: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf"
             picolibc-no-tls: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf -Dthread-local-storage=false "
             picolibc-tls-ie: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf -Dtls-model=initial-exec"
           - name: aarch64
-            picolibc-name: aarch64
+            configure-script: do-clang-aarch64-configure
             triple: aarch64-none-elf
             llvm-target: AArch64
+            qemu-package: qemu-system-aarch64
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
             picolibc-tls-ie: "-Dtls-model=initial-exec"
           - name: riscv64
-            picolibc-name: riscv
+            configure-script: do-clang-riscv-configure
             triple: riscv64-unknown-unknown-elf
             llvm-target: RISCV
+            qemu-package: qemu-system-riscv64
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
             picolibc-tls-ie: "-Dtls-model=initial-exec"
           - name: riscv32
-            picolibc-name: rv32imafdc
+            configure-script: do-clang-rv32imafdc-configure
             triple: riscv32-unknown-unknown-elf
             llvm-target: RISCV
+            qemu-package: qemu-system-riscv32
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
             picolibc-tls-ie: "-Dtls-model=initial-exec"
             extra-c-flags: "-march=rv32imafdc -mabi=ilp32d"
             extra-cxx-flags: "-march=rv32imafdc -mabi=ilp32d"
           - name: arm
-            picolibc-name: arm
+            configure-script: do-clang-arm-configure
             triple: arm-none-eabi
             llvm-target: ARM
+            qemu-package: qemu-system-arm
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
             picolibc-tls-ie: "-Dtls-model=initial-exec"
             extra-c-flags: "-march=armv7-a"
             extra-cxx-flags: "-march=armv7-a"
+          - name: x86_64
+            configure-script: do-eld-x86_64-configure
+            triple: x86_64-none-elf
+            llvm-target: X86
+            qemu-package: qemu-system-x86
+            picolibc-default-config: "-Dc_link_args=-B$RUNNER_TEMP/eld-bin -Dcpp_link_args=-B$RUNNER_TEMP/eld-bin"
+            picolibc-no-tls: "-Dc_link_args=-B$RUNNER_TEMP/eld-bin -Dcpp_link_args=-B$RUNNER_TEMP/eld-bin -Dthread-local-storage=false"
+            picolibc-tls-ie: "-Dc_link_args=-B$RUNNER_TEMP/eld-bin -Dcpp_link_args=-B$RUNNER_TEMP/eld-bin -Dtls-model=initial-exec"
 
     steps:
       - name: Install system dependencies
@@ -107,48 +118,56 @@ jobs:
         # run, prepending its bin dir to PATH.
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
+      - name: Use LLD for the x86 semihost BIOS (x86_64 only)
+        if: matrix.arch.name == 'x86_64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          WRAPPER_DIR="$RUNNER_TEMP/eld-bin"
+          mkdir -p "$WRAPPER_DIR"
+          ELD_BIN=$(command -v ld.eld)
+          LLD_BIN=$(command -v ld.lld)
+          printf '%s\n' \
+            '#!/bin/sh' \
+            'for arg in "$@"; do' \
+            '  case "$arg" in' \
+            '    */libos/semihost/machine/x86/bios.ld)' \
+            "      exec \"$LLD_BIN\" \"\$@\" ;;" \
+            '  esac' \
+            'done' \
+            "exec \"$ELD_BIN\" \"\$@\"" \
+            > "$WRAPPER_DIR/ld.eld"
+          chmod +x "$WRAPPER_DIR/ld.eld"
+
       - name: Build compiler-rt builtins
         run: |
           # The nightly toolchain (clang/clang++) is already on PATH via
           # FetchNightlyToolset; derive its install root from the clang binary.
           TOOLCHAIN_INSTALL="$(dirname "$(dirname "$(command -v clang)")")"
-          if [ ${{ matrix.arch.name }} = "hexagon" ]; then
-            cmake -G Ninja \
-              -DCMAKE_C_COMPILER:STRING=`which clang` \
-              -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
-              -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DLLVM_CMAKE_DIR:PATH="$TOOLCHAIN_INSTALL" \
-              -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
-              -DCMAKE_ASM_COMPILER_TARGET=${{ matrix.arch.triple }} \
-              -C ${{ github.workspace }}/llvm-project/compiler-rt/cmake/caches/hexagon-builtins-baremetal.cmake \
-              -B build-${{ matrix.arch.triple }}-builtins/ \
-              -S ${{ github.workspace }}/llvm-project/compiler-rt/
-          else
-            cmake -G Ninja \
-              -DCMAKE_C_COMPILER:STRING=`which clang` \
-              -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
-              -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
-              -DCOMPILER_RT_BAREMETAL_BUILD=ON \
-              -DCOMPILER_RT_BUILD_BUILTINS=ON \
-              -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
-              -DCOMPILER_RT_BUILD_XRAY=OFF \
-              -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
-              -DCOMPILER_RT_BUILD_PROFILE=OFF \
-              -DCMAKE_C_COMPILER_TARGET=${{ matrix.arch.triple }} \
-              -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
-              -DCMAKE_C_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding ${{ matrix.arch.extra-c-flags }}" \
-              -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding -nostdinc++ ${{ matrix.arch.extra-cxx-flags }}" \
-              -DCMAKE_ASM_FLAGS="--target=${{ matrix.arch.triple }} ${{ matrix.arch.extra-cxx-flags }}" \
-              -DCMAKE_C_COMPILER_FORCED=ON \
-              -DCMAKE_CXX_COMPILER_FORCED=ON \
-              -DCMAKE_CROSSCOMPILING=ON \
-              -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
-              -B build-${{ matrix.arch.triple }}-builtins/ \
-              -S ${{ github.workspace }}/llvm-project/compiler-rt/
-          fi
+          cmake -G Ninja \
+            -DCMAKE_C_COMPILER:STRING=`which clang` \
+            -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
+            -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
+            -DCOMPILER_RT_BAREMETAL_BUILD=ON \
+            -DCOMPILER_RT_BUILD_BUILTINS=ON \
+            -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
+            -DCOMPILER_RT_BUILD_XRAY=OFF \
+            -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+            -DCOMPILER_RT_BUILD_PROFILE=OFF \
+            -DCMAKE_C_COMPILER_TARGET=${{ matrix.arch.triple }} \
+            -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
+            -DCMAKE_C_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding ${{ matrix.arch.extra-c-flags }}" \
+            -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding -nostdinc++ ${{ matrix.arch.extra-cxx-flags }}" \
+            -DCMAKE_ASM_FLAGS="--target=${{ matrix.arch.triple }} ${{ matrix.arch.extra-cxx-flags }}" \
+            -DCMAKE_C_COMPILER_FORCED=ON \
+            -DCMAKE_CXX_COMPILER_FORCED=ON \
+            -DCMAKE_CROSSCOMPILING=ON \
+            -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
+            -DCMAKE_SYSTEM_NAME="Generic" \
+            -B build-${{ matrix.arch.triple }}-builtins/ \
+            -S ${{ github.workspace }}/llvm-project/compiler-rt/
           cmake --build ${{ github.workspace }}/build-${{ matrix.arch.triple }}-builtins/ -- install-builtins
 
       - name: Install Meson
@@ -180,7 +199,12 @@ jobs:
           cd build-clang-${{ matrix.arch.name }}-picolibc-default-config
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-default-config }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
+          ../scripts/${{ matrix.arch.configure-script }} \
+            -Dc_ld=ld.eld \
+            -Dcpp_ld=ld.eld \
+            ${{ matrix.arch.picolibc-default-config }} \
+            -Dc_args="${{ matrix.arch.extra-c-flags }}" \
+            -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
           ninja
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, no-tls
@@ -190,7 +214,12 @@ jobs:
           cd build-clang-${{ matrix.arch.name }}-picolibc-no-tls
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-no-tls }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
+          ../scripts/${{ matrix.arch.configure-script }} \
+            -Dc_ld=ld.eld \
+            -Dcpp_ld=ld.eld \
+            ${{ matrix.arch.picolibc-no-tls }} \
+            -Dc_args="${{ matrix.arch.extra-c-flags }}" \
+            -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
           ninja
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, tls-ie
@@ -200,7 +229,12 @@ jobs:
           cd build-clang-${{ matrix.arch.name }}-picolibc-tls-ie
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-tls-ie }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
+          ../scripts/${{ matrix.arch.configure-script }} \
+            -Dc_ld=ld.eld \
+            -Dcpp_ld=ld.eld \
+            ${{ matrix.arch.picolibc-tls-ie }} \
+            -Dc_args="${{ matrix.arch.extra-c-flags }}" \
+            -Dcpp_args="-nostdinc++ ${{ matrix.arch.extra-cxx-flags }}"
           ninja
 
       - name: Get QEMU
@@ -218,7 +252,7 @@ jobs:
             ninja install
             echo "PATH=$QEMU_INSTALL/bin/:$PATH" >> $GITHUB_ENV
           else
-            sudo apt install qemu-system-arm qemu-system-aarch64 qemu-system-riscv32 qemu-system-riscv64
+            sudo apt install -y ${{ matrix.arch.qemu-package }}
           fi
 
       - name: Run Picolibc tests for ${{ matrix.arch.name }}, default-config

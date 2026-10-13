@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - [Major Highlights](#major-highlights)
 
 ### 2026
+- [September 2026](#september-2026)
+- [August 2026](#august-2026)
+- [July 2026](#july-2026)
+- [June 2026](#june-2026)
 - [May 2026](#may-2026)
 - [April 2026](#april-2026)
 - [March 2026](#march-2026)
@@ -36,6 +40,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### 2026
 
+- added initial i386 ELF32 support, expanded ARM relocation and `e_flags` handling, added versioned-symbol and TLS improvements, and introduced JSON symbol-resolution reports.
+- added overlay layout support, `--trace=plugin`, `--default-symver`, `--warn-rwx-segments`, and improved RISC-V, ARM, and TLS relaxation behavior.
+- added multi-threaded output emission, dynamic-section fragmentization, embedded linker-script version blocks, and broader relocation support.
+- added versioned symbols in regular objects, ARM static IFunc support, RISC-V Qualcomm relocations, `--no-warn-mismatch`, and improved ELF format detection.
 - added fat LTO-object support, new plugin relocation API surface, and x86 IE-mode TLS relocation support in shared objects.
 - hardened linker-script behavior (`EXCLUDE_FILE` in `SORT_*`, `ASCIZ`, stricter `SUBALIGN` validation) and fixed multiple versioning/address-layout issues.
 - added `-z separate-loadable-segments`, fixed PIE handling for absolute `--defsym`, and improved AArch64 static TLS/IFunc support.
@@ -47,6 +55,200 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - foundational feature ramp-up across emulations, plugin APIs, x86_64 static relocations, and linker-script expression handling.
 
 ## 2026
+
+### September 2026
+
+#### [2026-09-28] - 2026-09-28 to 2026-10-04
+##### Added
+- [ARM] Show ELF `e_flags` in map files and target emulation.
+##### Fixed
+- Fix reproduce replay for `-l` namespec shared libraries.
+
+#### [2026-09-21] - 2026-09-21 to 2026-09-27
+##### Added
+- Add minimal i386 ELF32 backend and i386 driver recognition.
+- [ARM][AArch64] Add `--pic-veneer` support.
+- Add `--emit-symbol-resolution-report` JSON output.
+- Implement ARM `R_ARM_LDRS_PC_G0` and `R_ARM_LDRS_PC_G1` relocations.
+##### Changed
+- Apply version scripts to linker-script symbols.
+- Show additional information in relocation overflow diagnostics.
+##### Fixed
+- Use the lowest-address `PT_TLS` segment as the TLS symbol base.
+- Ignore the addend in `R_RISCV_GOT_HI20`.
+
+#### [2026-09-14] - 2026-09-14 to 2026-09-20
+##### Added
+- Allow local versioned symbols.
+- Add support for TLS offsets across multiple `PT_TLS` segments on x86_64.
+- Add ARM `R_ARM_LDR_PC_G1` and `R_ARM_THM_PC12` relocations.
+##### Changed
+- Allocate GOT/PLT slots into one shared section deterministically.
+- Adapt option tables to the LLVM `OptTable` API.
+##### Fixed
+- Fix out-of-bounds handling when adding exidx sentinel entries.
+- Honor linker-script start addresses on x86.
+
+#### [2026-09-07] - 2026-09-07 to 2026-09-13
+##### Added
+- Add macOS as a host platform for ELD.
+##### Changed
+- Route assignment trace diagnostics to stderr.
+##### Fixed
+- Fix a data race in multi-threaded version-script matching.
+- Fix the `--noinhibit-exec` diagnostic path for output-section `ALIGN`.
+
+### August 2026
+
+#### [2026-08-31] - 2026-08-31 to 2026-09-06
+##### Added
+- Add initial `OVERLAY` VMA/LMA layout support.
+- Add a dynamic H2+Picolibc template for ELF outputs.
+##### Changed
+- Make `--discard-locals` discard `.L` local temporaries.
+- Group obsolete driver options under compatibility/ignored options.
+##### Removed
+- Remove Hexagon linker relaxation support.
+
+#### [2026-08-24] - 2026-08-24 to 2026-08-30
+##### Added
+- Support `ENTRY` inside the `SECTIONS` linker-script command.
+- Add `--default-symver`.
+- Implement ARM `R_ARM_THM_PC8`, `R_ARM_ALU_PC_Gn`, `R_ARM_ALU_PC_Gn_NC`, and `R_ARM_LDR_PC_G2` relocations.
+##### Changed
+- Show the referenced symbol in relocation overflow diagnostics.
+- Correctly handle `--no-merge-strings`.
+##### Fixed
+- Fix RISC-V call-relaxation rollback offsets.
+
+#### [2026-08-17] - 2026-08-17 to 2026-08-23
+##### Added
+- Make `--remap-inputs-file` reproduce tarballs replayable.
+- Honor `--time-region=all-user-plugins` for YAML plugin configurations.
+##### Changed
+- Set linker state before layout and output writing.
+
+#### [2026-08-10] - 2026-08-10 to 2026-08-16
+##### Added
+- Add scoped plugin tracing with `--trace=plugin=<name>`.
+##### Changed
+- Make plugin `-plugin-opt=O2/3` handling more compatible with lld.
+##### Fixed
+- Fix ARM THM veneer mapping symbols.
+- Fix symbol-versioning section layout order.
+- Fix RISC-V post-`ALIGN` JAL rollback handling.
+
+#### [2026-08-03] - 2026-08-03 to 2026-08-09
+##### Added
+- Add `-v` driver option for GNU ld/ld.lld compatibility.
+##### Changed
+- Roll back AUIPC+JALR to JAL when it becomes out of range after `ALIGN`.
+##### Removed
+- Remove `--patch-enable` and the patching infrastructure.
+##### Fixed
+- Fix TLS template size with multiple padded `PT_TLS` segments.
+
+### July 2026
+
+#### [2026-07-27] - 2026-07-27 to 2026-08-02
+##### Added
+- Support `VERSION {}` blocks embedded in `-T` linker scripts.
+- Add `--[no-]warn-rwx-segments`.
+- Honor `--export-dynamic` for PIE executables.
+##### Changed
+- Make version-script pattern matching multi-threaded.
+- Change version information to match Linux kernel expectations.
+##### Fixed
+- Fix LMA alignment when section-description `ALIGN()` is used with `AT>`.
+
+#### [2026-07-20] - 2026-07-20 to 2026-07-26
+##### Added
+- Add multi-threaded output-file emission.
+- Accept weak hidden/protected undefined symbols when building shared objects.
+##### Changed
+- Read linker-script assignments in input-script order.
+- Make symbol-table order deterministic.
+##### Fixed
+- Fix missing alignment on dynamic-section fragments.
+- Fix missing mutex protection for x86_64 `R_X86_64_PLT32` scanning.
+
+#### [2026-07-13] - 2026-07-13 to 2026-07-19
+##### Added
+- Add `iplt_start`/`iplt_end` standard symbols when referenced.
+- Add ARM EXIDX sentinel and fragment support.
+##### Changed
+- Convert `.dynstr`, `.dynsym`, and `.dynamic` to fragment-based designs.
+- Fix evaluation order for `(before/in/after)-SECTIONS` assignments.
+##### Fixed
+- Fix orphan-section placement with linker scripts.
+- Prevent compressed-section reads from reaching an unavailable zlib decompressor.
+
+#### [2026-07-06] - 2026-07-06 to 2026-07-12
+##### Added
+- Implement RISC-V GOT-load relaxation and the Qualcomm Xqccmt vendor extension.
+- Add AArch64 relocation alignment and range checks.
+##### Changed
+- Make symbol-table order deterministic.
+- Treat non-alloc sections as address zero during layout.
+##### Fixed
+- Fix `__start`/`__stop` magic symbols incorrectly emitting `GLOB_DAT`.
+- Fix ARM EXIDX sorting with per-section linker-script rules.
+
+### June 2026
+
+#### [2026-06-29] - 2026-06-29 to 2026-07-05
+##### Added
+- Support x86_64 `GOTPCRELX` relaxation.
+- Add ARM `R_ARM_LDR_PC_G0` relocation.
+##### Changed
+- Support `/dev/null` output files on Windows.
+##### Fixed
+- Fix AArch64 `TLSDESC_ADD_LO12` encoding and relaxation for non-preemptible symbols.
+- Apply plugin fragment replacements before synchronizing relocations.
+
+#### [2026-06-22] - 2026-06-22 to 2026-06-28
+##### Added
+- Relax RISC-V `QC.E.J`/`QC.E.JAL` to `CM.JT`/`CM.JALT` when possible.
+- Add AArch64 overflow checks for `R_AARCH64_ADR_PREL_PG_HI21`.
+##### Changed
+- Unify default `--warn-mismatch` behavior across architectures.
+- Remove internal use of deprecated command-line flags.
+##### Fixed
+- Fix `--remap-inputs` path normalization on Windows.
+- Fix AArch64 absolute-relocation regression and RISC-V JVT symbols.
+- Fix `PT_TLS` file/memory sizes and `.tbss` RELRO classification.
+
+#### [2026-06-15] - 2026-06-15 to 2026-06-21
+##### Added
+- Add primitive support for versioned symbols in regular object files.
+- Add `eld::plugin::InputFile::isLTOGeneratedObject`.
+- Implement RISC-V `R_RISCV_QC_ACCESS_16` and `R_RISCV_QC_ACCESS_32` relaxation.
+##### Changed
+- Make the last conflicting command-line option take precedence.
+##### Fixed
+- Correct GNU-compatible `dc` and `dp` flag definitions.
+
+#### [2026-06-08] - 2026-06-08 to 2026-06-14
+##### Added
+- Add RISC-V Zcmt extension support.
+- Add ARM IFunc support for static links.
+- Add `--no-warn-mismatch` for ABI information.
+##### Changed
+- Remove ARM/Baremetal `--compact` and `-z compactdyn` options.
+##### Fixed
+- Fix spurious `PT_LOAD` creation for TBSS-only sections.
+- Reject `riscv-tbljal` with shared or position-independent links.
+
+#### [2026-06-01] - 2026-06-01 to 2026-06-07
+##### Added
+- Add `LinkerWrapper::getRuleMatchingInput`.
+- Add RISC-V `R_RISCV_QC_ACCESS_16` and `R_RISCV_QC_ACCESS_32` relocation support.
+##### Changed
+- Read ELF inputs according to their actual bit width and endianness.
+- Improve command-line help for canonical `--word` options and compatibility aliases.
+##### Fixed
+- Add column numbers to linker-script diagnostics.
+- Fix duplicate `MEMORY` entries and add `PHDRS` to map files.
 
 ### May 2026
 

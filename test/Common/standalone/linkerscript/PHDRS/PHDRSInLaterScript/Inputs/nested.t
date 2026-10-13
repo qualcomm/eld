@@ -1,0 +1,3 @@
+SECTIONS {
+  INCLUDE body.t
+}

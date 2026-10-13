@@ -16,10 +16,12 @@
 #include "eld/Core/LinkerScript.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticPrinter.h"
+#include "eld/Fragment/MergeDataFragment.h"
 #include "eld/Fragment/MergeStringFragment.h"
 #include "eld/Input/ArchiveMemberInput.h"
 #include "eld/Input/InputFile.h"
 #include "eld/Input/ObjectFile.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Object/ObjectLinker.h"
 #include "eld/Object/RuleContainer.h"
 #include "eld/Object/SectionMap.h"
@@ -32,12 +34,10 @@
 #include "eld/Support/RegisterTimer.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/Path.h"
-#include "llvm/Support/ThreadPool.h"
 #include <algorithm>
 #include <chrono>
 
@@ -185,6 +185,31 @@ void ObjectBuilder::traceMergeStrings(const MergeableString *From,
   assert(From->String == To->String);
 }
 
+void ObjectBuilder::traceMergeConstants(const MergeableConstant *From,
+                                        const MergeableConstant *To) const {
+  ELFSection *OutputSection =
+      From->Fragment->getOwningSection()->getOutputELFSection();
+  std::string OutputSectionName =
+      OutputSection->getDecoratedName(ThisConfig.options());
+  std::string FileFrom = From->Fragment->getOwningSection()
+                             ->getInputFile()
+                             ->getInput()
+                             ->decoratedPath(true);
+  std::string FileTo = To->Fragment->getOwningSection()
+                           ->getInputFile()
+                           ->getInput()
+                           ->decoratedPath(true);
+  std::string SectionFrom =
+      From->Fragment->getOwningSection()->getDecoratedName(
+          ThisConfig.options());
+  std::string SectionTo =
+      To->Fragment->getOwningSection()->getDecoratedName(ThisConfig.options());
+  ThisConfig.raise(Diag::merging_constant_fragments)
+      << FileFrom << SectionFrom << From->InputOffset << From->getAlignment()
+      << FileTo << SectionTo << To->InputOffset << To->getAlignment()
+      << OutputSectionName;
+}
+
 void ObjectBuilder::mergeStrings(MergeStringFragment *F,
                                  OutputSectionEntry *O) {
   for (MergeableString &S : F->getStrings()) {
@@ -195,6 +220,22 @@ void ObjectBuilder::mergeStrings(MergeStringFragment *F,
     if (config().getPrinter()->traceMergeStrings() ||
         config().getPrinter()->isVerbose())
       traceMergeStrings(&S, &MergedString);
+  }
+}
+
+void ObjectBuilder::mergeConstants(MergeDataFragment *F,
+                                   OutputSectionEntry *O) {
+  bool RecordForMap =
+      config().options().printMap() || !config().options().layoutFile().empty();
+  for (MergeableConstant &C : F->getConstants()) {
+    // Deduplicate by payload while honoring canonical-alignment constraints.
+    MergeableConstant &MergedConstant =
+        MergeDataFragment::getOrAddMergedConstant(&C, O, RecordForMap);
+    if (&MergedConstant == &C)
+      continue;
+    if (config().getPrinter()->traceMergeConstants() ||
+        config().getPrinter()->isVerbose())
+      traceMergeConstants(&C, &MergedConstant);
   }
 }
 
@@ -243,12 +284,12 @@ void ObjectBuilder::doPluginIterateSections(eld::InputFile *Obj,
       continue;
     ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
     // Get the section kind.
-    int32_t SectionKind = Section->getKind();
-    if (SectionKind == LDFileFormat::Null ||
-        SectionKind == LDFileFormat::StackNote ||
-        (SectionKind == LDFileFormat::NamePool && !IsLinkerInternal) ||
-        (SectionKind == LDFileFormat::Relocation && !IsLinkerInternal) ||
-        SectionKind == LDFileFormat::Group)
+    LinkerSectionKind SectionKind = Section->getKind();
+    if (SectionKind == LinkerSectionKind::Null ||
+        SectionKind == LinkerSectionKind::StackNote ||
+        (SectionKind == LinkerSectionKind::NamePool && !IsLinkerInternal) ||
+        (SectionKind == LinkerSectionKind::Relocation && !IsLinkerInternal) ||
+        SectionKind == LinkerSectionKind::Group)
       continue;
     if (P->getType() == plugin::Plugin::Type::SectionIterator &&
         Section->isIgnore())
@@ -347,9 +388,9 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
           In->incMatchCount();
           Sect->setOutputSection(Out);
           Sect->setMatchedLinkerScriptRule(In);
-          // FIXME: Shouldn't we set ELFSect to LDFileFormat::Discard?
+          // FIXME: Shouldn't we set ELFSect to LinkerSectionKind::Discard?
           if (ELFSect && Out->isDiscard()) {
-            ELFSect->setKind(LDFileFormat::Ignore);
+            ELFSect->setKind(LinkerSectionKind::Ignore);
             if (ThisConfig.options().isSectionTracingRequested() &&
                 ThisConfig.options().traceSection(ELFSect->name().str()))
               ThisConfig.raise(Diag::discarded_section_info)
@@ -456,9 +497,9 @@ void ObjectBuilder::assignInputFromOutputLegacy(eld::InputFile *Obj) {
           In->incMatchCount();
           Section->setOutputSection(Out);
           Section->setMatchedLinkerScriptRule(In);
-          // FIXME: Shouldn't we set ELFSect to LDFileFormat::Discard?
+          // FIXME: Shouldn't we set ELFSect to LinkerSectionKind::Discard?
           if (ELFSect && Out->isDiscard()) {
-            ELFSect->setKind(LDFileFormat::Ignore);
+            ELFSect->setKind(LinkerSectionKind::Ignore);
             if (ThisConfig.options().isSectionTracingRequested() &&
                 ThisConfig.options().traceSection(ELFSect->name().str()))
               ThisConfig.raise(Diag::discarded_section_info)
@@ -564,8 +605,8 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
     if (ThisModule.getPrinter()->traceThreads())
       ThisConfig.raise(Diag::threads_enabled)
           << "AssignOutputSections" << ThisConfig.options().numThreads();
-    llvm::ThreadPoolInterface *Pool = ThisModule.getThreadPool();
-    for (auto &Obj : Inputs) {
+    eld::plugin::ThreadPool *Pool = ThisModule.getThreadPool();
+    for (InputFile *Obj : Inputs) {
       if (IsPostLtoPhase && Obj->isBitcode())
         continue;
       /// Internal common sections are assigned output sections later.
@@ -575,10 +616,9 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
       if (ObjFile && HasSectionsCommand && ObjFile->hasHighSectionCount())
         ThisConfig.raise(Diag::more_sections)
             << Obj->getInput()->decoratedPath();
-      Pool->async([&] {
-        assignInputFromOutput(Obj);
-      });
+      Pool->run([this, Obj] { assignInputFromOutput(Obj); });
     }
+    // Join all submitted work before leaving this scope.
     Pool->wait();
   }
 
@@ -624,7 +664,7 @@ void ObjectBuilder::mayChangeSectionTypeOrKind(ELFSection *Target,
     return;
   }
   if (Target->isNoBits() && !I->isNoBits()) {
-    Target->setKind(LDFileFormat::Regular);
+    Target->setKind(LinkerSectionKind::Regular);
     Target->setType(llvm::ELF::SHT_PROGBITS);
     return;
   }
@@ -691,9 +731,9 @@ void ObjectBuilder::updateSectionFlags(ELFSection *PTo, ELFSection *PFrom) {
 
   PTo->setFlags(Flags);
 
-  if (PTo->getKind() != LDFileFormat::Internal &&
+  if (PTo->getKind() != LinkerSectionKind::Internal &&
       (Flags & llvm::ELF::SHF_MASKPROC))
-    PTo->setKind(LDFileFormat::Target);
+    PTo->setKind(LinkerSectionKind::Target);
 }
 
 /// This function figures out if a new section section needs to be created, or
@@ -879,9 +919,9 @@ ObjectBuilder::getInputSectionsForRuleMatching(ObjectFile *ObjFile) {
   for (Section *S : ObjFile->getSections()) {
     if (ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(S)) {
       // Get the section kind.
-      int32_t SectionKind = ELFSect->getKind();
-      if (SectionKind == LDFileFormat::Discard ||
-          SectionKind == LDFileFormat::Ignore) {
+      LinkerSectionKind SectionKind = ELFSect->getKind();
+      if (SectionKind == LinkerSectionKind::Discard ||
+          SectionKind == LinkerSectionKind::Ignore) {
         if (ThisConfig.options().isSectionTracingRequested() &&
             ThisConfig.options().traceSection(ELFSect->name().str()))
           ThisConfig.raise(Diag::discarded_section_info)
@@ -889,11 +929,11 @@ ObjectBuilder::getInputSectionsForRuleMatching(ObjectFile *ObjFile) {
               << ObjFile->getInput()->decoratedPath();
         continue;
       }
-      if (SectionKind == LDFileFormat::Null ||
-          SectionKind == LDFileFormat::StackNote ||
-          SectionKind == LDFileFormat::NamePool ||
-          (SectionKind == LDFileFormat::Relocation && !IsLinkerInternal) ||
-          SectionKind == LDFileFormat::Group)
+      if (SectionKind == LinkerSectionKind::Null ||
+          SectionKind == LinkerSectionKind::StackNote ||
+          SectionKind == LinkerSectionKind::NamePool ||
+          (SectionKind == LinkerSectionKind::Relocation && !IsLinkerInternal) ||
+          SectionKind == LinkerSectionKind::Group)
         continue;
       if (ELFSect->getOutputSection())
         continue;

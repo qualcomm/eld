@@ -15,6 +15,9 @@ RUN: %objdump -t %t2.t2tdisasm.1.out | %filecheck %s -check-prefix=STATICSYM
 RUN: %link %linkopts %t1.t2tdisasm.1.o -o %t2.t2tdisasm.2.out --defsym bar=0x80000001 -shared
 RUN: %objdump -d %t2.t2tdisasm.2.out | %filecheck %s -check-prefix=SHARED
 RUN: %objdump -t %t2.t2tdisasm.2.out | %filecheck %s -check-prefix=SHAREDSYM
+RUN: %link %linkopts %t1.t2tdisasm.1.o -o %t2.t2tdisasm.3.out --defsym bar=0x80000001 --pic-veneer
+RUN: %objdump -d %t2.t2tdisasm.3.out | %filecheck %s -check-prefix=PICVENEER
+RUN: %objdump -t %t2.t2tdisasm.3.out | %filecheck %s -check-prefix=PICVENEERSYM
 
 #STATIC: {{.*}} <__bar_T2T_veneer@island-1>:
 #STATIC:      {{.*}}: 4778          bx      pc
@@ -34,5 +37,15 @@ RUN: %objdump -t %t2.t2tdisasm.2.out | %filecheck %s -check-prefix=SHAREDSYM
 
 #SHAREDSYM: $t.t2t.1
 #SHAREDSYM: $a.t2t.1
+
+#PICVENEER: {{.*}} <__bar_T2T_veneer@island-1>:
+#PICVENEER:      {{.*}}: 4778          bx      pc
+#PICVENEER:      {{.*}}: 46c0          mov     r8, r8
+#PICVENEER:      {{.*}}: e59fc004      ldr     r12, [pc, #0x4]{{.*}}
+#PICVENEER:      {{.*}}: e08fc00c      add     r12, pc, r12
+#PICVENEER:      {{.*}}: e12fff1c      bx      r12
+
+#PICVENEERSYM: $t.t2t.1
+#PICVENEERSYM: $a.t2t.1
 
 #END_TEST

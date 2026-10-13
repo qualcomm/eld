@@ -812,7 +812,7 @@ bool plugin::LinkerScript::linkerScriptHasRules() {
 }
 
 std::string plugin::LinkerScript::getHash() const {
-  if (!m_LinkerScript)
+  if (!m_LinkerScript || !m_LinkerScript->isHashingEnabled())
     return {};
   return m_LinkerScript->getHash();
 }

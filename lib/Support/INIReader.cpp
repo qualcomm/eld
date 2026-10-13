@@ -11,7 +11,6 @@
 #include "eld/Support/FileSystem.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/StringUtils.h"
-#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/MemoryBuffer.h"
 
 using namespace eld;
@@ -41,17 +40,27 @@ std::vector<std::pair<std::string, std::string>> INIReaderSection::getItems() {
 }
 
 void INIReader::addValues(INIReaderSection *S, llvm::StringRef L) {
-  llvm::SmallVector<llvm::StringRef, 0> Values;
-  L.split(Values, '=');
-  llvm::StringRef Key = Values[0].trim();
-  llvm::StringRef Value = Values[1].trim();
+  // A mapping key may begin with '=' when a linker script uses the sysroot
+  // marker (for example, =/lib64/libfoo.so). The first '=' is part of the
+  // key in that case, not the key/value separator.
+  size_t Separator = L.find('=');
+  if (Separator == 0)
+    Separator = L.find('=', 1);
+  if (Separator == llvm::StringRef::npos)
+    return;
+  llvm::StringRef Key = L.take_front(Separator).trim();
+  llvm::StringRef Value = L.drop_front(Separator + 1).trim();
   S->addItem(Key.str(), Value.str());
 }
 
-eld::Expected<bool> INIReader::readINIFile() {
+eld::Expected<bool>
+INIReader::readINIFile(const ReproduceTarReader *TarReader) {
   std::vector<std::string> Lines;
 
-  if (!((sys::fs::loadFileContents(INIFileName, Lines) == std::error_code()) &&
+  // loadFileContents() transparently reads from replay tarball when TarReader
+  // is provided, otherwise it reads from disk.
+  if (!((sys::fs::loadFileContents(INIFileName, Lines, TarReader) ==
+         std::error_code()) &&
         Lines.size()))
     return false;
 

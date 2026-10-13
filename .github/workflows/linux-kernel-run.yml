@@ -1,4 +1,5 @@
 name: Linux Kernel Boot (reusable)
+# owner: Steven6798
 
 # Reusable Linux kernel boot body, called by linux-kernel-nightly.yml and
 # linux-kernel-pr.yml. Builds a Linux kernel for the given architecture with
@@ -107,7 +108,7 @@ jobs:
         if: inputs.enabled == 1
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.ref_name }}
 
       - name: Configure workflow environment variables
         if: inputs.enabled == 1

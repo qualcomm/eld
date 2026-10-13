@@ -8,8 +8,8 @@
 #
 # Variables (user-configurable):
 #   ELD_DOC_VERSIONS - List of "branch:label:display_name" specs
-#                      Example: "main:main:Main (dev);release/22.x:22.x:Release 22.x"
-#   ELD_DOC_STABLE   - Which version the "stable" symlink points to (default: 22.x)
+#                      Example: "main:main:Main (dev);release/23.x:23.x:Release 23.x"
+#   ELD_DOC_STABLE   - Which version the "stable" symlink points to (default: 23.x)
 #
 # Targets created:
 #   eld-docs-all-releases  - Builds documentation for all configured versions
@@ -23,7 +23,7 @@
 #     ├── versions.json
 #     ├── stable -> <ELD_DOC_STABLE>
 #     ├── main/
-#     └── 22.x/
+#     └── 23.x/
 
 function(eld_add_multiversion_doc_targets)
     if(NOT DEFINED ELD_SOURCE_DIR)
@@ -34,10 +34,10 @@ function(eld_add_multiversion_doc_targets)
 
     set(ELD_DOC_VERSIONS
         "main:main:Main (dev)"
-        "release/22.x:22.x:Release 22.x"
+        "release/23.x:23.x:Release 23.x"
         CACHE STRING "Semicolon-separated list of 'branch:label:display_name' for multi-version docs")
 
-    set(ELD_DOC_STABLE "22.x"
+    set(ELD_DOC_STABLE "23.x"
         CACHE STRING "Version that 'stable' symlink points to")
 
     set(ELD_MULTIVERSION_SCRIPTS_DIR "${ELD_SOURCE_DIR}/docs/multiversion")

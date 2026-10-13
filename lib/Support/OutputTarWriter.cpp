@@ -146,7 +146,9 @@ bool OutputTarWriter::writeOutput(bool ShowProgress) {
   auto Contents = getMappings();
   if (m_Verbose)
     m_Config.raise(Diag::adding_mappingfile_to_tarball) << mappingFileName;
-  m_ProgressBar = make<ProgressBar>(InputMap.size() + 3, 80, ShowProgress);
+  m_ProgressBar =
+      make<ProgressBar>(InputMap.size() + 3, 80, ShowProgress, llvm::errs());
+  m_Config.getDiagEngine()->getPrinter()->setProgressBar(m_ProgressBar);
   writeFile(mappingFileName, Contents);
   writeFile(versionFileName, versionContents);
   writeFile(responseFileName, responseContents);
@@ -156,8 +158,17 @@ bool OutputTarWriter::writeOutput(bool ShowProgress) {
                                                 P.second->getMappingFileKind()),
               P.second->getContents());
   }
-  if (m_Compress)
-    return doCompress();
+  if (m_Compress) {
+    bool Success = doCompress();
+    m_Config.getDiagEngine()->getPrinter()->setProgressBar(nullptr);
+    if (Success)
+      m_ProgressBar->finish();
+    else
+      m_ProgressBar->stop();
+    return Success;
+  }
+  m_Config.getDiagEngine()->getPrinter()->setProgressBar(nullptr);
+  m_ProgressBar->finish();
   return true;
 }
 

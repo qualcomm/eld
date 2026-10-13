@@ -19,10 +19,10 @@
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/Target/GNULDBackend.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSet.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Object/ELF.h"
 #include "llvm/Object/ELFTypes.h"
 #include "llvm/Support/Compression.h"
@@ -82,14 +82,116 @@ ELFReader<ELFT>::getSectionName(Elf_Shdr rawSectHdr) {
 }
 
 template <class ELFT>
-LDFileFormat::Kind
-ELFReader<ELFT>::getSectionKind(Elf_Shdr rawSectHdr,
-                                llvm::StringRef sectionName) {
+LinkerSectionKind
+ELFReader<ELFT>::classifySectionKind(Elf_Shdr rawSectHdr,
+                                     llvm::StringRef sectionName) {
   LinkerConfig &config = m_Module.getConfig();
-  LDFileFormat::Kind kind = LDFileFormat::getELFSectionKind(
-      rawSectHdr.sh_flags, rawSectHdr.sh_addralign, rawSectHdr.sh_entsize,
-      rawSectHdr.sh_type, sectionName, config);
-  return kind;
+  bool isPartialLink = config.isLinkPartial();
+
+  if (rawSectHdr.sh_flags & llvm::ELF::SHF_EXCLUDE)
+    return LinkerSectionKind::Discard;
+
+  if (!isPartialLink || !(rawSectHdr.sh_flags & llvm::ELF::SHF_GROUP)) {
+    if ((rawSectHdr.sh_flags & llvm::ELF::SHF_MASKPROC) ||
+        (rawSectHdr.sh_flags & llvm::ELF::SHF_MASKOS))
+      return LinkerSectionKind::Target;
+  }
+
+  bool isSectionMergeStrings = (rawSectHdr.sh_flags & llvm::ELF::SHF_MERGE) &&
+                               (rawSectHdr.sh_flags & llvm::ELF::SHF_STRINGS);
+
+  if (config.options().stripDebug()) {
+    if (sectionName.starts_with(".debug") ||
+        sectionName.starts_with(".zdebug") ||
+        sectionName.starts_with(".line") || sectionName.starts_with(".stab"))
+      return LinkerSectionKind::Ignore;
+  }
+
+  if (isSectionMergeStrings && rawSectHdr.sh_addralign == 1 &&
+      rawSectHdr.sh_entsize == 1 && !isPartialLink)
+    return LinkerSectionKind::MergeStr;
+
+  if (isPartialLink && rawSectHdr.sh_entsize <= 1) {
+    if (isSectionMergeStrings && sectionName == ".comment")
+      return LinkerSectionKind::MergeStr;
+  }
+
+  if (sectionName.starts_with(".debug") || sectionName.starts_with(".zdebug") ||
+      sectionName.starts_with(".line") || sectionName.starts_with(".stab"))
+    return LinkerSectionKind::Debug;
+
+  if (sectionName == ".note.gnu.property")
+    return LinkerSectionKind::GNUProperty;
+  if (sectionName == ".hexagon.attributes")
+    return LinkerSectionKind::Target;
+
+  if (sectionName.starts_with(".note.qc.timing"))
+    return LinkerSectionKind::Timing;
+  if (sectionName.starts_with(".comment"))
+    return LinkerSectionKind::MetaData;
+  if (sectionName.starts_with(".interp") || sectionName.starts_with(".dynamic"))
+    return LinkerSectionKind::Note;
+  if (sectionName.starts_with(".eh_frame_hdr"))
+    return LinkerSectionKind::EhFrameHdr;
+  if (sectionName.starts_with(".gcc_except_table"))
+    return LinkerSectionKind::GCCExceptTable;
+  if (sectionName.starts_with(".eh_frame"))
+    return LinkerSectionKind::EhFrame;
+  if (sectionName == ".sframe" ||
+      rawSectHdr.sh_type == llvm::ELF::SHT_GNU_SFRAME)
+    return LinkerSectionKind::SFrame;
+  if (sectionName.starts_with(".note.GNU-stack"))
+    return LinkerSectionKind::StackNote;
+  if (sectionName.starts_with(".gnu.linkonce"))
+    return LinkerSectionKind::LinkOnce;
+
+  if (sectionName == ".note.gnu.build-id" ||
+      sectionName == ".note.qc.reloc.section.map" ||
+      sectionName == ".note.llvm.callgraph" || sectionName == ".llvm_addrsig")
+    return LinkerSectionKind::Discard;
+
+  switch (rawSectHdr.sh_type) {
+  case llvm::ELF::SHT_NULL:
+    return LinkerSectionKind::Null;
+  case llvm::ELF::SHT_INIT_ARRAY:
+  case llvm::ELF::SHT_FINI_ARRAY:
+  case llvm::ELF::SHT_PREINIT_ARRAY:
+  case llvm::ELF::SHT_PROGBITS:
+  case llvm::ELF::SHT_NOBITS:
+    return LinkerSectionKind::Regular;
+  case llvm::ELF::SHT_SYMTAB:
+  case llvm::ELF::SHT_DYNSYM:
+  case llvm::ELF::SHT_STRTAB:
+  case llvm::ELF::SHT_HASH:
+  case llvm::ELF::SHT_DYNAMIC:
+  case llvm::ELF::SHT_SYMTAB_SHNDX:
+    return LinkerSectionKind::NamePool;
+  case llvm::ELF::SHT_RELA:
+  case llvm::ELF::SHT_REL:
+  case llvm::ELF::SHT_RELR:
+    return LinkerSectionKind::Relocation;
+  case llvm::ELF::SHT_NOTE:
+    return LinkerSectionKind::Note;
+  case llvm::ELF::SHT_GROUP:
+    return LinkerSectionKind::Group;
+  case llvm::ELF::SHT_GNU_versym:
+  case llvm::ELF::SHT_GNU_verdef:
+  case llvm::ELF::SHT_GNU_verneed:
+    return LinkerSectionKind::Version;
+  case llvm::ELF::SHT_SHLIB:
+    return LinkerSectionKind::Target;
+  default:
+    if ((rawSectHdr.sh_type >= llvm::ELF::SHT_LOPROC &&
+         rawSectHdr.sh_type <= llvm::ELF::SHT_HIPROC) ||
+        (rawSectHdr.sh_type >= llvm::ELF::SHT_LOOS &&
+         rawSectHdr.sh_type <= llvm::ELF::SHT_HIOS) ||
+        (rawSectHdr.sh_type >= llvm::ELF::SHT_LOUSER &&
+         rawSectHdr.sh_type <= llvm::ELF::SHT_HIUSER))
+      return LinkerSectionKind::Target;
+    config.raise(Diag::err_unsupported_section)
+        << sectionName << rawSectHdr.sh_type;
+    return LinkerSectionKind::Error;
+  }
 }
 
 template <class ELFT>

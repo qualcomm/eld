@@ -223,7 +223,12 @@ bool ARMAttributeFragment::updateARMVFPArgs(
     DiagEngine->raise(Diag::record_arm_attribute)
         << VFPStr << f->getInput()->decoratedPath();
   }
-  OutputAttributes.armVFPArgs = arg;
+  // The first input with Tag_ABI_VFP_args establishes the convention, as the
+  // first object establishes the EABI version in ARMInfo::checkFlags(). With
+  // --no-warn-mismatch a conflicting input is only diagnosed and does not
+  // override it, matching ld.bfd and lld.
+  if (OutputAttributes.armVFPArgs == ARMVFPArgKind::Default)
+    OutputAttributes.armVFPArgs = arg;
   return true;
 }
 

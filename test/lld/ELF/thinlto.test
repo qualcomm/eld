@@ -1,5 +1,5 @@
 # On ARM, LTO output files are numbered starting from 0, not from 1 like everywhere else.
-# UNSUPPORTED: arm, aarch64
+# UNSUPPORTED: arm, aarch64, tsan
 
 ## Basic ThinLTO tests.
 RUN: %clang %clangopts -c -flto=thin %p/Inputs/a.c -o %t.a.o

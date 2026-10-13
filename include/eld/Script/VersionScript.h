@@ -8,6 +8,7 @@
 #define ELD_SCRIPT_VERSIONSCRIPT_H
 
 #include "eld/Script/ScriptSymbol.h"
+#include "llvm/ADT/StringRef.h"
 #include <string>
 namespace eld {
 class StrToken;
@@ -165,6 +166,10 @@ public:
   llvm::StringRef getName() const { return Name->name(); }
 
   void setDependency(eld::StrToken *Dependency) { MDependency = Dependency; }
+
+  llvm::StringRef getDependency() const {
+    return MDependency ? MDependency->name() : llvm::StringRef();
+  }
 
   VersionScriptBlock *getLocalBlock() const { return MLocal; }
 

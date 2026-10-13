@@ -61,14 +61,12 @@ static const DiagStaticInfo DiagCommonInfo[] = {
 #include "eld/Diagnostics/DiagRelocations.inc"
 #include "eld/Diagnostics/DiagStats.inc"
 #include "eld/Diagnostics/DiagSymbolResolutions.inc"
+#include "eld/Diagnostics/DiagSymbolVersioning.inc"
 #include "eld/Diagnostics/DiagTraceAssignments.inc"
 #include "eld/Diagnostics/DiagTraceFiles.inc"
 #include "eld/Diagnostics/DiagTraceGC.inc"
 #include "eld/Diagnostics/DiagTraceSymbols.inc"
 #include "eld/Diagnostics/DiagTraceTrampolines.inc"
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-#include "eld/Diagnostics/DiagSymbolVersioning.inc"
-#endif
 #include "eld/Diagnostics/DiagVerbose.inc"
 #include "eld/Diagnostics/DiagWriters.inc"
 #undef DIAG
@@ -98,14 +96,12 @@ static const DiagStaticInfo DiagLoCInfo[] = {
 #include "eld/Diagnostics/DiagRelocations.inc"
 #include "eld/Diagnostics/DiagStats.inc"
 #include "eld/Diagnostics/DiagSymbolResolutions.inc"
+#include "eld/Diagnostics/DiagSymbolVersioning.inc"
 #include "eld/Diagnostics/DiagTraceAssignments.inc"
 #include "eld/Diagnostics/DiagTraceFiles.inc"
 #include "eld/Diagnostics/DiagTraceGC.inc"
 #include "eld/Diagnostics/DiagTraceSymbols.inc"
 #include "eld/Diagnostics/DiagTraceTrampolines.inc"
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-#include "eld/Diagnostics/DiagSymbolVersioning.inc"
-#endif
 #include "eld/Diagnostics/DiagVerbose.inc"
 #include "eld/Diagnostics/DiagWriters.inc"
 #undef DIAG

@@ -1,0 +1,19 @@
+REQUIRES: run_test
+#---R_ARM_LDRS_PC_G1.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Test R_ARM_LDRS_PC_G1 at runtime as the final memory-access relocation
+# in a two-instruction PC-relative group sequence.
+# R_ARM_ALU_PC_G0_NC encodes the first group and R_ARM_LDRS_PC_G1
+# encodes the remaining 8-bit offset.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc -nostdlib -c -o %t.main.o %p/Inputs/main.s
+RUN: %readelf -r %t.main.o | %filecheck %s --check-prefix RELOCS
+RUN: %run_cc -c -o %t.driver.o %p/Inputs/main.c
+RUN: %run_cc -static -o %t.static.out %t.main.o %t.driver.o
+RUN: %run %t.static.out | %filecheck %s
+
+RELOCS: R_ARM_ALU_PC_G0_NC {{.*}} target
+RELOCS: R_ARM_LDRS_PC_G1 {{.*}} target
+CHECK: target = 42
+#END_TEST

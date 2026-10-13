@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include "eld/Diagnostics/DiagnosticPrinter.h"
+#include "eld/Support/ProgressBar.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Signals.h"
 
@@ -50,6 +51,8 @@ DiagnosticPrinter::~DiagnosticPrinter() {
 void DiagnosticPrinter::printDiagnostic(
     const enum llvm::raw_ostream::Colors Color, llvm::StringRef Type,
     const std::string &OutString, llvm::StringRef PluginName) {
+  if (Progress)
+    Progress->clear();
   if (UseColor)
     OStream.changeColor(Color, true);
   if (!PluginName.empty())
@@ -59,6 +62,8 @@ void DiagnosticPrinter::printDiagnostic(
   if (UseColor)
     OStream.resetColor();
   OStream << OutString << "\n";
+  if (Progress)
+    Progress->display(false);
 }
 
 /// HandleDiagnostic - Handle this diagnostic, reporting it to the user or
@@ -160,6 +165,8 @@ DiagnosticPrinter::handleDiagnostic(DiagnosticEngine::Severity PSeverity,
 
   switch (PSeverity) {
   case DiagnosticEngine::Unreachable: {
+    if (Progress)
+      Progress->clear();
     OStream << "\n\n";
     printDiagnostic(FatalColor, "", OutString, /*pluginName=*/"");
   }

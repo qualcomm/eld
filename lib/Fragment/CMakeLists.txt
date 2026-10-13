@@ -14,6 +14,7 @@ llvm_add_library(
   GNUHashFragment.cpp
   GOT.cpp
   MergeStringFragment.cpp
+  MergeDataFragment.cpp
   OutputSectDataFragment.cpp
   PLT.cpp
   RegionFragment.cpp

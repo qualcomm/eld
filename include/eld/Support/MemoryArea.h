@@ -23,6 +23,7 @@ class StringRef;
 
 namespace eld {
 class DiagnosticEngine;
+class ReproduceTarReader;
 /** \class MemoryArea
  *  \brief MemoryArea is used to manage input read-only memory space.
  */
@@ -32,7 +33,7 @@ public:
   explicit MemoryArea(llvm::StringRef pFilename);
 
   // Initialize Memory area.
-  bool Init(DiagnosticEngine *);
+  bool Init(DiagnosticEngine *, const ReproduceTarReader *TarReader = nullptr);
 
   // Initialize a MemoryArea with a MemoryBuffer.
   explicit MemoryArea(std::unique_ptr<llvm::MemoryBuffer> Buf);

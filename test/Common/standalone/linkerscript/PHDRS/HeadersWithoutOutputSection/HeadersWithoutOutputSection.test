@@ -1,0 +1,36 @@
+# Headers omitted from the layout have no output section. Allocating space for
+# the other header must not try to assign addresses to the omitted header.
+# RUN: split-file %s %t
+# RUN: %clang %clangg0opts -c %t/input.c -o %t.o
+# RUN: %link %linkopts -z max-page-size=4096 %t.o -T %t/phdrs.t -o %t.phdrs.out
+# RUN: %readelf -lW %t.phdrs.out | %filecheck %s --check-prefix=PHDRS
+# RUN: %link %linkopts -z max-page-size=4096 %t.o -T %t/filehdr.t -o %t.filehdr.out
+# RUN: %readelf -lW %t.filehdr.out | %filecheck %s --check-prefix=FILEHDR
+
+# PHDRS: LOAD {{0x0*(34|40)}} {{0x0*(34|40)}} {{0x0*(34|40)}}
+# PHDRS: LOAD {{0x[0-9a-f]+}} {{0x0*1000}} {{0x0*1000}}
+# FILEHDR: LOAD {{0x0+}} {{0x0+}} {{0x0+}}
+# FILEHDR: LOAD {{0x[0-9a-f]+}} {{0x0*1000}} {{0x0*1000}}
+
+#--- input.c
+int data = 1;
+
+#--- phdrs.t
+PHDRS {
+  headers PT_LOAD PHDRS;
+  data PT_LOAD;
+}
+SECTIONS {
+  . = 0x1000;
+  .data 0x1000 : { *(.data*) *(.sdata*) } :data
+}
+
+#--- filehdr.t
+PHDRS {
+  headers PT_LOAD FILEHDR;
+  data PT_LOAD;
+}
+SECTIONS {
+  . = 0x1000;
+  .data 0x1000 : { *(.data*) *(.sdata*) } :data
+}

@@ -1,0 +1,91 @@
+REQUIRES: arm
+
+## Verify that EXIDX deduplication keeps GNU ld's sentinel behavior: A
+## final CANTUNWIND entry does not need an additional sentinel, while a final
+## duplicate real entry does need one.
+
+RUN: split-file %s %t
+RUN: %llvm-mc -filetype=obj -triple=armv7a-none-linux-gnueabi \
+RUN:   %t/cant.s -o %t/cant.o
+RUN: %llvm-mc -filetype=obj -triple=armv7a-none-linux-gnueabi \
+RUN:   %t/real.s -o %t/real.o
+RUN: %link %linkopts -T %t/script.t %t/cant.o \
+RUN:   --defsym=__aeabi_unwind_cpp_pr0=0 -o %t/cant.out -Map %t/cant.map
+RUN: %link %linkopts -T %t/script.t %t/real.o \
+RUN:   --defsym=__aeabi_unwind_cpp_pr0=0 -o %t/real.out -Map %t/real.map
+RUN: %readelf -S -W %t/cant.out | %filecheck %s --check-prefix=CANT-SEC
+RUN: %filecheck %s --check-prefix=CANT-MAP < %t/cant.map
+RUN: %readelf -S -W %t/real.out | %filecheck %s --check-prefix=REAL-SEC
+RUN: %filecheck %s --check-prefix=REAL-MAP < %t/real.map
+RUN: %readelf -x .ARM.exidx %t/real.out | %filecheck %s --check-prefix=REAL-HEX
+
+CANT-SEC: .ARM.exidx{{[[:space:]]+}}ARM_EXIDX{{[[:space:]]}}{{.*}}000010
+CANT-MAP: .ARM.exidx.text.a{{[[:space:]]+}}0x2004{{[[:space:]]+}}0x10
+CANT-MAP-NOT: #EXIDX-sentinel
+
+REAL-SEC: .ARM.exidx{{[[:space:]]+}}ARM_EXIDX{{[[:space:]]}}{{.*}}000010
+REAL-MAP:      .ARM.exidx{{[[:space:]]+}}0x200c{{[[:space:]]+}}0x8{{[[:space:]]+}}Exceptions
+REAL-MAP-NEXT: #EXIDX-sentinel{{[[:space:]]+}}addr=0x200c{{[[:space:]]+}}sz=0x8
+REAL-HEX: 0x00002004 fcefff7f 08849780 f8ffff7f 01000000
+
+#--- cant.s
+.syntax unified
+
+.section .text.a, "ax", %progbits
+.globl a_real
+a_real:
+  .fnstart
+  bx lr
+  .save {r7, lr}
+  .setfp r7, sp, #0
+  .fnend
+
+.globl a_cant
+a_cant:
+  .fnstart
+  bx lr
+  .cantunwind
+  .fnend
+
+.globl a_cant_duplicate
+a_cant_duplicate:
+  .fnstart
+  bx lr
+  .cantunwind
+  .fnend
+
+.section .text.b, "ax", %progbits
+.globl b_cant
+b_cant:
+  .fnstart
+  bx lr
+  .cantunwind
+  .fnend
+
+#--- real.s
+.syntax unified
+
+.section .text.a, "ax", %progbits
+.globl a_real
+a_real:
+  .fnstart
+  bx lr
+  .save {r7, lr}
+  .setfp r7, sp, #0
+  .fnend
+
+.section .text.b, "ax", %progbits
+.globl b_real
+b_real:
+  .fnstart
+  bx lr
+  .save {r7, lr}
+  .setfp r7, sp, #0
+  .fnend
+
+#--- script.t
+SECTIONS {
+  .text.a 0x1000 : { *(.text.a) }
+  .text.b 0x2000 : { *(.text.b) }
+  .ARM.exidx : { *(.ARM.exidx*) }
+}

@@ -1,0 +1,23 @@
+#---FarcallStub.test--------- Executable-----------------------------------#
+#BEGIN_COMMENT
+#Check AArch64 far-call stub PIC vs non-PIC template selection, including
+#--pic-veneer forcing the PIC template in an otherwise non-PIE static link.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts --target=aarch64-linux-gnu %p/Inputs/t.c -c -w -o %t.o
+RUN: %link %linkopts -march aarch64 %t.o --defsym=bar=0xdeadbeef -o %t.static.out
+RUN: %readelf -x .text %t.static.out | %filecheck %s -check-prefix=STATIC
+RUN: %link %linkopts -march aarch64 -pie %t.o --defsym=bar=0xdeadbeef -o %t.pie.out
+RUN: %readelf -x .text %t.pie.out | %filecheck %s -check-prefix=PIC
+RUN: %link %linkopts -march aarch64 --pic-veneer %t.o --defsym=bar=0xdeadbeef -o %t.picveneer.out
+RUN: %readelf -x .text %t.picveneer.out | %filecheck %s -check-prefix=PICVENEER
+
+#STATIC: 0x00000010 fd7bc1a8 c0035fd6 90000010 100240f9
+#STATIC-NEXT: 0x00000020 00021fd6 00000000 efbeadde 00000000
+
+#PIC: {{0x[0-9a-f]+}} fd7bc1a8 c0035fd6 90000058 11000010
+#PIC-NEXT: {{0x[0-9a-f]+}} 1002118b 00021fd6 {{[0-9a-f]+}} 00000000
+
+#PICVENEER: {{0x[0-9a-f]+}} fd7bc1a8 c0035fd6 90000058 11000010
+#PICVENEER-NEXT: {{0x[0-9a-f]+}} 1002118b 00021fd6 {{[0-9a-f]+}} 00000000
+#END_TEST

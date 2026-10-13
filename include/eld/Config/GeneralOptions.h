@@ -487,6 +487,15 @@ public:
 
   bool getUseMovVeneer() const { return BUseMovVeneer; }
 
+  // --pic-veneer
+  void setPicVeneer(bool PEnable = true) { BPicVeneer = PEnable; }
+
+  bool getPicVeneer() const { return BPicVeneer; }
+
+  void setMergeEXIDXEntries(bool Merge) { MergeEXIDXEntries = Merge; }
+
+  bool mergeEXIDXEntries() const { return MergeEXIDXEntries; }
+
   // -M, --print-map
   void setPrintMap(bool PEnable = true) { BPrintMap = PEnable; }
 
@@ -570,6 +579,10 @@ public:
   void setVersionScript() { BVersionScript = true; }
 
   bool hasVersionScript() const { return BVersionScript; }
+
+  void setAllowUndefinedVersion(bool Enable) { AllowUndefinedVersion = Enable; }
+
+  bool allowUndefinedVersion() const { return AllowUndefinedVersion; }
 
   void setDefaultSymver() { BDefaultSymver = true; }
 
@@ -658,6 +671,12 @@ public:
   void setMergeStrings(bool MergeStrings) { BMergeStrings = MergeStrings; }
 
   bool mergeStrings() const { return BMergeStrings; }
+
+  void setMergeConstants(bool MergeConstants) {
+    BMergeConstants = MergeConstants;
+  }
+
+  bool getMergeConstants() const { return BMergeConstants; }
 
   void setLinkerVersionDirectiveEnabled(bool Enable = true) {
     EnableLinkerVersionDirective = Enable;
@@ -1297,17 +1316,21 @@ private:
   bool BForceDynamic = false;        // --force-dynamic
   bool BDynamicList = false;         // --dynamic-list flag
   bool BVersionScript = false;       // --version-script
+  bool AllowUndefinedVersion = true; // --[no-]undefined-version
   bool BDefaultSymver = false;       // --default-symver
   bool BHasDyld = false;             // user set dynamic linker ?
   bool NoInhibitExec = false;        //--noinhibit-exec
   bool NoGnuStack = false;           //--nognustack
   bool BNoTrampolines = false;       //--no-trampolines
   bool BMergeStrings = true;         //--merge-strings
+  bool BMergeConstants = true;       //--merge-constants
   bool BEmitRelocs = false;          //--emit-relocs
   bool BEmitGNUCompatRelocs = false; // --emit-gnu-compat-relocs
   bool BCref = false;                // --cref
   bool BBuildCref = false;           // noflag, buildCRef
   bool BUseMovVeneer = false;        // --use-mov-veneer
+  bool BPicVeneer = false;           // --pic-veneer
+  bool MergeEXIDXEntries = true;     // --[no-]merge-exidx-entries
   bool BNoDelete = false;            // -z nodelete
   bool BNewDTags = false;            //--enable(disable)-new-dtags
   bool BWarnOnce = false;            // --warn-once

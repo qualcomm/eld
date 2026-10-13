@@ -21,6 +21,7 @@
 #include "llvm/Object/ELF.h"
 #include "llvm/Support/Path.h"
 #include <cstdint>
+#include <utility>
 
 using namespace eld;
 
@@ -48,8 +49,10 @@ GNUVerDefFragment::computeVersionDefs(Module &M, DynStrFragment *DynStr,
     baseVersion = std::string(llvm::sys::path::filename(outputFileName));
   }
   std::size_t baseVersionOffset = DynStr->addString(baseVersion);
-  VersionDefs.push_back(VerDefInfo{1, static_cast<uint32_t>(baseVersionOffset),
-                                   llvm::object::hashSysV(baseVersion)});
+  VersionDefs.push_back(VerDefInfo{1,
+                                   static_cast<uint32_t>(baseVersionOffset),
+                                   llvm::object::hashSysV(baseVersion),
+                                   {}});
 
   uint16_t VerID = 2; // 0 and 1 are reserved
   for (const auto *Node : VSNodes) {
@@ -58,8 +61,16 @@ GNUVerDefFragment::computeVersionDefs(Module &M, DynStrFragment *DynStr,
       continue;
     llvm::StringRef VerName = Node->getName();
     std::size_t NameOffset = DynStr->addString(VerName.str());
-    VersionDefs.push_back(VerDefInfo{VerID, static_cast<uint32_t>(NameOffset),
-                                     llvm::object::hashSysV(VerName)});
+    std::vector<uint32_t> DependencyNameOffsets;
+    if (Node->hasDependency()) {
+      std::size_t DependencyOffset =
+          DynStr->addString(Node->getDependency().str());
+      DependencyNameOffsets.push_back(static_cast<uint32_t>(DependencyOffset));
+    }
+    VerDefInfo Def{VerID, static_cast<uint32_t>(NameOffset),
+                   llvm::object::hashSysV(VerName),
+                   std::move(DependencyNameOffsets)};
+    VersionDefs.push_back(std::move(Def));
     ++VerID;
   }
   return {};
@@ -67,7 +78,9 @@ GNUVerDefFragment::computeVersionDefs(Module &M, DynStrFragment *DynStr,
 
 size_t GNUVerDefFragment::size() const {
   size_t VerDefSize = VersionDefs.size() * VerDefEntrySize;
-  size_t VerdAuxSize = VersionDefs.size() * VerdAuxEntrySize; // one aux/name
+  size_t VerdAuxSize = 0;
+  for (const auto &VD : VersionDefs)
+    VerdAuxSize += (1 + VD.DependencyNameOffsets.size()) * VerdAuxEntrySize;
   return VerDefSize + VerdAuxSize;
 }
 
@@ -85,26 +98,32 @@ eld::Expected<void> GNUVerDefFragment::emitImpl(uint8_t *Buf, Module &M) {
   auto *VerDefBuf = reinterpret_cast<typename ELFT::Verdef *>(Buf);
   auto *VerdAuxBuf = reinterpret_cast<typename ELFT::Verdaux *>(
       VerDefBuf + VersionDefs.size());
-  for (const auto &VD : VersionDefs) {
+  for (size_t I = 0; I < VersionDefs.size(); ++I) {
+    const auto &VD = VersionDefs[I];
+    const size_t AuxCount = 1 + VD.DependencyNameOffsets.size();
     uint16_t flags = (VD.VersionID == 1 ? llvm::ELF::VER_FLG_BASE : 0);
     VerDefBuf->vd_version = 1;
     VerDefBuf->vd_flags = flags;
     VerDefBuf->vd_ndx = VD.VersionID;
-    VerDefBuf->vd_cnt = 1; // one aux: name
+    VerDefBuf->vd_cnt = AuxCount;
     VerDefBuf->vd_hash = VD.VersionNameHash;
     VerDefBuf->vd_aux = reinterpret_cast<const char *>(VerdAuxBuf) -
                         reinterpret_cast<const char *>(VerDefBuf);
-    VerDefBuf->vd_next = sizeof(typename ELFT::Verdef);
+    VerDefBuf->vd_next =
+        (I + 1 == VersionDefs.size()) ? 0 : sizeof(typename ELFT::Verdef);
     ++VerDefBuf;
 
     VerdAuxBuf->vda_name = VD.VersionNameOffset;
-    VerdAuxBuf->vda_next = sizeof(typename ELFT::Verdaux);
+    VerdAuxBuf->vda_next = AuxCount == 1 ? 0 : sizeof(typename ELFT::Verdaux);
     ++VerdAuxBuf;
-  }
-  // Terminate aux and def chains
-  if (!VersionDefs.empty()) {
-    VerdAuxBuf[-1].vda_next = 0;
-    VerDefBuf[-1].vd_next = 0;
+
+    for (size_t J = 0; J < VD.DependencyNameOffsets.size(); ++J) {
+      VerdAuxBuf->vda_name = VD.DependencyNameOffsets[J];
+      VerdAuxBuf->vda_next = (J + 1 == VD.DependencyNameOffsets.size())
+                                 ? 0
+                                 : sizeof(typename ELFT::Verdaux);
+      ++VerdAuxBuf;
+    }
   }
   return {};
 }

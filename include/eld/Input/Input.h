@@ -30,6 +30,7 @@ class DiagnosticEngine;
 class InputFile;
 class LinkerConfig;
 class MemoryArea;
+class ReproduceTarReader;
 class SearchDirs;
 class WildcardPattern;
 class DiagnosticPrinter;
@@ -150,6 +151,11 @@ public:
 
   bool isInternal() const { return Type == Internal; }
 
+  /// True for the synthetic script input created for a --defsym assignment.
+  void setIsDefSym() { IsDefSym = true; }
+
+  bool isDefSym() const { return IsDefSym; }
+
   /// -------------------------InputFile support---------------------
   InputFile *getInputFile() const {
     if (!IF)
@@ -175,8 +181,9 @@ public:
   static MemoryArea *getMemoryAreaForPath(const std::string &Filepath,
                                           DiagnosticEngine *DiagEngine);
 
-  static MemoryArea *createMemoryArea(const std::string &Filepath,
-                                      DiagnosticEngine *DiagEngine);
+  static MemoryArea *
+  createMemoryArea(const std::string &Filepath, DiagnosticEngine *DiagEngine,
+                   const ReproduceTarReader *TarReader = nullptr);
 
   static void cacheMemoryAreaForPath(const std::string &Filepath,
                                      MemoryArea *Area);
@@ -206,6 +213,7 @@ protected:
   uint64_t MemberNameHash = 0;
   InputType Type = Default; // The type of input file.
   bool TraceMe = false;
+  bool IsDefSym = false;
   DiagnosticEngine *DiagEngine = nullptr;
   InputFile *ParentScriptFile = nullptr; // Parent script for INPUT/GROUP inputs.
 

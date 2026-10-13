@@ -114,6 +114,8 @@ DIAG(merging_input_sections, DiagnosticEngine::Verbose,
      "Merging input sections before layout")
 DIAG(begin_layout, DiagnosticEngine::Verbose, "Preparing layout of output file")
 DIAG(emit_output_file, DiagnosticEngine::Verbose, "Writing output file %0")
+DIAG(verbose_skip_output_file, DiagnosticEngine::Verbose,
+     "Skipping output file emission for %0")
 DIAG(printing_layout, DiagnosticEngine::Verbose, "Printing layout")
 DIAG(initializing_backend, DiagnosticEngine::Verbose, "Initializing backend")
 DIAG(initializing_object_linker, DiagnosticEngine::Verbose,
@@ -156,6 +158,8 @@ DIAG(calling_function_from_dynamic_lib, DiagnosticEngine::Verbose,
 DIAG(merging_strings, DiagnosticEngine::Verbose, "Merging strings")
 DIAG(handling_merge_strings_for_section, DiagnosticEngine::Verbose,
      "Handling merge string relocations for section %0 in file %1")
+DIAG(handling_merge_constants_for_section, DiagnosticEngine::Verbose,
+     "Handling merge constant relocations for section %0 in file %1")
 DIAG(merging_fragments, DiagnosticEngine::Trace,
      "Merging fragment from file %0 in section %1\n\twith fragment "
      "from file %2 in section %3\n\tand content %4 to output section "
@@ -164,6 +168,14 @@ DIAG(modifying_mergestr_reloc, DiagnosticEngine::Trace,
      "Modified relocation %0 + %1 from relocation section %2 in file %3:\n\t "
      "Old fragment: offset %4 in section %5 "
      "from file %6\n\t New fragment: offset %7 in section %8 from file %9")
+DIAG(merging_constant_fragments, DiagnosticEngine::Trace,
+     "Merging constant from file %0 in section %1 at offset %2 with alignment "
+     "%3\n\twith constant from file %4 in section %5 at offset %6 with "
+     "alignment %7\n\tto output section %8")
+DIAG(modifying_mergeconst_reloc, DiagnosticEngine::Trace,
+     "Modified relocation %0 + %1 from relocation section %2 in file %3:\n\t "
+     "Old constant: offset %4 in section %5 from file %6\n\t New constant: "
+     "offset %7 in section %8 from file %9")
 DIAG(splitting_merge_string_section, DiagnosticEngine::Verbose,
      "%0: created mergeable string fragment with contents %1 and align "
      "%2")

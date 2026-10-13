@@ -1,4 +1,5 @@
 #---ChangeSymbol.test----------------------- Executable,LS --------------------#
+# UNSUPPORTED: tsan
 #BEGIN_COMMENT
 #This tests that the plugin can replace the symbol bar with some content.
 #Add testing for trampolines

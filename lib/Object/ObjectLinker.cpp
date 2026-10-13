@@ -18,6 +18,7 @@
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Driver/GnuLdDriver.h"
+#include "eld/Fragment/MergeDataFragment.h"
 #include "eld/GarbageCollection/GarbageCollection.h"
 #include "eld/Input/ArchiveMemberInput.h"
 #include "eld/Input/BitcodeFile.h"
@@ -32,6 +33,7 @@
 #include "eld/Object/ArchiveMemberReport.h"
 #include "eld/Object/GroupReader.h"
 #include "eld/Object/LibReader.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Object/ObjectBuilder.h"
 #include "eld/Object/SectionMap.h"
 #include "eld/PluginAPI/LinkerPlugin.h"
@@ -70,10 +72,10 @@
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/SymbolResolver/SymbolResolutionInfo.h"
 #include "eld/Target/GNULDBackend.h"
-#include "eld/Target/LDFileFormat.h"
 #include "eld/Target/Relocator.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/ScopeExit.h"
+#include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
@@ -89,6 +91,7 @@
 #include "llvm/Support/Program.h"
 #include "llvm/Support/ThreadPool.h"
 #include "llvm/Support/raw_ostream.h"
+#include <atomic>
 #include <chrono>
 #include <mutex>
 #include <optional>
@@ -213,7 +216,15 @@ bool ObjectLinker::parseLinkerScript(InputFile *input) {
             ? llvm::StringRef(input->getInput()->getOriginalFileName())
             : llvm::StringRef());
 
-  ThisModule->getScript().addToHash(input->getInput()->decoratedPath());
+  // Archive members don't have a real filesystem path (decoratedPath()
+  // returns "archive.a(member)"), so mix in their already-loaded contents
+  // directly instead of trying to stat/re-read them from disk.
+  auto *AMI = llvm::dyn_cast<ArchiveMemberInput>(input->getInput());
+  if (AMI && AMI->getSize())
+    ThisModule->getScript().addToHash(AMI->decoratedPath(),
+                                      AMI->getFileContents());
+  else
+    ThisModule->getScript().addToHash(input->getInput()->decoratedPath());
 
   ScriptFile *scriptFile =
       make<ScriptFile>(ScriptFile::LDScript, *ThisModule, *LSFile,
@@ -407,7 +418,6 @@ bool ObjectLinker::parseVersionScript() {
       return false;
   }
 
-  assignVersionNodesToSymbols();
   return true;
 }
 
@@ -435,6 +445,13 @@ void ObjectLinker::createDefaultSymverNode() {
 
 bool ObjectLinker::registerVersionScriptNodes(const VersionScript *VS,
                                               llvm::StringRef DecoratedPath) {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  llvm::StringSet<> SeenVersionNames;
+  for (const VersionScriptNode *N : ThisModule->getVersionScriptNodes())
+    if (N && !N->isAnonymous())
+      SeenVersionNames.insert(N->getName());
+#endif
+
   for (auto &VersionScriptNode : VS->getNodes()) {
     if (!VersionScriptNode->isAnonymous()) {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
@@ -445,10 +462,16 @@ bool ObjectLinker::registerVersionScriptNodes(const VersionScript *VS,
 #endif
     }
     if (VersionScriptNode->hasDependency()) {
-      ThisConfig.raise(Diag::unsupported_dependent_node)
-          << VersionScriptNode->getName() << DecoratedPath;
 #ifndef ELD_ENABLE_SYMBOL_VERSIONING
       continue;
+#else
+      llvm::StringRef Dependency = VersionScriptNode->getDependency();
+      if (Dependency == VersionScriptNode->getName() ||
+          !SeenVersionNames.contains(Dependency)) {
+        ThisConfig.raise(Diag::error_unknown_version_node_dependency)
+            << VersionScriptNode->getName() << Dependency << DecoratedPath;
+        return false;
+      }
 #endif
     }
     // FIXME: Why did we reach here at all if the version script parsing
@@ -458,6 +481,10 @@ bool ObjectLinker::registerVersionScriptNodes(const VersionScript *VS,
       return false;
     }
     ThisModule->addVersionScriptNode(VersionScriptNode);
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    if (!VersionScriptNode->isAnonymous())
+      SeenVersionNames.insert(VersionScriptNode->getName());
+#endif
   }
   return true;
 }
@@ -481,16 +508,12 @@ void ObjectLinker::assignVersionNodesToSymbols() {
       return VS->isGlobal() ? "VER_NDX_GLOBAL" : "VER_NDX_LOCAL";
     return (node->getName() + (VS->isGlobal() ? "(global)" : "(local)")).str();
   };
-
   std::vector<ResolveInfo *> VSApplicableSymbols;
   for (auto &G : NP.getGlobals()) {
     ResolveInfo *R = G.getValue();
     if (canAssignVersionNode(*R))
       VSApplicableSymbols.push_back(R);
   }
-  if (VSApplicableSymbols.empty())
-    return;
-
   // Precompute flat pattern lists in precedence order. Each list is walked
   // per-symbol during assignment, so each thread reads a shared read-only
   // view and mutates only its own slot in Results below.
@@ -537,6 +560,16 @@ void ObjectLinker::assignVersionNodesToSymbols() {
     pushFiltered((*It)->getGlobalBlock(), isMatchAllP, MatchAllPatterns);
   }
 
+  bool CheckUndefinedVersion = !ThisConfig.options().allowUndefinedVersion();
+  if (VSApplicableSymbols.empty() && !CheckUndefinedVersion)
+    return;
+  std::vector<std::atomic_bool> exactPatternHasMatch;
+  if (CheckUndefinedVersion) {
+    exactPatternHasMatch = std::vector<std::atomic_bool>(ExactPatterns.size());
+    for (size_t I = 0; I < ExactPatterns.size(); ++I)
+      exactPatternHasMatch[I].store(false, std::memory_order_relaxed);
+  }
+
   // Per-symbol decision. Reads only shared read-only state (NamePool,
   // pattern lists, config flags); writes only to a caller-provided slot.
   // Emits diagnostics via ThisConfig.raise which is thread-safe.
@@ -544,15 +577,16 @@ void ObjectLinker::assignVersionNodesToSymbols() {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
     std::optional<std::string> demangledName;
 #endif
-    auto matchesR = [&](VersionSymbol *vs) {
+
+    auto matchesR = [&](VersionSymbol *VS) {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-      if (vs->isExternCpp() && !demangledName)
+      if (VS->isExternCpp() && !demangledName)
         demangledName = eld::string::getDemangledName(R->getNonVersionedName());
-      return vs->matched(*R, NP,
+      return VS->matched(*R, NP,
                          demangledName ? llvm::StringRef(*demangledName)
                                        : llvm::StringRef());
 #else
-      return vs->getSymbolPattern()->matches(*R);
+      return VS->getSymbolPattern()->matches(*R);
 #endif
     };
 
@@ -570,9 +604,12 @@ void ObjectLinker::assignVersionNodesToSymbols() {
     // match so that any later exact match in a subsequent node emits the
     // reassignment warning.
     VersionSymbol *scope = nullptr;
-    for (VersionSymbol *vs : ExactPatterns) {
+    for (size_t I = 0; I < ExactPatterns.size(); ++I) {
+      VersionSymbol *vs = ExactPatterns[I];
       if (!matchesR(vs))
         continue;
+      if (CheckUndefinedVersion)
+        exactPatternHasMatch[I].store(true, std::memory_order_relaxed);
       if (!scope) {
         scope = vs;
       } else if (ThisConfig.showVersionScriptWarnings()) {
@@ -625,6 +662,13 @@ void ObjectLinker::assignVersionNodesToSymbols() {
           VSApplicableSymbols[i]);
       getTargetBackend().addSymbolScope(VSApplicableSymbols[i], Results[i]);
     }
+  }
+  if (CheckUndefinedVersion) {
+    for (size_t I = 0; I < ExactPatterns.size(); ++I)
+      if (!exactPatternHasMatch[I].load(std::memory_order_relaxed))
+        ThisConfig.raise(Diag::error_undefined_version)
+            << getVersionDesc(ExactPatterns[I])
+            << ExactPatterns[I]->getSymbolPattern()->name();
   }
 }
 
@@ -804,7 +848,7 @@ void ObjectLinker::mergeIdenticalStrings() const {
   /// not be used.
   bool UseThreads = ThisConfig.useThreads();
   bool GlobalMerge = ThisConfig.options().shouldGlobalStringMerge();
-  llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
+  eld::plugin::ThreadPool *Pool = ThisModule->getThreadPool();
   auto MergeStrings = [&](OutputSectionEntry *O) {
     for (RuleContainer *RC : *O) {
       for (Fragment *F : RC->getSection()->getFragmentList()) {
@@ -848,7 +892,7 @@ void ObjectLinker::mergeIdenticalStrings() const {
 
   for (OutputSectionEntry *O : OutputSections) {
     if (UseThreads)
-      Pool->async(std::bind(MergeStrings, O));
+      Pool->run(std::bind(MergeStrings, O));
     else
       MergeStrings(O);
   }
@@ -856,7 +900,35 @@ void ObjectLinker::mergeIdenticalStrings() const {
     Pool->wait();
 }
 
-void ObjectLinker::fixMergeStringRelocations() const {
+void ObjectLinker::mergeIdenticalConstants() const {
+  ObjectBuilder Builder(ThisConfig, *ThisModule);
+  bool UseThreads = ThisConfig.useThreads();
+  eld::plugin::ThreadPool *Pool = ThisModule->getThreadPool();
+  auto MergeConstants = [&](OutputSectionEntry *O) {
+    for (RuleContainer *RC : *O) {
+      for (Fragment *F : RC->getSection()->getFragmentList()) {
+        auto *Constants = llvm::dyn_cast<MergeDataFragment>(F);
+        if (!Constants)
+          continue;
+        Builder.mergeConstants(Constants, O);
+      }
+    }
+  };
+
+  for (OutputSectionEntry *O : ThisModule->getScript().sectionMap()) {
+    if (UseThreads)
+      Pool->run(std::bind(MergeConstants, O));
+    else
+      MergeConstants(O);
+  }
+  if (UseThreads)
+    Pool->wait();
+}
+
+void ObjectLinker::fixMergeStringAndConstantRelocations() const {
+  bool MergeStrings = ThisConfig.options().mergeStrings();
+  bool MergeConstants = ThisConfig.options().getMergeConstants();
+
   for (InputFile *I : ThisModule->getObjectList()) {
     if (I->isInternal())
       continue;
@@ -864,19 +936,40 @@ void ObjectLinker::fixMergeStringRelocations() const {
     if (!Obj)
       continue;
     for (ELFSection *S : Obj->getRelocationSections()) {
-      if (ThisModule->getPrinter()->isVerbose() ||
-          ThisModule->getPrinter()->traceMergeStrings())
+      if (MergeStrings && (ThisModule->getPrinter()->isVerbose() ||
+                           ThisModule->getPrinter()->traceMergeStrings()))
         ThisConfig.raise(Diag::handling_merge_strings_for_section)
             << S->getDecoratedName(ThisConfig.options())
             << S->getInputFile()->getInput()->decoratedPath(true);
-      getTargetBackend().getRelocator()->doMergeStrings(S);
+      if (MergeConstants && (ThisModule->getPrinter()->isVerbose() ||
+                             ThisModule->getPrinter()->traceMergeConstants()))
+        ThisConfig.raise(Diag::handling_merge_constants_for_section)
+            << S->getDecoratedName(ThisConfig.options())
+            << S->getInputFile()->getInput()->decoratedPath(true);
+      if (MergeStrings)
+        getTargetBackend().getRelocator()->doMergeStrings(S);
+      if (MergeConstants)
+        getTargetBackend().getRelocator()->doMergeConstants(S);
     }
   }
 }
 
-void ObjectLinker::doMergeStrings() {
-  mergeIdenticalStrings();
-  fixMergeStringRelocations();
+void ObjectLinker::doMergeStringsAndConstants() {
+  if (ThisConfig.isLinkPartial())
+    return;
+  if (ThisConfig.options().mergeStrings()) {
+    eld::RegisterTimer T("Merge strings", "Link Summary",
+                         ThisConfig.options().printTimingStats());
+    mergeIdenticalStrings();
+  }
+  if (ThisConfig.options().getMergeConstants()) {
+    eld::RegisterTimer T("Merge constants", "Link Summary",
+                         ThisConfig.options().printTimingStats());
+    mergeIdenticalConstants();
+  }
+  if (ThisConfig.options().mergeStrings() ||
+      ThisConfig.options().getMergeConstants())
+    fixMergeStringAndConstantRelocations();
 }
 
 void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
@@ -921,26 +1014,26 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
       continue;
     switch (Sect->getKind()) {
     // Some *INPUT sections should not be merged.
-    case LDFileFormat::Null:
-    case LDFileFormat::NamePool:
-    case LDFileFormat::Discard:
-    case LDFileFormat::Version:
+    case LinkerSectionKind::Null:
+    case LinkerSectionKind::NamePool:
+    case LinkerSectionKind::Discard:
+    case LinkerSectionKind::Version:
       // skip
       continue;
-    case LDFileFormat::Relocation:
-    case LDFileFormat::LinkOnce: {
+    case LinkerSectionKind::Relocation:
+    case LinkerSectionKind::LinkOnce: {
       if (Sect->getLink()->isIgnore() || Sect->getLink()->isDiscard())
-        Sect->setKind(LDFileFormat::Ignore);
+        Sect->setKind(LinkerSectionKind::Ignore);
       break;
     }
-    case LDFileFormat::Target:
+    case LinkerSectionKind::Target:
       if (getTargetBackend().DoesOverrideMerge(Sect)) {
         getTargetBackend().mergeSection(Sect);
         break;
       }
       LLVM_FALLTHROUGH;
-    case LDFileFormat::EhFrame: {
-      if (Sect->getKind() == LDFileFormat::EhFrame) {
+    case LinkerSectionKind::EhFrame: {
+      if (Sect->getKind() == LinkerSectionKind::EhFrame) {
         if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)->splitEhFrameSection())
           return false;
         if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)
@@ -949,7 +1042,7 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
         llvm::dyn_cast<eld::EhFrameSection>(Sect)->finishAddingFragments(
             *ThisModule);
         if (getTargetBackend().getEhFrameHdr() &&
-            Sect->getKind() == LDFileFormat::EhFrame) {
+            Sect->getKind() == LinkerSectionKind::EhFrame) {
           getTargetBackend().getEhFrameHdr()->addEhFrame(
               *llvm::dyn_cast<eld::EhFrameSection>(Sect)->getEhFrameFragment());
           // Since we found an EhFrame section, lets go ahead and start creating
@@ -960,8 +1053,8 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
       }
     }
       LLVM_FALLTHROUGH;
-    case LDFileFormat::SFrame: {
-      if (Sect->getKind() == LDFileFormat::SFrame) {
+    case LinkerSectionKind::SFrame: {
+      if (Sect->getKind() == LinkerSectionKind::SFrame) {
         auto *SFS = llvm::dyn_cast<eld::SFrameSection>(Sect);
         if (SFS) {
           if (!SFS->parseSFrameSection())
@@ -1103,7 +1196,7 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
 
   ELFSection *OutSect = Output->getSection();
   OutSect->setOutputSection(Output);
-  if (OutSect->getKind() != LDFileFormat::NamePool)
+  if (OutSect->getKind() != LinkerSectionKind::NamePool)
     OutSect->setAddrAlign(0);
   OutputSectionEntry::iterator In, InBegin, InEnd;
   InBegin = Output->begin();
@@ -1117,7 +1210,8 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
       ThisConfig.raise(Diag::error_non_power_of_2_value_to_align_output_section)
           << Output->prolog().align().getContext() << utility::toHex(OutAlign)
           << OutSect->name();
-      return false;
+      if (!ThisConfig.getDiagEngine()->diagnose())
+        return false;
     }
     if (OutSect->getAddrAlign() < OutAlign)
       OutSect->setAddrAlign(OutAlign);
@@ -1166,6 +1260,8 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
 
   // Assign offsets.
   assignOffset(Output);
+  if (!ThisConfig.getDiagEngine()->diagnose())
+    return false;
 
   if (OutSect->size() || OutSect->isWanted()) {
     std::lock_guard<std::mutex> Guard(Mutex);
@@ -1217,8 +1313,8 @@ bool ObjectLinker::updateInputSectionMappingsForPlugin() {
     ELFSection *Sect = llvm::dyn_cast<ELFSection>(Section);
     switch (Sect->getKind()) {
     // Some *INPUT sections should not be merged.
-    case LDFileFormat::Null:
-    case LDFileFormat::NamePool:
+    case LinkerSectionKind::Null:
+    case LinkerSectionKind::NamePool:
       continue;
     default:
       if (!Sect->getMatchedLinkerScriptRule())
@@ -1414,9 +1510,9 @@ bool ObjectLinker::mergeSections() {
       for (auto &O : OutSections)
         createOutputSection(Builder, O);
     } else {
-      llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
-      for (auto &O : OutSections)
-        Pool->async([&] { createOutputSection(Builder, O); });
+      eld::plugin::ThreadPool *Pool = ThisModule->getThreadPool();
+      for (OutputSectionEntry *O : OutSections)
+        Pool->run([this, &Builder, O] { createOutputSection(Builder, O); });
       Pool->wait();
     }
 
@@ -1464,7 +1560,7 @@ void ObjectLinker::applySubAlign() {
       ELFSection *inSect = R->getSection();
       for (Fragment *F : inSect->getFragmentList()) {
         ELFSection *owningSect = F->getOwningSection();
-        if (owningSect->getKind() == LDFileFormat::Kind::OutputSectData) {
+        if (owningSect->getKind() == LinkerSectionKind::OutputSectData) {
           continue;
         }
         if (owningSect && seen.insert(owningSect).second) {
@@ -2061,8 +2157,8 @@ ELFSection *ObjectLinker::createEmitRelocSection(ELFSection *OutputTargetSect,
   std::string RelocSectionName = getTargetBackend().getOutputRelocSectName(
       OutputTargetSect->name().str(), RelocSectionType);
   ELFSection *OutputRelocSect = ThisModule->createOutputSection(
-      RelocSectionName, LDFileFormat::Relocation, RelocSectionType /* Kind */,
-      0x0, MaxAlignment);
+      RelocSectionName, LinkerSectionKind::Relocation,
+      RelocSectionType /* Kind */, 0x0, MaxAlignment);
   OutputRelocSect->setEntSize(RelocSectionType == llvm::ELF::SHT_RELA
                                   ? getTargetBackend().getRelaEntrySize()
                                   : getTargetBackend().getRelEntrySize());
@@ -2465,7 +2561,7 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
       ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
       if (!Section->hasRelocData())
         continue;
-      if (Section->getKind() != LDFileFormat::Internal)
+      if (Section->getKind() != LinkerSectionKind::Internal)
         continue;
       // Skip internal relocation sections.
       if (Section->isRelocationSection())
@@ -2562,9 +2658,9 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     if (ThisModule->getPrinter()->traceThreads())
       ThisConfig.raise(Diag::threads_enabled)
           << "ApplyRelocations" << ThisConfig.options().numThreads();
-    llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
+    eld::plugin::ThreadPool *Pool = ThisModule->getThreadPool();
     for (auto &Input : ThisModule->getObjectList()) {
-      Pool->async([&] {
+      Pool->run([&, Input] {
         ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Input);
         if (!ObjFile)
           return;
@@ -2659,7 +2755,7 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
       syncRelocationResult(Buffer, Input);
     }
   } else {
-    llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
+    eld::plugin::ThreadPool *Pool = ThisModule->getThreadPool();
     if (ThisModule->getPrinter()->traceThreads())
       ThisConfig.raise(Diag::threads_enabled)
           << "SyncRelocations" << ThisConfig.options().numThreads();
@@ -2671,16 +2767,16 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
     // Therefore, a barrier is needed between writing branch island
     // relocations and input relocations.
     for (auto &Out : ThisModule->getScript().sectionMap()) {
-      Pool->async([&] { SyncBranchIslandsForOutputSection(Out); });
+      Pool->run([&, Out] { SyncBranchIslandsForOutputSection(Out); });
     }
     Pool->wait();
     // sync linker created internal relocations
     for (auto &R : getTargetBackend().getInternalRelocs()) {
-      Pool->async([this, &R, &Buffer] { writeRelocationResult(*R, Buffer); });
+      Pool->run([this, R, &Buffer] { writeRelocationResult(*R, Buffer); });
     }
     Pool->wait();
     for (auto &Input : ThisModule->getObjectList()) {
-      Pool->async(
+      Pool->run(
           [this, &Buffer, Input] { syncRelocationResult(Buffer, Input); });
     }
     Pool->wait();
@@ -2697,7 +2793,7 @@ void ObjectLinker::syncRelocationResult(uint8_t *Data, InputFile *Input) {
     ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
     if (!Section->hasRelocData())
       continue;
-    if (Section->getKind() != LDFileFormat::Internal)
+    if (Section->getKind() != LinkerSectionKind::Internal)
       continue;
     // Skip internal relocation sections.
     if (Section->isRelocationSection())
@@ -3681,7 +3777,14 @@ void ObjectLinker::addInputFileToTar(InputFile *Ipt, MappingFile::Kind K) {
   if (Ipt->getInput()->isArchiveMember())
     return;
   Input *I = Ipt->getInput();
-  Ipt->setMappedPath(I->getName());
+  std::string MappedPath = I->getName();
+  // The leading ':' is the -l: namespec spelling, not part of the library
+  // name. Do not preserve it in mapping.ini or it will become part of the
+  // DT_NEEDED name when the reproduce response is replayed.
+  if (I->getInputType() == Input::Namespec && !MappedPath.empty() &&
+      MappedPath.front() == ':')
+    MappedPath.erase(0, 1);
+  Ipt->setMappedPath(std::move(MappedPath));
   Ipt->setMappingFileKind(K);
   OutputTar->addInputFile(Ipt, /*isLTO*/ false);
 }
@@ -4080,7 +4183,7 @@ bool ObjectLinker::provideGlobalSymbolAndContents(std::string Name, size_t Sz,
 
   char *Buf = ThisModule->getUninitBuffer(Sz);
   ELFSection *InputSect = ThisModule->createInternalSection(
-      Module::InternalInputType::GlobalDataSymbols, LDFileFormat::Regular,
+      Module::InternalInputType::GlobalDataSymbols, LinkerSectionKind::Regular,
       ".rodata.internal." + Name, llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC,
       Alignment, 0);
   Fragment *F = make<RegionFragment>(llvm::StringRef(Buf, Sz), InputSect,
@@ -4121,9 +4224,10 @@ bool ObjectLinker::setCommonSectionsFallbackToBSS() {
   if (OutSecEntry)
     OutSection = OutSecEntry->getSection();
   else {
-    OutSection = ThisModule->createOutputSection(".bss", LDFileFormat::Regular,
-                                                 /*pType=*/0, /*pFlag=*/0,
-                                                 /*pAlign=*/0);
+    OutSection =
+        ThisModule->createOutputSection(".bss", LinkerSectionKind::Regular,
+                                        /*pType=*/0, /*pFlag=*/0,
+                                        /*pAlign=*/0);
     OutSecEntry = OutSection->getOutputSection();
   }
 
@@ -4153,9 +4257,10 @@ bool ObjectLinker::setCopyRelocSectionsFallbackToBSS() {
   if (OutSecEntry)
     OutSection = OutSecEntry->getSection();
   else {
-    OutSection = ThisModule->createOutputSection(".bss", LDFileFormat::Regular,
-                                                 /*pType=*/0, /*pFlag=*/0,
-                                                 /*pAlign=*/0);
+    OutSection =
+        ThisModule->createOutputSection(".bss", LinkerSectionKind::Regular,
+                                        /*pType=*/0, /*pFlag=*/0,
+                                        /*pAlign=*/0);
     OutSecEntry = OutSection->getOutputSection();
   }
 

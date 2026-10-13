@@ -1,4 +1,5 @@
 name: Monitor workflow failures
+# owner: quic-shaksuma
 
 on:
   # A workflow_run trigger lets this workflow inspect the completed run without
@@ -26,6 +27,85 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  log-trigger-details:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log triggering workflow details
+        env:
+          WORKFLOW_RUN_JSON: ${{ toJSON(github.event.workflow_run) }}
+        run: |
+          set -euo pipefail
+
+          echo '=== Workflow monitor trigger ==='
+          echo "Monitor workflow: ${GITHUB_WORKFLOW}"
+          echo "Monitor run id: ${GITHUB_RUN_ID}"
+          echo "Monitor run number: ${GITHUB_RUN_NUMBER}"
+          echo "Repository: ${GITHUB_REPOSITORY}"
+          echo "Event name: ${GITHUB_EVENT_NAME}"
+          echo "Actor: ${GITHUB_ACTOR}"
+          echo
+          echo '=== Triggering workflow summary ==='
+          printf '%s\n' "$WORKFLOW_RUN_JSON" | jq --sort-keys '{
+            id,
+            name,
+            display_title,
+            workflow_id,
+            path,
+            event,
+            status,
+            conclusion,
+            run_number,
+            run_attempt,
+            head_branch,
+            head_sha,
+            head_commit,
+            created_at,
+            run_started_at,
+            updated_at,
+            actor,
+            triggering_actor,
+            repository,
+            html_url,
+            jobs_url,
+            logs_url,
+            workflow_url,
+            pull_requests
+          }'
+          echo
+          echo '=== Full workflow_run payload ==='
+          printf '%s\n' "$WORKFLOW_RUN_JSON" | jq --sort-keys .
+
+          {
+            echo '## Workflow monitor trigger'
+            echo
+            echo '| Field | Value |'
+            echo '| --- | --- |'
+            printf '%s\n' "$WORKFLOW_RUN_JSON" | jq -r '
+              [
+                ["Name", (.name // "")],
+                ["Run ID", (.id // "")],
+                ["Run number", (.run_number // "")],
+                ["Attempt", (.run_attempt // "")],
+                ["Workflow ID", (.workflow_id // "")],
+                ["Event", (.event // "")],
+                ["Status", (.status // "")],
+                ["Conclusion", (.conclusion // "")],
+                ["Branch", (.head_branch // "")],
+                ["Commit", (.head_sha // "")],
+                ["Created", (.created_at // "")],
+                ["Started", (.run_started_at // "")],
+                ["Updated", (.updated_at // "")],
+                ["URL", (.html_url // "")]
+              ][] | "| \(.[0]) | \(.[1]) |"
+            '
+            echo
+            echo '### Full `workflow_run` payload'
+            echo
+            echo '```json'
+            printf '%s\n' "$WORKFLOW_RUN_JSON" | jq --sort-keys .
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   report-failure:
     # Only scheduled failures on the main eld repo are relevant. Manual,
     # pull-request, cancelled, and skipped runs do not create issues, and
@@ -37,6 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
+      contents: read
       issues: write
     steps:
       - name: Create issue for a new failure
@@ -45,6 +126,32 @@ jobs:
           github-token: ${{ github.token }}
           script: |
             const run = context.payload.workflow_run;
+
+            core.info('=== Triggering workflow details ===');
+            core.info(JSON.stringify({
+              id: run.id,
+              name: run.name,
+              display_title: run.display_title,
+              workflow_id: run.workflow_id,
+              path: run.path,
+              event: run.event,
+              status: run.status,
+              conclusion: run.conclusion,
+              run_number: run.run_number,
+              run_attempt: run.run_attempt,
+              head_branch: run.head_branch,
+              head_sha: run.head_sha,
+              created_at: run.created_at,
+              run_started_at: run.run_started_at,
+              updated_at: run.updated_at,
+              actor: run.actor,
+              triggering_actor: run.triggering_actor,
+              html_url: run.html_url,
+              jobs_url: run.jobs_url,
+              logs_url: run.logs_url,
+              workflow_url: run.workflow_url,
+              pull_requests: run.pull_requests,
+            }, null, 2));
 
             // This marker makes handling the same completed run idempotent. It
             // protects against duplicate workflow_run deliveries and manual
@@ -86,13 +193,34 @@ jobs:
                 per_page: 100,
               }
             );
+            const runCreatedAt = Date.parse(run.created_at);
             const previousDecisiveRun = workflowRuns
               .filter(candidate =>
-                candidate.id !== run.id &&
-                candidate.run_number < run.run_number &&
-                ['success', 'failure'].includes(candidate.conclusion)
+                (() => {
+                  if (candidate.workflow_id !== run.workflow_id ||
+                      candidate.id === run.id ||
+                      !['success', 'failure'].includes(candidate.conclusion)) {
+                    return false;
+                  }
+                  const candidateCreatedAt = Date.parse(candidate.created_at);
+                  if (Number.isFinite(candidateCreatedAt) && Number.isFinite(runCreatedAt)) {
+                    return candidateCreatedAt < runCreatedAt ||
+                      (candidateCreatedAt === runCreatedAt &&
+                        candidate.run_number < run.run_number);
+                  }
+                  return candidate.run_number < run.run_number;
+                })()
               )
-              .sort((first, second) => second.run_number - first.run_number)[0];
+              .sort((first, second) => {
+                const firstCreatedAt = Date.parse(first.created_at);
+                const secondCreatedAt = Date.parse(second.created_at);
+                if (Number.isFinite(firstCreatedAt) &&
+                    Number.isFinite(secondCreatedAt) &&
+                    firstCreatedAt !== secondCreatedAt) {
+                  return secondCreatedAt - firstCreatedAt;
+                }
+                return second.run_number - first.run_number;
+              })[0];
 
             // A failure starts a new streak only after a successful scheduled
             // run. If no earlier success or failure exists, report the first
@@ -106,11 +234,35 @@ jobs:
               return;
             }
 
+            let owner;
+            try {
+              const workflow = await github.rest.actions.getWorkflow({
+                ...context.repo,
+                workflow_id: run.workflow_id,
+              });
+              const workflowFile = await github.rest.repos.getContent({
+                ...context.repo,
+                path: workflow.data.path,
+                ref: run.head_sha,
+              });
+              if (Array.isArray(workflowFile.data) || !workflowFile.data.content) {
+                throw new Error(`Could not read workflow file ${workflow.data.path}.`);
+              }
+              const workflowText = Buffer.from(workflowFile.data.content, 'base64').toString('utf8');
+              const ownerMatch = workflowText.match(/^[ \t]*(?:#[ \t]*)?owner:[ \t]*["']?([A-Za-z0-9-]+)["']?[ \t]*(?:#.*)?$/m);
+              owner = ownerMatch ? ownerMatch[1] : undefined;
+              if (!owner) {
+                core.warning(`No owner field found in ${workflow.data.path}; creating an unassigned issue.`);
+              }
+            } catch (error) {
+              core.warning(`Could not determine the workflow owner; creating an unassigned issue: ${error.message}`);
+            }
+
             const previousRunSummary = previousDecisiveRun
               ? `[Run #${previousDecisiveRun.run_number}](${previousDecisiveRun.html_url}) passed.`
               : 'No earlier successful or failed scheduled run was found.';
 
-            await github.rest.issues.create({
+            const issue = await github.rest.issues.create({
               ...context.repo,
               title: `${run.name} scheduled run #${run.run_number} failed`,
               body: [
@@ -123,3 +275,25 @@ jobs:
                 issueMarker,
               ].join('\n'),
             });
+
+            try {
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: issue.data.number,
+                labels: ['workflow_monitor', 'p0'],
+              });
+            } catch (error) {
+              core.warning(`Issue #${issue.data.number} was created without labels: ${error.message}`);
+            }
+
+            if (owner) {
+              try {
+                await github.rest.issues.addAssignees({
+                  ...context.repo,
+                  issue_number: issue.data.number,
+                  assignees: [owner],
+                });
+              } catch (error) {
+                core.warning(`Issue #${issue.data.number} was created without assignee ${owner}: ${error.message}`);
+              }
+            }

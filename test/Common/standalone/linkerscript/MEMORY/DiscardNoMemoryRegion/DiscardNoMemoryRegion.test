@@ -1,0 +1,31 @@
+## /DISCARD/ must not be assigned a MEMORY region. Otherwise its region cursor
+## incorrectly becomes the location counter for following assignments.
+
+# RUN: split-file %s %t
+# RUN: %clang %clangopts -c %t/1.s -o %t.o
+# RUN: %link %linkopts -T %t/script.t -MapStyle txt -Map %t.map -o %t.out %t.o
+# RUN: %nm -n %t.out | %filecheck %s --check-prefix=SYMBOL
+# RUN: %filecheck %s --check-prefix=MAP < %t.map
+
+# SYMBOL: {{0*20000001}} {{[A-Za-z]}} end
+
+# MAP: .ram_after 0x20000000 0x1
+# MAP: /DISCARD/ 0x0 0x0 # Offset: 0x0, LMA: 0x0, Alignment: 0x1, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS{{$}}
+# MAP: end(0x20000001) = .(0x20000001)
+
+#--- 1.s
+.section .note.GNU-stack,"",%progbits
+
+#--- script.t
+MEMORY
+{
+  SRAM2 (wx) : ORIGIN = 0x20008000, LENGTH = 0x8000
+  RAM   (wx) : ORIGIN = 0x20000000, LENGTH = 0x10000
+}
+SECTIONS
+{
+  .sram      : { BYTE(0) } > SRAM2
+  .ram_after : { BYTE(0) } > RAM
+  /DISCARD/ : { *(.note.GNU-stack) }
+  end = .;
+}

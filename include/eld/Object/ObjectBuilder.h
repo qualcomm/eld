@@ -14,8 +14,8 @@
 #ifndef ELD_OBJECT_OBJECTBUILDER_H
 #define ELD_OBJECT_OBJECTBUILDER_H
 #include "eld/Input/ObjectFile.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/PluginAPI/SectionIteratorPlugin.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/Support/DataTypes.h"
 #include <mutex>
 #include <string>
@@ -30,6 +30,8 @@ class ELFSection;
 class Fragment;
 struct MergeableString;
 class MergeStringFragment;
+struct MergeableConstant;
+class MergeDataFragment;
 class GNULDBackend;
 class Input;
 class LinkerConfig;
@@ -45,7 +47,7 @@ public:
   ObjectBuilder(LinkerConfig &PConfig, Module &PTheModule);
 
   ELFSection *createSection(const std::string &PInputName,
-                            LDFileFormat::Kind PKind, uint32_t PType,
+                            LinkerSectionKind PKind, uint32_t PType,
                             uint32_t PFlag, uint32_t PAlign = 0x0);
 
   ELFSection *mergeSection(GNULDBackend &PGnuldBackend,
@@ -86,6 +88,7 @@ public:
   void mayChangeSectionTypeOrKind(ELFSection *, ELFSection *) const;
 
   void mergeStrings(MergeStringFragment *F, OutputSectionEntry *O);
+  void mergeConstants(MergeDataFragment *F, OutputSectionEntry *O);
 
 private:
   bool shouldSkipMergeSection(ELFSection *) const;
@@ -94,6 +97,8 @@ private:
 
   void traceMergeStrings(const MergeableString *From,
                          const MergeableString *To) const;
+  void traceMergeConstants(const MergeableConstant *From,
+                           const MergeableConstant *To) const;
 
   /// Assigns output sections to internal common sections.
   bool assignOutputSectionsToCommonSymbols();

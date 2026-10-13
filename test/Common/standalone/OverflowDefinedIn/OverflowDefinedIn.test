@@ -1,11 +1,6 @@
 ## Does not overflows on these targets so no link would run at all.
 UNSUPPORTED: riscv32, x86
 
-## NOTE: The overflow diagnostic currently names the input file only for
-## symbols defined in an object, bitcode, or shared file. Linker-script
-## assignments still fall back to the bare symbol name; we plan to update
-## the diagnostic to name the script and line in a follow-up.
-
 ## Verify an overflow diagnostic names where the referenced symbol is defined.
 
 RUN: split-file %s %t
@@ -32,9 +27,8 @@ RUN:   | %filecheck %s --check-prefix=ASSIGN %}
 RUN: %if arm || hexagon %{ %not %link %linkopts --no-trampolines %t/call.o %t/far.o -T %t/callsection.t -o /dev/null 2>&1 \
 RUN:   | %filecheck %s --check-prefix=OBJECT %}
 
-## TODO: name the script and line (e.g. "assign.t:1('faraway')") once the diagnostic is extended.
 ASSIGN:      out of range
-ASSIGN-SAME: references 'faraway'
+ASSIGN-SAME: references {{.*}}assign.t:1('faraway')
 
 OBJECT:      out of range
 OBJECT-SAME: references {{.*}}far.o('faraway')

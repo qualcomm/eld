@@ -11,6 +11,7 @@
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/Fragment.h"
 #include "eld/Fragment/FragmentRef.h"
+#include "eld/Fragment/MergeDataFragment.h"
 #include "eld/Fragment/RegionFragment.h"
 #include "eld/Input/ArchiveFile.h"
 #include "eld/Input/ArchiveMemberInput.h"
@@ -138,14 +139,14 @@ bool LayoutInfo::isSectionDetailedInfoAvailable(ELFSection *Section) {
   // These sections are handled separately and they dont follow
   // the same path of merging
   switch (Section->getKind()) {
-  case LDFileFormat::Discard:
-  case LDFileFormat::Null:
-  case LDFileFormat::Relocation:
-  case LDFileFormat::NamePool:
-  case LDFileFormat::Group:
-  case LDFileFormat::StackNote:
-  case LDFileFormat::EhFrame:
-  case LDFileFormat::SFrame:
+  case LinkerSectionKind::Discard:
+  case LinkerSectionKind::Null:
+  case LinkerSectionKind::Relocation:
+  case LinkerSectionKind::NamePool:
+  case LinkerSectionKind::Group:
+  case LinkerSectionKind::StackNote:
+  case LinkerSectionKind::EhFrame:
+  case LinkerSectionKind::SFrame:
     return false;
   default:
     break;
@@ -279,7 +280,7 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
     RemapComment += Comment.str();
   };
   InputFile::InputFileKind K;
-
+  std::string suffix;
   if (Input != nullptr) {
     Files = Input->decoratedPath();
     if (ThisConfig.options().hasMappingFile())
@@ -293,6 +294,9 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
                            ArchInput->getOriginalFileName());
     }
     K = Input->getInputFile()->getKind();
+    if (Input->getFileName().find("$SYSROOT/") == 0 ||
+        Input->getFileName().find('=') == 0)
+      suffix += " # " + Input->getFileName();
   }
   if (!Ist.Annotation.empty())
     appendRemapComment(Ist.Annotation);
@@ -328,7 +332,7 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
     default:
       ASSERT(0, "Unhandled Input File Kind");
     }
-    return Pref + Files + FileType + RemapComment;
+    return Pref + Files + FileType + RemapComment + suffix;
   }
 
   std::string InputFileStr = Pref + Files + ArchFlag;
@@ -338,7 +342,7 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
     if (!FeatureStr.empty())
       InputFileStr += "[" + FeatureStr + "]";
   }
-  return InputFileStr + RemapComment;
+  return InputFileStr + RemapComment + suffix;
 }
 
 void LayoutInfo::recordInputActions(InputKindPrefix Prefix, Input *Input,
@@ -524,19 +528,23 @@ void LayoutInfo::recordUpdateLinkStats(plugin::LinkerWrapper *W,
   Plugins.insert(W);
 }
 
-void LayoutInfo::buildMergedStringMap(Module &M) {
-  if (!MergedStrings.empty())
+void LayoutInfo::buildMergedMaps(Module &M) {
+  if (!MergedStrings.empty() || !MergedConstants.empty())
     return;
   std::vector<OutputSectionEntry *> OutputSections;
+  std::unordered_set<OutputSectionEntry *> SeenOutputSections;
+  auto AddOutputSection = [&](OutputSectionEntry *O) {
+    if (!O || !SeenOutputSections.insert(O).second)
+      return;
+    OutputSections.push_back(O);
+  };
   for (ELFSection *S : M) {
     if (S->isRelocationSection())
       continue;
-    if (auto *O = S->getOutputSection())
-      OutputSections.push_back(O);
+    AddOutputSection(S->getOutputSection());
   }
-  for (OutputSectionEntry *O : M.getScript().sectionMap()) {
-    OutputSections.push_back(O);
-  }
+  for (OutputSectionEntry *O : M.getScript().sectionMap())
+    AddOutputSection(O);
   bool GlobalMerge = M.getConfig().options().shouldGlobalStringMerge();
   auto AddString = [&](OutputSectionEntry *O, MergeableString *S) {
     if (!S->Exclude)
@@ -547,9 +555,17 @@ void LayoutInfo::buildMergedStringMap(Module &M) {
     ASSERT(Merged, "expected to find a merged string");
     addMergedStrings(Merged, S);
   };
-  for (OutputSectionEntry *O : OutputSections)
+  for (OutputSectionEntry *O : OutputSections) {
     for (MergeableString *S : O->getMergeStrings())
       AddString(O, S);
+    for (MergeableConstant *C : O->getMergeConstants()) {
+      if (!C->Exclude)
+        continue;
+      MergeableConstant *Merged = O->findConstant(C);
+      ASSERT(Merged, "expected to find a merged constant");
+      addMergedConstants(Merged, C);
+    }
+  }
   for (MergeableString *S : M.getNonAllocStrings())
     AddString(nullptr, S);
 }

@@ -27,7 +27,7 @@ EntryCmd::EntryCmd(const std::string &PEntry)
 
 void EntryCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "ENTRY(" << EntrySymbol << ")";
-  Outs << " # " << getContext();
+  Outs << " # " << getContextWithLineNumber();
   Outs << "\n";
 }
 

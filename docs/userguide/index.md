@@ -22,6 +22,7 @@ documentation/image_structure_and_generation
 documentation/layout
 documentation/linker_plugins_updated
 documentation/linker_optimizations
+documentation/linker_image_size_optimizations
 documentation/elf_tools
 documentation/lto_support
 documentation/getting_image_details
@@ -55,5 +56,5 @@ DeveloperDocs/*
 - {ref}`modindex`
 - {ref}`search`
 ```{eval-rst}
-- `Build Dashboard <dash/dash.html>`_
+- `Build Dashboard </eld/dash/dash.html>`_
 ```

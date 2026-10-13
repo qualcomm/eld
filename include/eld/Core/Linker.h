@@ -122,6 +122,8 @@ private:
 
   bool reset();
 
+  void completeProgress();
+
   bool verifyLinkerScript();
 
   /// Record common symbols information using the layout printer.

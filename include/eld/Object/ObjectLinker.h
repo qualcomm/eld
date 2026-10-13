@@ -98,6 +98,12 @@ public:
 
   bool parseVersionScript();
 
+  /// Assigns version nodes to symbols with GNU ld semantics:
+  /// - Pass 1: Exact matches (forward order, first wins, warns on reassign)
+  /// - Pass 2: Non-* wildcards (reverse order, last wins)
+  /// - Pass 3: * wildcard (reverse order, last wins, lowest priority)
+  void assignVersionNodesToSymbols();
+
   /// linkable - check the linkability of current LinkerConfig
   ///  Check list:
   ///  - check the Attributes are not violate the constaint
@@ -107,8 +113,8 @@ public:
   /// readRelocations - read all relocation entries
   bool readRelocations();
 
-  /// merge strings and handle relocations
-  void doMergeStrings();
+  /// Merge strings and constants and handle their relocations.
+  void doMergeStringsAndConstants();
 
   /// dataStrippingOpt - optimizations for reducing code size
   void dataStrippingOpt();
@@ -405,12 +411,6 @@ public:
   bool emitArchiveMemberReport(llvm::StringRef Filename) const;
 
 private:
-  /// Assigns version nodes to symbols with GNU ld semantics:
-  /// - Pass 1: Exact matches (forward order, first wins, warns on reassign)
-  /// - Pass 2: Non-* wildcards (reverse order, last wins)
-  /// - Pass 3: * wildcard (reverse order, last wins, lowest priority)
-  void assignVersionNodesToSymbols();
-
   /// Validates and registers every node of a single parsed VersionScript
   /// DecoratedPath is used only for diagnostics.
   bool registerVersionScriptNodes(const VersionScript *VS,
@@ -495,14 +495,16 @@ private:
 
   void accountSymForDiscardedSymStats(const ResolveInfo &RI);
 
-  // ---------------------String merging  --------------------- //
+  // --------------- String and constant merging --------------- //
   void mergeIdenticalStrings() const;
 
   void mergeNonAllocStrings(std::vector<OutputSectionEntry *>,
                             ObjectBuilder &Builder) const;
 
-  /// Redirect relocations to point directly to a deduplicated string fragment
-  void fixMergeStringRelocations() const;
+  void mergeIdenticalConstants() const;
+
+  /// Redirect relocations to deduplicated strings and constants.
+  void fixMergeStringAndConstantRelocations() const;
 
   void reportPendingPluginRuleInsertions() const;
   void reportPendingScriptSectionInsertions() const;

@@ -64,6 +64,8 @@ Module::Module(LinkerScript &CurScript, LinkerConfig &Config,
 }
 
 Module::~Module() {
+  if (LinkerThreadPool)
+    LinkerThreadPool->wait();
   InputObjectList.clear();
   ArchiveLibraryList.clear();
   DynLibraryList.clear();
@@ -95,7 +97,7 @@ eld::IRBuilder *Module::getIRBuilder() const {
 
 /// createSection - create an output section.
 ELFSection *Module::createOutputSection(const std::string &Name,
-                                        LDFileFormat::Kind PKind, uint32_t Type,
+                                        LinkerSectionKind PKind, uint32_t Type,
                                         uint32_t PFlag, uint32_t PAlign) {
   ELFSection *OutputSect = getScript().sectionMap().createOutputSectionEntry(
       Name, PKind, Type, PFlag, PAlign);
@@ -275,7 +277,7 @@ bool Module::createInternalInputs() {
   return true;
 }
 
-ELFSection *Module::createInternalSection(InputFile &I, LDFileFormat::Kind K,
+ELFSection *Module::createInternalSection(InputFile &I, LinkerSectionKind K,
                                           std::string Name, uint32_t Type,
                                           uint32_t PFlag, uint32_t PAlign,
                                           uint32_t EntSize) {
@@ -549,7 +551,7 @@ Fragment *Module::createPluginFillFragment(std::string PluginName,
                                            uint32_t PaddingSize) {
   LayoutInfo *layoutInfo = getLayoutInfo();
   ELFSection *InputSect = getScript().sectionMap().createELFSection(
-      ".bss.paddingchunk." + PluginName, LDFileFormat::Regular,
+      ".bss.paddingchunk." + PluginName, LinkerSectionKind::Regular,
       llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC, /*EntSize=*/0);
   InputSect->setAddrAlign(Alignment);
   InputSect->setInputFile(InternalFiles[Plugin]);
@@ -567,7 +569,7 @@ Fragment *Module::createPluginCodeFragment(std::string PluginName,
                                            const char *Buf, size_t Sz) {
   LayoutInfo *layoutInfo = getLayoutInfo();
   ELFSection *InputSect = getScript().sectionMap().createELFSection(
-      ".text.codechunk." + Name + "." + PluginName, LDFileFormat::Internal,
+      ".text.codechunk." + Name + "." + PluginName, LinkerSectionKind::Internal,
       llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR,
       /*EntSize=*/0);
   InputSect->setAddrAlign(Alignment);
@@ -585,7 +587,7 @@ Fragment *Module::createPluginDataFragmentWithCustomName(
     const char *Buf, size_t Sz) {
   LayoutInfo *layoutInfo = getLayoutInfo();
   ELFSection *InputSect = getScript().sectionMap().createELFSection(
-      Name, LDFileFormat::Internal, llvm::ELF::SHT_PROGBITS,
+      Name, LinkerSectionKind::Internal, llvm::ELF::SHT_PROGBITS,
       llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, /*EntSize=*/0);
   InputSect->setAddrAlign(Alignment);
   InputSect->setInputFile(InternalFiles[Plugin]);
@@ -611,7 +613,7 @@ Fragment *Module::createPluginBSSFragment(std::string PluginName,
                                           size_t Sz) {
   LayoutInfo *layoutInfo = getLayoutInfo();
   ELFSection *InputSect = getScript().sectionMap().createELFSection(
-      ".data.bsschunk." + Name + "." + PluginName, LDFileFormat::Internal,
+      ".data.bsschunk." + Name + "." + PluginName, LinkerSectionKind::Internal,
       llvm::ELF::SHT_NOBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
       /*EntSize=*/0);
   InputSect->setAddrAlign(Alignment);
@@ -629,7 +631,7 @@ Module::createPluginFragmentWithCustomName(std::string Name, size_t SectType,
                                            const char *Buf, size_t Sz) {
   LayoutInfo *layoutInfo = getLayoutInfo();
   ELFSection *InputSect = getScript().sectionMap().createELFSection(
-      Name, LDFileFormat::Internal, SectType, SectFlags, /*EntSize=*/0);
+      Name, LinkerSectionKind::Internal, SectType, SectFlags, /*EntSize=*/0);
   InputSect->setAddrAlign(Alignment);
   InputSect->setInputFile(InternalFiles[Plugin]);
   Fragment *F = make<RegionFragment>(llvm::StringRef(Buf, Sz), InputSect,
@@ -859,11 +861,11 @@ void Module::addReferencedSymbol(Section &RefencingSection,
   BitcodeReferencedSymbols[&RefencingSection].push_back(&RefencedSymbol);
 }
 
-llvm::ThreadPoolInterface *Module::getThreadPool() {
+eld::plugin::ThreadPool *Module::getThreadPool() {
   if (LinkerThreadPool)
-    return LinkerThreadPool;
-  LinkerThreadPool = eld::make<llvm::StdThreadPool>(ThreadingStrategy);
-  return LinkerThreadPool;
+    return &*LinkerThreadPool;
+  LinkerThreadPool.emplace(ThreadingStrategy);
+  return &*LinkerThreadPool;
 }
 
 void Module::initThreading() {

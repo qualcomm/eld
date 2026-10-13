@@ -9,7 +9,6 @@ llvm_add_library(
   ELFSegmentFactory.cpp
   TargetInfo.cpp
   GNULDBackend.cpp
-  LDFileFormat.cpp
   Relocator.cpp)
 
 target_link_libraries(

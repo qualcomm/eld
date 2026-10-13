@@ -72,6 +72,8 @@ public:
 
   bool isBLXSupported() const { return OutputAttributes.armHasBlx; }
 
+  ARMVFPArgKind getVFPArgKind() const { return OutputAttributes.armVFPArgs; }
+
   bool isCPUProfileMicroController() const;
 
   bool hasJ1J2Encoding() const;

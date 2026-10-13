@@ -219,9 +219,22 @@ public:
   // --------------- ThinLTO Caching support -----------------------
 
   void setHashingEnabled() { HashingEnabled = true; }
+
+  bool isHashingEnabled() const { return HashingEnabled; }
+
+  /// Combined SHA1 hex of script paths and MD5 of each file's contents.
+  /// Hashing must be enabled (currently via --flto-options=cache).
   std::string getHash();
 
+  /// Mix \p FilenameOrText into the combined hash. If it names a readable
+  /// file, also mix an MD5 of the file contents.
   void addToHash(llvm::StringRef FilenameOrText);
+
+  /// Mix \p PathOrText into the combined hash, then mix an MD5 of \p
+  /// Contents. Use this overload when the file has already been read into
+  /// memory (e.g. an archive member) and does not have a path that
+  /// llvm::sys::fs can stat.
+  void addToHash(llvm::StringRef PathOrText, llvm::StringRef Contents);
 
   // ------------- WildCardPattern support -----------------------
   void registerWildCardPattern(WildcardPattern *P);

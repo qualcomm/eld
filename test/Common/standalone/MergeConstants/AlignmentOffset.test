@@ -1,0 +1,18 @@
+#---AlignmentOffset.test--------------- Executable----------------------#
+#BEGIN_COMMENT
+# Equal mergeable constants are not interchangeable when their input section
+# alignment and entry offsets require incompatible output addresses.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/alignment-offset-a.s -o %t.a.o
+RUN: %clang %clangopts -c %p/Inputs/alignment-offset-b.s -o %t.b.o
+RUN: %clang %clangopts -c %p/Inputs/alignment-offset-c.s -o %t.c.o
+RUN: %link %linkopts %t.a.o %t.b.o %t.c.o -o %t.out
+RUN: %readelf -x .rodata %t.out | %filecheck %s --check-prefix=HEX
+RUN: %readelf -s -W %t.out | %filecheck %s --check-prefix=SYMS
+#END_TEST
+
+#HEX: 44444444 00000000 11111111 00000000
+#HEX-NEXT: 33333333 11111111 22222222
+#SYMS-DAG: {{[0-9]+}}: {{[0-9a-f]+}} 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} alignment_offset_b
+#SYMS-DAG: {{[0-9]+}}: {{[0-9a-f]+}} 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} alignment_offset_c_duplicate

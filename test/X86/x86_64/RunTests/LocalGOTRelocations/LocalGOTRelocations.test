@@ -1,0 +1,19 @@
+REQUIRES: linux, x86_64
+
+# Run local GOTPCREL and REX_GOTPCRELX references.
+# Both functions must return addresses of valid local data.
+# Test with relaxation enabled and disabled.
+#START_TEST
+RUN: %clang %clangopts -Wa,-mrelax-relocations=no -c %p/../../linux/LocalGOTRelocations/Inputs/local_plain.s -o %t.plain.o
+RUN: %clang %clangopts -c %p/../../linux/LocalGOTRelocations/Inputs/local_rex.s -o %t.rex.o
+RUN: %clang %clangopts -c %p/Inputs/start.s -o %t.start.o
+
+RUN: %link %linkopts --no-relax -e _start -o %t.norelax %t.start.o %t.plain.o %t.rex.o
+RUN: %run_and_print_exit %t.norelax | %filecheck %s --check-prefix=NORELAX
+
+RUN: %link %linkopts --relax -e _start -o %t.relax %t.start.o %t.plain.o %t.rex.o
+RUN: %run_and_print_exit %t.relax | %filecheck %s --check-prefix=RELAX
+#END_TEST
+
+NORELAX: {{^0$}}
+RELAX: {{^0$}}

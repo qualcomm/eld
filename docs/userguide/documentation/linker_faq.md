@@ -257,6 +257,22 @@ Use `--reproduce-on-fail=default` to name the tar after the output file.
 The `--reproduce-on-fail` switch only creates a tarball when the link step
 fails.
 
+The tarball contains a `response.txt` file containing only linker arguments.
+After extracting the tarball, replay it directly with:
+
+```bash
+ld.eld @response.txt
+```
+
+Alternatively, let ELD extract the tarball and replay its response file with:
+
+```bash
+ld.eld --replay <tarball>
+```
+
+`response.txt` is a linker response file, not a shell script, so it should not
+be run with `bash`.
+
 ### Multiple ways to invoke ELD linker
 
 - arm-link can be invoked since it is a symbolic link to ld.eld

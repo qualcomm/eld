@@ -1,0 +1,30 @@
+#---ExecutableGNUStack.test---------------------------- Executable ---------#
+#BEGIN_COMMENT
+# Check that an executable .note.GNU-stack section is diagnosed, and that the
+# diagnostic is suppressed by the explicit GNU stack options.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/executable-stack.s -o %t.stack.o
+
+# An executable .note.GNU-stack section is accepted with a warning.
+RUN: %link %linkopts %t.main.o %t.stack.o -o %t.default.out 2>&1 | %filecheck %s --check-prefix=WARN
+
+# An explicit linker-script discard rule does not suppress the diagnostic.
+RUN: %link %linkopts %t.main.o %t.stack.o -T %p/Inputs/discard-note-gnu-stack.t -o %t.discard.out 2>&1 | %filecheck %s --check-prefix=WARN-DISCARD
+
+# Partial linking also diagnoses executable stack notes.
+RUN: %link -r %linkopts %t.main.o %t.stack.o -T %p/Inputs/discard-note-gnu-stack.t -o %t.partial.o 2>&1 | %filecheck %s --check-prefix=WARN-PARTIAL
+
+# Explicit stack options suppress the input-file warning.
+RUN: %link %linkopts %t.main.o %t.stack.o -z execstack -o %t.exec.out 2>&1 | %filecheck %s --allow-empty --check-prefix=NO-WARN
+RUN: %readelf -l -W %t.exec.out | %filecheck %s --check-prefix=EXECSTACK
+RUN: %link %linkopts %t.main.o %t.stack.o -z noexecstack -o %t.noexec.out 2>&1 | %filecheck %s --allow-empty --check-prefix=NO-WARN
+RUN: %link %linkopts %t.main.o %t.stack.o -z nognustack -o %t.nognu.out 2>&1 | %filecheck %s --allow-empty --check-prefix=NO-WARN
+
+#WARN:      requires executable stack
+#WARN-DISCARD: requires executable stack
+#WARN-PARTIAL: requires executable stack
+#NO-WARN-NOT: requires executable stack
+#EXECSTACK: GNU_STACK{{.*}} RWE
+#END_TEST

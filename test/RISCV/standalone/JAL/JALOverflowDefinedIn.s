@@ -1,5 +1,10 @@
 # UNSUPPORTED: riscv64
 
+## Verify an overflow diagnostic names where the referenced symbol is defined:
+## script and line for an assignment or PROVIDE, the option for --defsym,
+## "<internal>" for internal symbols, otherwise the input file. An
+## undefined symbol gets no origin since its origin is the referencing file.
+
 # RUN: split-file %s %t
 
 # RUN: %llvm-mc -filetype=obj -triple=riscv32-unknown-elf -mattr=-relax %t/a.s -o %t/a.o
@@ -21,15 +26,17 @@
 
 # RUN: %not %link %t/baz.o %t/a.o -T %t/sectionprovide.t -o /dev/null 2>&1 | %filecheck %s --check-prefix=OBJECT
 
-# ASSIGN: Error: {{.*}}a.o:(.text): relocation R_RISCV_JAL out of range: {{.*}}; references 'baz'
+# ASSIGN: Error: {{.*}}a.o:(.text): relocation R_RISCV_JAL out of range: {{.*}}; references {{.*}}assign.t:1('baz')
 
-# PROVIDE: Error: {{.*}}a.o:(.text): relocation R_RISCV_JAL out of range: {{.*}}; references 'baz'
+# PROVIDE: Error: {{.*}}a.o:(.text): relocation R_RISCV_JAL out of range: {{.*}}; references {{.*}}provide.t:5('baz')
 
 # OBJECT: Error: {{.*}}a.o:(.text): relocation R_RISCV_JAL out of range: {{.*}}; references {{.*}}baz.o('baz')
 
-# DEFSYM: Error: {{.*}}a.o:(.text): relocation R_RISCV_JAL out of range: {{.*}}; references 'baz'
+# DEFSYM:     Error: {{.*}}a.o:(.text): relocation R_RISCV_JAL out of range: {{.*}}; references '--defsym baz'
+# DEFSYM-NOT: Expression(Defsym)
 
-# INTERNAL: Error: {{.*}}encap.o:(.text): relocation R_RISCV_JAL out of range: {{.*}}; references '__start_foo'
+# INTERNAL:     Error: {{.*}}encap.o:(.text): relocation R_RISCV_JAL out of range: {{.*}}; references linker internal symbol '__start_foo'
+# INTERNAL-NOT: Internal-LinkerScript
 
 # UNDEF:     Error: {{.*}}weak.o:(.text): relocation R_RISCV_JAL out of range: {{.*}}; references 'wk'
 # UNDEF-NOT: defined in

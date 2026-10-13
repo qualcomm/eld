@@ -7,9 +7,7 @@
 //===----------------------------------------------------------------------===//
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Core/LinkerScript.h"
-#include "eld/Support/TargetRegistry.h"
 #include "eld/Target/ELFEmulation.h"
-#include "x86_64.h"
 #include "llvm/ADT/StringSwitch.h"
 
 using namespace llvm;
@@ -35,12 +33,3 @@ bool emulatex86_64LD(LinkerScript &pScript, LinkerConfig &pConfig) {
 }
 
 } // namespace eld
-
-//===----------------------------------------------------------------------===//
-// x86_64Emulation
-//===----------------------------------------------------------------------===//
-extern "C" void ELDInitializeX86Emulation() {
-  // Register the emulation
-  eld::TargetRegistry::RegisterEmulation(eld::Thex86_64Target,
-                                         eld::emulatex86_64LD);
-}

@@ -1019,6 +1019,11 @@ Relocator::Result ldr_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
   return ldr_pc_group(pReloc, pParent, 0);
 }
 
+// R_ARM_LDR_PC_G1: S + A - P
+Relocator::Result ldr_pc_g1(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldr_pc_group(pReloc, pParent, 1);
+}
+
 // R_ARM_LDR_PC_G2: S + A - P
 Relocator::Result ldr_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
   return ldr_pc_group(pReloc, pParent, 2);
@@ -1355,6 +1360,116 @@ Relocator::Result thm_jump19(Relocation &pReloc, ARMRelocator &pParent) {
   *(reinterpret_cast<uint16_t *>(&pReloc.target()) + 1) = lower_inst;
 
   return Relocator::OK;
+}
+
+// R_ARM_LDRS_PC_Gn: S + A - P
+static Relocator::Result ldrs_pc_group(Relocation &pReloc,
+                                       ARMRelocator &pParent, unsigned pGroup) {
+  Relocator::Address S = pParent.getSymValue(&pReloc);
+  Relocator::Address P = pReloc.place(pParent.module());
+  Relocator::DWord T = getThumbBit(pParent, pReloc, /*IsJump*/ false);
+
+  uint32_t I = pReloc.target();
+
+  // LDRD/LDRH/LDRSB/LDRSH literal: U is bit 23 and the immediate is
+  // split as imm4H:imm4L.
+  bool U = I & 0x00800000;
+  uint32_t imm8 = ((I & 0x00000f00) >> 4) | (I & 0xf);
+
+  // Recover the implicit signed addend.
+  int64_t A = U ? static_cast<int64_t>(imm8) : -static_cast<int64_t>(imm8);
+  A += pReloc.addend();
+
+  // Match LLD: form the PC-relative displacement before ignoring the
+  // Thumb bit for function symbols.
+  int64_t X = ((static_cast<int64_t>(S) + A) | static_cast<int64_t>(T)) -
+              static_cast<int64_t>(P);
+
+  if (T)
+    X &= ~int64_t{1};
+
+  uint32_t UBit = 0x00800000;
+  uint64_t Magnitude = X;
+  if (X < 0) {
+    UBit = 0;
+    Magnitude = static_cast<uint64_t>(-X);
+  }
+
+  // Select the residual for the requested group.
+  uint32_t Imm =
+      helper_get_rem_for_group(pGroup, static_cast<uint32_t>(Magnitude));
+
+  // LDRS group relocations encode an 8-bit magnitude in imm4H:imm4L.
+  if (!llvm::isUInt<8>(Imm))
+    return reportUnsignedOverflow(pReloc, pParent, Imm, 8);
+
+  I = (I & 0xff7ff0f0) | UBit | ((Imm & 0xf0) << 4) | (Imm & 0xf);
+
+  pReloc.target() = I;
+  return Relocator::OK;
+}
+
+// R_ARM_LDRS_PC_G0: S + A - P
+Relocator::Result ldrs_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldrs_pc_group(pReloc, pParent, /*pGroup=*/0);
+}
+
+// R_ARM_LDRS_PC_G1: S + A - P
+Relocator::Result ldrs_pc_g1(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldrs_pc_group(pReloc, pParent, /*pGroup=*/1);
+}
+
+// R_ARM_LDRS_PC_G2: S + A - P
+Relocator::Result ldrs_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldrs_pc_group(pReloc, pParent, /*pGroup=*/2);
+}
+
+static Relocator::Result ldc_pc_group(Relocation &pReloc, ARMRelocator &pParent,
+                                      unsigned pGroup) {
+  Relocator::Address S = pParent.getSymValue(&pReloc);
+  Relocator::Address P = pReloc.place(pParent.module());
+
+  if (getThumbBit(pParent, pReloc, /*IsJump*/ false))
+    helper_clear_thumb_bit(S);
+
+  uint32_t I = pReloc.target();
+
+  // LDC/STC encodes an 8-bit immediate scaled by four.
+  int64_t A = static_cast<int64_t>((I & 0xff) << 2);
+  if (!(I & 0x00800000))
+    A = -A;
+
+  A += pReloc.addend();
+
+  int64_t X = static_cast<int64_t>(S) + A - static_cast<int64_t>(P);
+
+  uint32_t UBit = 0x00800000;
+  uint64_t Magnitude = static_cast<uint64_t>(X);
+  if (X < 0) {
+    UBit = 0;
+    Magnitude = static_cast<uint64_t>(-X);
+  }
+
+  uint32_t Residual =
+      helper_get_rem_for_group(pGroup, static_cast<uint32_t>(Magnitude));
+
+  if (Residual >= 0x400) {
+    pReloc.issueUnsignedOverflow(pParent, Residual, 0, 0x3ff);
+    return Relocator::Overflow;
+  }
+
+  if (Residual & 0x3)
+    return Relocator::BadReloc;
+
+  I = (I & 0xff7fff00) | UBit | (Residual >> 2);
+
+  pReloc.target() = I;
+  return Relocator::OK;
+}
+
+// R_ARM_LDC_PC_G0: S + A - P
+Relocator::Result ldc_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldc_pc_group(pReloc, pParent, /*pGroup=*/0);
 }
 
 // R_ARM_ALU_PC_Gn / R_ARM_ALU_PC_Gn_NC: ((S + A) | T) - P

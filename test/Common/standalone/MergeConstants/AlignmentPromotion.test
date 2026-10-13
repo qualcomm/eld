@@ -1,0 +1,18 @@
+#---AlignmentPromotion.test------------ Executable----------------------#
+#BEGIN_COMMENT
+# Check that later duplicates with stricter alignment replace the canonical
+# constant and that all references converge to the strongest alignment.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/7.c -o %t7.o
+RUN: %clang %clangopts -c %p/Inputs/8.c -o %t8.o
+RUN: %clang %clangopts -c %p/Inputs/9.c -o %t9.o
+RUN: %link %linkopts --entry=t1 %t7.o %t8.o %t9.o -o %t.out
+RUN: %readelf -S -W %t.out | %filecheck %s --check-prefix=SECTIONS
+RUN: %readelf -s -W %t.out | %filecheck %s --check-prefix=SYMS
+#END_TEST
+
+#SECTIONS: .rodata {{.*}} 000004 {{.*}} AM {{.*}} 16
+#SYMS-DAG: {{[0-9]+}}: [[TVAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} t1
+#SYMS-DAG: {{[0-9]+}}: [[TVAL]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} t2
+#SYMS-DAG: {{[0-9]+}}: [[TVAL]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} t3

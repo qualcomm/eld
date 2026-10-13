@@ -18,7 +18,7 @@ namespace eld {
 class CommonELFSection : public ELFSection {
 public:
   CommonELFSection(const std::string &Name, InputFile *I, uint32_t Align)
-      : ELFSection(Section::Kind::CommonELF, LDFileFormat::Common, Name,
+      : ELFSection(Section::Kind::CommonELF, LinkerSectionKind::Common, Name,
                    DefaultFlags, /*EntSize=*/0, Align, DefaultType, /*Info=*/0,
                    /*Link=*/nullptr,
                    /*SectionSize*/ 0, /*PAddr=*/0),

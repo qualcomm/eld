@@ -1,4 +1,4 @@
-#XFAIL: tsan
+#UNSUPPORTED: tsan
 # This test uses the option -z nocopyreloc to report errors whenever a copy
 # relocation is needed.
 RUN: %clang %clangopts -fno-pic -c %clangg0opts -fPIC %p/Inputs/1.c -o %t1.1.o

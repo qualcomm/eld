@@ -12,8 +12,35 @@
 //===----------------------------------------------------------------------===//
 
 #include "ARMInfo.h"
+#include "eld/Support/MsgHandling.h"
 
 using namespace eld;
+
+namespace {
+
+uint64_t getEABIVersion(uint64_t Flags) {
+  return Flags & llvm::ELF::EF_ARM_EABIMASK;
+}
+
+bool areEABIVersionsCompatible(uint64_t InputFlags, uint64_t OutputFlags) {
+  uint64_t InputVersion = getEABIVersion(InputFlags);
+  uint64_t OutputVersion = getEABIVersion(OutputFlags);
+
+  if (InputVersion == OutputVersion ||
+      OutputVersion == llvm::ELF::EF_ARM_EABI_UNKNOWN)
+    return true;
+
+  return (InputVersion == llvm::ELF::EF_ARM_EABI_VER4 &&
+          OutputVersion == llvm::ELF::EF_ARM_EABI_VER5) ||
+         (InputVersion == llvm::ELF::EF_ARM_EABI_VER5 &&
+          OutputVersion == llvm::ELF::EF_ARM_EABI_VER4);
+}
+
+std::string getEABIVersionString(uint64_t Flags) {
+  return "EABI" + std::to_string(getEABIVersion(Flags) >> 24);
+}
+
+} // namespace
 
 bool ARMInfo::InitializeDefaultMappings(Module &pModule) {
   LinkerScript &pScript = pModule.getScript();
@@ -65,22 +92,83 @@ bool ARMInfo::InitializeDefaultMappings(Module &pModule) {
   return true;
 }
 
-std::string ARMInfo::flagString(uint64_t flag) const { return "arm"; }
+std::string ARMInfo::flagString(uint64_t flag) const {
+  std::string FlagStr = "arm";
+
+  auto AppendFlag = [&FlagStr](const std::string &Name) {
+    FlagStr += "|";
+    FlagStr += Name;
+  };
+
+  const uint64_t EABIVersion = getEABIVersion(flag);
+  if (EABIVersion != llvm::ELF::EF_ARM_EABI_UNKNOWN)
+    AppendFlag(getEABIVersionString(flag));
+
+  // AAELF32 gives 0x200/0x400 the EF_ARM_ABI_FLOAT_{SOFT,HARD} meaning from
+  // EABI version 5 on; pre-v5 objects used them as EF_ARM_{SOFT,VFP}_FLOAT.
+  const bool IsEABI5OrLater = EABIVersion >= llvm::ELF::EF_ARM_EABI_VER5;
+
+  if (flag & llvm::ELF::EF_ARM_SOFT_FLOAT)
+    AppendFlag(IsEABI5OrLater ? "FloatABISoft" : "SoftFloat");
+
+  if (flag & llvm::ELF::EF_ARM_VFP_FLOAT)
+    AppendFlag(IsEABI5OrLater ? "FloatABIHard" : "VFPFloat");
+
+  if (flag & llvm::ELF::EF_ARM_BE8)
+    AppendFlag("BE8");
+
+  return FlagStr;
+}
 
 uint64_t ARMInfo::flags() const {
   // checkFlags() was never called. This means the linker was given a lone empty
   // .o file or a lone symdef file, etc. In either case, we want the result to
   // have flags.
-  if (!OutputFlags)
-    return llvm::ELF::EF_ARM_EABI_VER5;
-  assert(*OutputFlags == 0 || *OutputFlags == llvm::ELF::EF_ARM_EABI_VER5);
-  return *OutputFlags;
+  uint64_t Flags = OutputFlags.value_or(llvm::ELF::EF_ARM_EABI_VER5);
+  // AAELF32 defines EF_ARM_ABI_FLOAT_{SOFT,HARD} only for ET_EXEC and ET_DYN
+  // outputs, so partial links (-r) must not carry them.
+  const bool IsExecOrDyn = m_Config.codeGenType() == LinkerConfig::Exec ||
+                           m_Config.codeGenType() == LinkerConfig::DynObj;
+  if (IsExecOrDyn && getEABIVersion(Flags) >= llvm::ELF::EF_ARM_EABI_VER5)
+    Flags |= FloatABIFlag;
+  return Flags;
 }
 
-bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I, bool) {
-  if (!OutputFlags && Flags == 0 && I->isBinaryFile())
-    OutputFlags = Flags;
-  else
-    OutputFlags = llvm::ELF::EF_ARM_EABI_VER5;
+bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I,
+                         bool hasExecutableSections) {
+  // Binary inputs do not carry ARM EABI information.
+  if (I->isBinaryFile()) {
+    if (!OutputFlags)
+      OutputFlags = llvm::ELF::EF_ARM_EABI_UNKNOWN;
+    return true;
+  }
+
+  // The first object establishes the output EABI version. Other ARM e_flags
+  // are output properties and must not be inherited implicitly from inputs.
+  if (!OutputFlags) {
+    OutputFlags = getEABIVersion(Flags);
+    return true;
+  }
+
+  // Once output flags have been established, data-only relocatable objects do
+  // not participate in ARM EABI compatibility checking. Dynamic objects still
+  // participate, matching ld.bfd behavior.
+  if (!hasExecutableSections && !I->isDynamicLibrary())
+    return true;
+
+  if (!areEABIVersionsCompatible(Flags, *OutputFlags)) {
+    m_Config.raise(Diag::incompatible_architecture_versions)
+        << getEABIVersionString(Flags) << I->getInput()->decoratedPath()
+        << getEABIVersionString(*OutputFlags);
+
+    if (m_Config.options().warnMismatch())
+      return false;
+  }
+
+  // UNKNOWN may be superseded by the first known EABI version.
+  if (getEABIVersion(*OutputFlags) == llvm::ELF::EF_ARM_EABI_UNKNOWN &&
+      getEABIVersion(Flags) != llvm::ELF::EF_ARM_EABI_UNKNOWN)
+    OutputFlags = getEABIVersion(Flags);
+
   return true;
 }

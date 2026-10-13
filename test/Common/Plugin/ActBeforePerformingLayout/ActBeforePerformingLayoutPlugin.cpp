@@ -7,6 +7,11 @@ public:
   ActBeforePerformingLayoutPlugin()
       : eld::plugin::LinkerPlugin("ActBeforePerformingLayoutPlugin") {}
   void ActBeforePerformingLayout() override {
+    if (!getLinker()->isLinkStateActBeforePerformingLayout()) {
+      getLinker()->reportDiag(
+          getLinker()->getErrorDiagID("Incorrect link state"));
+      return;
+    }
     getLinker()->reportDiag(
         getLinker()->getNoteDiagID("In ActBeforePerformingLayout"));
   }

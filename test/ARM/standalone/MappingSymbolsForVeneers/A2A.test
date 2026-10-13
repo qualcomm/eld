@@ -8,6 +8,8 @@ RUN: %link %linkopts %t1.arm.1.o  -o %t2.a2a.1.out --defsym bar=0x80000000
 RUN: %objdump -d %t2.a2a.1.out 2>&1 | %filecheck %s -check-prefix=STATIC
 RUN: %link %linkopts %t1.arm.1.o  -o %t2.a2a.2.out --defsym bar=0x80000000 -shared
 RUN: %objdump -d %t2.a2a.2.out 2>&1 | %filecheck %s -check-prefix=SHARED
+RUN: %link %linkopts %t1.arm.1.o  -o %t2.a2a.3.out --defsym bar=0x80000000 --pic-veneer
+RUN: %objdump -d %t2.a2a.3.out 2>&1 | %filecheck %s -check-prefix=PICVENEER
 
 #STATIC: {{.*}} <__bar_A2A_veneer@island-1>:
 #STATIC:       {{.*}}: e51ff004     ldr     pc, [pc, #-0x4]
@@ -17,6 +19,11 @@ RUN: %objdump -d %t2.a2a.2.out 2>&1 | %filecheck %s -check-prefix=SHARED
 #SHARED:      {{.*}}: e59fc000      ldr     r12, [pc]               @ 0x174 <__bar_A2A_veneer@island-1+0x8>
 #SHARED:      {{.*}}: e08ff00c      add     pc, pc, r12
 #SHARED:      {{.*}}:       d4 ff ff ff     .word   0xffffffd4
+
+#PICVENEER: {{.*}} <__bar_A2A_veneer@island-1>:
+#PICVENEER:      {{.*}}: e59fc000      ldr     r12, [pc]{{.*}}
+#PICVENEER:      {{.*}}: e08ff00c      add     pc, pc, r12
+#PICVENEER:      {{.*}}:       {{.*}}     .word   {{0x[0-9a-f]+}}
 
 #END_TEST
 

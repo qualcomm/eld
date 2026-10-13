@@ -19,12 +19,12 @@
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/Input.h"
 #include "eld/Input/InputFile.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Readers/BitcodeReader.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/Target/GNULDBackend.h"
-#include "eld/Target/LDFileFormat.h"
 #include "eld/Target/TargetInfo.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "gtest/gtest.h"
@@ -48,7 +48,7 @@ TEST_F(SymbolResolutionTest, StaticSymbolResolution) {
   Input *in1 = make<Input>("a.o", m_DiagEngine);
   InputFile *inFile1 = make<ELFObjectFile>(in1, m_DiagEngine);
   ELFSection *sect1 =
-      make<ELFSection>(LDFileFormat::Kind::Regular, ".data.foo",
+      make<ELFSection>(LinkerSectionKind::Regular, ".data.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 0, 0,
                        llvm::ELF::SHT_PROGBITS, 0, nullptr, 0, 0);
   LDSymbol *symFooWeak = m_IRBuilder->addSymbol(
@@ -64,7 +64,7 @@ TEST_F(SymbolResolutionTest, StaticSymbolResolution) {
   Input *in2 = make<Input>("b.o", m_DiagEngine);
   InputFile *inFile2 = make<ELFObjectFile>(in2, m_DiagEngine);
   ELFSection *sect2 =
-      make<ELFSection>(LDFileFormat::Kind::Common, ".bss.foo",
+      make<ELFSection>(LinkerSectionKind::Common, ".bss.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 0, 0,
                        llvm::ELF::SHT_NOBITS, 0, nullptr, 0, 0);
   LDSymbol *symFooCommon = m_IRBuilder->addSymbol(
@@ -80,7 +80,7 @@ TEST_F(SymbolResolutionTest, StaticSymbolResolution) {
   Input *in3 = make<Input>("c.o", m_DiagEngine);
   InputFile *inFile3 = make<ELFObjectFile>(in3, m_DiagEngine);
   ELFSection *sect3 =
-      make<ELFSection>(LDFileFormat::Kind::Regular, ".data.foo",
+      make<ELFSection>(LinkerSectionKind::Regular, ".data.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 0, 0,
                        llvm::ELF::SHT_PROGBITS, 0, nullptr, 0, 0);
   LDSymbol *symFooGlobalDef = m_IRBuilder->addSymbol(
@@ -98,7 +98,7 @@ TEST_F(SymbolResolutionTest, CommonSymbolResolution) {
   Input *in1 = make<Input>("a.o", m_DiagEngine);
   InputFile *inFile1 = make<ELFObjectFile>(in1, m_DiagEngine);
   ELFSection *sect1 =
-      make<ELFSection>(LDFileFormat::Kind::Common, ".bss.foo",
+      make<ELFSection>(LinkerSectionKind::Common, ".bss.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 0, 0,
                        llvm::ELF::SHT_NOBITS, 0, nullptr, 0, 0);
   LDSymbol *symFooCommon50 = m_IRBuilder->addSymbol(
@@ -112,7 +112,7 @@ TEST_F(SymbolResolutionTest, CommonSymbolResolution) {
   Input *in2 = make<Input>("b.o", m_DiagEngine);
   InputFile *inFile2 = make<ELFObjectFile>(in2, m_DiagEngine);
   ELFSection *sect2 =
-      make<ELFSection>(LDFileFormat::Kind::Common, ".bss.foo",
+      make<ELFSection>(LinkerSectionKind::Common, ".bss.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 0, 0,
                        llvm::ELF::SHT_NOBITS, 0, nullptr, 0, 0);
   LDSymbol *symFooCommon10 = m_IRBuilder->addSymbol(
@@ -127,7 +127,7 @@ TEST_F(SymbolResolutionTest, CommonSymbolResolution) {
   Input *in3 = make<Input>("c.o", m_DiagEngine);
   InputFile *inFile3 = make<ELFObjectFile>(in3, m_DiagEngine);
   ELFSection *sect3 =
-      make<ELFSection>(LDFileFormat::Kind::Common, ".bss.foo",
+      make<ELFSection>(LinkerSectionKind::Common, ".bss.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 0, 0,
                        llvm::ELF::SHT_NOBITS, 0, nullptr, 0, 0);
   LDSymbol *symFooCommon200 = m_IRBuilder->addSymbol(
@@ -144,7 +144,7 @@ TEST_F(SymbolResolutionTest, DynamicSymbolResolution) {
   Input *in1 = make<Input>("a.o", m_DiagEngine);
   InputFile *inFile1 = make<ELFDynObjectFile>(in1, m_DiagEngine);
   ELFSection *sect1 =
-      make<ELFSection>(LDFileFormat::Kind::Regular, ".text.foo",
+      make<ELFSection>(LinkerSectionKind::Regular, ".text.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 0, 0,
                        llvm::ELF::SHT_PROGBITS, 0, nullptr, 0, 0);
   LDSymbol *symFooDyn1 = m_IRBuilder->addSymbol(
@@ -173,7 +173,7 @@ TEST_F(SymbolResolutionTest, DynamicSymbolResolution) {
   Input *in3 = make<Input>("c.o", m_DiagEngine);
   InputFile *inFile3 = make<ELFDynObjectFile>(in3, m_DiagEngine);
   ELFSection *sect3 =
-      make<ELFSection>(LDFileFormat::Kind::Regular, ".text.foo",
+      make<ELFSection>(LinkerSectionKind::Regular, ".text.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 0, 0,
                        llvm::ELF::SHT_PROGBITS, 0, nullptr, 0, 0);
   LDSymbol *symFooDyn2 = m_IRBuilder->addSymbol(
@@ -191,7 +191,7 @@ TEST_F(SymbolResolutionTest, LTOSymbolResolution) {
   Input *in1 = make<Input>("a.o", m_DiagEngine);
   InputFile *inFile1 = make<ELFObjectFile>(in1, m_DiagEngine);
   ELFSection *sect1 =
-      make<ELFSection>(LDFileFormat::Kind::Regular, ".text.foo",
+      make<ELFSection>(LinkerSectionKind::Regular, ".text.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 0, 0,
                        llvm::ELF::SHT_PROGBITS, 0, nullptr, 0, 0);
   LDSymbol *symFooBitcode = m_IRBuilder->addSymbol(
@@ -208,7 +208,7 @@ TEST_F(SymbolResolutionTest, LTOSymbolResolution) {
   Input *in2 = make<Input>("b.o", m_DiagEngine);
   InputFile *inFile2 = make<ELFObjectFile>(in2, m_DiagEngine);
   ELFSection *sect2 =
-      make<ELFSection>(LDFileFormat::Kind::Regular, ".text.foo",
+      make<ELFSection>(LinkerSectionKind::Regular, ".text.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 0, 0,
                        llvm::ELF::SHT_PROGBITS, 0, nullptr, 0, 0);
   LDSymbol *symFooLTOObject = m_IRBuilder->addSymbol(

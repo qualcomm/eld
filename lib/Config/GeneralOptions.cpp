@@ -230,6 +230,8 @@ eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {
     if (Type == SECTIONS)
       addMergeStrTraceSection(Arg);
     TraceMe = DiagEngine->getPrinter()->TraceMergeStrings;
+  } else if (TraceType.starts_with("merge-constants")) {
+    TraceMe = DiagEngine->getPrinter()->TraceMergeConstants;
   } else {
     TraceMe =
         llvm::StringSwitch<std::optional<uint32_t>>(TraceType)
@@ -241,6 +243,8 @@ eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {
             .Case("live-edges", DiagEngine->getPrinter()->TraceGCLive)
             .Case("lto", DiagEngine->getPrinter()->TraceLTO)
             .Case("merge-strings", DiagEngine->getPrinter()->TraceMergeStrings)
+            .Case("merge-constants",
+                  DiagEngine->getPrinter()->TraceMergeConstants)
             .Case("plugin", DiagEngine->getPrinter()->TracePlugin)
             .Case("relax", DiagEngine->getPrinter()->TraceRelax)
             .Case("threads", DiagEngine->getPrinter()->TraceThreads)

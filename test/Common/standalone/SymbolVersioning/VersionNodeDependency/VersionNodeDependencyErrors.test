@@ -1,0 +1,11 @@
+REQUIRES: symbol_versioning
+#---VersionNodeDependencyErrors.test------------ SymbolVersioning ---#
+#BEGIN_COMMENT
+# Verify that a dependency must refer to an earlier named version node.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.o %p/Inputs/1.c -c -fPIC
+RUN: %not %link %linkopts -o %t.so %t.o -shared --version-script %p/Inputs/unknown.t 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: Error: {{.*}}unknown.t: version node 'V2' depends on unknown version node 'V_UNKNOWN'

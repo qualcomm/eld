@@ -20,6 +20,7 @@
 #include "eld/Fragment/Fragment.h"
 #include "eld/Input/BitcodeFile.h"
 #include "eld/Input/ELFObjectFile.h"
+#include "eld/Object/LinkerSectionKind.h"
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/Relocation.h"
@@ -30,7 +31,6 @@
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/Target/GNULDBackend.h"
-#include "eld/Target/LDFileFormat.h"
 #include "llvm/Support/Casting.h"
 #include <queue>
 #include <stdlib.h>
@@ -64,42 +64,42 @@ bool GarbageCollection::mayProcessGC(ELFSection &CurSection) {
   if (BackendShouldProcess)
     return *BackendShouldProcess;
   switch (CurSection.getKind()) {
-  case LDFileFormat::Ignore:
+  case LinkerSectionKind::Ignore:
     Ret = false;
     break;
   // take nullptr and StackNote directly
-  case LDFileFormat::Null:
-  case LDFileFormat::StackNote:
+  case LinkerSectionKind::Null:
+  case LinkerSectionKind::StackNote:
     Ret = false;
     break;
-  case LDFileFormat::Relocation:
+  case LinkerSectionKind::Relocation:
     Ret = false;
     break;
   // Make these flags go along with whatever is part of the root set.
-  case LDFileFormat::EhFrame:
-  case LDFileFormat::SFrame:
+  case LinkerSectionKind::EhFrame:
+  case LinkerSectionKind::SFrame:
     Ret = false;
     break;
-  case LDFileFormat::Regular:
-  case LDFileFormat::Common:
-  case LDFileFormat::Internal:
-  case LDFileFormat::Target:
-  case LDFileFormat::MetaData:
-  case LDFileFormat::GCCExceptTable:
+  case LinkerSectionKind::Regular:
+  case LinkerSectionKind::Common:
+  case LinkerSectionKind::Internal:
+  case LinkerSectionKind::Target:
+  case LinkerSectionKind::MetaData:
+  case LinkerSectionKind::GCCExceptTable:
     Ret = true;
     break;
-  case LDFileFormat::MergeStr:
+  case LinkerSectionKind::MergeStr:
     if (CurSection.isAlloc())
       return true;
     LLVM_FALLTHROUGH;
-  case LDFileFormat::Note:
-  case LDFileFormat::Debug:
-  case LDFileFormat::Discard:
-  case LDFileFormat::NamePool:
-  case LDFileFormat::EhFrameHdr:
-  case LDFileFormat::Group:
-  case LDFileFormat::Version:
-  case LDFileFormat::OutputSectData:
+  case LinkerSectionKind::Note:
+  case LinkerSectionKind::Debug:
+  case LinkerSectionKind::Discard:
+  case LinkerSectionKind::NamePool:
+  case LinkerSectionKind::EhFrameHdr:
+  case LinkerSectionKind::Group:
+  case LinkerSectionKind::Version:
+  case LinkerSectionKind::OutputSectData:
   default:
     Ret = false;
     break;
@@ -713,7 +713,7 @@ void GarbageCollection::stripSections(SectionSetTy &S,
   // in the ReferencedSections, then it should be garbage collected
   Module::obj_iterator Obj, ObjEnd = ThisModule.objEnd();
 
-  std::vector<std::pair<ELFSection *, LDFileFormat::Kind>> IgnoredSections;
+  std::vector<std::pair<ELFSection *, LinkerSectionKind>> IgnoredSections;
 
   LayoutInfo *layoutInfo = ThisModule.getLayoutInfo();
   bool ShouldDemangle = ThisConfig.options().shouldDemangle();
@@ -768,7 +768,7 @@ void GarbageCollection::stripSections(SectionSetTy &S,
               std::make_pair(Section, Section->getKind()));
         else if (layoutInfo)
           layoutInfo->recordGC(Section);
-        Section->setKind(LDFileFormat::Ignore);
+        Section->setKind(LinkerSectionKind::Ignore);
       }
     }
   }

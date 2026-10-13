@@ -8,6 +8,7 @@
 #include "eld/Diagnostics/Diagnostic.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
+#include "eld/Support/ReproduceTarReader.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/MemoryBufferRef.h"
 
@@ -18,7 +19,18 @@ using namespace eld;
 //===--------------------------------------------------------------------===//
 MemoryArea::MemoryArea(llvm::StringRef Filename) : m_FileName(Filename) {}
 
-bool MemoryArea::Init(DiagnosticEngine *DiagEngine) {
+bool MemoryArea::Init(DiagnosticEngine *DiagEngine,
+                      const ReproduceTarReader *TarReader) {
+  if (TarReader) {
+    auto BufferOrErr = TarReader->findFile(m_FileName);
+    if (BufferOrErr) {
+      // The returned buffer retains the tar entry identifier while viewing
+      // bytes owned by the replay tar.
+      MB = std::move(*BufferOrErr);
+      return true;
+    }
+  }
+
   auto MBOrErr = llvm::MemoryBuffer::getFile(m_FileName);
   if (auto EC = MBOrErr.getError()) {
     DiagEngine->raise(Diag::fatal_cannot_read_input_err)

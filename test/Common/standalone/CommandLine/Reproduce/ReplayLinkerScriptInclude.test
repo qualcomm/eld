@@ -1,0 +1,15 @@
+#UNSUPPORTED: windows
+#---ReplayLinkerScriptInclude.test---------- Executable -------------------#
+#BEGIN_COMMENT
+# Verify current replay behavior for linker scripts that use INCLUDE.
+# The link with --reproduce succeeds, while --replay currently fails to resolve
+# the included script by relative name.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %link %linkopts --no-default-plugins -L%p/Inputs -T %p/Inputs/script3.t %t.1.o -o %t.orig.out --reproduce %t.repro.tar
+RUN: %not %link %linkopts --replay %t.repro.tar -o %t.replay.out 2>&1 | %filecheck %s
+
+CHECK: Fatal: cannot read file 'script3bar.t'
+CHECK: Fatal: Linker script
+#END_TEST

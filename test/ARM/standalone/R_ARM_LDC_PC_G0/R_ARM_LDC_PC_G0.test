@@ -1,0 +1,33 @@
+#---R_ARM_LDC_PC_G0.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify R_ARM_LDC_PC_G0 relocation is correctly applied for both positive
+# and negative PC-relative offsets.
+#
+# Formula: S + A - P.
+# The LDC/STC immediate is an 8-bit value scaled by four.
+#
+# Positive:
+#   X = +0x100
+#   imm8 = 0x100 >> 2 = 0x40
+#   U = 1
+#   0xed9f0100 -> 0xed9f0140
+#
+# Negative:
+#   X = -0x100
+#   imm8 = 0x100 >> 2 = 0x40
+#   U = 0
+#   0xed9f0100 -> 0xed1f0140
+#END_COMMENT
+#START_TEST
+RUN: %clangas -c %p/Inputs/main.s -o %t.pos.o
+RUN: %link %linkopts -march arm -static %t.pos.o -o %t.pos.out
+RUN: %readelf -x .text %t.pos.out | %filecheck %s --check-prefix=POSITIVE
+
+POSITIVE: 00000000 40019fed 1eff2fe1
+
+RUN: %clangas -c %p/Inputs/negative.s -o %t.neg.o
+RUN: %link %linkopts -march arm -static %t.neg.o -o %t.neg.out
+RUN: %readelf -x .text %t.neg.out | %filecheck %s --check-prefix=NEGATIVE
+
+NEGATIVE: 00000100 40011fed 1eff2fe1
+#END_TEST

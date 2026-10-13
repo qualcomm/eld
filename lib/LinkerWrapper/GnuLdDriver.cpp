@@ -258,6 +258,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (llvm::opt::Arg *arg = Args.getLastArg(T::warn_limit))
     Config.getPrinter()->setUserWarningLimit(getUnsignedInteger(arg, 10));
 
+  // Accept numeric -O levels for GNU linker compatibility, but ignore them.
+  for (auto *Arg : Args.filtered(T::O))
+    getUnsignedInteger(Arg, 0);
+
   // -t
   if (Args.hasArg(T::dash_t))
     Config.options().setTrace(true);
@@ -637,6 +641,11 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   Config.addCommandLine(Table->getOptionName(T::no_merge_strings),
                         Args.hasArg(T::no_merge_strings));
 
+  // --no-merge-constants
+  Config.options().setMergeConstants(!Args.hasArg(T::no_merge_constants));
+  Config.addCommandLine(Table->getOptionName(T::no_merge_constants),
+                        Args.hasArg(T::no_merge_constants));
+
   // --[no-]warn-mismatch
   // This flag defaults to none so only set it if at least one of the two flags
   // are present.
@@ -878,6 +887,9 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().getVersionScripts().emplace(Arg->getValue());
   if (Config.options().getVersionScripts().size())
     Config.options().setVersionScript();
+  Config.options().setAllowUndefinedVersion(
+      Args.hasFlag(T::undefined_version, T::no_undefined_version,
+                   /*default=*/true));
 
   // --default-symver
   if (Args.hasArg(T::default_symver))
@@ -1155,15 +1167,22 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setShowProgressBar();
 
   std::optional<std::string> reproduceFileName;
+  auto getDefaultReproduceFileName = [&]() -> std::string {
+    std::string OutputFileName = Config.options().outputFileName();
+    // A null device is not a regular output path in which a sibling tarball
+    // can be created. Use a portable name in the current directory.
+    if (eld::utility::isNullDevice(OutputFileName))
+      return std::string("reproduce.tar");
+    return OutputFileName + ".tar";
+  };
   // --reproduce <tarfilename>|default
   // When the special value "default" is given, the tar filename defaults to
   // <output>.tar (where <output> is the -o filename, or "a.out" if not set).
   if (llvm::opt::Arg *arg = Args.getLastArg(T::reproduce)) {
     Config.options().setRecordInputfiles();
     llvm::StringRef val = arg->getValue();
-    reproduceFileName = (val == "default")
-                            ? Config.options().outputFileName() + ".tar"
-                            : val.str();
+    reproduceFileName =
+        (val == "default") ? getDefaultReproduceFileName() : val.str();
   }
 
   // --reproduce-compressed
@@ -1178,9 +1197,8 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (llvm::opt::Arg *arg = Args.getLastArg(T::reproduce_on_fail)) {
     Config.options().setReproduceOnFail(true);
     llvm::StringRef val = arg->getValue();
-    reproduceFileName = (val == "default")
-                            ? Config.options().outputFileName() + ".tar"
-                            : val.str();
+    reproduceFileName =
+        (val == "default") ? getDefaultReproduceFileName() : val.str();
   }
 
   if (reproduceFileName)
@@ -1344,6 +1362,19 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
   int GroupMatchCount = 0;
   int LibMatchCount = 0;
   bool HasVersionAction = false;
+  size_t ReplayBeginIndex = 0;
+  size_t ReplayEndIndex = 0;
+  bool HasReplayInputRange = false;
+  if (Config.getReproduceTarReader()) {
+    llvm::opt::Arg *ReplayBegin = Args.getLastArg(T::replay_begin_internal);
+    llvm::opt::Arg *ReplayEnd = Args.getLastArg(T::replay_end_internal);
+    if (ReplayBegin && ReplayEnd &&
+        ReplayBegin->getIndex() < ReplayEnd->getIndex()) {
+      ReplayBeginIndex = ReplayBegin->getIndex();
+      ReplayEndIndex = ReplayEnd->getIndex();
+      HasReplayInputRange = true;
+    }
+  }
 
   for (llvm::opt::Arg *arg : Args) {
     switch (arg->getOption().getID()) {
@@ -1503,8 +1534,17 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
     } break;
 
     case T::INPUT: {
-      actions.push_back(eld::make<eld::InputFileAction>(arg->getValue(),
-                                                        Config.getPrinter()));
+      // Only inputs originating from replay response expansion should be
+      // treated as replay-backed. User positional inputs after --replay remain
+      // regular filesystem inputs.
+      if (HasReplayInputRange && arg->getIndex() > ReplayBeginIndex &&
+          arg->getIndex() < ReplayEndIndex) {
+        actions.push_back(eld::make<eld::ReplayInputFileAction>(
+            arg->getValue(), Config.getPrinter()));
+      } else {
+        actions.push_back(eld::make<eld::InputFileAction>(arg->getValue(),
+                                                          Config.getPrinter()));
+      }
       ++input_num;
     } break;
 
@@ -1673,8 +1713,6 @@ bool GnuLdDriver::processReproduceOption(
   // create response string
   llvm::SmallString<0> responseData;
   llvm::raw_svector_ostream os(responseData);
-  if (!Config.options().getDumpResponse())
-    os << getProgramName() << " ";
   size_t lastNamespecId = -1;
   size_t lastInputFileId = -1;
   size_t lastScriptId = -1;
@@ -1914,7 +1952,7 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
   if (const auto *Arg = Args.getLastArg(OptTable::lto_O)) {
     llvm::StringRef S = Arg->getValue();
     uint64_t Value;
-    if (S.getAsInteger(0, Value) || Value > 4) {
+    if (S.getAsInteger(0, Value) || Value > 3) {
       Config.raise(Diag::invalid_value_for_option)
           << Arg->getOption().getPrefixedName() << S;
       return false;

@@ -1,0 +1,16 @@
+#---ReproduceDefaultNullOutput.test--------- Executable -----------------------#
+#BEGIN_COMMENT
+## --reproduce=default must still create a tarball when the link output is
+## /dev/null.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %mkdir %t.dir
+RUN: cd %t.dir && %link %linkopts %t.o -o /dev/null --reproduce=default
+RUN: %tar %gnutaropts -tf %t.dir/reproduce.tar | %filecheck %s
+#END_TEST
+
+CHECK: mapping.ini
+CHECK: version.txt
+CHECK: response.txt

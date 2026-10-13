@@ -10,11 +10,12 @@
 #include "eld/PluginAPI/Expected.h"
 #include "llvm/ADT/StringMap.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace llvm {
-class MemoryBufferRef;
+class MemoryBuffer;
 class raw_ostream;
 class StringRef;
 } // namespace llvm
@@ -64,11 +65,11 @@ public:
   static eld::Expected<void> emitEntryNamesFile(llvm::StringRef TarPath,
                                                 llvm::raw_ostream &OS);
 
-  /// Find a regular file in tar data and return a view of its contents.
+  /// Find a regular file in tar data and return a buffer for its contents.
   ///
-  /// The returned MemoryBufferRef points into TarData, so TarData must outlive
-  /// the returned reference.
-  static eld::Expected<llvm::MemoryBufferRef>
+  /// The returned buffer owns its identifier, but its contents point into
+  /// TarData, which must outlive the returned buffer.
+  static eld::Expected<std::unique_ptr<llvm::MemoryBuffer>>
   findFile(llvm::StringRef TarData, llvm::StringRef FileName);
 
   /// Emit tar entry names through ELD diagnostics when trace=untar is enabled.

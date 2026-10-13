@@ -1,0 +1,14 @@
+#---R_ARM_LDRS_PC_G1.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify R_ARM_LDRS_PC_G1 relocation is correctly applied.
+# Formula: ((S + A) | T) - P
+# For X = 0x1234, group 1 selects the residual 0x34.
+#END_COMMENT
+#START_TEST
+RUN: llvm-mc --triple=armv7a-none-eabi --arm-add-build-attributes \
+RUN:   -filetype=obj %p/Inputs/main.s -o %t.o
+RUN: %link %linkopts -march arm %t.o -o %t.out
+RUN: %readelf -x .text %t.out | %filecheck %s
+
+CHECK: d403cfe1
+#END_TEST

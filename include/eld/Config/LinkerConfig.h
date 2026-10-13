@@ -33,6 +33,7 @@ namespace eld {
 class Module;
 class DiagnosticEngine;
 class SearchDirs;
+class ReproduceTarReader;
 class LinkerConfig {
 public:
   enum CodeGenType { Unknown, Object, DynObj, Exec, External, Binary };
@@ -251,6 +252,15 @@ public:
 
   DiagnosticEngine *getDiagEngine() const { return DiagEngine; }
 
+  // Set when --replay is active. Callers use this to route input/config/script
+  // file reads to the in-memory reproduce tarball.
+  void setReproduceTarReader(const ReproduceTarReader *Reader) {
+    ReproduceReader = Reader;
+  }
+  const ReproduceTarReader *getReproduceTarReader() const {
+    return ReproduceReader;
+  }
+
   /// Raise diagnostics.
   MsgHandler raise(unsigned int PId) const;
 
@@ -463,6 +473,7 @@ private:
   uint32_t EnableThreads = LinkerConfig::EnableThreadsOpt::AllThreads;
   DiagnosticEngine *DiagEngine;
   SearchDirs searchDirs;
+  const ReproduceTarReader *ReproduceReader = nullptr;
   WarnOptions WarnOpt;
   std::optional<bool> UseOldStyleTrampolineNames;
   MappingFileInfo MappingFile;

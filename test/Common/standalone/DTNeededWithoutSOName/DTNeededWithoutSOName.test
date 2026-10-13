@@ -12,6 +12,15 @@ RUN: %link %linkopts -o %t1.main.out -dy %t1.main.o %t1/a/b/lib1.so
 RUN: %readelf -d %t1.main.out | %filecheck %s --check-prefix ABSOLUTE
 RUN: %link %linkopts -o %t1.main.namespec.out -dy %t1.main.o -L %t1/a -l:b/lib1.so
 RUN: %readelf -d %t1.main.namespec.out | %filecheck %s --check-prefix NAMESPEC
+
+# Verify that an exact namespec remains unchanged after reproduce replay.
+RUN: %link %linkopts -o %t1.main.namespec.reproduce.out -dy %t1.main.o -L %t1/a -l:b/lib1.so --reproduce %t.namespec.tar --dump-response-file %t.reproduce.response
+RUN: %mkdir %t.namespec.reproduce
+RUN: cd %t.namespec.reproduce
+RUN: %tar %gnutaropts -xf %t.namespec.tar --strip-components=1
+RUN: %link @response.txt -o namespec.replay.out
+RUN: %readelf -d %t.namespec.reproduce/namespec.replay.out | %filecheck %s --check-prefix NAMESPEC-REPLAY
+
 RUN: cd %t1/a
 RUN: %link %linkopts -o %t1.main.relative.out -dy %t1.main.o b/lib1.so
 RUN: %readelf -d %t1.main.relative.out | %filecheck %s --check-prefix RELATIVE
@@ -19,4 +28,5 @@ RUN: %readelf -d %t1.main.relative.out | %filecheck %s --check-prefix RELATIVE
 
 ABSOLUTE: (NEEDED) Shared library: [{{.*}}a/b/lib1.so]
 NAMESPEC: (NEEDED) Shared library: [b/lib1.so]
+NAMESPEC-REPLAY: (NEEDED) Shared library: [b/lib1.so]
 RELATIVE: (NEEDED) Shared library: [b/lib1.so]

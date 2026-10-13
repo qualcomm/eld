@@ -15,4 +15,4 @@ RUN: %filecheck %s -check-prefix=MAP < %t1.map
 #CHECK: .foo .bar
 #MAP: .foo {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC, Type: SHT_PROGBITS, Segments : [ A ], Memory : [FOO, FOO]
 #MAP: .bar {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ A ], Memory : [FOO, FOO]
-#MAP: /DISCARD/ {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS, Segments : [ A ], Memory : [FOO, FOO]
+#MAP: /DISCARD/ {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS, Segments : [ A ]

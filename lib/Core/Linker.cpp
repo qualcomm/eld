@@ -26,7 +26,9 @@
 #include "eld/PluginAPI/LinkerPlugin.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/Relocation.h"
+#include "eld/Script/OutputSectDesc.h"
 #include "eld/Script/ScriptAction.h"
+#include "eld/Script/SectionsCmd.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/ProgressBar.h"
@@ -59,8 +61,11 @@ Linker::Linker(eld::Module &PModule, LinkerConfig &Config)
   ThisModule->setLinker(this);
   // Whenever you add an extra linker step, make sure you adjust the total
   // tick count in the progress bar.
+  // Keep this in sync with the progress updates in this file. Optional LTO
+  // work extends the total below when it is enabled.
   LinkerProgress =
-      new ProgressBar(48, 80, ThisConfig->options().showProgressBar());
+      new ProgressBar(47, 80, ThisConfig->options().showProgressBar());
+  ThisConfig->getDiagEngine()->getPrinter()->setProgressBar(LinkerProgress);
   LinkTime = make<llvm::Timer>("LinkTime", "LinkTime");
   BeginningOfTime = std::chrono::time_point_cast<std::chrono::microseconds>(
                         std::chrono::system_clock::now())
@@ -188,6 +193,7 @@ bool Linker::link() {
 
   {
     PluginManager &PM = ThisModule->getPluginManager();
+    ThisModule->setLinkState(LinkState::ActBeforePerformingLayout);
     if (!PM.callActBeforePerformingLayoutHook()) {
       // llvm::errs() << "callActBeforePerformingLayoutHook returning false!\n";
       return false;
@@ -204,8 +210,12 @@ bool Linker::link() {
   }
 
   // Skip if out file does not need to be emitted.
-  if (!ThisConfig->options().shouldEmitOutputFile())
+  if (!ThisConfig->options().shouldEmitOutputFile()) {
+    ThisConfig->raise(Diag::verbose_skip_output_file)
+        << ThisConfig->options().outputFileName();
+    completeProgress();
     return true;
+  }
 
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig->raise(Diag::emit_output_file)
@@ -222,8 +232,17 @@ bool Linker::link() {
       TimingSectionTimer->clear();
     }
     // llvm::errs() << "emit returning false!\n";
-    return emit();
+    bool Success = emit();
+    if (Success)
+      completeProgress();
+    return Success;
   }
+}
+
+void Linker::completeProgress() {
+  ThisConfig->getDiagEngine()->getPrinter()->setProgressBar(nullptr);
+  if (LinkerProgress)
+    LinkerProgress->finish();
 }
 
 void Linker::printLayout() {
@@ -260,7 +279,6 @@ bool Linker::emitSymbolResolutionReport() {
 }
 
 bool Linker::activateInputs(std::vector<InputAction *> &Actions) {
-  LinkerProgress->incrementAndDisplayProgress();
   for (auto &Action : Actions) {
     if (!Action->isScript()) {
       if (!Action->activate(IR->getInputBuilder()))
@@ -292,7 +310,7 @@ bool Linker::initializeInputTree(std::vector<InputAction *> &Actions) {
     IR->getInputBuilder().makeBStatic();
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Initialize input attributes");
     eld::RegisterTimer T("Input Activation", "Initialize",
                          ThisConfig->options().printTimingStats());
     if (Backend)
@@ -300,13 +318,13 @@ bool Linker::initializeInputTree(std::vector<InputAction *> &Actions) {
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Create internal files");
     eld::RegisterTimer T("Create Internal Files", "Initialize",
                          ThisConfig->options().printTimingStats());
     ThisModule->createInternalInputs();
   }
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Activate inputs");
     eld::RegisterTimer T("Activate Inputs", "Initialize",
                          ThisConfig->options().printTimingStats());
     if (!activateInputs(Actions))
@@ -315,13 +333,10 @@ bool Linker::initializeInputTree(std::vector<InputAction *> &Actions) {
 
   eld::RegisterTimer T("More Options", "Initialize",
                        ThisConfig->options().printTimingStats());
-  LinkerProgress->incrementAndDisplayProgress();
+  LinkerProgress->incrementAndDisplayProgress("Apply linker options");
 
   if (Backend)
     Backend->setOptions();
-
-  if (!verifyLinkerScript())
-    return false;
 
   return true;
 }
@@ -343,17 +358,20 @@ bool Linker::normalize() {
     ThisConfig->raise(Diag::note_lto_phase) << 1;
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Read input files");
     eld::RegisterTimer T("Read all Input files", "Read all Input files",
                          ThisConfig->options().printTimingStats());
     if (!ObjLinker->normalize())
       return false;
   }
 
+  if (!verifyLinkerScript())
+    return false;
+
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig->raise(Diag::verbose_loading_non_universal_plugins);
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Load linker plugins");
     eld::RegisterTimer T("Load Linker Plugins", "Plugins",
                          ThisConfig->options().printTimingStats("Plugin"));
     // Load plugins.
@@ -362,7 +380,7 @@ bool Linker::normalize() {
   }
 
   // 2. - set up code position
-  LinkerProgress->incrementAndDisplayProgress();
+  LinkerProgress->incrementAndDisplayProgress("Set code position");
   if (LinkerConfig::DynObj == ThisConfig->codeGenType() ||
       ThisConfig->options().isPIE()) {
     ThisConfig->setCodePosition(LinkerConfig::Independent);
@@ -380,12 +398,12 @@ bool Linker::normalize() {
   {
     eld::RegisterTimer T("Parse External scripts ", "Read all Input files",
                          ThisConfig->options().printTimingStats());
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Parse version script");
     if (!ObjLinker->parseVersionScript())
       return false;
     if (ThisModule->getPrinter()->isVerbose())
       ThisConfig->raise(Diag::parsed_version_script);
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Parse dynamic list");
     if (ThisConfig->isCodeDynamic() || ThisConfig->options().forceDynamic()) {
       if (ThisModule->getPrinter()->isVerbose())
         ThisConfig->raise(Diag::parsing_dynlist);
@@ -393,7 +411,7 @@ bool Linker::normalize() {
     }
 
     {
-      LinkerProgress->incrementAndDisplayProgress();
+      LinkerProgress->incrementAndDisplayProgress("Add linker-script symbols");
       eld::RegisterTimer T("Add Script Symbols", "Symbols from Linker Script",
                            ThisConfig->options().printTimingStats());
       // Add Linker script symbols.
@@ -404,10 +422,12 @@ bool Linker::normalize() {
     }
   }
 
+  ObjLinker->assignVersionNodesToSymbols();
+
   // LTO Specific Steps
   if (ThisModule->needLTOToBeInvoked() || ThisConfig->options().hasLTO()) {
     LinkerProgress->addMoreTicks(3);
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Perform LTO");
     eld::RegisterTimer T("Perform LTO", "LTO",
                          ThisConfig->options().printTimingStats());
     // a. Create LTO Object file from bitcode inputs
@@ -419,13 +439,13 @@ bool Linker::normalize() {
 
     if (ThisModule->getPrinter()->isVerbose())
       ThisConfig->raise(Diag::beginning_post_LTO_phase);
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Begin post-LTO phase");
     ObjLinker->beginPostLTO();
     // c. Read and resolve symbols for the new inputs discarding
     // bitcode files and including the generated LTO Object file
     if (TraceLto)
       ThisConfig->raise(Diag::note_lto_phase) << 2;
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Normalize LTO inputs");
     if (!ObjLinker->normalize())
       return false;
   }
@@ -437,7 +457,7 @@ bool Linker::normalize() {
 
 bool Linker::resolve() {
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Read relocations");
     eld::RegisterTimer T("Read all relocations",
                          "Process Relocations from Input files",
                          ThisConfig->options().printTimingStats());
@@ -451,7 +471,7 @@ bool Linker::resolve() {
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Allocate common symbols");
     eld::RegisterTimer T("Allocate Common Symbols", "Common Symbols",
                          ThisConfig->options().printTimingStats());
     if (!ObjLinker->allocateCommonSymbols()) {
@@ -460,13 +480,11 @@ bool Linker::resolve() {
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Prepare section rules");
     eld::RegisterTimer T(
         "Assign output sections using default/linker script rules",
         "Match Default/Linker script rules",
         ThisConfig->options().printTimingStats());
-    LinkerProgress->incrementAndDisplayProgress();
-
     // Add all internal inputs
     for (auto &Obj : ThisModule->getInternalFiles()) {
       ThisModule->getObjectList().push_back(Obj);
@@ -477,11 +495,11 @@ bool Linker::resolve() {
     PM.callActBeforeRuleMatchingHook();
 
     // Assign output sections.
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Assign output sections");
     ObjLinker->assignOutputSections(ThisModule->getObjectList());
 
     // Targets can update any information, if they care about.
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Finalize output sections");
     Backend->finishAssignOutputSections();
   }
 
@@ -494,7 +512,7 @@ bool Linker::resolve() {
   {
     eld::RegisterTimer T("Add Standard Symbols", "Add Default Standard Symbols",
                          ThisConfig->options().printTimingStats());
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Add standard symbols");
     // Add all symbols (Standard, Target specific symbols)
     if (!ObjLinker->addStandardSymbols() || !ObjLinker->addTargetSymbols())
       return false;
@@ -504,13 +522,13 @@ bool Linker::resolve() {
     eld::RegisterTimer T("Target Specific Input processing",
                          "Target specific Input processing",
                          ThisConfig->options().printTimingStats());
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Process target inputs");
     if (!ObjLinker->processInputFiles())
       return false;
   }
 
   // Garbage collect.
-  LinkerProgress->incrementAndDisplayProgress();
+  LinkerProgress->incrementAndDisplayProgress("Garbage collect sections");
   if (LinkerConfig::Object != ThisConfig->codeGenType()) {
     ObjLinker->dataStrippingOpt();
   }
@@ -519,7 +537,7 @@ bool Linker::resolve() {
 
   // Run the section Iterator Plugin.
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Run section iterator plugin");
     eld::RegisterTimer T("Run Section Iterator Plugin",
                          "Section Iterator Plugin",
                          ThisConfig->options().printTimingStats("Plugin"));
@@ -528,7 +546,7 @@ bool Linker::resolve() {
     }
   }
 
-  LinkerProgress->incrementAndDisplayProgress();
+  LinkerProgress->incrementAndDisplayProgress("Scan relocations");
   if (LinkerConfig::Object != ThisConfig->codeGenType()) {
     eld::RegisterTimer T("Scan Relocation Processing", "Relocation Processing",
                          ThisConfig->options().printTimingStats());
@@ -537,7 +555,7 @@ bool Linker::resolve() {
       return false;
   }
 
-  LinkerProgress->incrementAndDisplayProgress();
+  LinkerProgress->incrementAndDisplayProgress("Add dynamic-list symbols");
   if (ThisConfig->isCodeDynamic() || ThisConfig->options().forceDynamic()) {
     eld::RegisterTimer T("Dynamic List Symbols", "Add Dynamic List Symbols",
                          ThisConfig->options().printTimingStats());
@@ -545,7 +563,7 @@ bool Linker::resolve() {
       return false;
   }
 
-  LinkerProgress->incrementAndDisplayProgress();
+  LinkerProgress->incrementAndDisplayProgress("Finalize relocation scan");
   {
     eld::RegisterTimer T("Finalize Scan Relocation Processing",
                          "Relocation Processing",
@@ -554,7 +572,7 @@ bool Linker::resolve() {
       return false;
   }
 
-  LinkerProgress->incrementAndDisplayProgress();
+  LinkerProgress->incrementAndDisplayProgress("Add output symbols");
   {
     eld::RegisterTimer T("Add Output symbols", "Output Symbols",
                          ThisConfig->options().printTimingStats());
@@ -563,7 +581,7 @@ bool Linker::resolve() {
       return false;
   }
 
-  LinkerProgress->incrementAndDisplayProgress();
+  LinkerProgress->incrementAndDisplayProgress("Add dynamic symbols");
   {
     eld::RegisterTimer T("Add Dynamic Output symbols", "Output Symbols",
                          ThisConfig->options().printTimingStats());
@@ -574,7 +592,7 @@ bool Linker::resolve() {
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Size dynamic sections");
     eld::RegisterTimer T("Size Dynamic Sections", "Perform Layout",
                          ThisConfig->options().printTimingStats());
     ObjLinker->sizeDynamic();
@@ -582,7 +600,7 @@ bool Linker::resolve() {
 
   // Merge sections.
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Merge sections");
     eld::RegisterTimer T("Merge Sections", "Perform Layout",
                          ThisConfig->options().printTimingStats());
     if (!ObjLinker->mergeSections())
@@ -590,7 +608,7 @@ bool Linker::resolve() {
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Add output-section symbols");
     eld::RegisterTimer T("Add Output Section symbols", "Output Symbols",
                          ThisConfig->options().printTimingStats());
     // Add all the section symbols
@@ -604,14 +622,14 @@ bool Linker::resolve() {
 bool Linker::layout() {
   //  init relaxation stuff.
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Initialize stubs");
     eld::RegisterTimer T("Initialize Stubs", "Perform Layout",
                          ThisConfig->options().printTimingStats());
     ObjLinker->initStubs();
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Pre-layout");
     eld::RegisterTimer T("Do PreLayout", "Perform Layout",
                          ThisConfig->options().printTimingStats());
     ObjLinker->prelayout();
@@ -619,14 +637,11 @@ bool Linker::layout() {
 
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig->raise(Diag::merging_strings);
-  if (!ThisConfig->isLinkPartial() && ThisConfig->options().mergeStrings()) {
-    eld::RegisterTimer F("Merge strings", "Link Summary",
-                         ThisConfig->options().printTimingStats());
-    ObjLinker->doMergeStrings();
-  }
+  if (!ThisConfig->isLinkPartial())
+    ObjLinker->doMergeStringsAndConstants();
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Establish layout");
     eld::RegisterTimer T("Establish Layout", "Perform Layout",
                          ThisConfig->options().printTimingStats());
     if (!ObjLinker->layout())
@@ -634,7 +649,7 @@ bool Linker::layout() {
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Scan layout relocations");
     eld::RegisterTimer T("Scan Relocations", "Perform Layout",
                          ThisConfig->options().printTimingStats());
     if (LinkerConfig::Object == ThisConfig->codeGenType()) {
@@ -644,7 +659,7 @@ bool Linker::layout() {
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Build output-section table");
     eld::RegisterTimer T("Create Output Section Table", "Perform Layout",
                          ThisConfig->options().printTimingStats());
     if (!ObjLinker->postlayout())
@@ -652,7 +667,7 @@ bool Linker::layout() {
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Finalize target symbols");
     eld::RegisterTimer T("Finalize Target specific symbol Values",
                          "Perform Layout",
                          ThisConfig->options().printTimingStats());
@@ -660,7 +675,7 @@ bool Linker::layout() {
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Run post-layout plugin");
     eld::RegisterTimer T("AfterLayout OutputSection Iterator", "Perform Layout",
                          ThisConfig->options().printTimingStats("plugin"));
     // Run the output section iterator plugin after all the layout is done.
@@ -676,21 +691,21 @@ bool Linker::layout() {
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Apply relocations");
     eld::RegisterTimer T("Apply Relocation", "Perform Layout",
                          ThisConfig->options().printTimingStats());
     ObjLinker->relocation(ThisConfig->options().emitRelocs());
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Finalize input symbols");
     eld::RegisterTimer T("Finalize Input Symbol Values", "Perform Layout",
                          ThisConfig->options().printTimingStats());
     ObjLinker->finalizeSymbolValues();
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Finalize output file");
     eld::RegisterTimer T("Finalize Output File", "Perform Layout",
                          ThisConfig->options().printTimingStats());
     ObjLinker->finalizeBeforeWrite();
@@ -724,7 +739,7 @@ bool Linker::emit() {
     assert(0 && "Unknown file type");
   }
 
-  LinkerProgress->incrementAndDisplayProgress();
+  LinkerProgress->incrementAndDisplayProgress("Prepare output file");
   size_t OutputFileSize = 0;
   if (ThisConfig->targets().is32Bits())
     OutputFileSize =
@@ -755,13 +770,13 @@ bool Linker::emit() {
     return false;
   }
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Write sections");
     eld::RegisterTimer T("Write All Sections", "Emit Output File",
                          ThisConfig->options().printTimingStats());
     ObjLinker->emitOutput(*OutputOrError.get());
   }
 
-  LinkerProgress->incrementAndDisplayProgress();
+  LinkerProgress->incrementAndDisplayProgress("Post-process output");
   eld::Expected<void> ExpPostProcess =
       ObjLinker->postProcessing(*OutputOrError.get());
   if (!ExpPostProcess) {
@@ -777,7 +792,7 @@ bool Linker::emit() {
   }
 
   {
-    LinkerProgress->incrementAndDisplayProgress();
+    LinkerProgress->incrementAndDisplayProgress("Commit output file");
     eld::RegisterTimer T("Commit File", "Emit Output File",
                          ThisConfig->options().printTimingStats());
     if (auto E = (*OutputOrError)->commit()) {
@@ -787,7 +802,7 @@ bool Linker::emit() {
     }
   }
 
-  LinkerProgress->incrementAndDisplayProgress();
+  LinkerProgress->incrementAndDisplayProgress("Verify output file");
   if (ThisConfig->options().verifyLink()) {
     llvm::sys::fs::file_status FileStatus;
     std::error_code Ec = llvm::sys::fs::status(Path, FileStatus);
@@ -814,6 +829,7 @@ bool Linker::emit() {
 }
 
 bool Linker::reset() {
+  ThisConfig->getDiagEngine()->getPrinter()->setProgressBar(nullptr);
   Backend = nullptr;
   // initEmulator does not create the ObjectLinker
   if (ObjLinker) {
@@ -830,7 +846,7 @@ bool Linker::initBackend(const eld::Target *PTarget) {
   eld::RegisterTimer T("Initialize Backend", "Initialize",
                        ThisConfig->options().printTimingStats());
   Backend = PTarget->createLDBackend(*ThisModule);
-  LinkerProgress->incrementAndDisplayProgress();
+  LinkerProgress->incrementAndDisplayProgress("Initialize backend");
   bool HasError = false;
   if (nullptr == Backend) {
     std::string AvailableTargets;
@@ -854,7 +870,7 @@ bool Linker::initEmulator(LinkerScript &CurScript, const eld::Target *PTarget) {
                        ThisConfig->options().printTimingStats());
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig->raise(Diag::initializing_emulator);
-  LinkerProgress->incrementAndDisplayProgress();
+  LinkerProgress->incrementAndDisplayProgress("Initialize emulator");
   return PTarget->emulate(CurScript, *ThisConfig);
 }
 
@@ -866,6 +882,29 @@ bool Linker::verifyLinkerScript() {
     ThisModule->setFailure(true);
     return false;
   }
+
+  if (CurScript.phdrsSpecified())
+    return true;
+
+  for (auto *ScriptCmd : CurScript.getScriptCommands()) {
+    auto *Sections = llvm::dyn_cast<SectionsCmd>(ScriptCmd);
+    if (!Sections)
+      continue;
+
+    for (auto *SectionCmd : *Sections) {
+      auto *Out = llvm::dyn_cast<OutputSectDesc>(SectionCmd);
+      if (!Out || !Out->epilog().hasPhdrs())
+        continue;
+
+      for (const auto *PhdrNameToken : Out->epilog().phdrs()->tokens()) {
+        ThisConfig->raise(Diag::error_phdrs_not_specified_ldscript)
+            << Out->getContext() << Out->name() << PhdrNameToken->name();
+        ThisModule->setFailure(true);
+        return false;
+      }
+    }
+  }
+
   return true;
 }
 

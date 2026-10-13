@@ -100,7 +100,7 @@ void RISCVLDBackend::initDynamicSections(InputFile &InputFile) {
 
 void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
   m_pRISCVAttributeSection = m_Module.createInternalSection(
-      Module::InternalInputType::Attributes, LDFileFormat::Internal,
+      Module::InternalInputType::Attributes, LinkerSectionKind::Internal,
       ".riscv.attributes", llvm::ELF::SHT_RISCV_ATTRIBUTES, 0, 1);
   AttributeFragment = make<RISCVAttributeFragment>(m_pRISCVAttributeSection);
   m_pRISCVAttributeSection->addFragment(AttributeFragment);
@@ -113,7 +113,7 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
 
   if (config().options().getRISCVRelaxTbljal()) {
     m_pRISCVTableJumpSection = m_Module.createInternalSection(
-        Module::InternalInputType::TableJump, LDFileFormat::Internal,
+        Module::InternalInputType::TableJump, LinkerSectionKind::Internal,
         ".riscv.jvt", llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC,
         /*Align=*/64);
     TableJumpFragment =
@@ -148,7 +148,7 @@ void RISCVLDBackend::initTargetSymbols() {
         m_Module.getIRBuilder()
             ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::InternalInputType::TableJump),
-                JvtName, ResolveInfo::NoType, ResolveInfo::Define,
+                JvtName, ResolveInfo::Object, ResolveInfo::Define,
                 ResolveInfo::Global,
                 /*Size=*/0x0, /*Value=*/0x0,
                 make<FragmentRef>(*TableJumpFragment, 0x0),
@@ -312,7 +312,7 @@ bool RISCVLDBackend::readSection(InputFile &pInput, ELFSection *S) {
 }
 
 bool RISCVLDBackend::DoesOverrideMerge(ELFSection *pSection) const {
-  if (pSection->getKind() == LDFileFormat::Internal)
+  if (pSection->getKind() == LinkerSectionKind::Internal)
     return false;
   if (pSection->getType() == llvm::ELF::SHT_RISCV_ATTRIBUTES)
     return true;
@@ -326,7 +326,7 @@ ELFSection *RISCVLDBackend::mergeSection(ELFSection *S) {
       AttributeFragment->updateInfo(
           R->getRegion(), R->getOwningSection()->getInputFile(),
           config().getDiagEngine(), config().showAttributeMixWarnings());
-    S->setKind(LDFileFormat::Discard);
+    S->setKind(LinkerSectionKind::Discard);
     return m_pRISCVAttributeSection;
   }
   return nullptr;
@@ -1595,11 +1595,11 @@ bool RISCVLDBackend::doRelaxationGOT(Relocation &Reloc) {
 
   // Until recently, the calculation for R_RISCV_GOT_HI20 was `G + GOT + A - P`
   // where non-zero addends were allowed. The addend must now be zero and has
-  // been removed from calculation, but not all tools reflect this yet. It's
-  // unclear how this relaxation should work in the presence of a non-zero
-  // addend so avoid doing so to be safe.
-  if (BaseReloc->addend())
-    return false;
+  // been removed from the calculation. eld should ignore any non-zero addends
+  // for the relocations involved here, but assert to be sure as it is unclear
+  // how non-zero addends should be handled in this relaxation.
+  assert(!Reloc.addend() && !BaseReloc->addend() &&
+         "Unexpected non-zero addend!");
 
   ResolveInfo *SymInfo = BaseReloc->symInfo();
   // The psABI only includes "it’s bound at link time to be within the object"
@@ -2142,13 +2142,14 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
       m_GroupRelocs.insert(std::make_pair(reloc, offsetToReloc->second));
     return true;
   }
-  // R_RISCV_PCREL_LO* and TLSDESC relocations must have an addend of zero.
-  // Ignore any non-zero addends and warn.
+  // R_RISCV_PCREL_LO*, R_RISCV_GOT_HI20, and TLSDESC relocations must have an
+  // addend of zero. Ignore non-zero addends and warn.
   case llvm::ELF::R_RISCV_PCREL_LO12_I:
   case llvm::ELF::R_RISCV_PCREL_LO12_S:
   case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
   case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
-  case llvm::ELF::R_RISCV_TLSDESC_CALL: {
+  case llvm::ELF::R_RISCV_TLSDESC_CALL:
+  case llvm::ELF::R_RISCV_GOT_HI20: {
     if (pAddend) {
       config().raise(Diag::warn_ignore_reloc_addend)
           << pSym.name() << getRISCVRelocName(pType)
