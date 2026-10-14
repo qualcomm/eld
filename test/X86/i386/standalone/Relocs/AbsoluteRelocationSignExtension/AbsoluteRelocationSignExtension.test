@@ -1,0 +1,15 @@
+#---AbsoluteRelocationSignExtension.test-- i386 ELF32 relocations ----------#
+#BEGIN_COMMENT
+# Verify i386 SHT_REL addends are sign-extended from the relocation field
+# width before the absolute relocation is calculated.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/signed.s -o %t.signed.o
+RUN: %link %linkopts -m elf_i386 -T %p/Inputs/signed.t %t.signed.o -o %t.signed.out
+RUN: %readelf -x .text %t.signed.out | %filecheck %s --check-prefix=SIGNED
+
+# The target is at address 0x83. The in-place addends are -0x80, -0x8000,
+# and -1; this checks sign extension of Elf32_Rel addends.
+SIGNED:      Hex dump of section '.text':
+SIGNED-NEXT: 0x0000007c 03838082 00000000
+#END_TEST

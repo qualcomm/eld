@@ -1,0 +1,14 @@
+#---PCRelativeRelocationELF32Wrap.test--- i386 ELF32 relocations ----------#
+#BEGIN_COMMENT
+# Verify PC-relative relocation results are normalized to the ELF32 address
+# space before narrow-field checks.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/pcrel-elf32-wrap.s -o %t.pcrel-elf32-wrap.o
+RUN: %link %linkopts -m elf_i386 -T %p/Inputs/pcrel-elf32-wrap.t %t.pcrel-elf32-wrap.o -o %t.pcrel-elf32-wrap.out
+RUN: %readelf -x .text %t.pcrel-elf32-wrap.out | %filecheck %s --check-prefix=WRAP32
+
+# The 32-bit ELF result wraps to zero before the narrow PC-relative checks.
+WRAP32:      Hex dump of section '.text':
+WRAP32-NEXT: 0x00000000 000000
+#END_TEST

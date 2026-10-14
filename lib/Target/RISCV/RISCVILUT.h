@@ -48,6 +48,10 @@ public:
                                           uint32_t DeleteSize,
                                           uint32_t PreservedPrefix);
 
+  // Repair direct PC-relative branches after all deferred deletions for the
+  // fragment have been selected, but before the buffer is compacted.
+  static bool fixupPCRelativeInstructions(class RegionFragmentEx &Region);
+
 private:
   struct Entry {
     std::vector<uint8_t> Bytes;
@@ -68,6 +72,7 @@ private:
   unsigned DEC = 0;
   size_t ThisSize = 0;
   bool Applied = false;
+  RISCVLDBackend &Backend;
 };
 
 } // namespace eld

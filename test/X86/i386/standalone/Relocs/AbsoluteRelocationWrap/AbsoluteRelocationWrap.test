@@ -1,0 +1,15 @@
+#---AbsoluteRelocationWrap.test----------- i386 ELF32 relocations ----------#
+#BEGIN_COMMENT
+# Verify absolute relocation results are normalized to the ELF32 address
+# space before narrow-field checks.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/absolute-wrap.s -o %t.absolute-wrap.o
+RUN: %link %linkopts -m elf_i386 -T %p/Inputs/absolute-wrap.t %t.absolute-wrap.o -o %t.absolute-wrap.out
+RUN: %readelf -x .text %t.absolute-wrap.out | %filecheck %s --check-prefix=WRAP32
+
+# Normalize the relocation result to ELF32 before checking
+# narrow fields. Both values below therefore wrap to zero and are accepted.
+WRAP32:      Hex dump of section '.text':
+WRAP32-NEXT: 0x00000000 000000
+#END_TEST

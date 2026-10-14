@@ -47,6 +47,9 @@ DIAG(riscv_relaxation_error, DiagnosticEngine::Fatal,
 DIAG(error_riscv_relaxation_align, DiagnosticEngine::Error,
      "Insufficient number of spare bytes for alignment relaxation: present %0, "
      "needed %1 in section %2+0x%3 file %4")
+DIAG(error_riscv_duplicate_align_reloc, DiagnosticEngine::Error,
+     "Duplicate or overlapping R_RISCV_ALIGN relocation in section %0+0x%1 "
+     "file %2")
 DIAG(incompatible_architecture, DiagnosticEngine::Warning,
      "Mixing incompatible object files in the link process %0")
 DIAG(deprecated_isa, DiagnosticEngine::Warning,

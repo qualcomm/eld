@@ -11,6 +11,7 @@
 
 #include "X86_32LDBackend.h"
 #include "eld/Target/Relocator.h"
+#include "llvm/BinaryFormat/ELF.h"
 
 namespace eld {
 
@@ -31,6 +32,7 @@ public:
 
   Size getSize(Relocation::Type) const override;
   uint32_t getNumRelocs() const override;
+  uint32_t relocType() const override { return llvm::ELF::SHT_REL; }
 
 private:
   X86_32LDBackend &m_Target;

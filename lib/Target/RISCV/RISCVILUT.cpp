@@ -373,6 +373,155 @@ static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region,
   return Complete;
 }
 
+// Apply the same repair after deferred relaxation has selected its complete
+// set of deletions. Working from the original buffer is important: offsets
+// and branch targets must be translated through every pending edit together,
+// rather than through whichever deletion happened to be considered first.
+static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region) {
+  llvm::ArrayRef<RelaxEdit> Edits = Region.pendingRelaxEdits();
+  if (Edits.empty())
+    return true;
+
+  llvm::StringRef Data = Region.getRegion();
+  const uint32_t Size = static_cast<uint32_t>(Data.size());
+  struct ProtectedRange {
+    uint32_t Begin;
+    uint32_t End;
+  };
+  std::vector<ProtectedRange> Protected;
+  for (const RelaxEdit &E : Edits) {
+    if (E.NewType && *E.NewType == eld::ELF::riscv::internal::R_RISCV_ILUT &&
+        E.NewInstr && E.NewInstrSize)
+      Protected.push_back({E.OrigOffset, E.DeleteOffset + E.DeleteBytes});
+  }
+
+  auto inDeletedRange = [&](uint32_t Offset) {
+    for (const RelaxEdit &E : Edits)
+      if (Offset >= E.DeleteOffset && Offset < E.DeleteOffset + E.DeleteBytes)
+        return true;
+    return false;
+  };
+  auto inProtectedRange = [&](uint32_t Offset) {
+    for (const ProtectedRange &R : Protected)
+      if (Offset >= R.Begin && Offset < R.End)
+        return true;
+    return false;
+  };
+  auto mapTarget = [&](int64_t Target, int64_t &Mapped) {
+    Mapped = Target;
+    for (const RelaxEdit &E : Edits) {
+      const int64_t Begin = E.DeleteOffset;
+      const int64_t End = Begin + E.DeleteBytes;
+      // Target remains an original-buffer offset for membership checks. Only
+      // the mapped result is shifted by earlier deletions.
+      if (Target >= Begin && Target < End)
+        return false;
+      if (Target >= End)
+        Mapped -= E.DeleteBytes;
+    }
+    return true;
+  };
+  auto sourceOffsetAfterEdits = [&](uint32_t Offset) {
+    uint32_t Mapped = Offset;
+    for (const RelaxEdit &E : Edits)
+      if (Offset >= E.DeleteOffset + E.DeleteBytes)
+        Mapped -= E.DeleteBytes;
+    return Mapped;
+  };
+
+  std::vector<DirectPCRelativePatch> Patches;
+  bool Complete = true;
+  for (uint32_t Offset = 0; Offset < Size;) {
+    if (inDeletedRange(Offset) || inProtectedRange(Offset)) {
+      uint32_t Next = Offset + 1;
+      for (const RelaxEdit &E : Edits)
+        if (Offset >= E.DeleteOffset && Offset < E.DeleteOffset + E.DeleteBytes)
+          Next = std::max(Next, E.DeleteOffset + E.DeleteBytes);
+      for (const ProtectedRange &R : Protected)
+        if (Offset >= R.Begin && Offset < R.End)
+          Next = std::max(Next, R.End);
+      Offset = Next;
+      continue;
+    }
+
+    unsigned Length = getInstructionLength(Data.substr(Offset));
+    if (!Length || Offset + Length > Size) {
+      Complete = false;
+      break;
+    }
+    for (const RelaxEdit &E : Edits)
+      if (Offset < E.DeleteOffset && Offset + Length > E.DeleteOffset) {
+        Complete = false;
+        break;
+      }
+    if (!Complete)
+      break;
+
+    uint32_t Instruction = 0;
+    if (Length == 2)
+      Instruction = llvm::support::endian::read16le(Data.data() + Offset);
+    else if (Length == 4)
+      Instruction = llvm::support::endian::read32le(Data.data() + Offset);
+
+    if (isUnsupportedPCRelative(Instruction, Length)) {
+      bool SourceMoves = false;
+      for (const RelaxEdit &E : Edits)
+        SourceMoves |= Offset >= E.DeleteOffset + E.DeleteBytes;
+      if (SourceMoves &&
+          !getRelocationAt(*Region.getOwningSection(), &Region, Offset, Length))
+        Complete = false;
+      Offset += Length;
+      continue;
+    }
+
+    DirectPCRelativeKind Kind;
+    int64_t Immediate = 0;
+    if (!decodeDirectPCRelative(Instruction, Length, Kind, Immediate)) {
+      Offset += Length;
+      continue;
+    }
+
+    int64_t Target = static_cast<int64_t>(Offset) + Immediate;
+    if (const Relocation *Reloc = getRelocationAt(*Region.getOwningSection(),
+                                                  &Region, Offset, Length)) {
+      ResolveInfo *Sym = Reloc->symInfo();
+      FragmentRef *TargetRef = Reloc->targetFragRef();
+      if (!TargetRef && Sym && Sym->outSymbol())
+        TargetRef = Sym->outSymbol()->fragRef();
+      if (TargetRef && TargetRef->frag() == &Region)
+        Target = static_cast<int64_t>(TargetRef->offset()) + Reloc->addend();
+    }
+
+    int64_t NewTarget = 0;
+    if (!mapTarget(Target, NewTarget)) {
+      Complete = false;
+      Offset += Length;
+      continue;
+    }
+    uint32_t NewOffset = sourceOffsetAfterEdits(Offset);
+    uint32_t NewInstruction = Instruction;
+    if (!encodeDirectPCRelative(Kind, NewTarget - NewOffset, NewInstruction)) {
+      Complete = false;
+      Offset += Length;
+      continue;
+    }
+    if (NewInstruction != Instruction)
+      Patches.push_back({Offset, NewInstruction, Length});
+    Offset += Length;
+  }
+
+  for (const DirectPCRelativePatch &Patch : Patches) {
+    uint8_t Bytes[4] = {};
+    if (Patch.Size == 2)
+      llvm::support::endian::write16le(
+          Bytes, static_cast<uint16_t>(Patch.Instruction));
+    else
+      llvm::support::endian::write32le(Bytes, Patch.Instruction);
+    Region.replaceInstruction(Patch.Offset, nullptr, Bytes, Patch.Size);
+  }
+  return Complete;
+}
+
 static bool isLegalPayload(const std::vector<unsigned> &Lengths,
                            unsigned &EntrySize) {
   if (Lengths.size() == 1 && Lengths[0] == 4) {
@@ -415,11 +564,15 @@ bool RISCVILUTFragment::fixupPCRelativeInstructions(
                                          PreservedPrefix);
 }
 
+bool RISCVILUTFragment::fixupPCRelativeInstructions(
+    class RegionFragmentEx &Region) {
+  return fixupPCRelativeInstructionsImpl(Region);
+}
+
 RISCVILUTFragment::RISCVILUTFragment(RISCVLDBackend &B, ELFSection *O)
     : TargetFragment(TargetFragment::Kind::TargetSpecific, O, nullptr,
-                     /*Align=*/64, /*Size=*/0) {
-  (void)B;
-}
+                     /*Align=*/64, /*Size=*/0),
+      Backend(B) {}
 
 size_t RISCVILUTFragment::size() const { return ThisSize; }
 
@@ -615,26 +768,31 @@ bool RISCVILUTFragment::applyRelaxations() {
     uint16_t Ilut = static_cast<uint16_t>(0x2000 | (U.EntryIndex << 2));
     uint32_t DeleteOffset = U.Offset + 2;
     uint32_t DeleteSize = U.SourceSize - 2;
-    if (DeleteSize &&
-        !fixupPCRelativeInstructionsImpl(*Region, DeleteOffset, DeleteSize,
-                                         /*PreservedPrefix=*/2))
-      continue;
-    Region->replaceInstruction(U.Offset, nullptr,
-                               reinterpret_cast<uint8_t *>(&Ilut), 2);
+    Relocation *IlutReloc = nullptr;
     for (Relocation *R : Region->getOwningSection()->getRelocations()) {
       if (R->targetRef()->frag() == U.F &&
           R->targetRef()->offset() == U.Offset &&
           R->type() == llvm::ELF::R_RISCV_RELAX) {
-        R->setTargetData(Ilut);
-        R->setType(eld::ELF::riscv::internal::R_RISCV_ILUT);
+        IlutReloc = R;
+        break;
       }
+    }
+    // Most ordinary instructions have no R_RISCV_RELAX relocation. RelaxPlan
+    // uses a relocation as a stable edit key, so create a private, non-emitted
+    // key for those ILUT-only edits.
+    if (!IlutReloc)
+      IlutReloc =
+          Relocation::Create(llvm::ELF::R_RISCV_RELAX, 16, FragmentRef::null());
+    Region->recordDelete(IlutReloc, DeleteOffset, DeleteSize);
+    Region->attachDecision(IlutReloc, eld::ELF::riscv::internal::R_RISCV_ILUT,
+                           Ilut, U.Offset, 2);
+    Backend.notePendingRelaxation(*Region);
+    for (Relocation *R : Region->getOwningSection()->getRelocations()) {
       if (R->targetRef()->frag() == U.F &&
           R->targetRef()->offset() >= DeleteOffset &&
           R->targetRef()->offset() < DeleteOffset + DeleteSize)
         R->setType(llvm::ELF::R_RISCV_NONE);
     }
-    if (DeleteSize)
-      Region->deleteInstruction(DeleteOffset, DeleteSize);
     Changed = true;
   }
   return Changed;
