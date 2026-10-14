@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>8. Relaxation via Deferred Edits &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="9. Symbol versioning" href="SymbolVersioning.html" />
+    <link rel="prev" title="7. RISC-V Relocation Reference" href="RISCV-Relocations.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_diagnostics.html">5. Linker Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/eld_debugging_guide.html">6. ELD (debugging guide)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html">7. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">8. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/image_structure_and_generation.html">9. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_image_size_optimizations.html">13. Linker Image Size Optimizations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/elf_tools.html">14. ELF TOOLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/lto_support.html">15. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/getting_image_details.html">16. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/options/options.html">17. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/target_specific_features.html">18. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/sframe_support.html">19. SFrame Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/editor_support.html">20. Editor Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_faq.html">21. Linker support and frequently asked questions!!!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/symbol_resolution_inspector.html">22. Symbol Resolution Inspector</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Docs</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="AArch64-Relocations.html">1. AArch64 Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ARM-Relocations.html">2. ARM Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AddingABackend.html">3. Adding a New Backend to ELD</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EldCodeCoverage.html">4. ELD Code Coverage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Hexagon-Relocations.html">5. Hexagon Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="IFunc.html">6. GNU IFunc support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RISCV-Relocations.html">7. RISC-V Relocation Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">8. Relaxation via Deferred Edits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SymbolVersioning.html">9. Symbol versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="X86_32-Relocations.html">10. i386 (x86-32) Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="X86_64-Relocations.html">11. x86-64 Relocation Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">8. </span>Relaxation via Deferred Edits</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/DeveloperDocs/RelaxationDeferredEdits.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="relaxation-via-deferred-edits">
+<h1><span class="section-number">8. </span>Relaxation via Deferred Edits<a class="headerlink" href="#relaxation-via-deferred-edits" title="Permalink to this heading"></a></h1>
+<div class="section" id="background">
+<h2><span class="section-number">8.1. </span>Background<a class="headerlink" href="#background" title="Permalink to this heading"></a></h2>
+<p>RISC-V linker relaxation shrinks code: <code class="docutils literal notranslate"><span class="pre">AUIPC+JALR</span></code> can collapse to <code class="docutils literal notranslate"><span class="pre">JAL</span></code> or
+<code class="docutils literal notranslate"><span class="pre">C.J</span></code>, <code class="docutils literal notranslate"><span class="pre">HI20+LO12</span></code> can become a GP-relative instruction, and <code class="docutils literal notranslate"><span class="pre">R_RISCV_ALIGN</span></code>
+padding can shrink once final alignment is known. Each change can delete bytes
+from a <code class="docutils literal notranslate"><span class="pre">RegionFragmentEx</span></code>, changing section size and moving every symbol after
+the edit.</p>
+<p>Those moves can invalidate a relaxation decision that was made earlier in the
+relaxation process. Applying the decision eagerly would require restoring
+bytes, relocation metadata, and cached instruction data whenever a later
+decision changed the layout.</p>
+</div>
+<div class="section" id="deferred-design">
+<h2><span class="section-number">8.2. </span>Deferred Design<a class="headerlink" href="#deferred-design" title="Permalink to this heading"></a></h2>
+<p>Relaxations are recorded in a per-fragment <code class="docutils literal notranslate"><span class="pre">RelaxPlan</span></code> instead of being applied
+immediately. The plan is committed once the relaxation and post-relaxation
+verification phases are complete, through
+<code class="docutils literal notranslate"><span class="pre">RegionFragmentEx::commitRelaxEdits()</span></code>.</p>
+<p>While the plan is pending, offsets remain relative to the original,
+pre-relaxation fragment contents. <code class="docutils literal notranslate"><span class="pre">RegionFragmentEx::size()</span></code> reports the
+original size minus pending deletions, and <code class="docutils literal notranslate"><span class="pre">RegionFragmentEx::mapOffset()</span></code> maps
+an original offset to its current output-relative offset. This lets layout,
+symbol, relocation, and alignment calculations observe pending deletions
+without modifying the fragment buffer.</p>
+<p>If a decision no longer fits, its edit is removed from the plan. Since deferred
+edits do not modify the buffer or relocation state when recorded, dropping an
+edit does not require rollback of already-applied bytes.</p>
+<div class="section" id="example-mapping-an-offset">
+<h3><span class="section-number">8.2.1. </span>Example: mapping an offset<a class="headerlink" href="#example-mapping-an-offset" title="Permalink to this heading"></a></h3>
+<p>Assume a fragment starts with 32 bytes and has two pending deletions:</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Edit</p></th>
+<th class="head"><p>Original range</p></th>
+<th class="text-right head"><p>Bytes removed</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>A</p></td>
+<td><p>4 through 7</p></td>
+<td class="text-right"><p>4</p></td>
+</tr>
+<tr class="row-odd"><td><p>B</p></td>
+<td><p>16 through 17</p></td>
+<td class="text-right"><p>2</p></td>
+</tr>
+</tbody>
+</table>
+<p>The fragment still contains all 32 original bytes, but its reported pending
+size is 26 bytes. An original offset of 3 maps to 3 because it is before both
+deletions. Offset 10 maps to 6 because edit A removes four earlier bytes.
+Offset 24 maps to 18 because both edits remove six earlier bytes.</p>
+<p>The important detail is that all three calculations use original offsets. No
+caller needs to guess whether an earlier relaxation has already changed the
+buffer.</p>
+<p>An in-place rewrite is different: if edit C rewrites bytes at offset 20 and
+removes zero bytes, the fragment remains 26 bytes and offsets do not shift.
+The instruction rewrite and relocation changes are still deferred until
+commit.</p>
+</div>
+</div>
+<div class="section" id="relaxedit">
+<h2><span class="section-number">8.3. </span>RelaxEdit<a class="headerlink" href="#relaxedit" title="Permalink to this heading"></a></h2>
+<p>Each <code class="docutils literal notranslate"><span class="pre">RelaxEdit</span></code> describes one deferred change:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Reloc</span></code> identifies the relocation associated with the edit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OrigOffset</span></code> identifies the bytes to rewrite before compaction.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DeleteOffset</span></code> and <code class="docutils literal notranslate"><span class="pre">DeleteBytes</span></code> describe the original-buffer range to
+remove.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NopBytes</span></code> records alignment padding information for diagnostics.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NewType</span></code>, <code class="docutils literal notranslate"><span class="pre">NewInstr</span></code>, <code class="docutils literal notranslate"><span class="pre">NewInstrSize</span></code>, and <code class="docutils literal notranslate"><span class="pre">NewAddend</span></code> describe relocation or
+instruction changes applied during commit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Active</span></code> identifies an edit that is still eligible for application.</p></li>
+</ul>
+<p>An edit with zero <code class="docutils literal notranslate"><span class="pre">DeleteBytes</span></code> is an in-place rewrite. It does not contribute
+to the fragment’s shift or compaction size, but it can still update the
+instruction and relocation metadata at commit time.</p>
+</div>
+<div class="section" id="relaxplan-storage">
+<h2><span class="section-number">8.4. </span>RelaxPlan Storage<a class="headerlink" href="#relaxplan-storage" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">RelaxPlan</span></code> uses a <code class="docutils literal notranslate"><span class="pre">DenseMap</span></code> keyed by <code class="docutils literal notranslate"><span class="pre">Relocation</span> <span class="pre">*</span></code> as its authoritative
+storage. This gives average constant-time insertion, removal, and lookup by
+relocation. The map also enforces the plan’s one-edit-per-relocation model.</p>
+<p>The map is not ordered, so ordered operations use a lazily rebuilt derived
+cache:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">OrderedEdits</span></code> contains active edits sorted by <code class="docutils literal notranslate"><span class="pre">DeleteOffset</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PrefixShift</span></code> stores the shift before each ordered edit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DerivedValid</span></code> records whether those arrays match the map contents.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TotalShift</span></code> is maintained directly and is available in constant time.</p></li>
+</ul>
+<p>Mutating the plan invalidates the derived cache. Calling <code class="docutils literal notranslate"><span class="pre">edits()</span></code> rebuilds it
+when necessary and returns the sorted active edits. The method is intentionally
+non-const because cache materialization is an explicit mutation; the data
+structure does not rely on <code class="docutils literal notranslate"><span class="pre">mutable</span></code> state.</p>
+<p><code class="docutils literal notranslate"><span class="pre">find()</span></code> returns the map entry so callers can attach an instruction or
+relocation decision after first recording a deletion. Because callers can
+modify the returned edit, <code class="docutils literal notranslate"><span class="pre">find()</span></code> also invalidates the derived cache.</p>
+<div class="section" id="example-dirty-and-prepared-states">
+<h3><span class="section-number">8.4.1. </span>Example: dirty and prepared states<a class="headerlink" href="#example-dirty-and-prepared-states" title="Permalink to this heading"></a></h3>
+<p>Suppose the map contains edits at offsets 16, 4, and 28, in that insertion
+order. The map does not promise an order, so it is not used directly for
+compaction. When the plan is dirty, the sorted cache is rebuilt as offsets 4,
+16, and 28, and the prefix shifts are computed in that order.</p>
+<p>Adding an edit at offset 10 only updates the map and marks the cache dirty. It
+does not move the existing cache entries or shift a vector of edits. The next
+call to <code class="docutils literal notranslate"><span class="pre">edits()</span></code> rebuilds the ordered list as 4, 10, 16, and 28. Further
+ordered queries reuse that result until the next plan mutation.</p>
+<p>The commit path calls <code class="docutils literal notranslate"><span class="pre">edits()</span></code> before mapping relocation and symbol offsets.
+That prepares the ordered view before the commit-time offset and compaction
+passes. The same prepared view is reused by the remaining ordered operations.</p>
+</div>
+</div>
+<div class="section" id="recording-edits">
+<h2><span class="section-number">8.5. </span>Recording Edits<a class="headerlink" href="#recording-edits" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">RegionFragmentEx</span></code> provides the operation-specific interface used by the RISC-V
+backend:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">recordDelete()</span></code> records a deletion, including optional alignment padding.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">attachDecision()</span></code> adds the final relocation type and optional replacement
+instruction to an existing deletion edit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">recordRewrite()</span></code> records an in-place instruction rewrite with no deletion.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dropEdit()</span></code> removes a pending edit when verification rejects it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pendingEdit()</span></code> provides access to an edit that needs a later decision.</p></li>
+</ul>
+<p>The backend’s relaxation records retain the relaxation-specific information,
+such as whether a decision came from call or GP relaxation. <code class="docutils literal notranslate"><span class="pre">RelaxEdit</span></code> remains
+generic and only describes the concrete buffer and relocation changes.</p>
+<p>The deferred-edit framework is intended to support every relaxation that can
+be represented as an instruction rewrite, relocation update, or deletion. In
+the current implementation, call and GP relaxations are the only relaxation
+decisions integrated with the post-relaxation verification and rollback flow.
+Other relaxation types can use the same <code class="docutils literal notranslate"><span class="pre">RelaxPlan</span></code> representation when their
+decision and re-verification paths are added.</p>
+</div>
+<div class="section" id="commit-ordering">
+<h2><span class="section-number">8.6. </span>Commit Ordering<a class="headerlink" href="#commit-ordering" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">commitRelaxEdits()</span></code> applies edits in the following order:</p>
+<ol class="arabic simple">
+<li><p>Encode replacement instructions while <code class="docutils literal notranslate"><span class="pre">OrigOffset</span></code> still refers to the
+untouched buffer.</p></li>
+<li><p>Update each replacement relocation’s target-data cache as well as the
+fragment bytes. <code class="docutils literal notranslate"><span class="pre">Relocation::target()</span></code> is separate from the fragment buffer
+and must not retain the old instruction encoding.</p></li>
+<li><p>Map relocation and symbol offsets through the prepared plan. Symbol sizes
+are reduced for deletions that fall inside their original ranges.</p></li>
+<li><p>Compact the fragment with one forward walk over sorted delete ranges.</p></li>
+<li><p>Apply deferred relocation type and addend changes.</p></li>
+<li><p>Clear the plan.</p></li>
+</ol>
+<p>No edit should be applied directly to the fragment before this commit step.</p>
+<div class="section" id="example-compaction">
+<h3><span class="section-number">8.6.1. </span>Example: compaction<a class="headerlink" href="#example-compaction" title="Permalink to this heading"></a></h3>
+<p>Consider original bytes divided into these regions:</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Original region</p></th>
+<th class="head"><p>Action</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0 through 3</p></td>
+<td><p>Copy to the output</p></td>
+</tr>
+<tr class="row-odd"><td><p>4 through 7</p></td>
+<td><p>Skip because edit A deletes it</p></td>
+</tr>
+<tr class="row-even"><td><p>8 through 15</p></td>
+<td><p>Copy immediately after the first region</p></td>
+</tr>
+<tr class="row-odd"><td><p>16 through 17</p></td>
+<td><p>Skip because edit B deletes it</p></td>
+</tr>
+<tr class="row-even"><td><p>18 through the end</p></td>
+<td><p>Copy after the second deletion</p></td>
+</tr>
+</tbody>
+</table>
+<p>The forward compaction walk performs those copies in sorted edit order. It
+does not perform one independent move for every deletion, and it never needs
+to interpret already-compacted offsets as original offsets.</p>
+</div>
+</div>
+<div class="section" id="relaxation-and-post-relaxation-verification">
+<h2><span class="section-number">8.7. </span>Relaxation and Post-Relaxation Verification<a class="headerlink" href="#relaxation-and-post-relaxation-verification" title="Permalink to this heading"></a></h2>
+<p>The normal relaxation loop repeatedly converges layout and evaluates the
+backend’s relaxation phases. Other relaxation types may also change section
+sizes after an earlier decision was recorded; the deferred-edit framework is
+designed to keep those changes isolated until commit.</p>
+<p>The post-relaxation verification phase recomputes the relevant range
+conditions against the final layout. In the current implementation, a failed
+call or GP decision is removed from its fragment’s plan and from the backend’s
+corresponding tracking list. If removing an edit changes layout, dependent
+decisions are re-evaluated against the new addresses before another
+verification round.</p>
+<div class="section" id="example-rejecting-a-call-relaxation">
+<h3><span class="section-number">8.7.1. </span>Example: rejecting a call relaxation<a class="headerlink" href="#example-rejecting-a-call-relaxation" title="Permalink to this heading"></a></h3>
+<p>Assume the initial relaxation passes record two edits in one fragment:</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Decision</p></th>
+<th class="head"><p>Original range</p></th>
+<th class="head"><p>Effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Call relaxation</p></td>
+<td><p>40 through 43</p></td>
+<td><p>Delete four bytes and use a shorter call instruction</p></td>
+</tr>
+<tr class="row-odd"><td><p>Alignment relaxation</p></td>
+<td><p>80 through 81</p></td>
+<td><p>Delete two padding bytes</p></td>
+</tr>
+</tbody>
+</table>
+<p>The final layout is then used to verify the shortened call. Suppose the call’s
+target is now too far away for the selected encoding. The verifier drops the
+call edit and removes its call-relaxation record. The fragment immediately
+becomes four bytes larger because the call deletion is no longer pending.</p>
+<p>That size change moves everything after offset 40, including the alignment
+site. The previously selected alignment result is therefore no longer trusted:
+the alignment edit is undone, layout is converged again, and alignment is
+re-evaluated using the new addresses. A later verification round checks the
+remaining call or GP decisions against that updated layout.</p>
+<p>If no further decision is rejected, the plan is committed. If another decision
+fails, the same drop, reconvergence, and verification sequence repeats. A
+rejected decision is sticky and is not reconsidered in later rounds.</p>
+<p>The settle process must re-run layout convergence after dropping edits. A
+plan-aware <code class="docutils literal notranslate"><span class="pre">size()</span></code> changes immediately, but section and program-header data
+that was derived from the previous sizes does not update automatically.</p>
+<p>The process uses sticky removal: once a verification pass rejects a relaxation,
+that relaxation is not reconsidered. This guarantees progress when dropping
+one edit causes another decision to move in and out of range. A bounded maximum
+number of post-relaxation rounds remains as a safety backstop.</p>
+</div>
+</div>
+<div class="section" id="alignment-and-overlap-rules">
+<h2><span class="section-number">8.8. </span>Alignment and Overlap Rules<a class="headerlink" href="#alignment-and-overlap-rules" title="Permalink to this heading"></a></h2>
+<p>Delete ranges are expressed in original-buffer coordinates. Active delete
+ranges must not overlap. In debug builds, <code class="docutils literal notranslate"><span class="pre">addEdit()</span></code> checks this invariant
+against the edits currently stored in the map. <code class="docutils literal notranslate"><span class="pre">wouldOverlap()</span></code> is used by
+alignment relaxation to reject duplicate or intersecting padding deletions.</p>
+<p>For example, an existing deletion of original bytes 100 through 107 overlaps
+an attempted deletion beginning at 104, but it does not overlap an attempted
+deletion beginning at 108. Two zero-byte rewrites at the same offset do not
+consume a range and therefore do not create a deletion overlap.</p>
+<p>When the derived cache is prepared, overlap checks use the sorted neighboring
+ranges. Before preparation, they conservatively scan the map. This preserves
+the simple mutation path while retaining ordered checks for the commit phase.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="RISCV-Relocations.html" class="btn btn-neutral float-left" title="7. RISC-V Relocation Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="SymbolVersioning.html" class="btn btn-neutral float-right" title="9. Symbol versioning" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
