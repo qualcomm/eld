@@ -524,7 +524,7 @@ void Module::addSymbolCreatedByPluginToFragment(Fragment *F, std::string Symbol,
     const ResolveInfo *Info = S->resolveInfo();
     SymbolResolutionInfo &SRI = SymbolNamePool.getSRI();
     SRI.recordSymbolInfo(
-        S, SymbolInfo{Info->resolvedOrigin(), Info->size(),
+        S, SymbolInfo{Saver.save(Symbol), Info->resolvedOrigin(), Info->size(),
                       static_cast<ResolveInfo::Binding>(Info->binding()),
                       static_cast<ResolveInfo::Type>(Info->type()),
                       Info->visibility(),
@@ -704,9 +704,9 @@ LDSymbol *Module::addSymbolFromBitCode(
 
   if (!IsLocalSym) {
     SymbolResolutionInfo &SRI = getNamePool().getSRI();
-    SRI.recordSymbolInfo(InputSym,
-                         SymbolInfo(&CurInput, Size, Binding, Type, Visibility,
-                                    Desc, /*isBitcode=*/true));
+    SRI.recordSymbolInfo(InputSym, SymbolInfo(Saver.save(Name), &CurInput, Size,
+                                              Binding, Type, Visibility, Desc,
+                                              /*isBitcode=*/true));
   }
 
   if (!ResolvedResult.Info->outSymbol())
