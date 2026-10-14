@@ -28,10 +28,11 @@ RUN: %run_and_print_exit %t.d.out | %filecheck %s --check-prefix=EXEC
 
 VRELOC: R_X86_64_COPY {{.*}} v{{weak|global}}
 VRELOC-NOT: R_X86_64_COPY
-# Each alias is defined (not UND) exactly once in the executable's .dynsym.
-VG: {{ 4 OBJECT +(GLOBAL|WEAK) +DEFAULT +[0-9]+ vglobal(@.*)?$}}
+# Each alias is defined (not UND) exactly once in the executable's .dynsym and
+# keeps its binding from the library: the WEAK alias must not become GLOBAL.
+VG: {{ 4 OBJECT +GLOBAL +DEFAULT +[0-9]+ vglobal(@.*)?$}}
 VG-NOT: {{ vglobal(@.*)?$}}
-VW: {{ 4 OBJECT +(GLOBAL|WEAK) +DEFAULT +[0-9]+ vweak(@.*)?$}}
+VW: {{ 4 OBJECT +WEAK +DEFAULT +[0-9]+ vweak(@.*)?$}}
 VW-NOT: {{ vweak(@.*)?$}}
 DRELOC: R_X86_64_COPY {{.*}} foo_v{{[12]}}
 DRELOC-NOT: R_X86_64_COPY

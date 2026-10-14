@@ -2288,7 +2288,13 @@ getCopyRelocGroup(ResolveInfo &Sym,
   if (IsHiddenVersion(&Sym, SymIdx))
     return Group;
 
+  // Only an entry defined in a real section of the library has storage that
+  // aliases can share. Members must match Shndx below, so this also keeps
+  // SHN_UNDEF, SHN_ABS and SHN_COMMON entries out of the group.
   const uint32_t Shndx = SymInput->sectionIndex();
+  if (Shndx == llvm::ELF::SHN_UNDEF || Shndx == llvm::ELF::SHN_ABS ||
+      Shndx == llvm::ELF::SHN_COMMON)
+    return Group;
   const uint64_t Value = Sym.value();
   llvm::SmallPtrSet<const ResolveInfo *, 8> Seen;
   Seen.insert(&Sym);
@@ -2358,7 +2364,10 @@ void ObjectLinker::createCopyRelocation(ResolveInfo &Sym,
       Builder, Storage->second, &Sym);
 
   // Define every member on the copy and export it, so that references from
-  // the library through any of the names reach the copy too.
+  // the library through any of the names reach the copy too. Members other
+  // than the storage owner keep their binding in the library, so a WEAK alias
+  // stays WEAK as with GNU ld; defineSymbolforCopyReloc() still makes the
+  // owner GLOBAL.
   for (const auto &Member : Group) {
     ResolveInfo *RI = Member.second;
     LDSymbol *Def = &Copy;
@@ -2366,7 +2375,8 @@ void ObjectLinker::createCopyRelocation(ResolveInfo &Sym,
       Def = Builder.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
           RI->resolvedOrigin(), RI->getName().str(),
           static_cast<ResolveInfo::Type>(RI->type()), ResolveInfo::Define,
-          ResolveInfo::Global, RI->size(), /*Value=*/0, Copy.fragRef(),
+          static_cast<ResolveInfo::Binding>(RI->binding()), RI->size(),
+          /*Value=*/0, Copy.fragRef(),
           static_cast<ResolveInfo::Visibility>(RI->other()));
       if (!Def)
         continue;
