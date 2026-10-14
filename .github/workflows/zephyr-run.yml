@@ -181,27 +181,6 @@ jobs:
       - name: Set safe.directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE/zephyr"
 
-      # When a linker script is present, retention is the script's responsibility.
-      # KEEP is the mechanism for sections that must survive garbage collection.
-      # Will be dropped once the change is merged in Zephyr upstream.
-      - name: Add linker-script KEEP rules for C++ exception tables
-        if: inputs.arch == 'x86_64'
-        shell: bash
-        working-directory: zephyr
-        run: |
-          set -euo pipefail
-          rom=include/zephyr/linker/cplusplus-rom.ld
-          ram=include/zephyr/linker/cplusplus-ram.ld
-          arch=include/zephyr/arch/x86/intel64/linker.ld
-
-          for f in "$rom" "$ram"; do
-            sed -i 's#^\t\*(\.gcc_except_table \.gcc_except_table\.\*)$#\tKEEP (*(.gcc_except_table .gcc_except_table.*))#' "$f"
-            grep -q 'KEEP (\*(\.gcc_except_table' "$f" || { echo "::error::KEEP not applied to $f"; exit 1; }
-          done
-          grep -q 'KEEP (\*(\.text\*personality\*))' "$arch" || \
-            sed -i 's#^\t\*(\.text)$#\t*(.text)\n\tKEEP (*(.text*personality*))#' "$arch"
-          grep -q 'KEEP (\*(\.text\*personality\*))' "$arch" || { echo "::error::KEEP not applied to $arch"; exit 1; }
-
       - name: West setup
         shell: bash
         run: |
