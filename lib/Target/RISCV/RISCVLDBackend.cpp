@@ -2040,9 +2040,11 @@ void RISCVLDBackend::postRelax(bool &pFinished) {
 
   for (RegionFragmentEx *Frag : m_FragmentsWithPendingRelaxEdits) {
     // Branch immediates are not relocations and therefore are not adjusted by
-    // the generic relocation-shift code. Repair them while every edit still
-    // addresses the original buffer, immediately before compaction.
-    RISCVILUTFragment::fixupPCRelativeInstructions(*Frag);
+    // the generic relocation-shift code. The direct-branch repair is needed
+    // only for ILUT deletions: ordinary RISC-V relaxations retain their
+    // existing relocation-driven behavior, and RV64 cannot create ILUT edits.
+    if (RISCVILUTFragment::hasPendingILUTEdit(*Frag))
+      RISCVILUTFragment::fixupPCRelativeInstructions(*Frag);
     Frag->commitRelaxEdits();
   }
   m_FragmentsWithPendingRelaxEdits.clear();
