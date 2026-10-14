@@ -19,6 +19,7 @@
 #include "eld/Support/ReproduceTarReader.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/Support/TargetSelect.h"
+#include "eld/Support/Utils.h"
 #include "eld/Target/TargetMachine.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringSwitch.h"
@@ -42,8 +43,10 @@ maybeExpandResponseFiles(llvm::ArrayRef<const char *> Args,
   // Expand response files.
   llvm::SmallVector<const char *, 256> SmallVec(Args.begin(), Args.end());
   llvm::StringSaver Saver(Alloc);
-  llvm::cl::ExpandResponseFiles(Saver, llvm::cl::TokenizeGNUCommandLine,
-                                SmallVec);
+  llvm::cl::TokenizerCallback Tokenizer =
+      eld::utility::isHostWindows() ? llvm::cl::TokenizeWindowsCommandLine
+                                    : llvm::cl::TokenizeGNUCommandLine;
+  llvm::cl::ExpandResponseFiles(Saver, Tokenizer, SmallVec);
 
   const char **Copy = Alloc.Allocate<const char *>(SmallVec.size() + 1);
   std::copy(SmallVec.begin(), SmallVec.end(), Copy);

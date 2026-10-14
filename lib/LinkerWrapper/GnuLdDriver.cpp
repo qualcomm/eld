@@ -1745,6 +1745,8 @@ bool GnuLdDriver::processReproduceOption(
     return outputTar->rewritePath(path);
   };
 
+  const bool IsWindows = utility::isHostWindows();
+
   auto zArgsRange = Args.filtered(T::dash_z);
   auto zArgIt = zArgsRange.begin();
 
@@ -1824,7 +1826,12 @@ bool GnuLdDriver::processReproduceOption(
       break;
     }
     case T::remap_inputs:
-      os << arg->getSpelling() << ' ' << arg->getValue() << ' ';
+      os << arg->getSpelling() << ' ';
+      if (IsWindows)
+        os << utility::serializeWindowsResponseFileArgument(arg->getValue());
+      else
+        os << utility::serializeGNUResponseFileArgument(arg->getValue());
+      os << ' ';
       break;
     case T::remap_inputs_file: {
       const eld::sys::fs::Path *P = Config.directories().findFile(
