@@ -3,14 +3,14 @@
 #
 # REQUIRES: riscv32
 #
-# RUN: %llvm-mc -filetype=obj -mattr=+relax,+experimental-xqccmi %s -o %t.o
+# RUN: %llvm-mc -filetype=obj -mattr=+relax,+experimental-xqccmi,+xqcibi %s -o %t.o
 # RUN: %link %linkopts %t.o --no-relax --relax-ilut --defsym ext=0x1000 -o %t
 # RUN: %readelf -S %t | %filecheck --check-prefix=SECTIONS %s
 # RUN: %objdump -d --section=.text -M no-aliases --mattr=+experimental-xqccmi --no-show-raw-insn %t \
 # RUN:   | %filecheck --check-prefix=DISASM %s
 #
 ## The only repeated payloads are rejected: one is not profitable, one is
-## PC-relative, one contains a relocation, and one is already qc.cm.ilut.
+## PC-relative, one contains a relocation, one is already qc.cm.ilut.
 # SECTIONS-NOT: .riscv.ilut
 # DISASM-COUNT-2: addi a0, a0, 0x1
 # DISASM-COUNT-5: jal zero,
@@ -45,4 +45,50 @@ _start:
   ## Existing ILUT instructions must not recursively populate the table.
   .rept 5
   qc.cm.ilut 7
+  .endr
+
+  ## XqciBI branches are PC-relative and must not be copied into ILUT. Use
+  ## an immediate target so there is no relocation for the linker to rely on.
+  .rept 5
+  qc.beqi a0, 1, 0
+  .endr
+  .rept 5
+  qc.bnei a0, 1, 0
+  .endr
+  .rept 5
+  qc.blti a0, 1, 0
+  .endr
+  .rept 5
+  qc.bgei a0, 1, 0
+  .endr
+  .rept 5
+  qc.bltui a0, 1, 0
+  .endr
+  .rept 5
+  qc.bgeui a0, 1, 0
+  .endr
+
+  .rept 5
+  qc.e.beqi a0, 1, 0
+  .endr
+  .rept 5
+  qc.e.bnei a0, 1, 0
+  .endr
+  .rept 5
+  qc.e.blti a0, 1, 0
+  .endr
+  .rept 5
+  qc.e.bgei a0, 1, 0
+  .endr
+  .rept 5
+  qc.e.bltui a0, 1, 0
+  .endr
+  .rept 5
+  qc.e.bgeui a0, 1, 0
+  .endr
+
+
+  ## System/trap instructions use the current PC and must not be moved.
+  .rept 4
+  ecall
   .endr

@@ -66,7 +66,7 @@ static unsigned getInstructionLength(llvm::StringRef Bytes) {
   }
 }
 
-static bool isPCReferencingInstruction(llvm::StringRef Bytes, unsigned Length) {
+static bool isUnsafeForILUT(llvm::StringRef Bytes, unsigned Length) {
   uint16_t Half = llvm::support::endian::read16le(Bytes.data());
   if (Length == 2) {
     unsigned Quadrant = Half & 3;
@@ -101,17 +101,25 @@ static bool isPCReferencingInstruction(llvm::StringRef Bytes, unsigned Length) {
     case 0x67: // jalr
     case 0x6f: // jal
       return true;
+    case 0x7b: {
+      // Xqcibi uses CUSTOM_3 for its 32-bit branches. Other vendor
+      // instructions also use this opcode, so recognize only the funct3
+      // values assigned to QC_BEQI/QC_BNEI/QC_BLTI/QC_BGEI/QC_BLTUI/QC_BGEUI.
+      unsigned Funct3 = (Word >> 12) & 7;
+      return Funct3 == 0 || Funct3 == 1 || Funct3 == 4 || Funct3 == 5 ||
+             Funct3 == 6 || Funct3 == 7;
+    }
     default:
       return false;
     }
   }
 
   if (Length == 6 && (Word & 0x1f) == 0x1f) {
+    // Xqci 48-bit conditional branches use bits 14:12 as funct3.
+    // Other instructions, including qc.e.orai, must remain legal ILUT
+    // payloads.
     unsigned Funct3 = (Word >> 12) & 7;
-    unsigned Bits24_20 = (Word >> 20) & 0x1f;
-    unsigned Bits24_23 = (Word >> 23) & 3;
-    // Xqci return-like instructions are PC-referencing for ILUT purposes.
-    return (Funct3 == 0 && Bits24_20 == 0) || (Funct3 == 4 && Bits24_23 == 3);
+    return Funct3 == 4;
   }
   return true;
 }
@@ -141,15 +149,52 @@ static bool hasRelocationAt(ELFSection &Sec, const Fragment *F, uint64_t Offset,
   return getRelocationAt(Sec, F, Offset, Size) != nullptr;
 }
 
-enum class DirectPCRelativeKind { Branch, Jump, RVCBranch, RVCJump };
+enum class DirectPCRelativeKind {
+  Branch,
+  QC_EBranch,
+  Jump,
+  RVCBranch,
+  RVCJump
+};
 
 struct DirectPCRelativePatch {
   uint32_t Offset;
-  uint32_t Instruction;
+  uint64_t Instruction;
   unsigned Size;
 };
 
-static bool decodeDirectPCRelative(uint32_t Instruction, unsigned Size,
+static uint64_t readInstruction(llvm::StringRef Data, uint32_t Offset,
+                                unsigned Size) {
+  if (Size == 2)
+    return llvm::support::endian::read16le(Data.data() + Offset);
+  if (Size == 4)
+    return llvm::support::endian::read32le(Data.data() + Offset);
+  if (Size == 6) {
+    uint64_t Low = llvm::support::endian::read32le(Data.data() + Offset);
+    uint64_t High = llvm::support::endian::read16le(Data.data() + Offset + 4);
+    return Low | (High << 32);
+  }
+  return 0;
+}
+
+static void writeInstruction(uint8_t *Bytes, uint64_t Instruction,
+                             unsigned Size) {
+  if (Size == 2) {
+    llvm::support::endian::write16le(Bytes, static_cast<uint16_t>(Instruction));
+    return;
+  }
+  if (Size == 4) {
+    llvm::support::endian::write32le(Bytes, static_cast<uint32_t>(Instruction));
+    return;
+  }
+  if (Size == 6) {
+    llvm::support::endian::write32le(Bytes, static_cast<uint32_t>(Instruction));
+    llvm::support::endian::write16le(Bytes + 4,
+                                     static_cast<uint16_t>(Instruction >> 32));
+  }
+}
+
+static bool decodeDirectPCRelative(uint64_t Instruction, unsigned Size,
                                    DirectPCRelativeKind &Kind,
                                    int64_t &Immediate) {
   if (Size == 2) {
@@ -172,8 +217,8 @@ static bool decodeDirectPCRelative(uint32_t Instruction, unsigned Size,
     }
     if (Funct3 == 1 || Funct3 == 5) {
       uint32_t Imm = ((Half >> 12) & 1) << 11;
-      Imm |= ((Half >> 10) & 1) << 10;
-      Imm |= ((Half >> 8) & 3) << 8;
+      Imm |= ((Half >> 8) & 1) << 10;
+      Imm |= ((Half >> 9) & 3) << 8;
       Imm |= ((Half >> 6) & 1) << 7;
       Imm |= ((Half >> 7) & 1) << 6;
       Imm |= ((Half >> 2) & 1) << 5;
@@ -188,10 +233,30 @@ static bool decodeDirectPCRelative(uint32_t Instruction, unsigned Size,
     return false;
   }
 
+  if (Size == 6) {
+    // Xqcibi QC_E conditional branches are 48-bit instructions. Their branch
+    // displacement is encoded as a signed 12-bit halfword offset using the
+    // standard SB bit placement in the low 32 bits. The low bit is implicit,
+    // so convert it to a byte displacement before using it as a section
+    // offset.
+    if ((Instruction & 0x1f) != 0x1f || ((Instruction >> 12) & 7) != 4)
+      return false;
+    uint32_t Imm = ((Instruction >> 31) & 1) << 11;
+    Imm |= ((Instruction >> 25) & 0x3f) << 4;
+    Imm |= ((Instruction >> 8) & 0xf);
+    Imm |= ((Instruction >> 7) & 1) << 10;
+    int32_t SignedImm = static_cast<int32_t>(Imm << 20) >> 20;
+    Kind = DirectPCRelativeKind::QC_EBranch;
+    Immediate = static_cast<int64_t>(SignedImm) << 1;
+    return true;
+  }
+
   if (Size != 4)
     return false;
-  uint32_t Opcode = Instruction & 0x7f;
-  if (Opcode == 0x63) {
+  uint32_t Opcode = static_cast<uint32_t>(Instruction) & 0x7f;
+  // Xqcibi 32-bit QC_* branches use the standard SB-type displacement
+  // encoding with CUSTOM_3, so repair them like ordinary conditional branches.
+  if (Opcode == 0x63 || Opcode == 0x7b) {
     uint32_t Imm = ((Instruction >> 31) & 1) << 12;
     Imm |= ((Instruction >> 25) & 0x3f) << 5;
     Imm |= ((Instruction >> 8) & 0xf) << 1;
@@ -216,7 +281,7 @@ static bool decodeDirectPCRelative(uint32_t Instruction, unsigned Size,
   return false;
 }
 
-static bool isUnsupportedPCRelative(uint32_t Instruction, unsigned Size) {
+static bool isUnsupportedPCRelative(uint64_t Instruction, unsigned Size) {
   // AUIPC encodes a PC-relative value rather than a branch displacement. If
   // it has no relocation and moves after the deletion, its immediate cannot
   // be repaired by the direct-branch fixup below.
@@ -224,7 +289,7 @@ static bool isUnsupportedPCRelative(uint32_t Instruction, unsigned Size) {
 }
 
 static bool encodeDirectPCRelative(DirectPCRelativeKind Kind, int64_t Immediate,
-                                   uint32_t &Instruction) {
+                                   uint64_t &Instruction) {
   switch (Kind) {
   case DirectPCRelativeKind::Branch:
     if (!llvm::isInt<13>(Immediate) || (Immediate & 1))
@@ -240,6 +305,23 @@ static bool encodeDirectPCRelative(DirectPCRelativeKind Kind, int64_t Immediate,
         (Instruction & ~0xfffff000u) |
         static_cast<uint32_t>(encodeUJ(static_cast<int32_t>(Immediate)));
     return true;
+  case DirectPCRelativeKind::QC_EBranch: {
+    if (!llvm::isInt<13>(Immediate) || (Immediate & 1))
+      return false;
+    // QC_E branch offsets are stored in halfword units, with bit zero
+    // implicit. The field layout below is therefore the inverse of the
+    // decoding above after converting from a byte displacement.
+    uint32_t Imm = static_cast<uint32_t>(Immediate >> 1);
+    constexpr uint64_t OffsetMask = (uint64_t{1} << 31) |
+                                    (uint64_t{0x3f} << 25) |
+                                    (uint64_t{0xf} << 8) | (uint64_t{1} << 7);
+    Instruction &= ~OffsetMask;
+    Instruction |= (static_cast<uint64_t>(Imm >> 11) & 1) << 31;
+    Instruction |= (static_cast<uint64_t>(Imm >> 4) & 0x3f) << 25;
+    Instruction |= (static_cast<uint64_t>(Imm) & 0xf) << 8;
+    Instruction |= (static_cast<uint64_t>(Imm >> 10) & 1) << 7;
+    return true;
+  }
   case DirectPCRelativeKind::RVCBranch:
     if (!llvm::isInt<9>(Immediate) || (Immediate & 1))
       return false;
@@ -297,11 +379,7 @@ static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region,
     // relocations whose target cannot be resolved locally. The later
     // relocation application writes the final symbol-based value.
 
-    uint32_t Instruction = 0;
-    if (Length == 2)
-      Instruction = llvm::support::endian::read16le(Data.data() + Offset);
-    else if (Length == 4)
-      Instruction = llvm::support::endian::read32le(Data.data() + Offset);
+    uint64_t Instruction = readInstruction(Data, Offset, Length);
 
     const bool SourceMoves = Offset >= DeleteEnd;
     if (isUnsupportedPCRelative(Instruction, Length)) {
@@ -350,7 +428,7 @@ static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region,
     const uint32_t NewOffset = SourceMoves ? Offset - DeleteSize : Offset;
     const int64_t NewTarget =
         Target >= DeleteEnd ? Target - DeleteSize : Target;
-    uint32_t NewInstruction = Instruction;
+    uint64_t NewInstruction = Instruction;
     if (!encodeDirectPCRelative(Kind, NewTarget - NewOffset, NewInstruction)) {
       Complete = false;
       Offset += Length;
@@ -362,12 +440,8 @@ static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region,
   }
 
   for (const DirectPCRelativePatch &Patch : Patches) {
-    uint8_t Bytes[4] = {};
-    if (Patch.Size == 2)
-      llvm::support::endian::write16le(
-          Bytes, static_cast<uint16_t>(Patch.Instruction));
-    else
-      llvm::support::endian::write32le(Bytes, Patch.Instruction);
+    uint8_t Bytes[8] = {};
+    writeInstruction(Bytes, Patch.Instruction, Patch.Size);
     Region.replaceInstruction(Patch.Offset, nullptr, Bytes, Patch.Size);
   }
   return Complete;
@@ -384,63 +458,89 @@ static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region) {
 
   llvm::StringRef Data = Region.getRegion();
   const uint32_t Size = static_cast<uint32_t>(Data.size());
-  struct ProtectedRange {
+  struct OffsetRange {
     uint32_t Begin;
     uint32_t End;
   };
-  std::vector<ProtectedRange> Protected;
+  std::vector<OffsetRange> Deleted;
+  std::vector<OffsetRange> Skipped;
+  std::vector<uint32_t> Boundaries;
   for (const RelaxEdit &E : Edits) {
+    if (E.DeleteBytes) {
+      Deleted.push_back({E.DeleteOffset, E.DeleteOffset + E.DeleteBytes});
+      Skipped.push_back({E.DeleteOffset, E.DeleteOffset + E.DeleteBytes});
+    }
     if (E.NewType && *E.NewType == eld::ELF::riscv::internal::R_RISCV_ILUT &&
         E.NewInstr && E.NewInstrSize)
-      Protected.push_back({E.OrigOffset, E.DeleteOffset + E.DeleteBytes});
+      Skipped.push_back({E.OrigOffset, E.DeleteOffset + E.DeleteBytes});
   }
 
-  auto inDeletedRange = [&](uint32_t Offset) {
-    for (const RelaxEdit &E : Edits)
-      if (Offset >= E.DeleteOffset && Offset < E.DeleteOffset + E.DeleteBytes)
-        return true;
-    return false;
-  };
-  auto inProtectedRange = [&](uint32_t Offset) {
-    for (const ProtectedRange &R : Protected)
-      if (Offset >= R.Begin && Offset < R.End)
-        return true;
-    return false;
-  };
-  auto mapTarget = [&](int64_t Target, int64_t &Mapped) {
-    Mapped = Target;
-    for (const RelaxEdit &E : Edits) {
-      const int64_t Begin = E.DeleteOffset;
-      const int64_t End = Begin + E.DeleteBytes;
-      // Target remains an original-buffer offset for membership checks. Only
-      // the mapped result is shifted by earlier deletions.
-      if (Target >= Begin && Target < End)
-        return false;
-      if (Target >= End)
-        Mapped -= E.DeleteBytes;
+  auto sortAndMerge = [](std::vector<OffsetRange> &Ranges) {
+    std::sort(Ranges.begin(), Ranges.end(),
+              [](const OffsetRange &L, const OffsetRange &R) {
+                return L.Begin < R.Begin;
+              });
+    std::vector<OffsetRange> Merged;
+    for (const OffsetRange &R : Ranges) {
+      if (R.Begin == R.End)
+        continue;
+      if (!Merged.empty() && R.Begin <= Merged.back().End) {
+        Merged.back().End = std::max(Merged.back().End, R.End);
+        continue;
+      }
+      Merged.push_back(R);
     }
-    return true;
+    Ranges.swap(Merged);
   };
-  auto sourceOffsetAfterEdits = [&](uint32_t Offset) {
-    uint32_t Mapped = Offset;
-    for (const RelaxEdit &E : Edits)
-      if (Offset >= E.DeleteOffset + E.DeleteBytes)
-        Mapped -= E.DeleteBytes;
-    return Mapped;
+  sortAndMerge(Deleted);
+  sortAndMerge(Skipped);
+  std::sort(Boundaries.begin(), Boundaries.end());
+
+  auto contains = [](const std::vector<OffsetRange> &Ranges, int64_t Offset) {
+    if (Offset < 0 || Offset > UINT32_MAX)
+      return false;
+    auto It = std::upper_bound(
+        Ranges.begin(), Ranges.end(), static_cast<uint32_t>(Offset),
+        [](uint32_t Value, const OffsetRange &R) { return Value < R.Begin; });
+    if (It == Ranges.begin())
+      return false;
+    --It;
+    return static_cast<uint32_t>(Offset) < It->End;
+  };
+
+  // getRelocationAt() scans the complete section relocation list. Build a
+  // per-region index once so the instruction walk below does not multiply
+  // that scan by the number of instructions.
+  std::vector<Relocation *> Relocations;
+  for (Relocation *R : Region.getOwningSection()->getRelocations())
+    if (R->targetRef()->frag() == &Region &&
+        R->type() != llvm::ELF::R_RISCV_RELAX &&
+        R->type() != llvm::ELF::R_RISCV_NONE)
+      Relocations.push_back(R);
+  std::sort(Relocations.begin(), Relocations.end(),
+            [](const Relocation *L, const Relocation *R) {
+              return L->targetRef()->offset() < R->targetRef()->offset();
+            });
+  auto relocationAt = [&](uint32_t Offset, unsigned Length) {
+    auto It = std::lower_bound(Relocations.begin(), Relocations.end(), Offset,
+                               [](const Relocation *R, uint32_t Value) {
+                                 return R->targetRef()->offset() < Value;
+                               });
+    if (It != Relocations.end() &&
+        (*It)->targetRef()->offset() < Offset + Length)
+      return *It;
+    return static_cast<Relocation *>(nullptr);
   };
 
   std::vector<DirectPCRelativePatch> Patches;
   bool Complete = true;
+  size_t SkipIndex = 0;
   for (uint32_t Offset = 0; Offset < Size;) {
-    if (inDeletedRange(Offset) || inProtectedRange(Offset)) {
-      uint32_t Next = Offset + 1;
-      for (const RelaxEdit &E : Edits)
-        if (Offset >= E.DeleteOffset && Offset < E.DeleteOffset + E.DeleteBytes)
-          Next = std::max(Next, E.DeleteOffset + E.DeleteBytes);
-      for (const ProtectedRange &R : Protected)
-        if (Offset >= R.Begin && Offset < R.End)
-          Next = std::max(Next, R.End);
-      Offset = Next;
+    while (SkipIndex < Skipped.size() && Skipped[SkipIndex].End <= Offset)
+      ++SkipIndex;
+    if (SkipIndex < Skipped.size() && Offset >= Skipped[SkipIndex].Begin &&
+        Offset < Skipped[SkipIndex].End) {
+      Offset = Skipped[SkipIndex].End;
       continue;
     }
 
@@ -449,26 +549,18 @@ static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region) {
       Complete = false;
       break;
     }
-    for (const RelaxEdit &E : Edits)
-      if (Offset < E.DeleteOffset && Offset + Length > E.DeleteOffset) {
-        Complete = false;
-        break;
-      }
-    if (!Complete)
+    auto NextBoundary =
+        std::upper_bound(Boundaries.begin(), Boundaries.end(), Offset);
+    if (NextBoundary != Boundaries.end() && Offset + Length > *NextBoundary) {
+      Complete = false;
       break;
+    }
 
-    uint32_t Instruction = 0;
-    if (Length == 2)
-      Instruction = llvm::support::endian::read16le(Data.data() + Offset);
-    else if (Length == 4)
-      Instruction = llvm::support::endian::read32le(Data.data() + Offset);
+    uint64_t Instruction = readInstruction(Data, Offset, Length);
 
     if (isUnsupportedPCRelative(Instruction, Length)) {
-      bool SourceMoves = false;
-      for (const RelaxEdit &E : Edits)
-        SourceMoves |= Offset >= E.DeleteOffset + E.DeleteBytes;
-      if (SourceMoves &&
-          !getRelocationAt(*Region.getOwningSection(), &Region, Offset, Length))
+      bool SourceMoves = Region.mapOffset(Offset) != Offset;
+      if (SourceMoves && !relocationAt(Offset, Length))
         Complete = false;
       Offset += Length;
       continue;
@@ -482,8 +574,7 @@ static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region) {
     }
 
     int64_t Target = static_cast<int64_t>(Offset) + Immediate;
-    if (const Relocation *Reloc = getRelocationAt(*Region.getOwningSection(),
-                                                  &Region, Offset, Length)) {
+    if (Relocation *Reloc = relocationAt(Offset, Length)) {
       ResolveInfo *Sym = Reloc->symInfo();
       FragmentRef *TargetRef = Reloc->targetFragRef();
       if (!TargetRef && Sym && Sym->outSymbol())
@@ -492,14 +583,16 @@ static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region) {
         Target = static_cast<int64_t>(TargetRef->offset()) + Reloc->addend();
     }
 
-    int64_t NewTarget = 0;
-    if (!mapTarget(Target, NewTarget)) {
+    if (contains(Deleted, Target)) {
       Complete = false;
       Offset += Length;
       continue;
     }
-    uint32_t NewOffset = sourceOffsetAfterEdits(Offset);
-    uint32_t NewInstruction = Instruction;
+    int64_t NewTarget = Target;
+    if (Target >= 0 && Target <= UINT32_MAX)
+      NewTarget = Region.mapOffset(static_cast<uint32_t>(Target));
+    uint32_t NewOffset = Region.mapOffset(Offset);
+    uint64_t NewInstruction = Instruction;
     if (!encodeDirectPCRelative(Kind, NewTarget - NewOffset, NewInstruction)) {
       Complete = false;
       Offset += Length;
@@ -511,12 +604,8 @@ static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region) {
   }
 
   for (const DirectPCRelativePatch &Patch : Patches) {
-    uint8_t Bytes[4] = {};
-    if (Patch.Size == 2)
-      llvm::support::endian::write16le(
-          Bytes, static_cast<uint16_t>(Patch.Instruction));
-    else
-      llvm::support::endian::write32le(Bytes, Patch.Instruction);
+    uint8_t Bytes[8] = {};
+    writeInstruction(Bytes, Patch.Instruction, Patch.Size);
     Region.replaceInstruction(Patch.Offset, nullptr, Bytes, Patch.Size);
   }
   return Complete;
@@ -557,6 +646,14 @@ static std::string makeKey(const std::vector<uint8_t> &Bytes,
 
 } // namespace
 
+bool RISCVILUTFragment::hasPendingILUTEdit(class RegionFragmentEx &Region) {
+  for (const RelaxEdit &Edit : Region.pendingRelaxEdits())
+    if (Edit.NewType &&
+        *Edit.NewType == eld::ELF::riscv::internal::R_RISCV_ILUT)
+      return true;
+  return false;
+}
+
 bool RISCVILUTFragment::fixupPCRelativeInstructions(
     class RegionFragmentEx &Region, uint32_t DeleteOffset, uint32_t DeleteSize,
     uint32_t PreservedPrefix) {
@@ -566,6 +663,11 @@ bool RISCVILUTFragment::fixupPCRelativeInstructions(
 
 bool RISCVILUTFragment::fixupPCRelativeInstructions(
     class RegionFragmentEx &Region) {
+  // This entry point is used at commit time. Keep the branch repair strictly
+  // tied to ILUT edits so an accidental caller cannot change ordinary or
+  // RV64 relaxation output.
+  if (!hasPendingILUTEdit(Region))
+    return true;
   return fixupPCRelativeInstructionsImpl(Region);
 }
 
@@ -594,6 +696,39 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec) {
     if (!Region)
       continue;
     llvm::StringRef Data = Region->getRegion();
+    // A two-instruction ILUT payload has one architectural entry point: the
+    // qc.cm.ilut instruction.  A branch into the second source instruction
+    // cannot be redirected to that entry point without also executing the
+    // first payload instruction.  Such an occurrence must therefore remain
+    // in line.  This is common in compiler-generated epilogues where a jump
+    // skips a value-initialization instruction and enters the following move.
+    std::set<uint64_t> DirectBranchTargets;
+    for (uint64_t Offset = 0; Offset < Data.size();) {
+      unsigned Length = getInstructionLength(Data.substr(Offset));
+      if (!Length || Offset + Length > Data.size())
+        break;
+
+      uint64_t Instruction = readInstruction(Data, Offset, Length);
+
+      DirectPCRelativeKind Kind;
+      int64_t Immediate = 0;
+      if (decodeDirectPCRelative(Instruction, Length, Kind, Immediate)) {
+        int64_t Target = static_cast<int64_t>(Offset) + Immediate;
+        if (const Relocation *Reloc = getRelocationAt(
+                *Region->getOwningSection(), F, Offset, Length)) {
+          FragmentRef *TargetRef = Reloc->targetFragRef();
+          if (!TargetRef && Reloc->symInfo() && Reloc->symInfo()->outSymbol())
+            TargetRef = Reloc->symInfo()->outSymbol()->fragRef();
+          if (TargetRef && TargetRef->frag() == Region)
+            Target =
+                static_cast<int64_t>(TargetRef->offset()) + Reloc->addend();
+        }
+        if (Target >= 0 && Target < static_cast<int64_t>(Data.size()))
+          DirectBranchTargets.insert(static_cast<uint64_t>(Target));
+      }
+      Offset += Length;
+    }
+
     std::vector<Instruction> Instructions;
     for (uint64_t Offset = 0; Offset < Data.size();) {
       unsigned Length = getInstructionLength(Data.substr(Offset));
@@ -601,7 +736,7 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec) {
         break;
       std::vector<uint8_t> Bytes(Length);
       std::memcpy(Bytes.data(), Data.data() + Offset, Length);
-      bool Valid = !isPCReferencingInstruction(
+      bool Valid = !isUnsafeForILUT(
           llvm::StringRef(reinterpret_cast<const char *>(Bytes.data()),
                           Bytes.size()),
           Length);
@@ -670,6 +805,19 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec) {
       std::vector<Instruction> Selected;
       std::set<std::pair<const Fragment *, uint64_t>> CandidateOccupied;
       for (const Instruction &I : P->Occurrences) {
+        if (P->SourceSize > I.Length) {
+          const uint64_t InternalBegin = I.Offset + I.Length;
+          const uint64_t InternalEnd = I.Offset + P->SourceSize;
+          bool HasInternalTarget = false;
+          for (uint64_t Target : DirectBranchTargets) {
+            if (Target >= InternalBegin && Target < InternalEnd) {
+              HasInternalTarget = true;
+              break;
+            }
+          }
+          if (HasInternalTarget)
+            continue;
+        }
         bool Conflict = false;
         for (unsigned Byte = 0; Byte < P->SourceSize; ++Byte) {
           auto Key = std::make_pair(I.F, I.Offset + Byte);
@@ -751,48 +899,81 @@ bool RISCVILUTFragment::applyRelaxations() {
   Applied = true;
   bool Changed = false;
 
-  std::vector<Use> Ordered;
-  for (const auto &KV : Uses)
-    Ordered.push_back(KV.second);
-  llvm::stable_sort(Ordered, [](const Use &A, const Use &B) {
-    if (A.F != B.F)
-      return A.F < B.F;
-    return A.Offset > B.Offset;
-  });
-
-  for (const Use &U : Ordered) {
+  // The uses are collected from the original instruction stream. Grouping
+  // them by region lets us build one RelaxPlan and perform one branch-fixup
+  // and compaction per region instead of doing all three operations once per
+  // use.
+  std::map<eld::RegionFragmentEx *, std::vector<Use>> UsesByRegion;
+  for (const auto &KV : Uses) {
     auto *Region = const_cast<eld::RegionFragmentEx *>(
-        llvm::dyn_cast<eld::RegionFragmentEx>(U.F));
-    if (!Region)
-      continue;
-    uint16_t Ilut = static_cast<uint16_t>(0x2000 | (U.EntryIndex << 2));
-    uint32_t DeleteOffset = U.Offset + 2;
-    uint32_t DeleteSize = U.SourceSize - 2;
-    Relocation *IlutReloc = nullptr;
-    for (Relocation *R : Region->getOwningSection()->getRelocations()) {
-      if (R->targetRef()->frag() == U.F &&
-          R->targetRef()->offset() == U.Offset &&
-          R->type() == llvm::ELF::R_RISCV_RELAX) {
-        IlutReloc = R;
-        break;
+        llvm::dyn_cast<eld::RegionFragmentEx>(KV.second.F));
+    if (Region)
+      UsesByRegion[Region].push_back(KV.second);
+  }
+
+  for (auto &RegionUses : UsesByRegion) {
+    eld::RegionFragmentEx *Region = RegionUses.first;
+    std::vector<Use> &UsesInRegion = RegionUses.second;
+    std::vector<Relocation *> Relocations;
+    for (Relocation *R : Region->getOwningSection()->getRelocations())
+      if (R->targetRef()->frag() == Region)
+        Relocations.push_back(R);
+    llvm::sort(Relocations, [](const Relocation *A, const Relocation *B) {
+      return A->targetRef()->offset() < B->targetRef()->offset();
+    });
+
+    std::vector<std::pair<uint32_t, uint32_t>> DeletedRanges;
+    for (const Use &U : UsesInRegion) {
+      uint16_t Ilut = static_cast<uint16_t>(0x2000 | (U.EntryIndex << 2));
+      uint32_t DeleteOffset = U.Offset + 2;
+      uint32_t DeleteSize = U.SourceSize - 2;
+      if (DeleteSize)
+        DeletedRanges.push_back({DeleteOffset, DeleteOffset + DeleteSize});
+
+      Relocation *IlutReloc = nullptr;
+      auto It = llvm::lower_bound(Relocations, U.Offset,
+                                  [](const Relocation *R, uint64_t Offset) {
+                                    return R->targetRef()->offset() < Offset;
+                                  });
+      for (;
+           It != Relocations.end() && It[0]->targetRef()->offset() == U.Offset;
+           ++It) {
+        if (It[0]->type() == llvm::ELF::R_RISCV_RELAX) {
+          IlutReloc = It[0];
+          break;
+        }
+      }
+      // Most ordinary instructions have no R_RISCV_RELAX relocation. RelaxPlan
+      // uses a relocation as a stable edit key, so create a private,
+      // non-emitted key for those ILUT-only edits.
+      if (!IlutReloc)
+        IlutReloc = Relocation::Create(llvm::ELF::R_RISCV_RELAX, 16,
+                                       FragmentRef::null());
+      Region->recordDelete(IlutReloc, DeleteOffset, DeleteSize);
+      Region->attachDecision(IlutReloc, eld::ELF::riscv::internal::R_RISCV_ILUT,
+                             Ilut, U.Offset, 2);
+    }
+
+    llvm::sort(DeletedRanges);
+    for (Relocation *R : Relocations) {
+      uint32_t Offset = R->targetRef()->offset();
+      auto It = llvm::upper_bound(
+          DeletedRanges, Offset,
+          [](uint32_t Value, const std::pair<uint32_t, uint32_t> &Range) {
+            return Value < Range.first;
+          });
+      if (It != DeletedRanges.begin()) {
+        --It;
+        if (Offset >= It->first && Offset < It->second)
+          R->setType(llvm::ELF::R_RISCV_NONE);
       }
     }
-    // Most ordinary instructions have no R_RISCV_RELAX relocation. RelaxPlan
-    // uses a relocation as a stable edit key, so create a private, non-emitted
-    // key for those ILUT-only edits.
-    if (!IlutReloc)
-      IlutReloc =
-          Relocation::Create(llvm::ELF::R_RISCV_RELAX, 16, FragmentRef::null());
-    Region->recordDelete(IlutReloc, DeleteOffset, DeleteSize);
-    Region->attachDecision(IlutReloc, eld::ELF::riscv::internal::R_RISCV_ILUT,
-                           Ilut, U.Offset, 2);
+
+    // Keep ILUT edits deferred until postRelax(). Ordinary RISC-V
+    // relaxations are selected after the ILUT pass and may delete additional
+    // bytes in this region. postRelax() repairs direct branches against the
+    // complete combined edit set before compacting the buffer.
     Backend.notePendingRelaxation(*Region);
-    for (Relocation *R : Region->getOwningSection()->getRelocations()) {
-      if (R->targetRef()->frag() == U.F &&
-          R->targetRef()->offset() >= DeleteOffset &&
-          R->targetRef()->offset() < DeleteOffset + DeleteSize)
-        R->setType(llvm::ELF::R_RISCV_NONE);
-    }
     Changed = true;
   }
   return Changed;

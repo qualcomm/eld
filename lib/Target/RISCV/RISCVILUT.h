@@ -16,8 +16,8 @@ namespace eld {
 
 class ELFSection;
 class Fragment;
-class RISCVLDBackend;
 class RegionFragmentEx;
+class RISCVLDBackend;
 
 // Materializes the Xqccmi instruction lookup table and records the source
 // instruction ranges that can be replaced by qc.cm.ilut.
@@ -42,6 +42,9 @@ public:
   // Rewrite all selected source ranges. Ranges are applied from high to low
   // offsets within each fragment because deletion shifts later references.
   bool applyRelaxations();
+
+  // True when the fragment has at least one pending ILUT edit.
+  static bool hasPendingILUTEdit(class RegionFragmentEx &Region);
 
   static bool fixupPCRelativeInstructions(class RegionFragmentEx &Region,
                                           uint32_t DeleteOffset,
