@@ -2347,8 +2347,11 @@ void ObjectLinker::createCopyRelocation(ResolveInfo &Sym,
   llvm::MapVector<uint32_t, ResolveInfo *> Group =
       getCopyRelocGroup(Sym, getTargetBackend());
 
-  // The copy holds the largest member. Prefer GLOBAL, then the lowest .dynsym
-  // index, so the choice does not depend on which alias was referenced first.
+  // ELF aliases can share a section and address while having different
+  // st_size values (e.g. .size 1 and .size 16). Choose the largest so the
+  // COPY relocation copies all bytes even if the smaller alias is referenced.
+  // For equal sizes, prefer GLOBAL, then the lowest .dynsym index, making
+  // the selection independent of reference and input processing order.
   auto IsBetter = [](const std::pair<uint32_t, ResolveInfo *> &A,
                      const std::pair<uint32_t, ResolveInfo *> &B) {
     if (A.second->size() != B.second->size())
@@ -2368,11 +2371,9 @@ void ObjectLinker::createCopyRelocation(ResolveInfo &Sym,
   LDSymbol &Copy = getTargetBackend().defineSymbolforCopyReloc(
       Builder, Storage->second, &Sym);
 
-  // Define every member on the copy and export it, so that references from
-  // the library through any of the names reach the copy too. Members other
-  // than the storage owner keep their binding in the library, so a WEAK alias
-  // stays WEAK as with GNU ld; defineSymbolforCopyReloc() still makes the
-  // owner GLOBAL.
+  // Define every member on the copy and export it, so references from the
+  // library through any alias reach the same storage. Both the storage owner
+  // and secondary aliases preserve their original GLOBAL/WEAK bindings.
   for (const auto &Member : Group) {
     ResolveInfo *RI = Member.second;
     LDSymbol *Def = &Copy;

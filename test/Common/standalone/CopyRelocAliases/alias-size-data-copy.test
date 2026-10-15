@@ -1,3 +1,4 @@
+REQUIRES: x86_64, linux
 #UNSUPPORTED: windows, darwin
 #---alias-size-data-copy.test-------------Copy Relocations-------------------#
 #BEGIN_COMMENT

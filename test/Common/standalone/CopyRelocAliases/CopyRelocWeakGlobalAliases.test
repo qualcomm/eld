@@ -1,0 +1,23 @@
+UNSUPPORTED: windows, darwin, ndk-build
+#BEGIN_COMMENT
+# A WEAK and a GLOBAL object alias share storage in a DSO.
+# Referencing only WEAK must produce one COPY relocation owned
+# by GLOBAL without promoting the secondary WEAK alias.
+
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/weak-lib.c -o %t1.lib.o
+RUN: %link %linkopts -shared %t1.lib.o -o %t1.lib.so
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/weak-main.c -o %t1.main.o
+RUN: %link %linkopts %t1.main.o -Bdynamic %t1.lib.so -o %t1.out
+RUN: %readelf -r %t1.out | %filecheck %s --check-prefix=RELOC
+RUN: %readelf -r %t1.out | grep -Ec 'R_[A-Za-z0-9_]+_COPY' | %filecheck %s --check-prefix=COUNT
+RUN: %readelf --dyn-syms --wide %t1.out | %filecheck %s --check-prefix=BIND
+#END_TEST
+
+RELOC: {{R_[A-Z0-9_]+_COPY}}{{.*}}strong_alias
+
+COUNT: {{^1$}}
+
+BIND-DAG: {{16 OBJECT +GLOBAL +DEFAULT +[0-9]+ strong_alias$}}
+BIND-DAG: {{16 OBJECT +WEAK +DEFAULT +[0-9]+ weak_alias$}}
