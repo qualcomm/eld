@@ -5,6 +5,12 @@
 # on the base address of the segment.
 #END_COMMENT
 RUN: %clang %clangopts -fno-pie -c %p/Inputs/1.c -o %t1.1.o -frwpi
+RUN: %link %linkopts %t1.1.o -o %t0.out -frwpi
+RUN: %readelf -x .text %t0.out | %filecheck %s --check-prefix=SUCCESS
+
+SUCCESS: 0x00000020 010080e0 04d08de2 1eff2fe1 04000000
+SUCCESS: 0x00000030 00000000
+
 RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.t  -o %t2.out -frwpi 2>&1 | %filecheck %s
 RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/scriptphdr.t  -o %t2.out -frwpi 2>&1 | %filecheck %s
 

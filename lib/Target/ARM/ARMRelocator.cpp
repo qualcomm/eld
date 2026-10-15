@@ -1136,6 +1136,46 @@ Relocator::Result abs32(Relocation &pReloc, ARMRelocator &pParent) {
   return Relocator::OK;
 }
 
+static Relocator::Result getSBRelBase(Relocation &pReloc, ARMRelocator &pParent,
+                                      Relocator::Address &pBase) {
+  DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
+
+  std::lock_guard<std::mutex> relocGuard(m_ApplyRelocMutex);
+  ELFSegment *SBRelSeg = pParent.getSBRELSegment();
+  ELFSegment *RSeg = nullptr;
+
+  // If the symbol is not associated with any fragment, the symbol
+  // may be a linker script symbol. Figure out where the linker
+  // script symbol belongs to.
+  if (!pReloc.symInfo()->outSymbol()->fragRef()->frag()) {
+    ELFSection *SInfo =
+        pParent.getTarget().getSectionInfo(pReloc.symInfo()->outSymbol());
+    if (!SInfo || !SInfo->getOutputSection()) {
+      DiagEngine->raise(Diag::sbrel_reloc_no_section)
+          << pReloc.symInfo()->name();
+      return Relocator::BadReloc;
+    }
+    RSeg = SInfo->getOutputSection()->getLoadSegment();
+  } else {
+    RSeg = pReloc.getTargetSegment();
+  }
+
+  if (!SBRelSeg) {
+    SBRelSeg = RSeg;
+    pParent.setSBRELSegment(RSeg);
+  }
+
+  if (RSeg && RSeg != SBRelSeg) {
+    DiagEngine->raise(Diag::sbrel_reloc_different_seg)
+        << pReloc.symInfo()->name()
+        << pReloc.getSourcePath(pParent.config().options());
+    return Relocator::BadReloc;
+  }
+
+  pBase = RSeg->vaddr();
+  return Relocator::OK;
+}
+
 // R_ARM_REL32: ((S + A) | T) - P
 // R_ARM_SBREL32: ((S + A) | T) - B(S)
 Relocator::Result rel32(Relocation &pReloc, ARMRelocator &pParent) {
@@ -1161,35 +1201,9 @@ Relocator::Result rel32(Relocation &pReloc, ARMRelocator &pParent) {
 
   // perform relocation
   if (pReloc.type() == llvm::ELF::R_ARM_SBREL32) {
-    std::lock_guard<std::mutex> relocGuard(m_ApplyRelocMutex);
-    ELFSegment *S = pParent.getSBRELSegment();
-    ELFSegment *RSeg = nullptr;
-    // If the symbol is not associated with any fragment, the symbol
-    // may be a linker script symbol. Figure out where the linker
-    // script symbol belongs to.
-    if (!pReloc.symInfo()->outSymbol()->fragRef()->frag()) {
-      ELFSection *SInfo =
-          pParent.getTarget().getSectionInfo(pReloc.symInfo()->outSymbol());
-      if (!SInfo || !SInfo->getOutputSection()) {
-        DiagEngine->raise(Diag::sbrel_reloc_no_section)
-            << pReloc.symInfo()->name();
-        return Relocator::BadReloc;
-      }
-      RSeg = SInfo->getOutputSection()->getLoadSegment();
-    } else {
-      RSeg = pReloc.getTargetSegment();
-    }
-    if (!S) {
-      S = RSeg;
-      pParent.setSBRELSegment(RSeg);
-    }
-    if (RSeg && (RSeg != S)) {
-      DiagEngine->raise(Diag::sbrel_reloc_different_seg)
-          << pReloc.symInfo()->name()
-          << pReloc.getSourcePath(pParent.config().options());
-      return Relocator::BadReloc;
-    }
-    P = RSeg->vaddr();
+    Relocator::Result Result = getSBRelBase(pReloc, pParent, P);
+    if (Result != Relocator::OK)
+      return Result;
   }
 
   pReloc.target() = ((S + A) | T) - P;
