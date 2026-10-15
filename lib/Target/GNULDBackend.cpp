@@ -4437,10 +4437,8 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
     layoutInfo->recordFragment(copyRelocSect->getInputFile(), copyRelocSect,
                                frag);
 
-  // change symbol binding to Global if it's a weak symbol
+  // Preserve the binding when defining COPY relocation storage.
   ResolveInfo::Binding binding = (ResolveInfo::Binding)pSym->binding();
-  if (binding == ResolveInfo::Weak)
-    binding = ResolveInfo::Global;
 
   // Define the copy symbol in the bss section and resolve it
   LDSymbol *cpy_sym = pBuilder.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
