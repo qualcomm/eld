@@ -1,0 +1,87 @@
+name: Report PR check
+
+on:
+  workflow_call:
+    inputs:
+      check_name:
+        description: "Human-readable PR check name"
+        required: true
+        type: string
+      status_context:
+        description: "Commit status context to update"
+        required: true
+        type: string
+      pr_number:
+        description: "Pull request number"
+        required: true
+        type: string
+      pr_sha:
+        description: "Pull request head SHA"
+        required: true
+        type: string
+      build_result:
+        description: "Toolset build job result"
+        required: true
+        type: string
+      test_result:
+        description: "Selected test job result"
+        required: true
+        type: string
+      run_url:
+        description: "Router workflow URL"
+        required: true
+        type: string
+
+permissions:
+  issues: write
+  pull-requests: write
+  statuses: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report workflow result on the PR
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        env:
+          CHECK_NAME: ${{ inputs.check_name }}
+          STATUS_CONTEXT: ${{ inputs.status_context }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          PR_SHA: ${{ inputs.pr_sha }}
+          BUILD_RESULT: ${{ inputs.build_result }}
+          TEST_RESULT: ${{ inputs.test_result }}
+          RUN_URL: ${{ inputs.run_url }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const buildResult = process.env.BUILD_RESULT;
+            const testResult = process.env.TEST_RESULT;
+            let message;
+            if (buildResult === 'failure' || buildResult === 'cancelled') {
+              message = `❌ PR ELD toolset build failed for ${process.env.CHECK_NAME} for \`${process.env.PR_SHA}\`.`;
+            } else if (testResult === 'success') {
+              message = `✅ ${process.env.CHECK_NAME} passed for \`${process.env.PR_SHA}\`.`;
+            } else {
+              message = `❌ ${process.env.CHECK_NAME} failed for \`${process.env.PR_SHA}\`.`;
+            }
+
+            const buildSucceeded = buildResult === 'success' || buildResult === 'skipped';
+            const state = buildSucceeded && testResult === 'success'
+              ? 'success'
+              : 'failure';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: process.env.PR_SHA,
+              state,
+              context: process.env.STATUS_CONTEXT,
+              target_url: process.env.RUN_URL,
+              description: message,
+            });
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.PR_NUMBER),
+              body: `${message} [View workflow run](${process.env.RUN_URL}).`,
+            });

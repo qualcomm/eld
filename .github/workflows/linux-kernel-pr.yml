@@ -1,133 +1,45 @@
 name: Linux Kernel Boot on ELD PR
 # owner: Steven6798
 
-# Boot a Linux kernel built with a PR's own ELD build. Opt-in via the
-# `kernel-check` label (which makes ci.yml package a pr-eld-toolset artifact),
-# or manually with a PR number. The kernel boot body lives in the reusable
-# linux-kernel-run.yml.
+# Reusable PR Linux kernel boot workflow. The PR comment router supplies the
+# exact CI run and SHA-specific ELD toolset artifact.
 
 on:
-  workflow_run: # zizmor: ignore[dangerous-triggers] read-only token, no secrets, ephemeral runner
-    workflows: [CI]
-    types: [completed]
-  workflow_dispatch:
+  workflow_call:
     inputs:
       pr_number:
-        description: "PR number (discovers the latest ci.yml run whose pr-eld-toolset artifact is still available)"
+        description: "Pull request number used to scope kernel artifacts"
         required: true
+        type: string
+      pr_sha:
+        description: "Exact pull request head SHA"
+        required: true
+        type: string
+      toolset_run_id:
+        description: "CI workflow run containing the PR ELD toolset artifact"
+        required: true
+        type: string
+      toolset_artifact:
+        description: "SHA-specific PR ELD toolset artifact name"
+        required: true
+        type: string
       linker_flags:
-        description: "Additional linker flags to pass to ld.eld (e.g. --verbose)"
+        description: "Additional linker flags to pass to ld.eld"
         required: false
+        type: string
+        default: ""
 
-# A newer run for the same PR supersedes the previous one.
 concurrency:
-  group: linux-kernel-pr-${{ github.event.inputs.pr_number || github.event.workflow_run.head_branch }}
+  group: linux-kernel-pr-${{ inputs.pr_number }}-${{ inputs.pr_sha }}
   cancel-in-progress: true
 
-permissions: {}
+permissions:
+  contents: read
+  actions: read
 
 jobs:
-  resolve:
-    if: |
-      github.repository == 'qualcomm/eld' &&
-      (github.event_name == 'workflow_dispatch' ||
-       github.event.workflow_run.conclusion == 'success')
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      pull-requests: read
-    outputs:
-      run_id: ${{ steps.find.outputs.run_id }}
-      head_sha: ${{ steps.find.outputs.head_sha }}
-      pr_number: ${{ steps.find.outputs.pr_number }}
-    steps:
-      - name: Resolve ci.yml run id
-        id: find
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
-        env:
-          PR_NUMBER: ${{ github.event.inputs.pr_number }}
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-
-            const liveToolset = async (runId) => {
-              const { data } = await github.rest.actions.listWorkflowRunArtifacts({
-                owner, repo, run_id: runId, name: 'pr-eld-toolset',
-              });
-              return data.artifacts.some(a => !a.expired);
-            };
-
-            const wr = context.payload.workflow_run;
-            if (wr) {
-              if (await liveToolset(wr.id)) {
-                const headOwner = wr.head_repository?.full_name?.split('/')[0];
-                const { data: pullRequests } = await github.rest.pulls.list({
-                  owner,
-                  repo,
-                  state: 'all',
-                  head: `${headOwner}:${wr.head_branch}`,
-                  per_page: 100,
-                });
-                const pullRequest = pullRequests.find(pr => pr.head.sha === wr.head_sha);
-                if (!pullRequest) {
-                  core.setFailed(`Workflow run ${wr.id} is not associated with a pull request.`);
-                  return;
-                }
-                const { data: pr } = await github.rest.pulls.get({
-                  owner, repo, pull_number: pullRequests[0].number,
-                });
-                if (!pr.labels.some(label => label.name === 'kernel-check')) {
-                  return;
-                }
-                core.setOutput('run_id', String(wr.id));
-                core.setOutput('head_sha', wr.head_sha);
-                core.setOutput('pr_number', String(pullRequest.number));
-              }
-              return;
-            }
-
-            // Manual path: newest ci.yml run for the PR head that still has one.
-            const prNumber = (process.env.PR_NUMBER || '').trim();
-            if (!prNumber) {
-              core.setFailed('Provide a pr_number.');
-              return;
-            }
-            const pr = await github.rest.pulls.get({
-              owner, repo, pull_number: Number(prNumber),
-            });
-            const headSha = pr.data.head.sha;
-            const runs = await github.paginate(
-              github.rest.actions.listWorkflowRuns,
-              {
-                owner, repo,
-                workflow_id: 'ci.yml',
-                event: 'pull_request',
-                head_sha: headSha,
-                per_page: 100,
-              }
-            );
-            runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            for (const run of runs) {
-              if (await liveToolset(run.id)) {
-                core.setOutput('run_id', String(run.id));
-                core.setOutput('head_sha', headSha);
-                core.setOutput('pr_number', String(prNumber));
-                return;
-              }
-            }
-            core.setFailed(
-              `No ci.yml run for SHA ${headSha} has an available ` +
-              `pr-eld-toolset artifact. Add the \`kernel-check\` label and ` +
-              `re-run CI (the artifact has retention-days: 7), then dispatch ` +
-              `this workflow again.`);
-
   kernel:
-    needs: resolve
-    if: needs.resolve.outputs.run_id != ''
-    # Must grant at least what the reusable linux-kernel-run.yml kernel-boot job
-    # declares; a called job is capped at the caller job's permissions.
+    if: github.repository == 'qualcomm/eld'
     permissions:
       contents: write # BuildStatusDataRecorder pushes to the dashboard branch
       actions: write # list/download artifacts and remove superseded kernel artifacts
@@ -203,37 +115,10 @@ jobs:
       qemu_bios: ${{ matrix.qemu_bios }}
       console_device: ${{ matrix.console_device }}
       enabled: ${{ matrix.enabled }}
-      toolset_run_id: ${{ needs.resolve.outputs.run_id }}
-      toolset_artifact: pr-eld-toolset
+      toolset_run_id: ${{ inputs.toolset_run_id }}
+      toolset_artifact: ${{ inputs.toolset_artifact }}
       toolset_tarball: install-pr-toolset.tar.xz
-      linker_flags: ${{ github.event.inputs.linker_flags }}
+      linker_flags: ${{ inputs.linker_flags }}
       artifact-workflow-id: linux-kernel-pr.yml
-      artifact-pull-request-number: ${{ needs.resolve.outputs.pr_number }}
+      artifact-pull-request-number: ${{ inputs.pr_number }}
       stable_llvm: true
-
-  # Post the aggregate matrix result on the PR.
-  status:
-    needs: [resolve, kernel]
-    if: |
-      always() && needs.resolve.outputs.run_id != '' &&
-      needs.kernel.result != 'cancelled'
-    runs-on: ubuntu-latest
-    permissions:
-      statuses: write
-    steps:
-      - name: Report Linux kernel boot result on the PR
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
-        env:
-          HEAD_SHA: ${{ needs.resolve.outputs.head_sha }}
-          RESULT: ${{ needs.kernel.result }}
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: process.env.HEAD_SHA,
-              context: 'linux-kernel (informational)',
-              state: process.env.RESULT === 'success' ? 'success' : 'failure',
-              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-            });

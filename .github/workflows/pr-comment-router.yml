@@ -14,6 +14,13 @@ on:
         description: "Exact pull request head SHA"
         required: true
         type: string
+      command:
+        description: "Test workflow to run"
+        required: true
+        type: choice
+        options:
+          - check-llvm-test-suite
+          - check-linux-kernel
       request_id:
         description: "Optional request ID used to correlate an external workflow dispatch"
         required: false
@@ -42,6 +49,7 @@ jobs:
       artifact_name: ${{ steps.request.outputs.artifact_name }}
       artifact_run_id: ${{ steps.request.outputs.artifact_run_id }}
       artifact_reused: ${{ steps.request.outputs.artifact_reused }}
+      command: ${{ steps.request.outputs.command }}
     steps:
       - name: Validate comment request
         id: request
@@ -50,16 +58,18 @@ jobs:
           COMMENT_BODY: ${{ github.event.comment.body || '' }}
           INPUT_PR_NUMBER: ${{ inputs.pr_number }}
           INPUT_PR_SHA: ${{ inputs.pr_sha }}
+          INPUT_COMMAND: ${{ inputs.command }}
           INPUT_REQUEST_ID: ${{ inputs.request_id }}
         with:
           github-token: ${{ github.token }}
           script: |
             const isWorkflowDispatch = context.eventName === 'workflow_dispatch';
             const command = isWorkflowDispatch
-              ? 'check-llvm-test-suite'
+              ? process.env.INPUT_COMMAND
               : process.env.COMMENT_BODY.trim();
             const allowed = new Set(['COLLABORATOR', 'MEMBER', 'OWNER']);
-            if (command !== 'check-llvm-test-suite' ||
+            const supported = new Set(['check-llvm-test-suite', 'check-linux-kernel']);
+            if (!supported.has(command) ||
                 (!isWorkflowDispatch &&
                  !allowed.has(context.payload.comment.author_association))) {
               core.info('Ignoring unrelated or unauthorized comment.');
@@ -125,27 +135,34 @@ jobs:
             core.setOutput('artifact_name', artifactName);
             core.setOutput('artifact_run_id', reusableArtifact ? String(reusableArtifact.workflow_run.id) : '');
             core.setOutput('artifact_reused', reusableArtifact ? 'true' : 'false');
+            core.setOutput('command', command);
+
+            const statusContext = command === 'check-linux-kernel'
+              ? 'PR Linux kernel boot'
+              : 'PR LLVM test suite';
+            const displayName = command === 'check-linux-kernel'
+              ? 'Linux kernel boot'
+              : 'LLVM test suite';
 
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: pullRequest.head.sha,
               state: 'pending',
-              context: 'PR LLVM test suite',
+              context: statusContext,
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               description: reusableArtifact
-                ? 'Reusing the PR ELD toolset artifact.'
-                : 'Building the PR ELD toolset.',
+                ? `Reusing the PR ELD toolset for ${displayName}.`
+                : `Building the PR ELD toolset for ${displayName}.`,
             });
-
             if (!isWorkflowDispatch) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: prNumber,
                 body: reusableArtifact
-                  ? `LLVM test suite request accepted for \`${pullRequest.head.sha}\`. Reusing the existing PR toolset artifact and starting the test job.`
-                  : `LLVM test suite request accepted for \`${pullRequest.head.sha}\`. Build and test jobs are starting in this workflow run.`,
+                  ? `${displayName} request accepted for \`${pullRequest.head.sha}\`. Reusing the existing PR toolset artifact and starting the job.`
+                  : `${displayName} request accepted for \`${pullRequest.head.sha}\`. Build and test jobs are starting in this workflow run.`,
               });
             }
 
@@ -164,11 +181,12 @@ jobs:
       pull-requests: read
       statuses: write
 
-  test:
+  llvm_test:
     needs: [validate, build]
     if: |
       always() &&
       needs.validate.outputs.pr_sha != '' &&
+      needs.validate.outputs.command == 'check-llvm-test-suite' &&
       (needs.build.result == 'success' || needs.build.result == 'skipped')
     uses: ./.github/workflows/llvm-test-suite-pr.yml
     with:
@@ -180,54 +198,59 @@ jobs:
       contents: read
       actions: read
 
-  report:
-    needs: [validate, build, test]
-    if: always() && needs.validate.outputs.pr_sha != ''
-    runs-on: ubuntu-latest
+  linux_test:
+    needs: [validate, build]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      needs.validate.outputs.command == 'check-linux-kernel' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    uses: ./.github/workflows/linux-kernel-pr.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      toolset_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
+      toolset_artifact: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
+    permissions:
+      contents: write
+      actions: write
+
+  report_llvm:
+    needs: [validate, build, llvm_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      needs.validate.outputs.command == 'check-llvm-test-suite'
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: LLVM test suite
+      status_context: PR LLVM test suite
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: ${{ needs.build.result }}
+      test_result: ${{ needs.llvm_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     permissions:
       issues: write
       pull-requests: write
       statuses: write
-    steps:
-      - name: Report workflow result on the PR
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
-        env:
-          PR_NUMBER: ${{ needs.validate.outputs.pr_number }}
-          PR_SHA: ${{ needs.validate.outputs.pr_sha }}
-          BUILD_RESULT: ${{ needs.build.result }}
-          TEST_RESULT: ${{ needs.test.result }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            const buildResult = process.env.BUILD_RESULT;
-            const testResult = process.env.TEST_RESULT;
-            let message;
-            if (buildResult === 'failure' || buildResult === 'cancelled') {
-              message = `❌ PR ELD toolset build failed for \`${process.env.PR_SHA}\`.`;
-            } else if (testResult === 'success') {
-              message = `✅ LLVM test suite passed for \`${process.env.PR_SHA}\`.`;
-            } else {
-              message = `❌ LLVM test suite failed for \`${process.env.PR_SHA}\`.`;
-            }
 
-            const buildSucceeded = buildResult === 'success' || buildResult === 'skipped';
-            const state = buildSucceeded && testResult === 'success'
-              ? 'success'
-              : 'failure';
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: process.env.PR_SHA,
-              state,
-              context: 'PR LLVM test suite',
-              target_url: process.env.RUN_URL,
-              description: message,
-            });
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: Number(process.env.PR_NUMBER),
-              body: `${message} [View workflow run](${process.env.RUN_URL}).`,
-            });
+  report_linux:
+    needs: [validate, build, linux_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      needs.validate.outputs.command == 'check-linux-kernel'
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: Linux kernel boot
+      status_context: PR Linux kernel boot
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: ${{ needs.build.result }}
+      test_result: ${{ needs.linux_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
