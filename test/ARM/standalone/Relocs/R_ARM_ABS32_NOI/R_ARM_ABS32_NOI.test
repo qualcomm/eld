@@ -1,0 +1,14 @@
+#---R_ARM_ABS32_NOI.test--------------------- Executable --------------------#
+#BEGIN_COMMENT
+# Verify that R_ARM_ABS32 applies the Thumb bit while R_ARM_ABS32_NOI does not.
+# The Thumb function is placed at 0x1000, so the two data words must be
+# 0x00001001 and 0x00001000 respectively.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/abs32-noi.s -o %t.o
+RUN: %link %linkopts -march arm -T %p/Inputs/relocs.t %t.o -o %t.out
+RUN: %objdump -s -j .data %t.out | %filecheck %s
+
+#CHECK: Contents of section .data:
+#CHECK-NEXT:  2000 01100000 00100000
+#END_TEST

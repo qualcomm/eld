@@ -1136,6 +1136,40 @@ Relocator::Result abs32(Relocation &pReloc, ARMRelocator &pParent) {
   return Relocator::OK;
 }
 
+// R_ARM_ABS32_NOI: S + A
+Relocator::Result abs32_noi(Relocation &pReloc, ARMRelocator &pParent) {
+  DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
+  ResolveInfo *rsym = pReloc.symInfo();
+  Relocator::DWord T = getThumbBit(pParent, pReloc, /*IsJump*/ false);
+  Relocator::DWord A = pReloc.target() + pReloc.addend();
+  Relocator::Address S = pParent.getSymValue(&pReloc);
+  // Normalize the symbol value to S, but do not restore the Thumb bit.
+  if (T != 0x0)
+    helper_clear_thumb_bit(S);
+
+  // If the flag of target section is not ALLOC, we will not scan this
+  // relocation but perform static relocation. (e.g., applying .debug section)
+  if (!pReloc.targetRef()->getOutputELFSection()->isAlloc()) {
+    pReloc.target() = S + A;
+    return Relocator::OK;
+  }
+
+  if (rsym && (rsym->reserved() & Relocator::ReserveRel) &&
+      (pParent.getTarget().isSymbolPreemptible(*rsym)))
+    return Relocator::OK;
+
+  if (rsym && rsym->reserved() & Relocator::ReservePLT)
+    S = pParent.getTarget().findEntryInPLT(rsym)->getAddr(DiagEngine);
+
+  if (rsym && rsym->isWeakUndef() &&
+      (pParent.config().codeGenType() == LinkerConfig::Exec))
+    S = 0;
+
+  // perform static relocation
+  pReloc.target() = S + A;
+  return Relocator::OK;
+}
+
 // R_ARM_REL32: ((S + A) | T) - P
 // R_ARM_SBREL32: ((S + A) | T) - B(S)
 Relocator::Result rel32(Relocation &pReloc, ARMRelocator &pParent) {
