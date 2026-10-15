@@ -1,0 +1,66 @@
+{% extends "!layout.html" %}
+
+{% block sidebartitle %}
+  {{ super() }}
+  <div class="eld-version-selector" hidden>
+    <label for="eld-documentation-version">Documentation version</label>
+    <select id="eld-documentation-version" disabled></select>
+  </div>
+  <style>
+    .eld-version-selector {
+      margin-top: 0.75rem;
+      text-align: left;
+    }
+    .eld-version-selector label {
+      display: block;
+      margin-bottom: 0.25rem;
+      color: white;
+      font-size: 0.8rem;
+    }
+    .eld-version-selector select {
+      width: 100%;
+      color: #404040; /* dark gray */
+    }
+  </style>
+  <script>
+    (function () {
+      let selector = document.getElementById("eld-documentation-version");
+      let container = selector.parentElement;
+      let versionRoot = new URL(".", new URL("{{ pathto(master_doc) }}", window.location.href));
+      let siteRoot = new URL("../", versionRoot);
+
+      fetch(new URL("versions.json", siteRoot))
+        .then(function (response) {
+          if (!response.ok) throw new Error("Version manifest is unavailable");
+          return response.json();
+        })
+        .then(function (manifest) {
+          let current = decodeURIComponent(versionRoot.pathname.split("/").filter(Boolean).pop());
+          if (current === "stable") current = manifest.stable;
+
+          manifest.versions.forEach(function (version) {
+            let option = document.createElement("option");
+            let label = version.display_name;
+            let status = version.stable ? "stable" : version.dev ? "dev" : "";
+            if (status && label.toLowerCase().indexOf("(" + status + ")") === -1)
+              label += " (" + status + ")";
+            option.textContent = label;
+            option.value = new URL(version.path + "/", siteRoot);
+            option.selected = version.path === current;
+            selector.appendChild(option);
+          });
+
+          selector.disabled = false;
+          container.hidden = false;
+        })
+        .catch(function (error) {
+          // Keep the selector hidden when the version manifest is unavailable.
+          console.error("Failed to load documentation versions:", error);
+        });
+
+      selector.addEventListener("change", function () {
+        window.location.href = selector.value;
+      });
+    }());
+  </script>
+{% endblock %}

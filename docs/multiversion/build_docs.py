@@ -23,6 +23,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+
 
 def run(cmd: list, cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess:
     """Run a command and print it for visibility."""
@@ -98,6 +100,12 @@ def build_docs(
     eld_tools_dir = llvm_worktree / "llvm" / "tools"
     eld_tools_dir.mkdir(parents=True, exist_ok=True)
     create_worktree(eld_repo, eld_worktree, eld_branch)
+
+    templates_dir = eld_worktree / "docs" / "userguide" / "_templates"
+    templates_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(
+        SCRIPT_DIR / "templates" / "layout.html", templates_dir / "layout.html"
+    )
 
     # Step 3: Configure CMake
     print("\n[Step 3/5] Configuring CMake...")
