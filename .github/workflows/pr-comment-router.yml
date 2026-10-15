@@ -1,12 +1,27 @@
 name: PR comment router
-run-name: "PR comment router #${{ github.event.issue.number }}"
+run-name: "PR comment router #${{ inputs.pr_number || github.event.issue.number }}"
 
 on:
   issue_comment:
     types: [created, edited]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull request number"
+        required: true
+        type: number
+      pr_sha:
+        description: "Exact pull request head SHA"
+        required: true
+        type: string
+      request_id:
+        description: "Optional request ID used to correlate an external workflow dispatch"
+        required: false
+        default: "manual"
+        type: string
 
 concurrency:
-  group: pr-comment-router-${{ github.event.issue.number }}
+  group: pr-comment-router-${{ inputs.pr_number || github.event.issue.number }}
   cancel-in-progress: false
 
 permissions:
@@ -18,7 +33,7 @@ permissions:
 
 jobs:
   validate:
-    if: github.repository == 'qualcomm/eld' && github.event.issue.pull_request != null
+    if: github.repository == 'qualcomm/eld' && (github.event_name == 'workflow_dispatch' || github.event.issue.pull_request != null)
     runs-on: ubuntu-latest
     outputs:
       pr_number: ${{ steps.request.outputs.pr_number }}
@@ -32,24 +47,46 @@ jobs:
         id: request
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
         env:
-          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_BODY: ${{ github.event.comment.body || '' }}
+          INPUT_PR_NUMBER: ${{ inputs.pr_number }}
+          INPUT_PR_SHA: ${{ inputs.pr_sha }}
+          INPUT_REQUEST_ID: ${{ inputs.request_id }}
         with:
           github-token: ${{ github.token }}
           script: |
-            const command = process.env.COMMENT_BODY.trim();
+            const isWorkflowDispatch = context.eventName === 'workflow_dispatch';
+            const command = isWorkflowDispatch
+              ? 'check-llvm-test-suite'
+              : process.env.COMMENT_BODY.trim();
             const allowed = new Set(['COLLABORATOR', 'MEMBER', 'OWNER']);
             if (command !== 'check-llvm-test-suite' ||
-                !allowed.has(context.payload.comment.author_association)) {
+                (!isWorkflowDispatch &&
+                 !allowed.has(context.payload.comment.author_association))) {
               core.info('Ignoring unrelated or unauthorized comment.');
               return;
             }
 
+            const prNumber = isWorkflowDispatch
+              ? Number(process.env.INPUT_PR_NUMBER)
+              : context.issue.number;
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
+              core.setFailed('A valid pull request number is required.');
+              return;
+            }
             const pullRequest = (await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number,
+              pull_number: prNumber,
             })).data;
-            const requestId = `${context.issue.number}-${pullRequest.head.sha}-${context.payload.comment.id}`;
+            if (isWorkflowDispatch && pullRequest.head.sha !== process.env.INPUT_PR_SHA) {
+              core.setFailed(
+                `PR #${prNumber} moved from ${process.env.INPUT_PR_SHA} to ${pullRequest.head.sha}.`
+              );
+              return;
+            }
+            const requestId = isWorkflowDispatch
+              ? process.env.INPUT_REQUEST_ID
+              : `${context.issue.number}-${pullRequest.head.sha}-${context.payload.comment.id}`;
             const artifactName = `pr-eld-toolset-${pullRequest.head.sha}`;
             const artifacts = await github.paginate(
               github.rest.actions.listArtifactsForRepo,
@@ -82,7 +119,7 @@ jobs:
               core.info(`No reusable artifact found for ${artifactName}; the build job will run.`);
             }
 
-            core.setOutput('pr_number', String(context.issue.number));
+            core.setOutput('pr_number', String(prNumber));
             core.setOutput('pr_sha', pullRequest.head.sha);
             core.setOutput('request_id', requestId);
             core.setOutput('artifact_name', artifactName);
@@ -101,14 +138,16 @@ jobs:
                 : 'Building the PR ELD toolset.',
             });
 
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: reusableArtifact
-                ? `LLVM test suite request accepted for \`${pullRequest.head.sha}\`. Reusing the existing PR toolset artifact and starting the test job.`
-                : `LLVM test suite request accepted for \`${pullRequest.head.sha}\`. Build and test jobs are starting in this workflow run.`,
-            });
+            if (!isWorkflowDispatch) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: reusableArtifact
+                  ? `LLVM test suite request accepted for \`${pullRequest.head.sha}\`. Reusing the existing PR toolset artifact and starting the test job.`
+                  : `LLVM test suite request accepted for \`${pullRequest.head.sha}\`. Build and test jobs are starting in this workflow run.`,
+              });
+            }
 
   build:
     needs: validate
