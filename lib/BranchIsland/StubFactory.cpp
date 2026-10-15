@@ -81,24 +81,24 @@ StubFactory::create(Relocation &PReloc, eld::IRBuilder &PBuilder,
 
   const LinkerConfig &Config = PBuilder.getModule().getConfig();
   if (BranchIsland.first) {
-    if (PBuilder.getModule().getPrinter()->traceTrampolines()) {
+    if (DiagEngine->hasTrace(TraceTrampolines)) {
       std::lock_guard<std::mutex> Guard(Mutex);
-      DiagEngine->raise(Diag::trampoline_symbol) << PReloc.getSymbolName(
+      DiagEngine->trace(Diag::trampoline_symbol) << PReloc.getSymbolName(
           PReloc.symInfo(), Config.options().shouldDemangle());
       llvm::outs() << " ";
       if (BranchIsland.second) {
-        DiagEngine->raise(Diag::reuse_stub) << PReloc.getSymbolName(
+        DiagEngine->trace(Diag::reuse_stub) << PReloc.getSymbolName(
             BranchIsland.first->symInfo(), Config.options().shouldDemangle());
       } else {
-        DiagEngine->raise(Diag::create_stub) << PReloc.getSymbolName(
+        DiagEngine->trace(Diag::create_stub) << PReloc.getSymbolName(
             BranchIsland.first->symInfo(), Config.options().shouldDemangle());
       }
-      DiagEngine->raise(Diag::set_call_from_stub)
+      DiagEngine->trace(Diag::set_call_from_stub)
           << PReloc.getFragmentPath(nullptr, PReloc.targetRef()->frag(),
                                     Config.options())
           << PReloc.getSymbolName(BranchIsland.first->symInfo(),
                                   Config.options().shouldDemangle());
-      DiagEngine->raise(Diag::destination_stub) << llvm::utohexstr(
+      DiagEngine->trace(Diag::destination_stub) << llvm::utohexstr(
           PReloc.place(PBuilder.getModule()), /*LowerCase*/ true);
     }
     PReloc.setSymInfo(BranchIsland.first->symInfo());

@@ -11,18 +11,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-DIAG(apply_relocation, DiagnosticEngine::Trace,
-     "Symbol %0, application site: 0x%1")
-DIAG(process_file, DiagnosticEngine::Trace, "Processing file: %0")
-DIAG(obj_symbol_created, DiagnosticEngine::Trace,
-     "Object symbol created [%0]: (SHNDX %1) %2 ")
-DIAG(adding_new_sym, DiagnosticEngine::Trace, "Adding new symbol (%0): %1")
-DIAG(overriding_old_sym, DiagnosticEngine::Trace,
-     "Overriding old symbol %0 (%1) with newly added symbol %2")
-DIAG(marking_sym, DiagnosticEngine::Trace, "Marking symbol %0 as %1")
-DIAG(override_dyn_sym, DiagnosticEngine::Trace,
-     "Overriding the dynamic symbol %0 (%1) with %2")
-DIAG(override_common_sym, DiagnosticEngine::Trace,
-     "Overriding common symbol %0 with largest size (%1)")
-DIAG(mark_common_sym, DiagnosticEngine::Trace,
-     "Marking common symbol %0 with largest size (%1)")
+TRACE_DIAG(apply_relocation, "Symbol %0, application site: 0x%1", TraceSymbol)
+TRACE_DIAG(process_file, "Processing file: %0", TraceAllSymbols)
+TRACE_DIAG(obj_symbol_created, "Object symbol created [%0]: (SHNDX %1) %2 ",
+           TraceAllSymbols)
+TRACE_DIAG(adding_new_sym, "Adding new symbol (%0): %1", TraceAllSymbols)
+TRACE_DIAG(overriding_old_sym,
+           "Overriding old symbol %0 (%1) with newly added symbol %2",
+           TraceAllSymbols)
+TRACE_DIAG(marking_sym, "Marking symbol %0 as %1", TraceAllSymbols)
+TRACE_DIAG(override_dyn_sym, "Overriding the dynamic symbol %0 (%1) with %2",
+           TraceAllSymbols)
+TRACE_DIAG(override_common_sym,
+           "Overriding common symbol %0 with largest size (%1)",
+           TraceAllSymbols)
+TRACE_DIAG(mark_common_sym, "Marking common symbol %0 with largest size (%1)",
+           TraceAllSymbols)

@@ -81,8 +81,8 @@ ELFDynObjParser::readSectionHeaders(ELFReaderBase &ELFReader) {
 eld::Expected<bool> ELFDynObjParser::readSymbols(ELFReaderBase &ELFReader) {
   LinkerConfig &config = m_Module.getConfig();
   InputFile *inputFile = ELFReader.getInputFile();
-  if (m_Module.getPrinter()->traceFiles())
-    config.raise(Diag::trace_file) << inputFile->getInput()->decoratedPath();
+  config.getDiagEngine()->trace(Diag::trace_file)
+      << inputFile->getInput()->decoratedPath();
 
   eld::Expected<bool> expCreateSyms = ELFReader.readSymbols();
   if (!expCreateSyms.has_value() || !expCreateSyms.value())

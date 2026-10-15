@@ -593,8 +593,9 @@ void ObjectLinker::assignVersionNodesToSymbols() {
 
     auto trace = [&](VersionSymbol *scope) -> VersionSymbol * {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-      if (scope && ThisConfig.getPrinter()->traceSymbolVersioning())
-        ThisConfig.raise(Diag::trace_version_script_matched_scope)
+      if (scope)
+        ThisConfig.getDiagEngine()->trace(
+            Diag::trace_version_script_matched_scope)
             << R->getDecoratedName(/*DoDemangle=*/false)
             << getVersionDesc(scope);
 #endif
@@ -642,12 +643,12 @@ void ObjectLinker::assignVersionNodesToSymbols() {
   bool useThreads = ThisConfig.options().numThreads() > 1 &&
                     ThisConfig.isAssignVersionScriptNodesMultiThreaded();
   if (!useThreads) {
-    if (ThisModule->getPrinter()->traceThreads())
+    if (ThisConfig.getDiagEngine()->hasTrace(TraceThreads))
       ThisConfig.raise(Diag::threads_disabled) << "AssignVersionScriptNodes";
     for (size_t i = 0; i < VSApplicableSymbols.size(); ++i)
       Results[i] = assignOneSymbol(VSApplicableSymbols[i]);
   } else {
-    if (ThisModule->getPrinter()->traceThreads())
+    if (ThisConfig.getDiagEngine()->hasTrace(TraceThreads))
       ThisConfig.raise(Diag::threads_enabled)
           << "AssignVersionScriptNodes" << ThisConfig.options().numThreads();
     llvm::parallelFor(0, VSApplicableSymbols.size(), [&](size_t i) {
@@ -938,12 +939,12 @@ void ObjectLinker::fixMergeStringAndConstantRelocations() const {
       continue;
     for (ELFSection *S : Obj->getRelocationSections()) {
       if (MergeStrings && (ThisModule->getPrinter()->isVerbose() ||
-                           ThisModule->getPrinter()->traceMergeStrings()))
+                           ThisConfig.getDiagEngine()->hasTrace(TraceMergeStrings)))
         ThisConfig.raise(Diag::handling_merge_strings_for_section)
             << S->getDecoratedName(ThisConfig.options())
             << S->getInputFile()->getInput()->decoratedPath(true);
       if (MergeConstants && (ThisModule->getPrinter()->isVerbose() ||
-                             ThisModule->getPrinter()->traceMergeConstants()))
+                             ThisConfig.getDiagEngine()->hasTrace(TraceMergeConstants)))
         ThisConfig.raise(Diag::handling_merge_constants_for_section)
             << S->getDecoratedName(ThisConfig.options())
             << S->getInputFile()->getInput()->decoratedPath(true);
@@ -2647,7 +2648,7 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
   // apply all relocations of all inputs
   if (ThisConfig.options().numThreads() <= 1 ||
       !ThisConfig.isApplyRelocationsMultiThreaded()) {
-    if (ThisModule->getPrinter()->traceThreads())
+    if (ThisConfig.getDiagEngine()->hasTrace(TraceThreads))
       ThisConfig.raise(Diag::threads_disabled) << "ApplyRelocations";
     for (auto &Input : ThisModule->getObjectList()) {
       ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Input);
@@ -2656,7 +2657,7 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
       ProcessObjectFile(ObjFile);
     }
   } else {
-    if (ThisModule->getPrinter()->traceThreads())
+    if (ThisConfig.getDiagEngine()->hasTrace(TraceThreads))
       ThisConfig.raise(Diag::threads_enabled)
           << "ApplyRelocations" << ThisConfig.options().numThreads();
     eld::plugin::ThreadPool *Pool = ThisModule->getThreadPool();
@@ -2744,7 +2745,7 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
   // sync relocations created by relaxation
   if (ThisConfig.options().numThreads() <= 1 ||
       !ThisConfig.isSyncRelocationsMultiThreaded()) {
-    if (ThisModule->getPrinter()->traceThreads())
+    if (ThisConfig.getDiagEngine()->hasTrace(TraceThreads))
       ThisConfig.raise(Diag::threads_disabled) << "SyncRelocations";
     for (auto &Out : ThisModule->getScript().sectionMap())
       SyncBranchIslandsForOutputSection(Out);
@@ -2757,7 +2758,7 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
     }
   } else {
     eld::plugin::ThreadPool *Pool = ThisModule->getThreadPool();
-    if (ThisModule->getPrinter()->traceThreads())
+    if (ThisConfig.getDiagEngine()->hasTrace(TraceThreads))
       ThisConfig.raise(Diag::threads_enabled)
           << "SyncRelocations" << ThisConfig.options().numThreads();
     // QTOOL-112094: When R_AARCH_COPY_INSN is used, it may point to the same
@@ -3074,7 +3075,7 @@ bool ObjectLinker::finalizeLtoSymbolResolution(
   bool IsPreserveAllSet = ThisConfig.options().preserveAllLTO();
   bool IsPreserveGlobals = ThisConfig.options().exportDynamic();
 
-  bool TraceWrap = ThisModule->getPrinter()->traceWrapSymbols();
+  bool TraceWrap = ThisConfig.getDiagEngine()->hasTrace(eld::TraceWrap);
 
   std::set<std::string> SymbolsToPreserve;
   std::set<ResolveInfo *> PreserveSyms;

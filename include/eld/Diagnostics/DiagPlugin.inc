@@ -102,31 +102,36 @@ DIAG(err_multiple_chunk_add, DiagnosticEngine::Error, "The chunk '%0' cannot "
 DIAG(err_chunk_inserted_but_not_removed, DiagnosticEngine::Error,
      "The chunk '%0' is inserted to the rule '%1' by the plugin '%2' but "
      "has not been removed from any rule")
-DIAG(trace_plugin_init, DiagnosticEngine::Trace, "Calling %0::Init plugin hook")
-DIAG(trace_plugin_destroy, DiagnosticEngine::Trace,
-     "Calling %0::Destroy plugin hook")
-DIAG(trace_plugin_register_opt_without_val, DiagnosticEngine::Trace,
-     "Plugin '%0' registered command-line option '%1' without value")
-DIAG(trace_plugin_register_opt_with_val, DiagnosticEngine::Trace,
-     "Plugin '%0' registered command-line option '%1' with value")
+TRACE_DIAG(trace_plugin_init, "Calling %0::Init plugin hook", TracePlugin)
+TRACE_DIAG(trace_plugin_destroy, "Calling %0::Destroy plugin hook", TracePlugin)
+TRACE_DIAG(trace_plugin_register_opt_without_val,
+           "Plugin '%0' registered command-line option '%1' without value",
+           TracePlugin)
+TRACE_DIAG(trace_plugin_register_opt_with_val,
+           "Plugin '%0' registered command-line option '%1' with value",
+           TracePlugin)
 DIAG(verbose_calling_plugin_opt_handler_with_val, DiagnosticEngine::Verbose,
      "Calling '%0::CommandLineOptionHandler' for option '%1' with value '%2'")
 DIAG(verbose_calling_plugin_opt_handler_without_val, DiagnosticEngine::Verbose,
      "Calling '%0::CommandLineOptionHandler' for option '%1'")
-DIAG(trace_plugin_visit_sections, DiagnosticEngine::Trace,
-     "Calling plugin hook handler %0::VisitSections for the input file '%1'")
-DIAG(trace_plugin_visit_symbol, DiagnosticEngine::Trace,
-     "Calling plugin hook handler %0::VisitSymbol for the symbol '%1'")
-DIAG(trace_plugin_enable_visit_symbol, DiagnosticEngine::Trace,
-     "Enabled VisitSymbol hook for the plugin '%0'")
-DIAG(trace_plugin_hook, DiagnosticEngine::Trace,
-     "Calling plugin hook handler %0::%1")
-DIAG(trace_show_RM_sect_name_in_diag, DiagnosticEngine::Trace,
-     "Plugin '%0' has enabled the display of rule-matching section name "
-     "in diagnostics")
-DIAG(trace_set_aux_sym_name_map, DiagnosticEngine::Trace,
-     "Plugin '%0' has set auxiliary symbol name map for the "
-     "input file '%1'")
+TRACE_DIAG(trace_plugin_visit_sections,
+           "Calling plugin hook handler %0::VisitSections for the input file "
+           "'%1'",
+           TracePlugin)
+TRACE_DIAG(trace_plugin_visit_symbol,
+           "Calling plugin hook handler %0::VisitSymbol for the symbol '%1'",
+           TracePlugin)
+TRACE_DIAG(trace_plugin_enable_visit_symbol,
+           "Enabled VisitSymbol hook for the plugin '%0'", TracePlugin)
+TRACE_DIAG(trace_plugin_hook, "Calling plugin hook handler %0::%1", TracePlugin)
+TRACE_DIAG(trace_show_RM_sect_name_in_diag,
+           "Plugin '%0' has enabled the display of rule-matching section name "
+           "in diagnostics",
+           TracePlugin)
+TRACE_DIAG(trace_set_aux_sym_name_map,
+           "Plugin '%0' has set auxiliary symbol name map for the input file "
+           "'%1'",
+           TracePlugin)
 DIAG(error_invalid_input_section, DiagnosticEngine::Error,
      "Invalid input section '%0'")
 DIAG(error_invalid_argument, DiagnosticEngine::Error,

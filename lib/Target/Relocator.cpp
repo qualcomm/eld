@@ -137,7 +137,7 @@ Relocator::findFragmentForMergeStr(const ELFSection *RelocationSection,
               ? m_Module.getMergedNonAllocString(String)
               : OutputSection->getMergedString(String)) {
     if (m_Config.getPrinter()->isVerbose() ||
-        m_Config.getPrinter()->traceMergeStrings())
+        m_Config.getDiagEngine()->hasTrace(TraceMergeStrings))
       traceMergeStrings(RelocationSection, R, String, DeDuped);
     String = DeDuped;
   }
@@ -190,7 +190,7 @@ bool Relocator::doMergeConstants(ELFSection *S) {
         MDF->getOwningSection()->getOutputSection();
     if (const MergeableConstant *Merged = OutputSection->getMergedConstant(C)) {
       if (m_Config.getPrinter()->isVerbose() ||
-          m_Config.getPrinter()->traceMergeConstants())
+          m_Config.getDiagEngine()->hasTrace(TraceMergeConstants))
         traceMergeConstants(S, R, C, Merged);
       C = Merged;
     }

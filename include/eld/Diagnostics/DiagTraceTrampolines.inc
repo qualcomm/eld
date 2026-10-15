@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-DIAG(trampoline_symbol, DiagnosticEngine::Trace, "Symbol : %0")
-DIAG(reuse_stub, DiagnosticEngine::Trace, "Reusing Stub %0")
-DIAG(create_stub, DiagnosticEngine::Trace, "Creating Stub %0")
-DIAG(set_call_from_stub, DiagnosticEngine::Trace, "From %0, Setting Call to %1")
-DIAG(destination_stub, DiagnosticEngine::Trace, "at ~0x%0 to this stub")
+TRACE_DIAG(trampoline_symbol, "Symbol : %0", TraceTrampolines)
+TRACE_DIAG(reuse_stub, "Reusing Stub %0", TraceTrampolines)
+TRACE_DIAG(create_stub, "Creating Stub %0", TraceTrampolines)
+TRACE_DIAG(set_call_from_stub, "From %0, Setting Call to %1", TraceTrampolines)
+TRACE_DIAG(destination_stub, "at ~0x%0 to this stub", TraceTrampolines)

@@ -400,7 +400,6 @@ template <class ELFT> eld::Expected<bool> ELFReader<ELFT>::readSymbols() {
     LLVMEXP_EXTRACT_AND_CHECK(m_RawSectHdrs, m_LLVMELFFile->sections());
   ASSERT(m_RawSectHdrs, "m_RawSectHdrs must be initialized!");
 
-  IRBuilder &builder = *m_Module.getIRBuilder();
   LinkerConfig &config = m_Module.getConfig();
 
   const Elf_Shdr *symTabSec = findSection(
@@ -419,8 +418,8 @@ template <class ELFT> eld::Expected<bool> ELFReader<ELFT>::readSymbols() {
   LLVMEXP_RETURN_DIAGENTRY_IF_ERROR(expStrTab)
   llvm::StringRef strTab = expStrTab.get();
 
-  if (builder.getModule().getPrinter()->traceSymbols())
-    config.raise(Diag::process_file) << m_InputFile.getInput()->decoratedPath();
+  config.getDiagEngine()->trace(Diag::process_file)
+      << m_InputFile.getInput()->decoratedPath();
 
   ELFFileBase *EFileBase = llvm::cast<ELFFileBase>(&m_InputFile);
 

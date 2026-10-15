@@ -11,9 +11,11 @@
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Diagnostics/DiagnosticInfos.h"
+#include "eld/Diagnostics/MsgHandler.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "gtest/gtest.h"
 #include <memory>
+#include <utility>
 
 using namespace eld;
 
@@ -81,4 +83,87 @@ TEST_F(DiagnosticFrameworkTest, InvalidDiagnosticsTestRaiseDiagEntry) {
   EXPECT_EQ(output, "Fatal: Missing argument 0 when reporting diagnostic "
                     "'cannot open %0 file %1'\n");
   EXPECT_TRUE(m_DiagEngine->diagnose() == false);
+}
+
+TEST_F(DiagnosticFrameworkTest, DisabledTraceEmitsNothing) {
+  testing::internal::CaptureStderr();
+  m_DiagEngine->trace(Diag::trace_file) << "input.o";
+  EXPECT_TRUE(testing::internal::GetCapturedStderr().empty());
+}
+
+TEST_F(DiagnosticFrameworkTest, EnabledTraceEmits) {
+  m_DiagEngine->enableTrace(TraceFiles);
+  testing::internal::CaptureStderr();
+  m_DiagEngine->trace(Diag::trace_file) << "input.o";
+  EXPECT_EQ(testing::internal::GetCapturedStderr(), "Trace: input.o\n");
+}
+
+TEST_F(DiagnosticFrameworkTest, KeyedTraceFiltersAccumulate) {
+  m_DiagEngine->addTraceFilter(TraceSymbol, "exact");
+  m_DiagEngine->addTraceFilter(TraceSymbol, "regex.*");
+  testing::internal::CaptureStderr();
+  m_DiagEngine->trace(Diag::apply_relocation, "exact") << "exact" << "10";
+  m_DiagEngine->trace(Diag::apply_relocation, "regex-key")
+      << "regex-key" << "20";
+  m_DiagEngine->trace(Diag::apply_relocation, "other") << "other" << "30";
+  m_DiagEngine->trace(Diag::apply_relocation) << "keyless" << "40";
+  EXPECT_EQ(testing::internal::GetCapturedStderr(),
+            "Trace: Symbol exact, application site: 0x10\n"
+            "Trace: Symbol regex-key, application site: 0x20\n");
+}
+
+TEST_F(DiagnosticFrameworkTest, SectionTraceMatchesKey) {
+  m_DiagEngine->addTraceFilter(TraceSection, ".text");
+  testing::internal::CaptureStderr();
+  m_DiagEngine->trace(Diag::retaining_section, ".text") << ".text" << "input.o";
+  m_DiagEngine->trace(Diag::retaining_section, ".data") << ".data" << "input.o";
+  EXPECT_EQ(testing::internal::GetCapturedStderr(),
+            "Trace: Retaining section .text from file input.o\n");
+}
+
+TEST_F(DiagnosticFrameworkTest, TraceMaskUsesAnyCategory) {
+  m_DiagEngine->enableTrace(TraceGCLive);
+  EXPECT_TRUE(m_DiagEngine->shouldTrace(TraceGC | TraceGCLive));
+  EXPECT_FALSE(m_DiagEngine->shouldTrace(TraceGC | TraceSection));
+}
+
+TEST_F(DiagnosticFrameworkTest, HasTraceChecksConfiguredCategories) {
+  EXPECT_FALSE(m_DiagEngine->hasTrace(TraceSymbol));
+  EXPECT_FALSE(m_DiagEngine->shouldTrace(TraceSymbol));
+
+  m_DiagEngine->addTraceFilter(TraceSymbol, "foo");
+  EXPECT_TRUE(m_DiagEngine->hasTrace(TraceSymbol));
+  EXPECT_FALSE(m_DiagEngine->shouldTrace(TraceSymbol));
+  EXPECT_TRUE(m_DiagEngine->shouldTrace(TraceSymbol, "foo"));
+  EXPECT_FALSE(m_DiagEngine->shouldTrace(TraceSymbol, "bar"));
+}
+
+TEST_F(DiagnosticFrameworkTest, RaiseTraceRemainsUnconditional) {
+  testing::internal::CaptureStderr();
+  m_DiagEngine->raise(Diag::trace_file) << "input.o";
+  EXPECT_EQ(testing::internal::GetCapturedStderr(), "Trace: input.o\n");
+}
+
+TEST_F(DiagnosticFrameworkTest, ExplicitEmitIsIdempotent) {
+  m_DiagEngine->enableTrace(TraceFiles);
+  testing::internal::CaptureStderr();
+  {
+    MsgHandler Handler = m_DiagEngine->trace(Diag::trace_file);
+    Handler << "input.o";
+    EXPECT_TRUE(Handler.emit());
+  }
+  EXPECT_EQ(testing::internal::GetCapturedStderr(), "Trace: input.o\n");
+}
+
+TEST_F(DiagnosticFrameworkTest, UnknownTraceOptionWithoutSeparator) {
+  EXPECT_FALSE((bool)m_Config->options().setTrace("reloc"));
+  EXPECT_FALSE((bool)m_Config->options().setTrace("symbol"));
+  EXPECT_FALSE((bool)m_Config->options().setTrace("section"));
+  EXPECT_FALSE((bool)m_Config->options().setTrace("symbolic"));
+  EXPECT_FALSE((bool)m_Config->options().setTrace("relocations"));
+  EXPECT_TRUE((bool)m_Config->options().setTrace("symbol=foo"));
+  EXPECT_TRUE((bool)m_Config->options().setTrace("reloc=bar"));
+  EXPECT_TRUE((bool)m_Config->options().setTrace("section=.text"));
+  EXPECT_TRUE((bool)m_Config->options().setTrace("plugin"));
+  EXPECT_TRUE((bool)m_Config->options().setTrace("plugin=myplugin"));
 }

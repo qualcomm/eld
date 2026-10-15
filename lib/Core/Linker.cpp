@@ -343,7 +343,7 @@ bool Linker::initializeInputTree(std::vector<InputAction *> &Actions) {
 
 /// normalize - to convert the command line language to the input tree.
 bool Linker::normalize() {
-  if (ThisModule->getPrinter()->traceCommandLine()) {
+  if (ThisConfig->getDiagEngine()->hasTrace(TraceCommandLine)) {
     ThisConfig->printOptions(llvm::outs(), *ThisModule,
                              ThisConfig->options().color());
   }

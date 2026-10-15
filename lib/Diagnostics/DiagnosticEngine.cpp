@@ -15,18 +15,72 @@
 #include "eld/Diagnostics/DiagnosticInfos.h"
 #include "eld/Diagnostics/DiagnosticPrinter.h"
 #include "eld/Diagnostics/MsgHandler.h"
+#include "llvm/Support/Compiler.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/Regex.h"
 #include <cassert>
 #include <limits>
 #include <mutex>
+#include <string>
+#include <vector>
 
 using namespace eld;
+
+class eld::TraceConfig {
+public:
+  void enable(TraceCategory Category) { EnabledMask |= Category; }
+
+  void addFilter(TraceCategory Category, llvm::StringRef Pattern) {
+    Filters.emplace_back(Category, Pattern);
+  }
+
+  bool shouldTrace(TraceMask Mask) const { return Mask & EnabledMask; }
+
+  bool shouldTrace(TraceMask Mask, llvm::StringRef Key) const {
+    if (shouldTrace(Mask))
+      return true;
+
+    // FIXME: Currently, one diagnostic can map to only
+    // one trace category that has a filter. This check/assert
+    // should be removed when this restriction is lifted.
+    TraceMask FilteredCategories = TraceNone;
+    for (const Filter &F : Filters)
+      if (Mask & F.Category)
+        FilteredCategories |= F.Category;
+    assert((FilteredCategories == TraceNone ||
+            (FilteredCategories & (FilteredCategories - 1)) == 0) &&
+           "multiple trace categories consume the same key");
+
+    for (const Filter &F : Filters)
+      if ((Mask & F.Category) && F.Pattern == Key)
+        return true;
+    for (const Filter &F : Filters)
+      if ((Mask & F.Category) && F.CompiledPattern.match(Key))
+        return true;
+    return false;
+  }
+
+private:
+  struct Filter {
+    Filter(TraceCategory Category, llvm::StringRef Pattern)
+        : Category(Category), Pattern(Pattern.str()), CompiledPattern(Pattern) {
+    }
+
+    TraceCategory Category;
+    std::string Pattern;
+    llvm::Regex CompiledPattern;
+  };
+
+  TraceMask EnabledMask = TraceNone;
+  std::vector<Filter> Filters;
+};
 
 //===----------------------------------------------------------------------===//
 // DiagnosticEngine
 //===----------------------------------------------------------------------===//
-DiagnosticEngine::DiagnosticEngine(bool UseColor) {
+DiagnosticEngine::DiagnosticEngine(bool UseColor)
+    : TraceConfigData(std::make_unique<TraceConfig>()) {
   Printer = new DiagnosticPrinter(llvm::errs(), UseColor);
 }
 
@@ -56,6 +110,57 @@ MsgHandler DiagnosticEngine::raise(DiagIDType PId) {
   State.ID = PId;
   State.ThreadID = std::this_thread::get_id();
   return MsgHandler(*this, std::move(Lock));
+}
+
+MsgHandler DiagnosticEngine::trace(DiagIDType ID) {
+  if (LLVM_LIKELY(ActiveTraceMask == TraceNone))
+    return {};
+
+  assert(getBaseDiagID(ID) < Diag::NumOfBuildinDiagnosticInfo &&
+         "trace() called for invalid or non-builtin diagnostic");
+
+  TraceMask Mask = InfoMap->getTraceMask(ID);
+  assert(Mask != TraceNone && "trace diagnostic has no trace category");
+  if (Mask == TraceNone || !TraceConfigData->shouldTrace(Mask))
+    return {};
+  return raise(ID);
+}
+
+MsgHandler DiagnosticEngine::trace(DiagIDType ID, llvm::StringRef Key) {
+  if (LLVM_LIKELY(ActiveTraceMask == TraceNone))
+    return {};
+
+  assert(getBaseDiagID(ID) < Diag::NumOfBuildinDiagnosticInfo &&
+         "trace() called for invalid or non-builtin diagnostic");
+
+  TraceMask Mask = InfoMap->getTraceMask(ID);
+  assert(Mask != TraceNone && "trace diagnostic has no trace category");
+  if (Mask == TraceNone || !TraceConfigData->shouldTrace(Mask, Key))
+    return {};
+  return raise(ID);
+}
+
+void DiagnosticEngine::enableTrace(TraceCategory Category) {
+  assert(Category != TraceNone && (Category & (Category - 1)) == 0 &&
+         "expected one trace category");
+  ActiveTraceMask |= Category;
+  TraceConfigData->enable(Category);
+}
+
+void DiagnosticEngine::addTraceFilter(TraceCategory Category,
+                                      llvm::StringRef Pattern) {
+  assert(Category != TraceNone && (Category & (Category - 1)) == 0 &&
+         "expected one trace category");
+  ActiveTraceMask |= Category;
+  TraceConfigData->addFilter(Category, Pattern);
+}
+
+bool DiagnosticEngine::shouldTrace(TraceMask Mask) const {
+  return TraceConfigData->shouldTrace(Mask);
+}
+
+bool DiagnosticEngine::shouldTrace(TraceMask Mask, llvm::StringRef Key) const {
+  return TraceConfigData->shouldTrace(Mask, Key);
 }
 
 MsgHandler *DiagnosticEngine::raisePluginDiag(DiagIDType ID,
@@ -260,6 +365,9 @@ bool DiagnosticEngine::isErrorMismatch(DiagIDType Id) {
 #define DIAG(diagName, severity, formatStr)                                    \
   const DiagnosticEngine::DiagIDType Diag::diagName =                          \
       DiagnosticEngine::updateSeverity(++Counter, severity);
+#define TRACE_DIAG(diagName, formatStr, categories)                            \
+  const DiagnosticEngine::DiagIDType Diag::diagName =                          \
+      DiagnosticEngine::updateSeverity(++Counter, DiagnosticEngine::Trace);
 
 DiagnosticEngine::DiagIDType Diag::Counter = 0;
 // PluginDiags.inc file should always be first!
@@ -288,6 +396,7 @@ DiagnosticEngine::DiagIDType Diag::Counter = 0;
 #include "eld/Diagnostics/DiagTraceTrampolines.inc"
 #include "eld/Diagnostics/DiagVerbose.inc"
 #include "eld/Diagnostics/DiagWriters.inc"
+#undef TRACE_DIAG
 #undef DIAG
 // This is used to determine where to start base IDs for custom diagnostics.
 const DiagnosticEngine::DiagIDType Diag::NumOfBuildinDiagnosticInfo = ++Counter;

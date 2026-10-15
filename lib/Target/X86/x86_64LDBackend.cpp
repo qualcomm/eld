@@ -255,13 +255,13 @@ eld::Expected<void> x86_64LDBackend::relaxGOTPCRELXReloc(Relocation *reloc,
     break;
   }
 
-  if (m_Module.getPrinter()->traceRelax()) {
+  if (config().getDiagEngine()->hasTrace(TraceRelax)) {
     std::string location;
     ELFSection *traceSect = RF->getOwningSection();
     assert(traceSect &&
            "RegionFragment in relax candidate must have an owning section");
     location = traceSect->getLocation(offset, config().options());
-    config().raise(Diag::trace_relax_gotpcrelx)
+    config().getDiagEngine()->trace(Diag::trace_relax_gotpcrelx)
         << location << kind << rsym->name();
   }
 

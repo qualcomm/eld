@@ -62,6 +62,8 @@ public:
   /// from within the diagnostic framework.
   DiagnosticEngine::Severity getSeverity(const Diagnostic &Id, bool Ploc) const;
 
+  TraceMask getTraceMask(DiagnosticEngine::DiagIDType ID) const;
+
   /// Returns the diagnostic ID for a diagnostic that has severity and formatStr
   /// attributes same as the ones provided through parameters.
   ///

@@ -29,6 +29,7 @@ struct DiagStaticInfo {
 public:
   DiagnosticEngine::DiagIDType BaseDiagID;
   llvm::StringRef DescriptionStr;
+  TraceMask TraceCategories;
 
 public:
   llvm::StringRef getDescription() const { return DescriptionStr; }
@@ -42,7 +43,9 @@ public:
 
 static const DiagStaticInfo DiagCommonInfo[] = {
 #define DIAG(diagName, severity, formatStr)                                    \
-  {DiagnosticEngine::getBaseDiagID(Diag::diagName), formatStr},
+  {DiagnosticEngine::getBaseDiagID(Diag::diagName), formatStr, TraceNone},
+#define TRACE_DIAG(diagName, formatStr, categories)                            \
+  {DiagnosticEngine::getBaseDiagID(Diag::diagName), formatStr, categories},
 // PluginDiags.inc file should always be first!
 // This is to ensure that Plugin Diags IDs are consistent in
 // eld::Diag:: and plugin::Diagnostic:: namespaces.
@@ -69,15 +72,18 @@ static const DiagStaticInfo DiagCommonInfo[] = {
 #include "eld/Diagnostics/DiagTraceTrampolines.inc"
 #include "eld/Diagnostics/DiagVerbose.inc"
 #include "eld/Diagnostics/DiagWriters.inc"
+#undef TRACE_DIAG
 #undef DIAG
-    {0, ""}};
+    {0, "", TraceNone}};
 
 static const unsigned int DiagCommonInfoSize =
     sizeof(DiagCommonInfo) / sizeof(DiagCommonInfo[0]) - 1;
 
 static const DiagStaticInfo DiagLoCInfo[] = {
 #define DIAG(diagName, severity, formatStr)                                    \
-  {DiagnosticEngine::getBaseDiagID(Diag::diagName), formatStr},
+  {DiagnosticEngine::getBaseDiagID(Diag::diagName), formatStr, TraceNone},
+#define TRACE_DIAG(diagName, formatStr, categories)                            \
+  {DiagnosticEngine::getBaseDiagID(Diag::diagName), formatStr, categories},
 // PluginDiags.inc file should always be first!
 // This is to ensure that Plugin Diags IDs are consistent in
 // eld::Diag:: and plugin::Diagnostic:: namespaces.
@@ -104,8 +110,9 @@ static const DiagStaticInfo DiagLoCInfo[] = {
 #include "eld/Diagnostics/DiagTraceTrampolines.inc"
 #include "eld/Diagnostics/DiagVerbose.inc"
 #include "eld/Diagnostics/DiagWriters.inc"
+#undef TRACE_DIAG
 #undef DIAG
-    {0, ""}};
+    {0, "", TraceNone}};
 
 static const unsigned int DiagLoCInfoSize =
     sizeof(DiagLoCInfo) / sizeof(DiagLoCInfo[0]) - 1;
@@ -115,11 +122,13 @@ static const DiagStaticInfo *getDiagInfo(DiagnosticEngine::DiagIDType ID,
   const DiagStaticInfo *StaticInfo = (PInLoC) ? DiagLoCInfo : DiagCommonInfo;
   unsigned int InfoSize = (PInLoC) ? DiagLoCInfoSize : DiagCommonInfoSize;
   DiagnosticEngine::DiagIDType BaseDiagId = DiagnosticEngine::getBaseDiagID(ID);
-  DiagStaticInfo Key = {BaseDiagId, ""};
+  DiagStaticInfo Key = {BaseDiagId, "", TraceNone};
   // FIXME: Why don't we simply use static_info[baseDiagID] here?
   const DiagStaticInfo *Result =
       std::lower_bound(StaticInfo, StaticInfo + InfoSize, Key);
 
+  // FIXME: This assumes callers pass a base diagnostic ID. Compare against
+  // BaseDiagId once callers passing severity-bearing IDs are supported.
   if (Result == (StaticInfo + InfoSize) || Result->BaseDiagID != ID)
     return nullptr;
 
@@ -152,6 +161,18 @@ DiagnosticEngine::Severity
 DiagnosticInfos::getSeverity(const Diagnostic &Diagnostic, bool Loc) const {
   DiagnosticEngine::DiagIDType Id = Diagnostic.getID();
   return DiagnosticEngine::getSeverity(Id);
+}
+
+TraceMask DiagnosticInfos::getTraceMask(DiagnosticEngine::DiagIDType ID) const {
+  DiagnosticEngine::DiagIDType BaseDiagID = DiagnosticEngine::getBaseDiagID(ID);
+  if (BaseDiagID >= Diag::NumOfBuildinDiagnosticInfo)
+    return TraceNone;
+  const DiagStaticInfo *Info = getDiagInfo(BaseDiagID);
+  if (!Info) {
+    assert(false && "invalid diagnostic ID");
+    return TraceNone;
+  }
+  return Info->TraceCategories;
 }
 
 eld::Expected<void> DiagnosticInfos::process(DiagnosticEngine &PEngine) const {

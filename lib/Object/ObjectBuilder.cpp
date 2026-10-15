@@ -217,7 +217,7 @@ void ObjectBuilder::mergeStrings(MergeStringFragment *F,
         MergeStringFragment::mergeStrings(&S, O, module());
     if (&MergedString == &S)
       continue;
-    if (config().getPrinter()->traceMergeStrings() ||
+    if (config().getDiagEngine()->hasTrace(TraceMergeStrings) ||
         config().getPrinter()->isVerbose())
       traceMergeStrings(&S, &MergedString);
   }
@@ -233,7 +233,7 @@ void ObjectBuilder::mergeConstants(MergeDataFragment *F,
         MergeDataFragment::getOrAddMergedConstant(&C, O, RecordForMap);
     if (&MergedConstant == &C)
       continue;
-    if (config().getPrinter()->traceMergeConstants() ||
+    if (config().getDiagEngine()->hasTrace(TraceMergeConstants) ||
         config().getPrinter()->isVerbose())
       traceMergeConstants(&C, &MergedConstant);
   }
@@ -584,7 +584,7 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
   // For each input object.
   if (ThisConfig.options().numThreads() <= 1 ||
       !ThisConfig.isAssignOutputSectionsMultiThreaded()) {
-    if (ThisModule.getPrinter()->traceThreads())
+    if (ThisConfig.getDiagEngine()->hasTrace(TraceThreads))
       ThisConfig.raise(Diag::threads_disabled) << "AssignOutputSections";
     for (auto &Obj : Inputs) {
       if (IsPostLtoPhase && Obj->isBitcode())
@@ -602,7 +602,7 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
       assignInputFromOutput(Obj);
     }
   } else {
-    if (ThisModule.getPrinter()->traceThreads())
+    if (ThisConfig.getDiagEngine()->hasTrace(TraceThreads))
       ThisConfig.raise(Diag::threads_enabled)
           << "AssignOutputSections" << ThisConfig.options().numThreads();
     eld::plugin::ThreadPool *Pool = ThisModule.getThreadPool();
@@ -875,12 +875,12 @@ void ObjectBuilder::reAssignOutputSections(const plugin::LinkerWrapper *LW) {
   // For each input object.
   if (ThisConfig.options().numThreads() <= 1 ||
       !ThisConfig.isAssignOutputSectionsMultiThreaded()) {
-    if (ThisModule.getPrinter()->traceThreads())
+    if (ThisConfig.getDiagEngine()->hasTrace(TraceThreads))
       ThisConfig.raise(Diag::threads_disabled) << "ReAssign OutputSections";
     for (uint32_t I = 0; I < OverrideMatch.size(); ++I)
       OverrideFn(I);
   } else {
-    if (ThisModule.getPrinter()->traceThreads())
+    if (ThisConfig.getDiagEngine()->hasTrace(TraceThreads))
       ThisConfig.raise(Diag::threads_enabled)
           << "ReAssign OutputSections" << ThisConfig.options().numThreads();
     llvm::parallelFor((size_t)0, OverrideMatch.size(), OverrideFn);

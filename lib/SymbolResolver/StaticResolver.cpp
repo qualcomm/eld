@@ -35,7 +35,6 @@ StaticResolver::~StaticResolver() {}
 bool StaticResolver::resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
                              bool &CurOverride, LDSymbol::ValueType pValue,
                              LinkerConfig *Config, bool IsPostLtoPhase) const {
-  bool AmITracing = Config->getPrinter()->traceSymbols();
   bool WarnCommon = Config->options().warnCommon();
 
   /* The state table itself.
@@ -139,19 +138,16 @@ bool StaticResolver::resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
       Old->override(pNew);
       if (!Old->isDyn())
         Old->overrideVisibility(pNew);
-      if (AmITracing) {
-        Config->raise(Diag::adding_new_sym)
-          << getOrdinateDesc(Row) << pNew.name();
-        Config->raise(Diag::overriding_old_sym) << Old->name()
-          << getOrdinateDesc(Col) << pNew.name();
-      }
+      Config->getDiagEngine()->trace(Diag::adding_new_sym)
+        << getOrdinateDesc(Row) << pNew.name();
+      Config->getDiagEngine()->trace(Diag::overriding_old_sym) << Old->name()
+        << getOrdinateDesc(Col) << pNew.name();
       break;
     }
     case MDEFD:    /* mark symbol dynamic defined.  */
     case MDEFWD: { /* mark symbol dynamic weak defined.  */
-      if (AmITracing)
-        Config->raise(Diag::marking_sym)
-          << Old->name() << getOrdinateDesc(Row);
+      Config->getDiagEngine()->trace(Diag::marking_sym)
+        << Old->name() << getOrdinateDesc(Row);
 
       if (pOld.visibility() != ResolveInfo::Default) {
         Cycle = true;
@@ -171,11 +167,9 @@ bool StaticResolver::resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
     case DUNDW: {
       Old->setVisibility(pNew.visibility());
       CurOverride = false;
-      if (AmITracing) {
-        Config->raise(Diag::override_dyn_sym)
-          << Old->name() << Old->resolvedOrigin()
-          << getOrdinateDesc(Row);
-      }
+      Config->getDiagEngine()->trace(Diag::override_dyn_sym)
+        << Old->name() << Old->resolvedOrigin()
+        << getOrdinateDesc(Row);
       break;
     }
     case CREF: { /* Possibly warn about common reference to defined symbol.  */
@@ -227,8 +221,8 @@ bool StaticResolver::resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
       Old->overrideAttributes(pNew);
       Old->overrideVisibility(pNew);
       CurOverride = true;
-      if (AmITracing)
-        Config->raise(Diag::override_common_sym) << Old->name() << Old->size();
+      Config->getDiagEngine()->trace(Diag::override_common_sym)
+        << Old->name() << Old->size();
       break;
     }
     case MBIG: { /* mark common symbol by larger size. */
@@ -248,8 +242,8 @@ bool StaticResolver::resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
         Old->shouldPreserve(true);
       }
       Old->overrideVisibility(pNew);
-      if (AmITracing)
-        Config->raise(Diag::mark_common_sym) << Old->name() << Old->size();
+      Config->getDiagEngine()->trace(Diag::mark_common_sym)
+        << Old->name() << Old->size();
       break;
     }
     case MDEF: { /* multiple definition error.  */

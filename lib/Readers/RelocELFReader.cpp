@@ -398,7 +398,7 @@ LDSymbol *RelocELFReader<ELFT>::fixWrapSyms(LDSymbol *sym) {
   if (!realSym)
     realSym = createUndefReference(realName);
   LinkerConfig &config = this->m_Module.getConfig();
-  if (this->m_Module.getPrinter()->traceWrapSymbols())
+  if (config.getDiagEngine()->hasTrace(TraceWrap))
     config.raise(Diag::real_sym_reference) << realName << sym->name();
   return realSym;
 }

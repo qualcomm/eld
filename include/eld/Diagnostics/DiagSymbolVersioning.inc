@@ -10,14 +10,16 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-DIAG(trace_creating_symbol_versioning_section, DiagnosticEngine::Trace,
-     "Creating symbol versioning section: %0")
-DIAG(trace_creating_symbol_versioning_fragment, DiagnosticEngine::Trace,
-     "Creating symbol versioning fragment: %0")
-DIAG(trace_version_script_matched_scope, DiagnosticEngine::Trace,
-     "Version script node '%1' matched symbol '%0'")
-DIAG(trace_clear_export_due_to_local_scope, DiagnosticEngine::Trace,
-     "Clearing export for symbol '%0' due to local scope")
+TRACE_DIAG(trace_creating_symbol_versioning_section,
+           "Creating symbol versioning section: %0", TraceSymbolVersioning)
+TRACE_DIAG(trace_creating_symbol_versioning_fragment,
+           "Creating symbol versioning fragment: %0", TraceSymbolVersioning)
+TRACE_DIAG(trace_version_script_matched_scope,
+           "Version script node '%1' matched symbol '%0'",
+           TraceSymbolVersioning)
+TRACE_DIAG(trace_clear_export_due_to_local_scope,
+           "Clearing export for symbol '%0' due to local scope",
+           TraceSymbolVersioning)
 DIAG(error_missing_version_node, DiagnosticEngine::Error,
      "%0: symbol %1 has undefined version %2")
 DIAG(error_undefined_version, DiagnosticEngine::Error,
@@ -25,14 +27,14 @@ DIAG(error_undefined_version, DiagnosticEngine::Error,
      "defined")
 DIAG(error_unknown_version_node_dependency, DiagnosticEngine::Error,
      "%2: version node '%0' depends on unknown version node '%1'")
-DIAG(trace_assign_output_version_ids, DiagnosticEngine::Trace,
-     "Assigning version IDs to output symbols")
-DIAG(trace_adding_verneed_entry, DiagnosticEngine::Trace,
-     "Adding verneed entry: '%0' -> '%1'")
-DIAG(trace_reading_symbol_versioning_section, DiagnosticEngine::Trace,
-     "Reading %0[%1]")
-DIAG(trace_symbol_to_output_version_id, DiagnosticEngine::Trace,
-     "Symbol '%0' -> version id %1")
+TRACE_DIAG(trace_assign_output_version_ids,
+           "Assigning version IDs to output symbols", TraceSymbolVersioning)
+TRACE_DIAG(trace_adding_verneed_entry, "Adding verneed entry: '%0' -> '%1'",
+           TraceSymbolVersioning)
+TRACE_DIAG(trace_reading_symbol_versioning_section, "Reading %0[%1]",
+           TraceSymbolVersioning)
+TRACE_DIAG(trace_symbol_to_output_version_id, "Symbol '%0' -> version id %1",
+           TraceSymbolVersioning)
 
 DIAG(error_malformed_versioned_symbol_name, DiagnosticEngine::Error,
      "%0: malformed versioned symbol name '%1'")
@@ -41,5 +43,5 @@ DIAG(error_default_versioned_undef_ref, DiagnosticEngine::Error,
      "%0: '%1' uses '@@' but is an undefined reference; "
      "'@@' is only valid on definitions")
 
-DIAG(trace_object_versioned_symbol, DiagnosticEngine::Trace,
-     "Inserted versioned symbol '%0' from '%1'")
+TRACE_DIAG(trace_object_versioned_symbol,
+           "Inserted versioned symbol '%0' from '%1'", TraceSymbolVersioning)
