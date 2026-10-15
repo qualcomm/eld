@@ -800,8 +800,10 @@ eld::Expected<void>
 LinkerWrapper::deleteDWARFInfoForInputFile(plugin::InputFile &F) const {
   eld::InputFile *IF = F.getInputFile();
   eld::ELFObjectFile *EObj = llvm::dyn_cast<eld::ELFObjectFile>(IF);
-  // FIXME: Maybe return an error here?
-  if (!EObj || !EObj->hasDWARFContext())
+  if (!EObj)
+    return std::make_unique<DiagnosticEntry>(
+        DiagnosticEntry(Diag::error_invalid_input_file, {F.getFileName()}));
+  if (!EObj->hasDWARFContext())
     return {};
   EObj->deleteDWARFContext();
   return {};
@@ -832,7 +834,6 @@ bool LinkerWrapper::is64Bits() const {
 }
 
 char *LinkerWrapper::getUninitBuffer(size_t S) const {
-  // FIXME: Raise plugin_request_memory diagnostic!
   return m_Module.getUninitBuffer(S);
 }
 

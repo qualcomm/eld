@@ -1213,7 +1213,8 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     std::error_code EC =
         llvm::sys::fs::createTemporaryFile("reproduce", "tar", outputPath);
     if (EC) {
-      Config.raise(Diag::unable_to_create_temporary_file) << "reproduce.tar";
+      Config.raise(Diag::unable_to_create_temporary_file)
+          << "reproduce.tar" << EC.message();
       return false;
     }
     Config.options().setTarFile(outputPath.str().str());
@@ -2030,9 +2031,29 @@ void GnuLdDriver::defaultSignalHandler(void *cookie) {
   std::error_code EC =
       llvm::sys::fs::createTemporaryFile("reproduce", "sh", outputPath);
 
+  if (EC) {
+    if (DiagEngineUsable)
+      DiagEngine->raise(Diag::unable_to_create_temporary_file)
+          << "reproduce.sh" << EC.message();
+    else
+      llvm::errs() << "Fatal: Unable to create temporary file reproduce.sh: "
+                   << EC.message() << "\n";
+    return;
+  }
+
   std::error_code error;
   auto file = std::make_unique<llvm::raw_fd_ostream>(outputPath.str(), error,
                                                      llvm::sys::fs::OF_None);
+
+  if (error) {
+    if (DiagEngineUsable)
+      DiagEngine->raise(Diag::fatal_unable_to_open_file)
+          << outputPath.str() << error.message();
+    else
+      llvm::errs() << "Fatal: Unable to open temporary file "
+                   << outputPath.str() << ": " << error.message() << "\n";
+    return;
+  }
 
   bool pluginCrash = false;
   for (eld::Plugin *P : ThisModule->getScript().getPlugins()) {
@@ -2053,15 +2074,6 @@ void GnuLdDriver::defaultSignalHandler(void *cookie) {
       llvm::errs() << "Fatal: !!!UNEXPECTED LINKER BEHAVIOR!!!\n";
   }
 
-  // FIXME: EC should be checked before using outputPath variable.
-  if (EC || error) {
-    if (DiagEngineUsable)
-      DiagEngine->raise(Diag::linker_crash_use_reproduce) << "--reproduce";
-    else
-      llvm::errs() << "Fatal: Please rerun link with --reproduce and contact "
-                      "support\n";
-    return;
-  }
   *file << commandLine;
   if (DiagEngineUsable)
     DiagEngine->raise(Diag::linker_crash_use_reproduce) << outputPath.str();

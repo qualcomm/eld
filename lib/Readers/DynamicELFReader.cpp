@@ -8,9 +8,11 @@
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/MsgHandler.h"
 #include "eld/Input/ELFDynObjectFile.h"
+#include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
+#include <string>
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "llvm/BinaryFormat/ELF.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
@@ -166,9 +168,10 @@ eld::Expected<ELFSection *> DynamicELFReader<ELFT>::createSection(
   // Setup all section properties.
   LinkerSectionKind kind = this->classifySectionKind(rawSectHdr, sectionName);
 
-  // FIXME: Emit some diagnostic here.
   if (kind == LinkerSectionKind::Error)
-    return static_cast<ELFSection *>(nullptr);
+    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+        Diag::err_unsupported_section,
+        {sectionName, std::to_string(rawSectHdr.sh_type)}));
 
   ELFSection *section =
       this->m_Module.getScript().sectionMap().createELFSection(
