@@ -1,3 +1,4 @@
+REQUIRES: x86_64, linux
 REQUIRES: symbol_versioning, linux
 # An old non-default GLOBAL mixed@V1 and the default GLOBAL mixed@@V2
 # share input storage. The old version must receive its own COPY, while

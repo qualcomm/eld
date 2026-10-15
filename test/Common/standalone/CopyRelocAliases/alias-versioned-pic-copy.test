@@ -1,3 +1,4 @@
+REQUIRES: x86_64, linux
 REQUIRES: symbol_versioning, linux
 # A PIC object's GLOB_DAT for environ must remain resolvable when a non-PIC
 # object also triggers a COPY for glibc's default-versioned environ alias.

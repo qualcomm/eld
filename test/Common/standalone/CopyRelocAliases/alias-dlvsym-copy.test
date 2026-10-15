@@ -1,3 +1,4 @@
+REQUIRES: x86_64, linux
 REQUIRES: symbol_versioning, linux
 # A COPY relocation must export all default-versioned data aliases under
 # their canonical versioned names, including names never referenced by

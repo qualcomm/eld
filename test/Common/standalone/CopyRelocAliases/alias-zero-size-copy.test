@@ -1,3 +1,4 @@
+REQUIRES: x86_64, linux
 REQUIRES: linux
 # A zero-sized OBJECT alias of payload must resolve to the same executable
 # COPY storage and be visible in the dynamic symbol table. Merely copying
