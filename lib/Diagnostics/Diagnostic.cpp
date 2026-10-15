@@ -116,11 +116,9 @@ eld::Expected<void> Diagnostic::format(const char *PBegin, const char *PEnd,
       }
     }
     if (!isdigit(*CurChar)) {
-      // FIXME: This should be returned using eld::Expected as well!
-      llvm::report_fatal_error(llvm::Twine("In diagnostic: ") +
-                               llvm::Twine(getID()) + llvm::Twine(": ") +
-                               llvm::Twine(PBegin) +
-                               llvm::Twine("\nNo given arugment number:\n"));
+      return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+          Diag::fatal_invalid_diag_format,
+          {std::to_string(getID()), std::string(PBegin, PEnd)}));
     }
 
     unsigned int ArgNo = *CurChar - '0';

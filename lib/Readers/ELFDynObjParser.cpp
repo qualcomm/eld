@@ -39,16 +39,17 @@ eld::Expected<bool> ELFDynObjParser::parseFile(InputFile &inputFile) {
 
   eld::Expected<bool> expCheckFlags = ELFReader->checkFlags();
 
-  // FIXME: Linker should give some error if checkFlags return false.
-  if (expCheckFlags.has_value() && expCheckFlags.value()) {
-    LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
-    if (layoutInfo) {
-      std::string flagStr = ELFReader->getFlagString();
-      if (!flagStr.empty()) {
-        std::string flag = "[" + std::string(flagStr) + "]";
-        layoutInfo->recordInputActions(LayoutInfo::Load, inputFile.getInput(),
-                                       flag);
-      }
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expCheckFlags);
+  if (!expCheckFlags.value())
+    return false;
+
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
+  if (layoutInfo) {
+    std::string flagStr = ELFReader->getFlagString();
+    if (!flagStr.empty()) {
+      std::string flag = "[" + std::string(flagStr) + "]";
+      layoutInfo->recordInputActions(LayoutInfo::Load, inputFile.getInput(),
+                                     flag);
     }
   }
 

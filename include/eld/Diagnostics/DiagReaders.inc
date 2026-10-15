@@ -33,6 +33,11 @@ DIAG(section_does_not_have_proper_permissions, DiagnosticEngine::Warning,
 DIAG(corrupt_input_file, DiagnosticEngine::Fatal, "%0 : %1")
 DIAG(error_group_flags, DiagnosticEngine::Error,
      "Unsupported SHT_GROUP flags in `%0' (%1) in file %2: 0x%3")
+DIAG(fatal_group_signature_symbol_not_found, DiagnosticEngine::Fatal,
+     "cannot find signature symbol for group section `%0' in input file `%1'")
+DIAG(fatal_zlib_unavailable, DiagnosticEngine::Fatal,
+     "cannot decompress section `%0' in input file `%1': zlib support is "
+     "unavailable")
 DIAG(discarding_section, DiagnosticEngine::Verbose,
      "Discard section %0 in file %1")
 DIAG(eh_frame_read_error, DiagnosticEngine::Error,
