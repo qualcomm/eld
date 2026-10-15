@@ -327,8 +327,9 @@ plugin::INIFile::~INIFile() {
 
 std::string plugin::INIFile::getValue(const std::string Section,
                                       const std::string Item) {
-  return m_Reader->containsItem(Section, Item) ? (*m_Reader)[Section][Item]
-                                               : "";
+  return m_Reader->containsItem(Section, Item)
+             ? m_Reader->operator[](Section).getItem(Item)
+             : "";
 }
 
 std::vector<std::pair<std::string, std::string>>
@@ -349,7 +350,7 @@ void plugin::INIFile::addSection(const std::string &section) {
 
 void plugin::INIFile::insert(const std::string &section, const std::string &K,
                              const std::string &V) {
-  (*m_Reader)[section][K] = V;
+  m_Reader->operator[](section).addItem(K, V);
 }
 
 bool plugin::INIFile::containsSection(const std::string &sectionName) const {

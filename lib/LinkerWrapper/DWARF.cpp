@@ -22,28 +22,6 @@ using namespace eld;
 
 plugin::DWARFInfo::DWARFInfo(llvm::DWARFContext *DC) { m_DWARFContext = DC; }
 
-// FIXME: Remove
-plugin::DWARFInfo::DWARFInfo(plugin::InputFile F) {
-  llvm::MemoryBufferRef Buffer(F.getInputFile()->getContents(),
-                               F.getFileName());
-
-  llvm::Expected<std::unique_ptr<llvm::object::ObjectFile>> ObjectFileOrError =
-      llvm::object::ObjectFile::createObjectFile(Buffer);
-
-  if (!ObjectFileOrError) {
-    llvm::errs() << ObjectFileOrError.takeError() << "\n";
-    return;
-  }
-
-  m_ObjectFile = ObjectFileOrError->release();
-
-  std::unique_ptr<llvm::DWARFContext> Context =
-      llvm::DWARFContext::create(*m_ObjectFile);
-
-  m_DWARFContext = Context.release();
-  ShouldDeleteDWARFContext = true;
-}
-
 plugin::DWARFInfo::~DWARFInfo() {
   if (ShouldDeleteDWARFContext)
     delete m_DWARFContext;

@@ -9,6 +9,7 @@
 
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/ScriptCommand.h"
+#include "eld/Support/Memory.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include <cassert>
 
@@ -52,18 +53,6 @@ public:
   static OutputSectData *create(uint32_t ID, OutputSectDesc &OutSectDesc,
                                 std::string Str);
 
-  // FIXME: Ideally, it should be private. Users of this class should only
-  // use OutputSectData::Create function to create objects of this class.
-  // It needs to be public so that eld::make can be used to handle lifetime
-  // of the object.
-  OutputSectData(uint32_t ID, InputSectDesc::Policy Policy,
-                 const InputSectDesc::Spec Spec, OutputSectDesc &OutSectDesc,
-                 OSDKind Kind, Expression &Expr);
-
-  OutputSectData(uint32_t ID, InputSectDesc::Policy Policy,
-                 const InputSectDesc::Spec Spec, OutputSectDesc &OutSectDesc,
-                 std::string Str);
-
   void dump(llvm::raw_ostream &Outs) const override;
 
   void dumpMap(llvm::raw_ostream &Outs, bool UseColor = false,
@@ -103,6 +92,18 @@ public:
   static constexpr uint32_t DefaultSectionFlags = llvm::ELF::SHF_ALLOC;
 
 private:
+  // Object creation is centralized in create(), while eld::make() owns the
+  // arena allocation and destruction lifetime.
+  template <typename T, typename... U> friend T *eld::make(U &&...Args);
+
+  OutputSectData(uint32_t ID, InputSectDesc::Policy Policy,
+                 const InputSectDesc::Spec Spec, OutputSectDesc &OutSectDesc,
+                 OSDKind Kind, Expression &Expr);
+
+  OutputSectData(uint32_t ID, InputSectDesc::Policy Policy,
+                 const InputSectDesc::Spec Spec, OutputSectDesc &OutSectDesc,
+                 std::string Str);
+
   /// Creates the section along with the required fragment for the output
   /// section data.
   ELFSection *createOSDSection(Module &Module);

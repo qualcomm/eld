@@ -183,7 +183,7 @@ bool BitcodeReader::readInput(InputFile &InputFile,
   // If there is a plugin corresponding to the input file, delegate the reading
   // to the plugin.
   if (LTOPlugin) {
-    LTOPlugin->ReadSymbols(*BitcodeFile->getPluginModule());
+    LTOPlugin->ReadSymbols(BitcodeFile->getPluginModule());
     if (!m_Module.getConfig().getDiagEngine()->diagnose())
       return false;
   } else {

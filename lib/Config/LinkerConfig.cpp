@@ -61,7 +61,6 @@ void LinkerConfig::addCommandLine(llvm::StringRef Option,
   addCommandLine(Option, MapStyles);
 }
 
-// TODO: Use DIAG here.
 void LinkerConfig::printOptions(llvm::raw_ostream &Outs, Module const &M,
                                 bool UseColor) {
   Outs << "# Notable linker command/script options:\n";

@@ -79,7 +79,6 @@ public:
         JustSymbols(false), IsBinary(false) {}
 
 private:
-  // FIXME: Convert to std::optional<bool>
   bool WholeArchive;
   bool AsNeeded;
   bool AddNeeded;
