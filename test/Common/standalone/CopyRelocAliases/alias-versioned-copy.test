@@ -1,3 +1,4 @@
+REQUIRES: x86_64, linux
 #REQUIRES: symbol_versioning
 #UNSUPPORTED: windows, darwin
 #---alias-versioned-copy.test-------------Copy Relocations-------------------#

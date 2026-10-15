@@ -1,3 +1,4 @@
+REQUIRES: x86_64, linux
 REQUIRES: symbol_versioning, linux
 # A non-default WEAK mixed@V1 shares DSO storage with GLOBAL mixed@@V2.
 # They must remain separate COPY relocations in the output executable.
