@@ -175,7 +175,7 @@ public:
             plugin::Symbol::Binding Binding, Section InputSection,
             plugin::Symbol::Kind Kind,
             plugin::Symbol::Visibility Visibility = plugin::Symbol::Default,
-            unsigned Type = 0, uint64_t Size = 0);
+            unsigned Type = 0, uint64_t Size = 0, unsigned SymbolIndex = 0);
 
   /// Override the output section to OutputSection for Section S.
   /// \param S Section for which the output section needs to be overriden.
