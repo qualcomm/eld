@@ -1,0 +1,32 @@
+#---ReadOnlyCopy.test----------------------- Executable ----------------------#
+#BEGIN_COMMENT
+# Validates COPY handling for a read-only pointer initializer referencing
+# shared-library data.
+# The input section is made read-only explicitly before linking.
+# Checks successful COPY creation and the existing -z nocopyreloc diagnostic,
+# without assertions or crashes.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -fPIC -c %p/Inputs/lib.c -o %t.lib.o
+RUN: %link %linkg0opts -shared %t.lib.o -o %t.lib.so
+RUN: %clang %clangg0opts -fno-pic -fno-pie -c %p/Inputs/readonly.c -o %t.raw.o
+RUN: llvm-objcopy --set-section-flags .ro_ptr=alloc,load,readonly,data \
+RUN:   %t.raw.o %t.main.o
+RUN: %readelf -SW %t.main.o | %filecheck %s --check-prefix=INPUT
+
+RUN: %link %linkg0opts -e ptr %t.main.o %t.lib.so -o %t.copy.out
+RUN: %readelf -rW %t.copy.out | %filecheck %s --check-prefix=COPY
+
+RUN: %not %link %linkg0opts -e ptr -z nocopyreloc \
+RUN:   %t.main.o %t.lib.so -o %t.nocopy.out 2>&1 \
+RUN:   | %filecheck %s --check-prefix=ERR \
+RUN:   --implicit-check-not=Assertion \
+RUN:   --implicit-check-not="Stack dump" \
+RUN:   --implicit-check-not="UNEXPECTED LINKER BEHAVIOR"
+#END_TEST
+
+INPUT: .ro_ptr PROGBITS {{[0-9a-fA-F]+}} {{[0-9a-fA-F]+}} {{[0-9a-fA-F]+}} {{[0-9a-fA-F]+}} A {{[0-9]+}} {{[0-9]+}} {{[0-9]+}}
+
+COPY: {{R_[A-Za-z0-9_]*COPY}} {{[0-9a-fA-F]+}} foo{{([[:space:]]|$)}}
+
+ERR: Cannot copy symbol foo
