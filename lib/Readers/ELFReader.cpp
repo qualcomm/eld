@@ -188,8 +188,6 @@ ELFReader<ELFT>::classifySectionKind(Elf_Shdr rawSectHdr,
         (rawSectHdr.sh_type >= llvm::ELF::SHT_LOUSER &&
          rawSectHdr.sh_type <= llvm::ELF::SHT_HIUSER))
       return LinkerSectionKind::Target;
-    config.raise(Diag::err_unsupported_section)
-        << sectionName << rawSectHdr.sh_type;
     return LinkerSectionKind::Error;
   }
 }
@@ -597,16 +595,16 @@ eld::Expected<bool> ELFReader<ELFT>::readCompressedSection(ELFSection *S) {
     return true;
   llvm::StringRef rawData = S->getContents();
 
-  // FIXME: Return error here.
   if (rawData.size() < sizeof(typename ELFReader<ELFT>::Elf_Chdr))
-    return false;
+    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+        Diag::err_cannot_read_section, {S->name().str()}));
 
   const typename ELFReader<ELFT>::Elf_Chdr *hdr =
       reinterpret_cast<const typename ELFReader<ELFT>::Elf_Chdr *>(
           rawData.data());
-  // FIXME: Return error here.
   if (hdr->ch_type != llvm::ELF::ELFCOMPRESS_ZLIB)
-    return false;
+    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+        Diag::err_cannot_read_section, {S->name().str()}));
 
   size_t uncompressedSize = hdr->ch_size;
   typename ELFReader<ELFT>::uintX_t alignment =

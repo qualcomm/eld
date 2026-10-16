@@ -148,10 +148,6 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
         eld::Expected<bool> expReadCompressedSection =
             ELFReader.readCompressedSection(S);
         ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadCompressedSection);
-        if (!expReadCompressedSection.value())
-          return std::make_unique<plugin::DiagnosticEntry>(
-              plugin::DiagnosticEntry(Diag::err_cannot_read_section,
-                                      {S->name().str()}));
       } else if (!backend.readSection(*inputFile, S)) {
         return std::make_unique<plugin::DiagnosticEntry>(
             plugin::DiagnosticEntry(Diag::err_cannot_read_section,
@@ -159,11 +155,11 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
       }
     } break;
     case LinkerSectionKind::MergeStr: {
-      if (S->isCompressed())
-        if (!ELFReader.readCompressedSection(S))
-          return std::make_unique<plugin::DiagnosticEntry>(
-              plugin::DiagnosticEntry(Diag::err_cannot_read_section,
-                                      {S->name().str()}));
+      if (S->isCompressed()) {
+        eld::Expected<bool> expReadCompressedSection =
+            ELFReader.readCompressedSection(S);
+        ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadCompressedSection);
+      }
       addMergeStringSection(S, mergeStrFragments);
     } break;
     case LinkerSectionKind::Debug: {
@@ -384,10 +380,6 @@ ELFRelocObjParser::readDebugSection(ELFReaderBase &ELFReader, ELFSection *S) {
       eld::Expected<bool> expReadCompressed =
           ELFReader.readCompressedSection(S);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadCompressed);
-      if (!expReadCompressed.value())
-        return std::make_unique<plugin::DiagnosticEntry>(
-            plugin::DiagnosticEntry(Diag::err_cannot_read_section,
-                                    {S->name().str()}));
     } else if (!backend.readSection(*inputFile, S)) {
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
           Diag::err_cannot_read_section, {S->name().str()}));
@@ -458,9 +450,9 @@ eld::Expected<bool> ELFRelocObjParser::readGroups(ELFReaderBase &ELFReader) {
         ELFReader.readOneGroup(llvm::cast<ELFSection>(S));
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadOneGroup);
 
-    // FIXME: Return an error instead!
     if (!expReadOneGroup.value())
-      return false;
+      return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+          Diag::err_cannot_read_section, {S->name().str()}));
   }
   return true;
 }
