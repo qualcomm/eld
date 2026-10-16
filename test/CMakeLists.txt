@@ -36,6 +36,11 @@ add_custom_target(PluginUnitTests)
 set_target_properties(PluginUnitTests PROPERTIES FOLDER
   "plugin unit tests")
 
+get_property(ELD_PLUGIN_TEST_TARGETS GLOBAL PROPERTY ELD_PLUGIN_TEST_TARGETS)
+if(ELD_PLUGIN_TEST_TARGETS)
+  add_dependencies(PluginUnitTests ${ELD_PLUGIN_TEST_TARGETS})
+endif()
+
 function(add_plugin pluginname)
   add_dependencies(PluginUnitTests ${pluginname})
 endfunction()
