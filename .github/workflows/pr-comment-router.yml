@@ -21,6 +21,7 @@ on:
         options:
           - check-llvm-test-suite
           - check-linux-kernel
+          - check-zephyr
       request_id:
         description: "Optional request ID used to correlate an external workflow dispatch"
         required: false
@@ -68,7 +69,11 @@ jobs:
               ? process.env.INPUT_COMMAND
               : process.env.COMMENT_BODY.trim();
             const allowed = new Set(['COLLABORATOR', 'MEMBER', 'OWNER']);
-            const supported = new Set(['check-llvm-test-suite', 'check-linux-kernel']);
+            const supported = new Set([
+              'check-llvm-test-suite',
+              'check-linux-kernel',
+              'check-zephyr',
+            ]);
             if (!supported.has(command) ||
                 (!isWorkflowDispatch &&
                  !allowed.has(context.payload.comment.author_association))) {
@@ -139,10 +144,14 @@ jobs:
 
             const statusContext = command === 'check-linux-kernel'
               ? 'PR Linux kernel boot'
-              : 'PR LLVM test suite';
+              : command === 'check-zephyr'
+                ? 'PR Zephyr'
+                : 'PR LLVM test suite';
             const displayName = command === 'check-linux-kernel'
               ? 'Linux kernel boot'
-              : 'LLVM test suite';
+              : command === 'check-zephyr'
+                ? 'Zephyr'
+                : 'LLVM test suite';
 
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
@@ -215,6 +224,23 @@ jobs:
       contents: write
       actions: write
 
+  zephyr_test:
+    needs: [validate, build]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      needs.validate.outputs.command == 'check-zephyr' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    uses: ./.github/workflows/zephyr-pr.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      toolset_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
+      toolset_artifact: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
+    permissions:
+      contents: read
+      actions: write
+
   report_llvm:
     needs: [validate, build, llvm_test]
     if: |
@@ -249,6 +275,26 @@ jobs:
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
       build_result: ${{ needs.build.result }}
       test_result: ${{ needs.linux_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_zephyr:
+    needs: [validate, build, zephyr_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      needs.validate.outputs.command == 'check-zephyr'
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: Zephyr
+      status_context: PR Zephyr
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: ${{ needs.build.result }}
+      test_result: ${{ needs.zephyr_test.result }}
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     permissions:
       issues: write
