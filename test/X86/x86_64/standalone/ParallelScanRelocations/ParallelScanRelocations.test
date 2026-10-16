@@ -1,0 +1,25 @@
+## The x86 relocation scan records allocation work per input in parallel and
+## replays it in input order.
+
+# RUN: split-file %s %t
+# RUN: %llvm-mc -triple=x86_64 -filetype=obj %t/a.s -o %t/a.o
+# RUN: %llvm-mc -triple=x86_64 -filetype=obj %t/b.s -o %t/b.o
+
+# RUN: %link %linkopts -shared --enable-threads=all --thread-count=4 \
+# RUN:   --trace=threads %t/a.o %t/b.o -o %t/out.so 2>&1 | %filecheck %s
+
+# CHECK: Note: Threads Enabled ScanRelocations, Number of threads = 4
+
+#--- a.s
+        .text
+        .globl call_foo
+call_foo:
+        callq foo@PLT
+        movq foo@GOTPCREL(%rip), %rax
+        retq
+
+#--- b.s
+        .text
+        .globl foo
+foo:
+        retq

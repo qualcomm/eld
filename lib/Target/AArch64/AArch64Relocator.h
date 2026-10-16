@@ -62,23 +62,22 @@ public:
 
   bool isTLSDescStatic(Relocation &pReloc) const;
 
-  /// scanRelocation - determine the empty entries are needed or not and create
-  /// the empty entries if needed.
-  /// For AArch64, following entries are check to create:
-  /// - GOT entry (for .got section)
-  /// - PLT entry (for .plt section)
-  /// - dynamic relocation entries (for .rel.plt and .rel.dyn sections)
-  void scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
-                      ELFSection &pSection, InputFile &pInput,
-                      CopyRelocs &) override;
-
   // Handle partial linking
   void partialScanRelocation(Relocation &pReloc,
                              const ELFSection &pSection) override;
 
+protected:
+  bool isRelocSupported(const Relocation &Reloc) const override;
+
+  /// An authenticated relocation is not valid in a non-alloc section.
+  void scanNonAllocReloc(Relocation &Reloc, ELFSection &Section) override;
+
+  void scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
+                              ELFSection &Section,
+                              CopyRelocs &CopyRelocSet) override;
+
 private:
   bool isPICRelocTypeSupported(const Relocation &reloc) const override;
-  bool isRelocSupported(Relocation &pReloc) const;
   bool relocNeedsDynRel(Relocation &pReloc) const;
 
   void scanLocalReloc(InputFile &pInput, Relocation &pReloc,
