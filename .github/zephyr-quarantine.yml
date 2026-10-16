@@ -106,6 +106,13 @@
     bluetooth.shell.shell_br entry.
 
 - scenarios:
+  - pm\.system\.timer\.(?:restart|legacy)
+  platforms:
+  - qemu_cortex_m3/.*
+  comment: >-
+    The test's cmake allowlist only accepts ld and lld.
+
+- scenarios:
   - buildsystem.sbom.spdx
   platforms:
   - qemu_cortex_m3/.*
