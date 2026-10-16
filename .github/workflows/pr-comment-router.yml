@@ -22,6 +22,7 @@ on:
           - check-llvm-test-suite
           - check-linux-kernel
           - check-zephyr
+          - check-thread-sanitizer
       request_id:
         description: "Optional request ID used to correlate an external workflow dispatch"
         required: false
@@ -73,6 +74,7 @@ jobs:
               'check-llvm-test-suite',
               'check-linux-kernel',
               'check-zephyr',
+              'check-thread-sanitizer',
             ]);
             if (!supported.has(command) ||
                 (!isWorkflowDispatch &&
@@ -103,35 +105,41 @@ jobs:
               ? process.env.INPUT_REQUEST_ID
               : `${context.issue.number}-${pullRequest.head.sha}-${context.payload.comment.id}`;
             const artifactName = `pr-eld-toolset-${pullRequest.head.sha}`;
-            const artifacts = await github.paginate(
-              github.rest.actions.listArtifactsForRepo,
-              {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                name: artifactName,
-                per_page: 100,
-              }
-            );
             let reusableArtifact;
-            for (const artifact of artifacts) {
-              const runId = artifact.workflow_run?.id;
-              if (artifact.expired || !runId) {
-                continue;
-              }
-              const run = await github.rest.actions.getWorkflowRun({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: runId,
-              });
-              reusableArtifact = artifact;
-              core.info(
-                `Reusing artifact ${artifactName} from workflow run ${runId} ` +
-                `(overall conclusion: ${run.data.conclusion || run.data.status}).`
+            if (command === 'check-thread-sanitizer') {
+              core.info('ThreadSanitizer builds the PR source directly; no standard toolset artifact is required.');
+            } else {
+              const artifacts = await github.paginate(
+                github.rest.actions.listArtifactsForRepo,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: artifactName,
+                  per_page: 100,
+                }
               );
-              break;
+              for (const artifact of artifacts) {
+                const runId = artifact.workflow_run?.id;
+                if (artifact.expired || !runId) {
+                  continue;
+                }
+                const run = await github.rest.actions.getWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: runId,
+                });
+                reusableArtifact = artifact;
+                core.info(
+                  `Reusing artifact ${artifactName} from workflow run ${runId} ` +
+                  `(overall conclusion: ${run.data.conclusion || run.data.status}).`
+                );
+                break;
+              }
             }
             if (!reusableArtifact) {
-              core.info(`No reusable artifact found for ${artifactName}; the build job will run.`);
+              core.info(command === 'check-thread-sanitizer'
+                ? 'No standard toolset artifact is required for ThreadSanitizer.'
+                : `No reusable artifact found for ${artifactName}; the build job will run.`);
             }
 
             core.setOutput('pr_number', String(prNumber));
@@ -146,12 +154,16 @@ jobs:
               ? 'PR Linux kernel boot'
               : command === 'check-zephyr'
                 ? 'PR Zephyr'
-                : 'PR LLVM test suite';
+                : command === 'check-thread-sanitizer'
+                  ? 'PR Thread Sanitizer'
+                  : 'PR LLVM test suite';
             const displayName = command === 'check-linux-kernel'
               ? 'Linux kernel boot'
               : command === 'check-zephyr'
                 ? 'Zephyr'
-                : 'LLVM test suite';
+                : command === 'check-thread-sanitizer'
+                  ? 'Thread sanitizer'
+                  : 'LLVM test suite';
 
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
@@ -162,7 +174,9 @@ jobs:
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               description: reusableArtifact
                 ? `Reusing the PR ELD toolset for ${displayName}.`
-                : `Building the PR ELD toolset for ${displayName}.`,
+                : command === 'check-thread-sanitizer'
+                  ? 'Building the PR source with ThreadSanitizer.'
+                  : `Building the PR ELD toolset for ${displayName}.`,
             });
             if (!isWorkflowDispatch) {
               await github.rest.issues.createComment({
@@ -177,7 +191,10 @@ jobs:
 
   build:
     needs: validate
-    if: needs.validate.outputs.pr_sha != '' && needs.validate.outputs.artifact_reused != 'true'
+    if: |
+      needs.validate.outputs.pr_sha != '' &&
+      needs.validate.outputs.command != 'check-thread-sanitizer' &&
+      needs.validate.outputs.artifact_reused != 'true'
     uses: ./.github/workflows/ci.yml
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
@@ -242,6 +259,21 @@ jobs:
       contents: read
       actions: write
 
+  thread_sanitizer_test:
+    needs: [validate, build]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      needs.validate.outputs.command == 'check-thread-sanitizer' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    uses: ./.github/workflows/sanitize-threads.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+    permissions:
+      contents: write
+      actions: read
+
   report_llvm:
     needs: [validate, build, llvm_test]
     if: |
@@ -296,6 +328,26 @@ jobs:
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
       build_result: ${{ needs.build.result }}
       test_result: ${{ needs.zephyr_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_thread_sanitizer:
+    needs: [validate, build, thread_sanitizer_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      needs.validate.outputs.command == 'check-thread-sanitizer'
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: Thread sanitizer
+      status_context: PR Thread Sanitizer
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: ${{ needs.build.result }}
+      test_result: ${{ needs.thread_sanitizer_test.result }}
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     permissions:
       issues: write
