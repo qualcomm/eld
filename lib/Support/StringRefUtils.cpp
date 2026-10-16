@@ -7,6 +7,7 @@
 
 #include "eld/Support/StringRefUtils.h"
 #include "llvm/Demangle/Demangle.h"
+#include <cstdlib>
 
 namespace eld {
 namespace string {
@@ -37,7 +38,7 @@ std::string getDemangledName(llvm::StringRef Name) {
   if (!Buf)
     return Name.str();
   std::string S(Buf);
-  free(Buf);
+  std::free(Buf);
   return S;
 }
 
