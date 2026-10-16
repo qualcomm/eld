@@ -1491,6 +1491,11 @@ Relocator::Result ldc_pc_g1(Relocation &pReloc, ARMRelocator &pParent) {
   return ldc_pc_group(pReloc, pParent, /*pGroup=*/1);
 }
 
+// R_ARM_LDC_PC_G2: S + A - P
+Relocator::Result ldc_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldc_pc_group(pReloc, pParent, /*pGroup=*/2);
+}
+
 // R_ARM_ALU_PC_Gn / R_ARM_ALU_PC_Gn_NC: ((S + A) | T) - P
 // Shared worker for the whole ALU_PC group family. pGroup selects which
 // group's residual to encode and pCheck selects whether encoding failure is
