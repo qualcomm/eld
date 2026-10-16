@@ -1,0 +1,47 @@
+#---NoteGNUProperty.test----------------------- Executable --------------------#
+#BEGIN_COMMENT
+#This test checks ELF32 .note.gnu.property handling for RISC-V, including
+#emission, AND merging, missing/zero notes, linker script placement, discard
+#and malformed input.
+#END_COMMENT
+#START_TEST
+RUN: %llvm-mc -filetype=obj --defsym FEAT=3 %p/Inputs/note.s -o %t.all.o
+RUN: %llvm-mc -filetype=obj --defsym FEAT=1 %p/Inputs/note.s -o %t.one.o
+RUN: %llvm-mc -filetype=obj --defsym FEAT=0 %p/Inputs/note.s -o %t.zero.o
+RUN: %llvm-mc -filetype=obj --defsym NONOTE=1 %p/Inputs/note.s -o %t.none.o
+RUN: %llvm-mc -filetype=obj --defsym FEAT=3 --defsym BAD=1 %p/Inputs/note.s -o %t.bad.o
+
+## Emit
+RUN: %link %linkopts %t.all.o -o %t1.out 2>&1
+RUN: %readelf -n %t1.out | %filecheck --check-prefix=ALL %s
+
+## AND merge, both input orders
+RUN: %link %linkopts %t.all.o %t.one.o -o %t2.out 2>&1
+RUN: %readelf -n %t2.out | %filecheck --check-prefix=AND %s
+RUN: %link %linkopts %t.one.o %t.all.o -o %t3.out 2>&1
+RUN: %readelf -n %t3.out | %filecheck --check-prefix=AND %s
+
+## Missing note / zero features -> no output note
+RUN: %link %linkopts %t.all.o %t.none.o -o %t4.out 2>&1
+RUN: %readelf -S -W %t4.out | %filecheck --check-prefix=NONOTE %s
+RUN: %link %linkopts %t.none.o %t.all.o -o %t5.out 2>&1
+RUN: %readelf -S -W %t5.out | %filecheck --check-prefix=NONOTE %s
+RUN: %link %linkopts %t.all.o %t.zero.o -o %t6.out 2>&1
+RUN: %readelf -S -W %t6.out | %filecheck --check-prefix=NONOTE %s
+
+## Linker script placement
+RUN: %link %linkopts %t.all.o -T %p/Inputs/ls.t -o %t7.out 2>&1
+RUN: %readelf -S -W %t7.out | %filecheck --check-prefix=LS %s
+
+## /DISCARD/
+RUN: %link %linkopts %t.all.o -T %p/Inputs/discard.t -o %t8.out 2>&1
+RUN: %readelf -S -W %t8.out | %filecheck --check-prefix=NONOTE %s
+
+## Malformed note
+RUN: %not %link %linkopts %t.bad.o -o %t9.out 2>&1 | %filecheck --check-prefix=ERR %s
+
+#ALL: RISC-V feature: ZICFILP-unlabeled, ZICFISS
+#AND: RISC-V feature: ZICFILP-unlabeled{{$}}
+#NONOTE-NOT: .note.gnu.property
+#LS: .note {{.*}}NOTE
+#ERR: Reading .note.gnu.property from {{.*}}.bad.o has error program property is too short

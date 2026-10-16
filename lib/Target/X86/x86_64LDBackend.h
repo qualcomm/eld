@@ -160,6 +160,14 @@ public:
     return true;
   }
 
+  uint32_t getGNUPropertyFeatureAndType() const override {
+    return llvm::ELF::GNU_PROPERTY_X86_FEATURE_1_AND;
+  }
+
+  bool DoesOverrideMerge(ELFSection *pSection) const override;
+
+  ELFSection *mergeSection(ELFSection *S) override;
+
 private:
   /// getRelEntrySize - the size in BYTE of rela type relocation
   size_t getRelEntrySize() override { return 0; }
