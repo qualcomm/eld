@@ -89,7 +89,8 @@ runs:
         lock_file_msg="Add data lock for ${WORKFLOW_NAME} ${ARCH_NAME} build status data to be written"
         echo "$(date) -> $lock_file_msg" >> dash.log
         touch data.lock
-        git add .
+        git add data.lock
+        git add dash.log
         git commit -m "Add data lock for ${WORKFLOW_NAME} ${ARCH_NAME} build status data to be written"
 
         # Keep trying until a data lock is pushed successfully.
@@ -98,7 +99,8 @@ runs:
           check_lock
           echo "$(date) -> $lock_file_msg" >> dash.log
           touch data.lock
-          git add .
+          git add data.lock
+          git add dash.log
           git commit -m "$lock_file_msg"
         done
 
@@ -113,14 +115,16 @@ runs:
            echo "Removing Data Lock and Cleaning Up..."
            rm -f record_builds.py
            rm -f data.lock
-           git add .
+           git add data.lock
+           git add dash.log
            git commit -m "Removing ${WORKFLOW_NAME} ${ARCH_NAME} data lock."
            until git push -f origin HEAD:refs/heads/dashboard; do
             sleep 5
             git fetch --all
             git reset --hard origin/dashboard
             rm -f data.lock
-            git add .
+            git add data.lock
+            git add dash.log
             git commit -m "Removing ${WORKFLOW_NAME} ${ARCH_NAME} data lock."
           done
           rm -rf "${DASH_DIR}"
@@ -130,7 +134,11 @@ runs:
           rm -f record_builds.py
           echo "Removing ${WORKFLOW_NAME} ${ARCH_NAME} data lock."
           rm -f data.lock
-          git add .
+          data_msg="Add ${WORKFLOW_NAME} ${ARCH_NAME} build status data in DB"
+          echo "$(date) -> $data_msg" >> dash.log
+          git add data.lock
+          git add build-status.db
+          git add dash.log
           git commit -m "Add ${WORKFLOW_NAME} ${ARCH_NAME} build status data in DB"
           # Keep trying until lock/conflicts are resolved and build data is pushed successfully.
           until git push -f origin HEAD:refs/heads/dashboard; do
@@ -142,11 +150,14 @@ runs:
             git checkout --orphan dash
             cp -f "${DASH_DIR}/build-status.db" .
             rm -f data.lock
-            lock_file_msg="Add ${WORKFLOW_NAME} ${ARCH_NAME} build status data in DB"
-            echo "$(date) -> $lock_file_msg" >> dash.log
-            git add .
-            git commit -m "$lock_file_msg"
+            data_msg="Add ${WORKFLOW_NAME} ${ARCH_NAME} build status data in DB"
+            echo "$(date) -> $data_msg" >> dash.log
+            git add data.lock
+            git add build-status.db
+            git add dash.log
+            git commit -m "$data_msg"
           done
+          echo "Dashboard data updated"
           rm -rf "${DASH_DIR}"
           git checkout "$current_branch"
         fi
