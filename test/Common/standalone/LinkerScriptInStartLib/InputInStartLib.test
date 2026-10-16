@@ -1,0 +1,38 @@
+#---LinkerScriptInputInStartLib.test---------------- Executable --------------------#
+#BEGIN_COMMENT
+# This test checks that files introduced through INPUT() by a linker script
+# inside --start-lib/--end-lib behave as lazy library members.
+#
+# An unreferenced INPUT() object must remain unselected. When a symbol from
+# that object is referenced, the object must be selected.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/main_ref.c -o %t.main_ref.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/extra.c -o %t.extra.o
+
+# Generate the script dynamically so INPUT() names the test-specific object.
+RUN: echo "INPUT(%t.extra.o)" > %t.input.t
+
+# extra_marker is unreferenced. The INPUT() object must remain unselected.
+RUN: %link %linkopts %t.main.o \
+RUN:   --start-lib %t.foo.o -T %t.input.t --end-lib \
+RUN:   -o %t.unreferenced.out
+
+RUN: %nm %t.unreferenced.out | \
+RUN:   %filecheck %s --check-prefix=UNREFERENCED
+
+# extra_marker is referenced. The INPUT() object must be selected.
+RUN: %link %linkopts %t.main_ref.o \
+RUN:   --start-lib %t.foo.o -T %t.input.t --end-lib \
+RUN:   -o %t.referenced.out
+
+RUN: %nm %t.referenced.out | \
+RUN:   %filecheck %s --check-prefix=REFERENCED
+
+UNREFERENCED-NOT: extra_marker
+REFERENCED: {{[Tt]}} extra_marker
+
+#END_TEST

@@ -40,6 +40,12 @@ public:
   ///   the link process.
   // clang-format on
   eld::Expected<uint32_t> parseFile(InputFile &inputFile) const;
+  
+  /// Prepares archive members without resolving symbols or selecting members.
+  /// Used when the original archive is represented by a synthetic archive.
+  eld::Expected<bool>
+  prepareMembers(llvm::object::Archive &archiveReader,
+               ArchiveFile *archive) const;
 
   struct ArchiveSymbol {
     uint64_t ChildOffset = 0;

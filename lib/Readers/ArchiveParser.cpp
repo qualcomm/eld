@@ -159,6 +159,21 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
 }
 
 eld::Expected<bool>
+ArchiveParser::prepareMembers(llvm::object::Archive &archiveReader,
+                              ArchiveFile *archive) const {
+  if (!archive->getArchiveFileInfo())
+    archive->initArchiveFileInfo();
+
+  if (archiveReader.isThin())
+    archive->setThinArchive();
+
+  if (archive->hasMembers())
+    return true;
+
+  return addMembers(archiveReader, archive);
+}
+
+eld::Expected<bool>
 ArchiveParser::readSymbolTable(const llvm::object::Archive &archiveReader,
                                ArchiveFile *archive) const {
   if (!archiveReader.hasSymbolTable()) {
