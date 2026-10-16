@@ -1,17 +1,28 @@
-name: Nightly thread sanitizer check
+name: Thread sanitizer
 # owner: Steven6798
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
-  schedule: #Disabled until the workflow is green
+  schedule:
     - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
   workflow_dispatch:     # Allows manual triggering
+  workflow_call:
+    inputs:
+      pr_number:
+        description: "Pull request number"
+        required: false
+        type: string
+        default: ""
+      pr_sha:
+        description: "Exact pull request head SHA"
+        required: false
+        type: string
+        default: ""
 
 
 permissions:
   contents: write
 jobs:
-  build-and-runtest-with-tsan:
+  tsan:
     runs-on: ubuntu-latest
     if: github.repository == 'qualcomm/eld'
 
@@ -54,7 +65,7 @@ jobs:
         with:
           repository: qualcomm/eld
           path: ./llvm-project/llvm/tools/eld
-          ref: ${{ github.ref_name }}
+          ref: ${{ inputs.pr_sha || github.ref_name }}
           fetch-depth: 1
 
       - name: Configure workflow environment variables
@@ -121,7 +132,7 @@ jobs:
           path: ${{ github.workspace }}/obj/ccache
           key: thread-sanitizer-ccache-${{ runner.os }}-${{ github.run_id }}
 
-      - name: Fetch nightly toolset
+      - name: Fetch nightly toolset utilities
         uses: ./llvm-project//llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
       # disabled because currently it has failures
@@ -150,12 +161,13 @@ jobs:
           arch-name: "all"
           branch-name: "${{env.BUILD_BRANCH}}"
 
-      - name: Clean up nightly toolset
+      - name: Clean up toolset
         if: always()
         run: |
           rm -rf ${{ github.workspace }}/inst
           rm -f ${{ github.workspace }}/install-nightly-toolchain.tar.xz
-          if [ -d "${{ github.workspace }}/inst" ] || [ -f "${{ github.workspace }}/install-nightly-toolchain.tar.xz" ]; then
+          if [ -d "${{ github.workspace }}/inst" ] || \
+             [ -f "${{ github.workspace }}/install-nightly-toolchain.tar.xz" ]; then
             echo "Warning: Failed to clean up nightly toolset"
           else
             echo "Successfully cleaned up nightly toolset"
