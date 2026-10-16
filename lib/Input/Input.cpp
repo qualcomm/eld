@@ -81,6 +81,19 @@ bool Input::resolvePathMappingFile(const LinkerConfig &PConfig) {
   return true;
 }
 
+bool Input::resolveMappedPath(const LinkerConfig &PConfig) {
+  if (!PConfig.options().hasMappingFile() || isInternal())
+    return false;
+
+  // An unmapped namespec must retain normal -l search semantics. A namespec
+  // with an explicit mapping entry still uses mapping-file behavior so normal
+  // mapped links are unchanged.
+  if (Type == Input::Namespec && !PConfig.hasMappingForFile(FileName))
+    return false;
+
+  return resolvePathMappingFile(PConfig);
+}
+
 bool Input::isPathValid(const std::string &Path) const {
   if (llvm::sys::fs::is_directory(Path)) {
     DiagEngine->raise(Diag::fatal_cannot_read_input_err)
@@ -113,6 +126,7 @@ std::string Input::expandSysrootMarkers(llvm::StringRef Name,
 bool Input::resolvePath(const LinkerConfig &PConfig) {
   if (ResolvedPath)
     return true;
+
   // Apply --remap-inputs remappings (in order, first match wins).
   if (auto Replacement = PConfig.options().findRemapInput(FileName)) {
     if (PConfig.getPrinter()->isVerbose())
@@ -120,8 +134,8 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
     OriginalFileName = FileName;
     FileName = std::move(*Replacement);
   }
-  if (PConfig.options().hasMappingFile() && !isInternal())
-    return resolvePathMappingFile(PConfig);
+  if (resolveMappedPath(PConfig))
+    return true;
   auto &PSearchDirs = PConfig.directories();
 
   std::string ExpandedFileName = FileName;
