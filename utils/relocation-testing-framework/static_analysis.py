@@ -11,5 +11,6 @@
 
 import sys
 
-def run(arch_name, arch_info, link_cmd, output_dir):
+def run(arch_name, arch_info, output_dir):
     print(f"static-pass mode not yet implemented for arch '{arch_name}'", file=sys.stderr)
+    return True
