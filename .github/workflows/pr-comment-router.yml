@@ -214,12 +214,13 @@ jobs:
       needs.validate.outputs.pr_sha != '' &&
       needs.validate.outputs.command == 'check-linux-kernel' &&
       (needs.build.result == 'success' || needs.build.result == 'skipped')
-    uses: ./.github/workflows/linux-kernel-pr.yml
+    uses: ./.github/workflows/linux-kernel-run.yml
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
       toolset_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
       toolset_artifact: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
+      toolset_tarball: install-pr-toolset.tar.xz
     permissions:
       contents: write
       actions: write
