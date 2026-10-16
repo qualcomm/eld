@@ -8,7 +8,7 @@ on:
     workflows:
       - BusyBox
       - Windows Arm64/x86_64 CI/Nightly
-      - Linux Kernel Boot Nightly with ELD
+      - Linux Kernel Boot with ELD
       - Nightly builder for testing eld against musl-test-suite
       - Nightly check
       - nightly picolibc builder
@@ -28,6 +28,8 @@ concurrency:
 
 jobs:
   log-trigger-details:
+    # only inspect its scheduled nightly runs here.
+    if: github.event.workflow_run.event == 'schedule'
     runs-on: ubuntu-latest
     steps:
       - name: Log triggering workflow details
