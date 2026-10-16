@@ -1,0 +1,23 @@
+# Parse target flags using the host's command-line syntax, then transport the
+# arguments without further shell parsing in Python or lit.
+function(eld_standalone_test_arguments output flags)
+  # Equivalent to NATIVE_COMMAND, with both parsers testable on either host.
+  if(CMAKE_HOST_WIN32)
+    separate_arguments(_arguments WINDOWS_COMMAND "${flags}")
+  else()
+    separate_arguments(_arguments UNIX_COMMAND "${flags}")
+  endif()
+  set(_json "[")
+  set(_separator "")
+  foreach(_argument IN LISTS _arguments)
+    string(REPLACE "\\" "\\\\" _argument "${_argument}")
+    string(REPLACE "\"" "\\\"" _argument "${_argument}")
+    string(REPLACE "\n" "\\n" _argument "${_argument}")
+    string(REPLACE "\r" "\\r" _argument "${_argument}")
+    string(REPLACE "\t" "\\t" _argument "${_argument}")
+    string(APPEND _json "${_separator}\"${_argument}\"")
+    set(_separator ",")
+  endforeach()
+  string(APPEND _json "]")
+  set(${output} "${_json}" PARENT_SCOPE)
+endfunction()
