@@ -301,6 +301,32 @@ add_subdirectory(etc)
 option(ELD_ENABLE_RUN_TESTS
        "Enable build and run tests" OFF)
 
+# Plugin-local lit tests are registered while the Plugins subdirectory is
+# configured and consumed by the test harness below. Keeping the registration
+# as a global property lets plugin CMakeLists.txt files remain self-contained
+# without depending on the order in which test targets are created.
+set_property(GLOBAL PROPERTY ELD_PLUGIN_TEST_DIRS "")
+set_property(GLOBAL PROPERTY ELD_PLUGIN_TEST_TARGETS "")
+function(eld_register_plugin_tests TEST_DIR PLUGIN_TARGET)
+  if(ELD_INCLUDE_TESTS AND EXISTS "${TEST_DIR}")
+    # Some plugins are unavailable on platforms without shared-library/PIC
+    # support. Their tests require the corresponding plugin target, so omit
+    # both the test root and dependency when that target is not configured.
+    if(PLUGIN_TARGET AND NOT TARGET ${PLUGIN_TARGET})
+      return()
+    endif()
+    set_property(GLOBAL APPEND PROPERTY ELD_PLUGIN_TEST_DIRS "${TEST_DIR}")
+    if(PLUGIN_TARGET)
+      set_property(GLOBAL APPEND PROPERTY ELD_PLUGIN_TEST_TARGETS
+                   "${PLUGIN_TARGET}")
+    endif()
+  endif()
+endfunction()
+
+# Configure plugins before tests so plugin-local test dependencies can refer to
+# their plugin targets normally.
+add_subdirectory(Plugins)
+
 # Only include tests if enabled (requires LLVM source tree)
 if(ELD_INCLUDE_TESTS)
   add_subdirectory(test)
@@ -310,8 +336,6 @@ else()
       "Tests disabled (set ELD_INCLUDE_TESTS=ON to enable, requires LLVM source tree)"
   )
 endif()
-
-add_subdirectory(Plugins)
 
 option(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES
        "Include linker script templates in the install" ON)

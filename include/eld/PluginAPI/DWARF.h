@@ -111,8 +111,7 @@ struct DLL_A_EXPORT DWARFDie {
   /// present
   const std::string getDeclFile() const;
 
-  /// Returns the declaration line (start line) for a DIE, assuming it specifies
-  /// a subprogram.
+  /// Returns the declaration line (start line) for a DIE.
   uint64_t getDeclLine() const;
 
   /// Returns the DIE offset for this DIE
