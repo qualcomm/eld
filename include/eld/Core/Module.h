@@ -98,6 +98,7 @@ public:
     SectionRelocMap,
     SmallData,
     TableJump,
+    ILUT,
     Timing,
     TLSStub,
     Trampoline,

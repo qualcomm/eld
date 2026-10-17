@@ -77,6 +77,14 @@ def no_relax_tbljal
     : Flag<["--"], "no-relax-tbljal">,
       HelpText<"Disable conversion of call/jump instructions to table jump instructions (default behavior)">,
       Group<grp_riscv_linker>;
+def relax_ilut
+    : Flag<["--"], "relax-ilut">,
+      HelpText<"Enable conversion of instructions to Xqccmi instruction lookup table instructions">,
+      Group<grp_riscv_linker>;
+def no_relax_ilut
+    : Flag<["--"], "no-relax-ilut">,
+      HelpText<"Disable conversion of instructions to Xqccmi instruction lookup table instructions (default behavior)">,
+      Group<grp_riscv_linker>;
 def enable_bss_mixing : Flag<["--"], "enable-bss-mixing">,
                         HelpText<"Enable mixing BSS/NonBSS sections">,
                         Group<grp_riscv_linker>;
