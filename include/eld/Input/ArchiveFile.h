@@ -127,6 +127,10 @@ public:
 
   void setThinArchive() { IsThin = true; }
 
+  bool hasVisitedInput() const { return HasVisitedInput; }
+
+  void setVisitedInput(bool Visited = true) { HasVisitedInput = Visited; }
+
   void initArchiveFileInfo();
 
   void setArchiveFileInfo(ArchiveFileInfo *PAFI) { AFI = PAFI; }
@@ -139,6 +143,7 @@ private:
   bool BNoExport = false;
   ArchiveKind AKind = Unknown;
   bool IsThin = false;
+  bool HasVisitedInput = false;
 };
 
 } // namespace eld
