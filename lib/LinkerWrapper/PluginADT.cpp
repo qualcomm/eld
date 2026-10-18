@@ -26,6 +26,7 @@
 #include "eld/Target/Relocator.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/GlobPattern.h"
 #include "llvm/Support/Timer.h"
 #include <memory>
@@ -1285,6 +1286,12 @@ bool plugin::InputFile::hasInputFile() const {
   return (m_InputFile != nullptr);
 }
 
+bool plugin::InputFile::isArchiveFile() const {
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isArchive();
+}
+
 bool plugin::InputFile::isArchive() const {
   if (!m_InputFile)
     return false;
@@ -1312,9 +1319,28 @@ std::string plugin::InputFile::getMemberName() const {
   return m_InputFile->getInput()->getName();
 }
 
-bool plugin::InputFile::isObjectFile() {
-  eld::ObjectFile *object_file = llvm::dyn_cast<eld::ObjectFile>(m_InputFile);
-  return (object_file != nullptr);
+bool plugin::InputFile::isObjectFile() const {
+  eld::ObjectFile *objectFile =
+      llvm::dyn_cast_or_null<eld::ObjectFile>(m_InputFile);
+  return objectFile != nullptr;
+}
+
+bool plugin::InputFile::isDynamicLibrary() const {
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isDynamicLibrary();
+}
+
+bool plugin::InputFile::isBinaryFile() const {
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isBinaryFile();
+}
+
+bool plugin::InputFile::isExecutableELFFile() const {
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isExecutableELFFile();
 }
 
 std::vector<plugin::Symbol> plugin::InputFile::getSymbols() const {

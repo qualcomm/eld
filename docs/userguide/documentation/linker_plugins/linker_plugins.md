@@ -535,9 +535,22 @@ more functionality than the layout plugins. {code}`LinkerPlugin` has hooks of th
 
 The {code}`ActBefore<LinkState>` hooks are called *just* before the linker enters
 the link state {code}`LinkState`. The {code}`Visit<LinkComponent>` hooks are called
-*immediately* after the linker creates a link component (input section, symbol, ...).
-For example, {code}`VisitSymbol(eld::plugin::Symbol S)` is called immediately
-after the symbol is created.
+*immediately* after the linker creates a link component:
+
+- {code}`VisitInput(eld::plugin::InputFile IF)`: called immediately after an
+  input file component is created and passes initial validation, before its
+  sections or symbols are parsed. Sections and symbols are not accessible
+  (calling {code}`IF.getSections()` or {code}`IF.getSymbols()` returns empty
+  collections). Note that linker scripts are not covered by {code}`VisitInput`
+  in this release.
+- {code}`VisitSections(eld::plugin::InputFile IF)`: called immediately after the
+  section components of an input file are materialized.
+- {code}`VisitSymbol(eld::plugin::InputSymbol S)`: called immediately after a
+  symbol component is created during symbol resolution.
+
+During input processing, {code}`VisitInput` fires first upon file recognition
+and validation, followed by {code}`VisitSections` once sections are materialized,
+followed by {code}`VisitSymbol` during symbol resolution.
 
 ```{eval-rst}
 .. d2:: ../images/LinkerPluginFlow.d2
