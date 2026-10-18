@@ -67,6 +67,9 @@ public:
   /// Get the associated Input.
   Input *getInput() const { return I; }
 
+  /// Get the diagnostic engine associated with this input file.
+  DiagnosticEngine *getDiagEngine() const { return DiagEngine; }
+
   /// Nice accessor functions.
   bool isDynamicLibrary() const { return Kind == ELFDynObjFileKind; }
 
