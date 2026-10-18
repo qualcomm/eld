@@ -1,0 +1,11 @@
+#---VisitInputErrorAbort.test------------------ Executable,LS --------------------#
+#BEGIN_COMMENT
+# Test that returning an error diagnostic from VisitInput aborts the link cleanly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.bad.o %p/Inputs/1.c -c
+RUN: not %link %linkopts -o %t.out %t.bad.o \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: File '{{.*}}bad.o' does not exist

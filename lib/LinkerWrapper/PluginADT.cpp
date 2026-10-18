@@ -1285,6 +1285,12 @@ bool plugin::InputFile::hasInputFile() const {
   return (m_InputFile != nullptr);
 }
 
+bool plugin::InputFile::isArchiveFile() const {
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isArchive();
+}
+
 bool plugin::InputFile::isArchive() const {
   if (!m_InputFile)
     return false;
@@ -1313,8 +1319,33 @@ std::string plugin::InputFile::getMemberName() const {
 }
 
 bool plugin::InputFile::isObjectFile() {
-  eld::ObjectFile *object_file = llvm::dyn_cast<eld::ObjectFile>(m_InputFile);
-  return (object_file != nullptr);
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isObjectFile();
+}
+
+bool plugin::InputFile::isObjectFile() const {
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isObjectFile();
+}
+
+bool plugin::InputFile::isDynamicLibrary() const {
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isDynamicLibrary();
+}
+
+bool plugin::InputFile::isBinaryFile() const {
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isBinaryFile();
+}
+
+bool plugin::InputFile::isExecutableELFFile() const {
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isExecutableELFFile();
 }
 
 std::vector<plugin::Symbol> plugin::InputFile::getSymbols() const {
