@@ -1,0 +1,16 @@
+#---VisitInputKinds.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Test kind queries on plugin::InputFile in VisitInput.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.main.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t.foo.o %p/Inputs/2.c -c -fPIC
+RUN: %link %linkopts -shared -o %t.libfoo.so %t.foo.o
+RUN: %link %linkopts -o %t.out %t.main.o %t.libfoo.so \
+RUN:   --format=binary %p/Inputs/data.bin --format=default \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: VisitInput: {{.*}}main.o isNonBitcodeObject=1 isDynamic=0 isBinary=0
+CHECK: VisitInput: {{.*}}libfoo.so isNonBitcodeObject=1 isDynamic=1 isBinary=0
+CHECK: VisitInput: {{.*}}data.bin isNonBitcodeObject=1 isDynamic=0 isBinary=1

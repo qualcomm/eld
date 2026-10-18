@@ -535,9 +535,41 @@ more functionality than the layout plugins. {code}`LinkerPlugin` has hooks of th
 
 The {code}`ActBefore<LinkState>` hooks are called *just* before the linker enters
 the link state {code}`LinkState`. The {code}`Visit<LinkComponent>` hooks are called
-*immediately* after the linker creates a link component (input section, symbol, ...).
-For example, {code}`VisitSymbol(eld::plugin::Symbol S)` is called immediately
-after the symbol is created.
+*immediately* after the linker creates a link component:
+
+- {code}`VisitInput(eld::plugin::InputFile IF)`: called immediately after an
+  input file component is created and passes initial validation, before its
+  sections or symbols are parsed. Sections and symbols are not accessible
+  (calling {code}`IF.getSections()` or {code}`IF.getSymbols()` returns empty
+  collections).
+- {code}`VisitSections(eld::plugin::InputFile IF)`: called immediately after the
+  section components of an input file are materialized.
+- {code}`VisitSymbol(eld::plugin::InputSymbol S)`: called immediately after a
+  symbol component is created during symbol resolution.
+
+During input processing, {code}`VisitInput` fires first upon file recognition
+and validation, followed by {code}`VisitSections` once sections are materialized,
+followed by {code}`VisitSymbol` during symbol resolution.
+
+The following table describes which inputs are visited by {code}`VisitInput`:
+
+| Input kind | When `VisitInput` is invoked |
+| --- | --- |
+| Regular ELF object file | Before its sections and symbols are parsed. |
+| Shared library | Before its sections and symbols are parsed, even if the library is later discarded by `--as-needed`. |
+| Archive file (regular or thin) | Once for the archive container, before its members are processed. Post-LTO rescans do not revisit the same container. |
+| Archive member | When the member is extracted for linking, according to its input kind. Members that are not extracted are not visited. |
+| LLVM bitcode file | Before the bitcode reader processes it for LTO. |
+| LTO-generated object file | After LTO produces the object, before its sections and symbols are parsed. `IF.isLTOGeneratedObject()` returns true during this callback. |
+| Binary file | Before the binary file parser creates its sections and symbols. |
+| ELF executable (`--just-symbols`) or SymDef file | Before its sections and symbols are parsed. |
+| Internal input file | Not invoked for synthetic inputs created by the linker, such as inputs holding common symbols or linker-created sections. LTO-generated object files are visited as described above, not treated as internal inputs. |
+| Linker script | Not invoked for the script itself. Supported input files referenced by the script are visited normally. |
+
+When a fat-LTO object is processed with {code}`--fat-lto-objects`, the hook is
+invoked first for the ELF container and then for the extracted bitcode.
+Inputs rejected before the hook's invocation point, such as incompatible ELF
+files or shared libraries in a partial link, are not visited.
 
 ```{eval-rst}
 .. d2:: ../images/LinkerPluginFlow.d2

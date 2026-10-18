@@ -1160,7 +1160,11 @@ struct DLL_A_EXPORT InputFile {
   /// Returns true if the object has an input file; Otherwise returns false.
   bool hasInputFile() const;
 
+  /// Returns true if the input file is an archive container (.a file).
+  bool isArchiveFile() const;
+
   /// Returns true if the input is an archive member; Otherwise returns false.
+  /// Note: Kept for backwards compatibility; equivalent to isArchiveMember().
   bool isArchive() const;
 
   /// Returns true if the input is LLVM bitcode; Otherwise returns false.
@@ -1171,7 +1175,16 @@ struct DLL_A_EXPORT InputFile {
   bool isLTOGeneratedObject() const;
 
   /// Returns true if the inputFile is an objectFile; Otherwise retruns false.
-  bool isObjectFile();
+  bool isObjectFile() const;
+
+  /// Returns true if the input file is a shared library / dynamic object.
+  bool isDynamicLibrary() const;
+
+  /// Returns true if the input file is a binary file.
+  bool isBinaryFile() const;
+
+  /// Returns true if the input file is an ELF executable (--just-symbols).
+  bool isExecutableELFFile() const;
 
   /// Returns the hash of the resolved path.
   uint64_t getResolvedPathHash() const;

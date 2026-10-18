@@ -1,0 +1,15 @@
+#---VisitInputArchivePostLto.test------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Test that VisitInput fires exactly once for archive containers across post-LTO rescan.
+#END_COMMENT
+#START_TEST
+RUN: echo "extern int bar(void); int foo(void) { return bar(); }" > %t.lto.c
+RUN: %clang %clangopts -flto -c %t.lto.c -o %t.lto.bc
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.bar.o
+RUN: rm -f %t.libbar.a && %ar cr %t.libbar.a %t.bar.o
+RUN: %link %linkopts -o %t.out %t.lto.bc %t.libbar.a \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: VisitInput: {{.*}}libbar.a isArchiveFile=1
+CHECK-NOT: VisitInput: {{.*}}libbar.a isArchiveFile=1

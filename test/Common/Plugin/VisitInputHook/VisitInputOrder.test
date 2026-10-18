@@ -1,0 +1,11 @@
+#---VisitInputOrder.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Test that VisitInput fires before VisitSections and sections are empty during VisitInput.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: EVENT: VisitInput {{.*}}1.1.o numSections=0
+CHECK: EVENT: VisitSections {{.*}}1.1.o numSections={{[1-9][0-9]*}}
