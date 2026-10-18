@@ -8,6 +8,7 @@
 #include "DWARF.h"
 #include "PluginADT.h"
 #include "PluginBase.h"
+#include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Diagnostics/MsgHandler.h"
 #include "eld/Input/InputFile.h"
 #include "llvm/BinaryFormat/Dwarf.h"
@@ -24,24 +25,37 @@ plugin::DWARFInfo::DWARFInfo(llvm::DWARFContext *DC) { m_DWARFContext = DC; }
 
 // FIXME: Remove
 plugin::DWARFInfo::DWARFInfo(plugin::InputFile F) {
-  llvm::MemoryBufferRef Buffer(F.getInputFile()->getContents(),
-                               F.getFileName());
+  std::string FileName = F.getFileName();
+  llvm::MemoryBufferRef Buffer(F.getInputFile()->getContents(), FileName);
 
   llvm::Expected<std::unique_ptr<llvm::object::ObjectFile>> ObjectFileOrError =
       llvm::object::ObjectFile::createObjectFile(Buffer);
 
   if (!ObjectFileOrError) {
-    llvm::errs() << ObjectFileOrError.takeError() << "\n";
+    // DWARF is optional plugin enrichment. Report malformed input through
+    // ELD's diagnostics, then let the caller fall back without a context.
+    F.getInputFile()->getDiagEngine()->raise(
+        Diag::warn_dwarf_object_unavailable)
+        << FileName << llvm::toString(ObjectFileOrError.takeError());
     return;
   }
 
   m_ObjectFile = ObjectFileOrError->release();
 
-  std::unique_ptr<llvm::DWARFContext> Context =
-      llvm::DWARFContext::create(*m_ObjectFile);
+  // Debug information is optional linker input. In particular, a malformed
+  // debug section must not make an optional plugin enrichment abort the link
+  // through LLVM's unchecked-Error path. Retain the context when LLVM can
+  // construct one, but discard recoverable DWARF diagnostics for this
+  // best-effort reader.
+  auto IgnoreDWARFError = [](llvm::Error Error) {
+    llvm::consumeError(std::move(Error));
+  };
+  std::unique_ptr<llvm::DWARFContext> Context = llvm::DWARFContext::create(
+      *m_ObjectFile, llvm::DWARFContext::ProcessDebugRelocations::Process,
+      nullptr, "", IgnoreDWARFError, IgnoreDWARFError);
 
   m_DWARFContext = Context.release();
-  ShouldDeleteDWARFContext = true;
+  ShouldDeleteDWARFContext = m_DWARFContext != nullptr;
 }
 
 plugin::DWARFInfo::~DWARFInfo() {
@@ -52,6 +66,8 @@ plugin::DWARFInfo::~DWARFInfo() {
 
 std::vector<plugin::DWARFUnit> plugin::DWARFInfo::getDWARFUnits() const {
   std::vector<plugin::DWARFUnit> DUs;
+  if (!m_DWARFContext)
+    return DUs;
   for (auto &DU : m_DWARFContext->compile_units())
     DUs.push_back(plugin::DWARFUnit(DU.get()));
   return DUs;
@@ -131,7 +147,11 @@ const std::string plugin::DWARFDie::getName() const {
     return "";
 
   auto Value = V->getAsCString();
-  return Value ? *Value : "";
+  if (!Value) {
+    consumeError(Value.takeError());
+    return "";
+  }
+  return *Value;
 }
 
 const std::string plugin::DWARFDie::getDeclFile() const {
@@ -270,13 +290,11 @@ bool getSize(llvm::DWARFDie &Die, uint64_t &Size, uint32_t PointerSize) {
     Size = ArrayCount * BaseTypeSize;
     return true;
   }
-  default: {
-    std::string Msg =
-        (llvm::Twine("found unknown type ") + TagString(Die.getTag()) +
-         " @Offset 0x" + llvm::utohexstr(Die.getOffset(), true))
-            .str();
-    llvm_unreachable(Msg.c_str());
-  }
+  default:
+    // A plugin's DWARF enrichment is best effort. Newer DWARF versions and
+    // producer extensions can introduce a type tag this wrapper does not yet
+    // model, so leave its size unavailable instead of aborting the link.
+    return false;
   }
 }
 
