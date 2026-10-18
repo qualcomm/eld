@@ -31,14 +31,14 @@ WriteOutput: Write Output
 
 # Hook nodes
 Init.class: hook
-VisitSectionsAndSymbols.class: hook
+VisitInputsSectionsAndSymbols.class: hook
 BeforeRuleMatching.class: hook
 BeforeSectionMerging.class: hook
 BeforePerformingLayout.class: hook
 BeforeWritingOutput.class: hook
 
 # Hook Labels
-VisitSectionsAndSymbols: Visit Sections And Symbols
+VisitInputsSectionsAndSymbols: Visit Inputs, Sections, And Symbols
 BeforeRuleMatching: Before Rule Matching
 BeforeSectionMerging: Before Section Merging
 BeforePerformingLayout: Before Performing Layout
@@ -49,7 +49,7 @@ Setup -> LoadLinkerPlugins -> LinkPhase1 -> ReadInputs -> LinkPhase2 -> RuleMatc
 
 # Hook connections
 LinkPhase1 -> Init: { class: hook-flow }
-ReadInputs -> VisitSectionsAndSymbols: { class: hook-flow }
+ReadInputs -> VisitInputsSectionsAndSymbols: { class: hook-flow }
 LinkPhase2 -> BeforeRuleMatching: { class: hook-flow }
 LinkPhase3 -> BeforeSectionMerging: { class: hook-flow }
 LinkPhase4 -> BeforePerformingLayout: { class: hook-flow }

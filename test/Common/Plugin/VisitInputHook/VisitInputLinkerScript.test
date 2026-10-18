@@ -1,0 +1,13 @@
+#---VisitInputLinkerScript.test---------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Test that linker scripts are not visited by VisitInput, but inputs in the script are visited.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.foo.o %p/Inputs/1.c -c
+RUN: echo "INPUT(%t.foo.o)" > %t.script.t
+RUN: %link %linkopts -o %t.out %t.script.t \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK-NOT: VisitInput: {{.*}}script.t
+CHECK: VisitInput: {{.*}}foo.o

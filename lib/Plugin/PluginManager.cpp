@@ -76,6 +76,16 @@ bool PluginManager::processPluginCommandLineOptions(GeneralOptions &Options) {
   return true;
 }
 
+bool PluginManager::callVisitInputHook(InputFile &IF) {
+  RegisterTimer T("VisitInput", "Plugins", ShouldPrintTimingStats);
+  for (auto *P : UniversalPlugins) {
+    P->callVisitInputHook(IF);
+    if (!DE.diagnose())
+      return false;
+  }
+  return true;
+}
+
 bool PluginManager::callVisitSectionsHook(InputFile &IF) {
   RegisterTimer T("VisitSections", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {

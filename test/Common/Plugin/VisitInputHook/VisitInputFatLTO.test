@@ -1,0 +1,13 @@
+#---VisitInputFatLTO.test---------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Test that VisitInput fires first for the ELF container and then for the extracted bitcode.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.main.o
+RUN: %clang %clangopts -c -flto -ffat-lto-objects %p/Inputs/2.c -o %t.fat.o
+RUN: %link %linkopts -o %t.out %t.main.o %t.fat.o --fat-lto-objects \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: VisitInput: {{.*}}fat.o isNonBitcodeObject=1 isDynamic=0 isBinary=0 isBitcode=0
+CHECK: VisitInput: {{.*}}fat.o isNonBitcodeObject=0 isDynamic=0 isBinary=0 isBitcode=1

@@ -113,6 +113,8 @@ DIAG(verbose_calling_plugin_opt_handler_with_val, DiagnosticEngine::Verbose,
      "Calling '%0::CommandLineOptionHandler' for option '%1' with value '%2'")
 DIAG(verbose_calling_plugin_opt_handler_without_val, DiagnosticEngine::Verbose,
      "Calling '%0::CommandLineOptionHandler' for option '%1'")
+DIAG(trace_plugin_visit_input, DiagnosticEngine::Trace,
+     "Calling plugin hook handler %0::VisitInput for the input file '%1'")
 DIAG(trace_plugin_visit_sections, DiagnosticEngine::Trace,
      "Calling plugin hook handler %0::VisitSections for the input file '%1'")
 DIAG(trace_plugin_visit_symbol, DiagnosticEngine::Trace,
