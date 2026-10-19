@@ -1287,9 +1287,11 @@ struct DLL_A_EXPORT BitcodeFile final : public InputFile {
   bool findIfKeptComdat(unsigned index) const;
 
   /// Set or override the LTO module hash for this bitcode file.
+  ///
+  /// This functionality can only be called in Initializing link state.
   eld::Expected<void> setLTOModuleHash(uint64_t Hash, const LinkerWrapper &LW);
 
-  /// Returns the overridden LTO module hash if set.
+  /// Returns the LTO module hash if set.
   std::optional<uint64_t> getLTOModuleHash() const;
 };
 
