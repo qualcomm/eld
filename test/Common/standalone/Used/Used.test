@@ -1,4 +1,4 @@
-# UNSUPPORTED: riscv32, riscv64, x86
+# UNSUPPORTED: riscv32, riscv64
 #---Used.test----------------------- Executable -----------------#
 
 #BEGIN_COMMENT
@@ -12,6 +12,7 @@ RUN: %clang %clangopts -c %p/Inputs/2.c -c -o %t2.o
 RUN: %link %linkopts -T %p/Inputs/script.t %t1.o %t2.o -e foo \
 RUN:  --gc-sections -o %t.out -Map %t.yaml -MapStyle=yaml
 RUN: %filecheck %s < %t.yaml
+RUN: %qemu %qemuopts %t.1.out
 #END_TEST
 
 CHECK: Path: {{.*}}1.o
