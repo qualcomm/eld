@@ -1069,11 +1069,17 @@ public:
 
   void setSymbolTracingRequested() { SymbolTracingRequested = true; }
 
-  bool isSymbolTracingRequested() const { return SymbolTracingRequested; }
+  bool isSymbolTracingRequested() const {
+    return SymbolTracingRequested ||
+           DiagEngine->getPrinter()->isVerboseLevel2();
+  }
 
   void setSectionTracingRequested() { SectionTracingRequested = true; }
 
-  bool isSectionTracingRequested() const { return SectionTracingRequested; }
+  bool isSectionTracingRequested() const {
+    return SectionTracingRequested ||
+           DiagEngine->getPrinter()->isVerboseLevel2();
+  }
 
   void setPluginTracingRequested() { PluginTracingRequested = true; }
 
