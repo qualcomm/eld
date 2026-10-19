@@ -31,6 +31,11 @@ on:
         description: "Router workflow URL"
         required: true
         type: string
+      post_comment:
+        description: "Whether to post an individual result comment"
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   issues: write
@@ -51,6 +56,7 @@ jobs:
           BUILD_RESULT: ${{ inputs.build_result }}
           TEST_RESULT: ${{ inputs.test_result }}
           RUN_URL: ${{ inputs.run_url }}
+          POST_COMMENT: ${{ inputs.post_comment }}
         with:
           github-token: ${{ github.token }}
           script: |
@@ -79,9 +85,11 @@ jobs:
               description: message,
             });
 
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: Number(process.env.PR_NUMBER),
-              body: `${message} [View workflow run](${process.env.RUN_URL}).`,
-            });
+            if (process.env.POST_COMMENT === 'true') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: Number(process.env.PR_NUMBER),
+                body: `${message} [View workflow run](${process.env.RUN_URL}).`,
+              });
+            }
