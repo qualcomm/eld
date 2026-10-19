@@ -1268,6 +1268,10 @@ struct DLL_A_EXPORT InputFile {
 
   std::string getRealPath() const;
 
+  /// If the input file is a bitcode file, returns a BitcodeFile wrapper;
+  /// otherwise returns an empty BitcodeFile.
+  BitcodeFile getAsBitcodeFile() const;
+
 private:
   eld::InputFile *m_InputFile;
 };
@@ -1275,12 +1279,19 @@ private:
 /// An interface to represent a bitcode file to retrieve the LTO Input file.
 struct DLL_A_EXPORT BitcodeFile final : public InputFile {
 
+  explicit BitcodeFile(eld::BitcodeFile *F);
   explicit BitcodeFile(eld::BitcodeFile &F);
 
   eld::BitcodeFile &getBitcodeFile() const;
 
   llvm::lto::InputFile &getInputFile() const;
   bool findIfKeptComdat(unsigned index) const;
+
+  /// Set or override the LTO module hash for this bitcode file.
+  eld::Expected<void> setLTOModuleHash(uint64_t Hash, const LinkerWrapper &LW);
+
+  /// Returns the overridden LTO module hash if set.
+  std::optional<uint64_t> getLTOModuleHash() const;
 };
 
 struct DLL_A_EXPORT DynamicLibrary final {
