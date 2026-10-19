@@ -13,13 +13,17 @@ permissions:
   contents: write
 jobs:
   build-windows:
-    if: github.repository == 'qualcomm/eld'
     permissions:
       contents: write
     env:
       BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
       ELD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
       ELD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
+      CCACHE_DIR: ${{ github.workspace }}/ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_COMPILERCHECK: content
+      CCACHE_NOHASHDIR: true
+      CCACHE_MAXSIZE: 5G
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
 
@@ -29,12 +33,14 @@ jobs:
         include:
           - runner: windows-2022
             arch: x64
-            cmake-generator: Visual Studio 17 2022
+            vs-arch: x64
+            vs-host-arch: x64
             name: Windows-x86_64
 
           - runner: windows-11-arm
             arch: ARM64
-            cmake-generator: Visual Studio 18 2026
+            vs-arch: arm64
+            vs-host-arch: arm64
             name: Windows-Arm64
 
     steps:
@@ -82,25 +88,76 @@ jobs:
           arch-name: ${{ matrix.arch }}
           branch-name: "${{ env.ELD_REF }}"
 
+      - name: Install ccache and Ninja
+        shell: pwsh
+        run: |
+          choco install ccache ninja --no-progress --yes
+          ccache --version
+          ninja --version
+
+      - name: Restore ccache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: ${{ github.workspace }}/ccache
+          key: windows-eld-ccache-${{ matrix.arch }}-${{ github.run_id }}
+          restore-keys: |
+            windows-eld-ccache-${{ matrix.arch }}-
+
+      - name: Prepare ccache
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:CCACHE_DIR | Out-Null
+          ccache --zero-stats
+          ccache --show-config
+
       - name: Configure CMake
         working-directory: nightly
-        shell: bash
+        shell: cmd
         run: |
-          mkdir -p obj
-          cd obj
-          cmake -G "${{ matrix.cmake-generator }}" -A ${{ matrix.arch }} \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
-            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
-            -DLLVM_ENABLE_ASSERTIONS=ON \
-            -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
-            -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86;Template' \
-            ../llvm-project/llvm
+          set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+          if not exist "%VSWHERE%" set "VSWHERE=%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe"
+          for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -latest -products * -property installationPath`) do set "VSINSTALL=%%i"
+          call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=${{ matrix.vs-arch }} -host_arch=${{ matrix.vs-host-arch }}
+          cmake -G Ninja -S llvm-project/llvm -B obj ^
+            -DCMAKE_BUILD_TYPE=Release ^
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON ^
+            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" ^
+            -DLLVM_ENABLE_ASSERTIONS=ON ^
+            -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" ^
+            -DELD_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86;Template" ^
+            -DLLVM_CCACHE_BUILD:BOOL=ON
+
+      - name: Cache Usage before build
+        working-directory: nightly/obj
+        shell: pwsh
+        run: ccache --show-stats
 
       - name: Build
-        working-directory: nightly/obj
-        shell: bash
-        run: cmake --build . --config Release
+        working-directory: nightly
+        shell: cmd
+        run: |
+          set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+          if not exist "%VSWHERE%" set "VSWHERE=%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe"
+          for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -latest -products * -property installationPath`) do set "VSINSTALL=%%i"
+          call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=${{ matrix.vs-arch }} -host_arch=${{ matrix.vs-host-arch }}
+          cmake --build obj --config Release
+
+      - name: Cache usage after build
+        if: always()
+        shell: pwsh
+        run: ccache --show-stats
+
+      - name: Prune ccache before save
+        if: always()
+        shell: pwsh
+        run: ccache --evict-older-than 7200s
+
+      - name: Save ccache
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: ${{ github.workspace }}/ccache
+          key: windows-eld-ccache-${{ matrix.arch }}-${{ github.run_id }}
 
       - name: Install PyYAML
         shell: bash
