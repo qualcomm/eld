@@ -23,6 +23,7 @@ on:
           - check-linux-kernel
           - check-zephyr
           - check-thread-sanitizer
+          - check-asan-ubsan
       request_id:
         description: "Optional request ID used to correlate an external workflow dispatch"
         required: false
@@ -75,6 +76,7 @@ jobs:
               'check-linux-kernel',
               'check-zephyr',
               'check-thread-sanitizer',
+              'check-asan-ubsan',
             ]);
             if (!supported.has(command) ||
                 (!isWorkflowDispatch &&
@@ -106,8 +108,8 @@ jobs:
               : `${context.issue.number}-${pullRequest.head.sha}-${context.payload.comment.id}`;
             const artifactName = `pr-eld-toolset-${pullRequest.head.sha}`;
             let reusableArtifact;
-            if (command === 'check-thread-sanitizer') {
-              core.info('ThreadSanitizer builds the PR source directly; no standard toolset artifact is required.');
+            if (command === 'check-thread-sanitizer' || command === 'check-asan-ubsan') {
+              core.info('Sanitizer builds the PR source directly; no standard toolset artifact is required.');
             } else {
               const artifacts = await github.paginate(
                 github.rest.actions.listArtifactsForRepo,
@@ -137,8 +139,8 @@ jobs:
               }
             }
             if (!reusableArtifact) {
-              core.info(command === 'check-thread-sanitizer'
-                ? 'No standard toolset artifact is required for ThreadSanitizer.'
+              core.info(command === 'check-thread-sanitizer' || command === 'check-asan-ubsan'
+                ? 'No standard toolset artifact is required for sanitizer builds.'
                 : `No reusable artifact found for ${artifactName}; the build job will run.`);
             }
 
@@ -156,14 +158,18 @@ jobs:
                 ? 'PR Zephyr'
                 : command === 'check-thread-sanitizer'
                   ? 'PR Thread Sanitizer'
-                  : 'PR LLVM test suite';
+                  : command === 'check-asan-ubsan'
+                    ? 'PR ASAN/UBSAN'
+                    : 'PR LLVM test suite';
             const displayName = command === 'check-linux-kernel'
               ? 'Linux kernel boot'
               : command === 'check-zephyr'
                 ? 'Zephyr'
                 : command === 'check-thread-sanitizer'
                   ? 'Thread sanitizer'
-                  : 'LLVM test suite';
+                  : command === 'check-asan-ubsan'
+                    ? 'ASAN/UBSAN'
+                    : 'LLVM test suite';
 
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
@@ -174,8 +180,8 @@ jobs:
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               description: reusableArtifact
                 ? `Reusing the PR ELD toolset for ${displayName}.`
-                : command === 'check-thread-sanitizer'
-                  ? 'Building the PR source with ThreadSanitizer.'
+                : command === 'check-thread-sanitizer' || command === 'check-asan-ubsan'
+                  ? `Building the PR source with ${displayName}.`
                   : `Building the PR ELD toolset for ${displayName}.`,
             });
             if (!isWorkflowDispatch) {
@@ -194,6 +200,7 @@ jobs:
     if: |
       needs.validate.outputs.pr_sha != '' &&
       needs.validate.outputs.command != 'check-thread-sanitizer' &&
+      needs.validate.outputs.command != 'check-asan-ubsan' &&
       needs.validate.outputs.artifact_reused != 'true'
     uses: ./.github/workflows/ci.yml
     with:
@@ -267,6 +274,21 @@ jobs:
       needs.validate.outputs.command == 'check-thread-sanitizer' &&
       (needs.build.result == 'success' || needs.build.result == 'skipped')
     uses: ./.github/workflows/sanitize-threads.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+    permissions:
+      contents: write
+      actions: read
+
+  asan_ubsan_test:
+    needs: [validate, build]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      needs.validate.outputs.command == 'check-asan-ubsan' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    uses: ./.github/workflows/sanitize.yml
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
@@ -348,6 +370,26 @@ jobs:
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
       build_result: ${{ needs.build.result }}
       test_result: ${{ needs.thread_sanitizer_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_asan_ubsan:
+    needs: [validate, build, asan_ubsan_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      needs.validate.outputs.command == 'check-asan-ubsan'
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: ASAN/UBSAN
+      status_context: PR ASAN/UBSAN
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: ${{ needs.build.result }}
+      test_result: ${{ needs.asan_ubsan_test.result }}
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     permissions:
       issues: write
