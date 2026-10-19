@@ -75,9 +75,9 @@ jobs:
             triple: x86_64-none-elf
             llvm-target: X86
             qemu-package: qemu-system-x86
-            picolibc-default-config: "-Dc_link_args=-B$RUNNER_TEMP/eld-bin -Dcpp_link_args=-B$RUNNER_TEMP/eld-bin"
-            picolibc-no-tls: "-Dc_link_args=-B$RUNNER_TEMP/eld-bin -Dcpp_link_args=-B$RUNNER_TEMP/eld-bin -Dthread-local-storage=false"
-            picolibc-tls-ie: "-Dc_link_args=-B$RUNNER_TEMP/eld-bin -Dcpp_link_args=-B$RUNNER_TEMP/eld-bin -Dtls-model=initial-exec"
+            picolibc-default-config: ""
+            picolibc-no-tls: "-Dthread-local-storage=false"
+            picolibc-tls-ie: "-Dtls-model=initial-exec"
 
     steps:
       - name: Install system dependencies
@@ -117,27 +117,6 @@ jobs:
         # clang/clang++ and ld.eld) from the latest successful nightly-test.yml
         # run, prepending its bin dir to PATH.
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
-
-      - name: Use LLD for the x86 semihost BIOS (x86_64 only)
-        if: matrix.arch.name == 'x86_64'
-        shell: bash
-        run: |
-          set -euo pipefail
-          WRAPPER_DIR="$RUNNER_TEMP/eld-bin"
-          mkdir -p "$WRAPPER_DIR"
-          ELD_BIN=$(command -v ld.eld)
-          LLD_BIN=$(command -v ld.lld)
-          printf '%s\n' \
-            '#!/bin/sh' \
-            'for arg in "$@"; do' \
-            '  case "$arg" in' \
-            '    */libos/semihost/machine/x86/bios.ld)' \
-            "      exec \"$LLD_BIN\" \"\$@\" ;;" \
-            '  esac' \
-            'done' \
-            "exec \"$ELD_BIN\" \"\$@\"" \
-            > "$WRAPPER_DIR/ld.eld"
-          chmod +x "$WRAPPER_DIR/ld.eld"
 
       - name: Build compiler-rt builtins
         run: |
