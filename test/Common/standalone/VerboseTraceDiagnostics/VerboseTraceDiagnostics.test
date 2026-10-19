@@ -1,0 +1,15 @@
+#---VerboseTraceDiagnostics.test------------ Executable,LS ---------------------#
+#BEGIN_COMMENT
+# Validate that only --verbose=2 enables trace diagnostics.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts -o %t1.out %t1.o %t2.o --verbose > %t.verbose.stdout 2> %t.verbose.stderr
+RUN: %filecheck %s --check-prefix=VERBOSE < %t.verbose.stderr
+RUN: %link %linkopts -o %t2.out %t1.o %t2.o --verbose=2 > %t.verbose2.stdout 2> %t.verbose2.stderr
+RUN: %filecheck %s --check-prefix=VERBOSE2 < %t.verbose2.stderr
+#END_TEST
+
+VERBOSE-NOT: Adding new symbol
+VERBOSE2: Adding new symbol {{.*}}foo
