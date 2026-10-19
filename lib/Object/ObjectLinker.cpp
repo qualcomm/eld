@@ -2002,7 +2002,7 @@ bool ObjectLinker::addScriptSymbols() {
       if (getTargetBackend().isSymInProvideMap(SymName)) {
         if (ThisConfig.showLinkerScriptWarnings())
           ThisConfig.raise(Diag::warn_provide_sym_redecl)
-              << AssignCmd->getContext() << SymName;
+              << AssignCmd->getContextWithLineNumber() << SymName;
         continue;
       }
       getTargetBackend().addProvideSymbol(SymName, AssignCmd);
