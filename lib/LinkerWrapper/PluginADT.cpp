@@ -1510,11 +1510,11 @@ plugin::BitcodeFile::setLTOModuleHash(uint64_t Hash, const LinkerWrapper &LW) {
       llvm::dyn_cast_or_null<eld::BitcodeFile>(InputFile::getInputFile());
   if (!BC)
     return std::make_unique<DiagnosticEntry>(Diag::error_invalid_argument);
-  if (BC->getOverriddenModuleHash()) {
+  if (BC->getLTOModuleHash().has_value()) {
     return std::make_unique<DiagnosticEntry>(DiagnosticEntry(
         Diag::error_lto_module_hash_already_set, {getFileName()}));
   }
-  BC->setOverriddenModuleHash(Hash);
+  BC->setLTOModuleHash(Hash);
   return {};
 }
 
@@ -1523,7 +1523,7 @@ std::optional<uint64_t> plugin::BitcodeFile::getLTOModuleHash() const {
       llvm::dyn_cast_or_null<eld::BitcodeFile>(InputFile::getInputFile());
   if (!BC)
     return std::nullopt;
-  return BC->getOverriddenModuleHash();
+  return BC->getLTOModuleHash();
 }
 
 //

@@ -44,16 +44,6 @@ std::unique_ptr<llvm::lto::InputFile> BitcodeFile::takeLTOInputFile() {
   return std::move(LTOInputFile);
 }
 
-bool BitcodeFile::createPluginModule(plugin::LinkerPlugin &Plugin,
-                                     uint64_t ModuleHash) {
-  plugin::LTOModule *Module =
-      Plugin.CreateLTOModule(plugin::BitcodeFile(*this), ModuleHash);
-  if (!Module)
-    return false;
-  PluginModule = Module;
-  return true;
-}
-
 void BitcodeFile::setInputSectionForSymbol(const ResolveInfo &R, Section &S) {
   InputSectionForSymbol[&R] = &S;
 }

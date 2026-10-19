@@ -1290,7 +1290,7 @@ struct DLL_A_EXPORT BitcodeFile final : public InputFile {
   /// Set or override the LTO module hash for this bitcode file.
   eld::Expected<void> setLTOModuleHash(uint64_t Hash, const LinkerWrapper &LW);
 
-  /// Returns the overridden LTO module hash if set.
+  /// Returns the LTO module hash if set.
   std::optional<uint64_t> getLTOModuleHash() const;
 };
 

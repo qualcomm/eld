@@ -127,8 +127,7 @@ bool BitcodeReader::readInput(InputFile &InputFile,
   // this, so we can later identify locals coming from this file. If this is
   // ThinLTO, we use the Module Hash instead since it is stable for files
   // inside archives.
-  std::optional<uint64_t> PluginLTOHash =
-      BitcodeFile->getOverriddenModuleHash();
+  std::optional<uint64_t> PluginLTOHash = BitcodeFile->getLTOModuleHash();
   if (!PluginLTOHash && LTOPlugin) {
     auto PluginLTOHashExp = LTOPlugin->OverrideLTOModuleHash(
         plugin::BitcodeFile(*BitcodeFile), PathWithArchiveOffset);
@@ -144,6 +143,8 @@ bool BitcodeReader::readInput(InputFile &InputFile,
           ? *PluginLTOHash
           : (uint64_t)Input::computeFilePathHash(PathWithArchiveOffset);
 
+  BitcodeFile->setLTOModuleHash(ModuleHash);
+
   // Only the latter part (hash) is actually used for namespace identification.
   // The front is just for user-friendly debugging.
   std::string ModuleID =
@@ -152,11 +153,6 @@ bool BitcodeReader::readInput(InputFile &InputFile,
 
   if (!BitcodeFile->createLTOInputFile(ModuleID))
     return false;
-
-  if (LTOPlugin) {
-    if (!BitcodeFile->createPluginModule(*LTOPlugin, ModuleHash))
-      return false;
-  }
 
   llvm::StringMap<std::vector<LDSymbol *>> entrySectionsToSymbols;
 
@@ -184,7 +180,7 @@ bool BitcodeReader::readInput(InputFile &InputFile,
   // If there is a plugin corresponding to the input file, delegate the reading
   // to the plugin.
   if (LTOPlugin) {
-    LTOPlugin->ReadSymbols(*BitcodeFile->getPluginModule());
+    LTOPlugin->ReadSymbols(plugin::InputFile(&InputFile));
     if (!m_Module.getConfig().getDiagEngine()->diagnose())
       return false;
   } else {
