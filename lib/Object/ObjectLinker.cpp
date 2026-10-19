@@ -3821,6 +3821,10 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
                          ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(InputFile::InputFileKind::BinaryFileKind);
+    addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);
+    PluginManager &PM = ThisModule->getPluginManager();
+    if (!PM.callVisitInputHook(*CurInput))
+      return false;
     eld::Expected<void> ExpParseFile =
         getBinaryFileParser()->parseFile(*CurInput);
     if (!ExpParseFile) {
@@ -3828,7 +3832,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       return false;
     }
     ThisModule->getObjectList().push_back(CurInput);
-    addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);
   } else if (CurInput->getKind() == InputFile::ELFExecutableFileKind) {
     if (!CurInput->getInput()->getAttribute().isJustSymbols()) {
       ThisConfig.raise(Diag::error_executable_requires_just_symbols)
@@ -3912,6 +3915,10 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     CurInput->setToSkip();
     // LTO is needed.
     ThisModule->setLTONeeded();
+    addInputFileToTar(CurInput, MappingFile::Bitcode);
+    PluginManager &PM = ThisModule->getPluginManager();
+    if (!PM.callVisitInputHook(*CurInput))
+      return false;
     if (!getBitcodeReader()->readInput(*CurInput, LTOPlugin))
       return false;
     if (!isBackendInitialized()) {
@@ -3920,7 +3927,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     }
 
     ThisModule->getObjectList().push_back(CurInput);
-    addInputFileToTar(CurInput, MappingFile::Bitcode);
   } else if (CurInput->getKind() == InputFile::ELFSymDefFileKind) {
     eld::RegisterTimer T("Read SymDef Object Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
@@ -3932,6 +3938,9 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     }
     addInputFileToTar(CurInput, eld::MappingFile::Kind::SymDef);
     CurInput->setToSkip();
+    PluginManager &PM = ThisModule->getPluginManager();
+    if (!PM.callVisitInputHook(*CurInput))
+      return false;
     // Just to make it simple, I just added template code.
     if (!getSymDefReader()->readHeader(*CurInput, IsPostLto))
       return false;
@@ -4004,6 +4013,12 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       ThisConfig.raise(Diag::verbose_reusing_archive_file_info)
           << Input->decoratedPath() << "\n";
       CurArchive->setArchiveFileInfo(AF->getArchiveFileInfo());
+    }
+    if (!CurArchive->hasVisitedInput()) {
+      CurArchive->setVisitedInput(true);
+      PluginManager &PM = ThisModule->getPluginManager();
+      if (!PM.callVisitInputHook(*CurInput))
+        return false;
     }
     uint32_t NumObjects = 0;
     eld::Expected<uint32_t> ExpNumObjects =

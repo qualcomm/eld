@@ -13,7 +13,7 @@ public:
 
   void ActBeforeSectionMerging() override {
     for (auto &I : getLinker()->getInputFiles()) {
-      if (!I.isObjectFile())
+      if (!I.isObjectFile() && !I.isBitcode())
         continue;
       std::cout << I.getFileName()
                 << " isLTOGeneratedObject: " << I.isLTOGeneratedObject()

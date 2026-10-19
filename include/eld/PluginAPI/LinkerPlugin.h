@@ -18,14 +18,6 @@ struct Config;
 
 namespace eld::plugin {
 
-/// TODO. LTOModule is an opaque identifier used to reference a file
-/// living in a plugin in the linker. It is only needed because sections,
-/// symbols, and relocations are read one input file at a time. It should be
-/// possible to refactor reading bitcode files so that there is one call that
-/// reads symbols for all bitcode files. After that, the linker will not need to
-/// distinguish between plugin files and this ugly type can be deleted.
-class LTOModule;
-
 class DLL_A_EXPORT LinkerPlugin : public PluginBase {
 public:
   LinkerPlugin(const std::string &name)
@@ -106,27 +98,15 @@ public:
     return {};
   }
 
-  /// Create a plugin-side object for each bitcode file and return
-  /// an opaque identifier, which will later be used to reference the file when
-  /// reading it.
-  ///
-  /// This hook is called during reading bitcode files (Initializing state).
-  /// This hook is called for the LTO plugin only.
-  virtual LTOModule *CreateLTOModule(plugin::BitcodeFile BitcodeFile,
-                                     LTOModuleHash Hash) {
-    return {};
-  }
-
   /// Override reading symbols for bitcode files. The linker will
-  //// skip reading bitcode symbols and call this hook instead if
+  /// skip reading bitcode symbols and call this hook instead if
   /// the LTO plugin is loaded.
   ///
-  /// This hook is called during reading bitcode files, after reading
-  /// bitcode sections (Initializing state). These options will be parsed as
-  /// compiler command line.
+  /// This hook is called during reading bitcode files, after bitcode sections
+  /// and input file creation (Initializing state).
   ///
   /// This hook is called for the LTO plugin only.
-  virtual void ReadSymbols(LTOModule &) {}
+  virtual void ReadSymbols(plugin::InputFile IF) {}
 
   /// Modify compile options represented as strings. The LTO plugin
   /// can add new or update existing options.
@@ -143,6 +123,15 @@ public:
   /// after calling ModifyLTOOptions (BeforeLayout state).
   /// This hook is called for the LTO plugin only.
   virtual void ActBeforeLTO(llvm::lto::Config &Config) {}
+
+  /// The VisitInput hook is invoked for each input file. It is called
+  /// immediately after an InputFile component is created and passes initial
+  /// validation, before its sections or symbols are parsed.
+  ///
+  /// Use plugin::InputFile methods to inspect file properties, resolved path,
+  /// size, format kind, and raw buffer contents.
+  /// Note: getSections() and getSymbols() are empty during VisitInput.
+  virtual void VisitInput(plugin::InputFile IF) {}
 };
 } // namespace eld::plugin
 #endif

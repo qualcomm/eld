@@ -1,0 +1,16 @@
+#---VisitInputArchive.test--------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Test archive container vs extracted member semantics in VisitInput.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.main.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t.member1.o %p/Inputs/2.c -c
+RUN: %clang %clangopts -o %t.member2.o %p/Inputs/2.c -c
+RUN: rm -f %t.libarchive.a
+RUN: %ar cr %t.libarchive.a %t.member1.o %t.member2.o
+RUN: %link %linkopts -o %t.out %t.main.o %t.libarchive.a -u bar -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK-DAG: VisitInput: {{.*}}libarchive.a isArchiveFile=1 isMember=0
+CHECK-DAG: VisitInput: {{.*}}member1.o{{.*}}isArchiveFile=0 isMember=1
+CHECK-NOT: member2.o

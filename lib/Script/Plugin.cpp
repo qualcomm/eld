@@ -570,6 +570,16 @@ void Plugin::callCommandLineOptionHandler(
   OptionHandler(Option, Val);
 }
 
+void Plugin::callVisitInputHook(InputFile &IF) {
+  plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
+  RegisterTimer T("VisitInput",
+                  ThisModule.saveString(UserPluginHandle->GetName()), Stats);
+  if (isTraced())
+    ThisConfig.raise(Diag::trace_plugin_visit_input)
+        << getPluginName() << IF.getInput()->decoratedPath();
+  P->VisitInput(plugin::InputFile(&IF));
+}
+
 void Plugin::callVisitSectionsHook(InputFile &IF) {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T("VisitSections",
