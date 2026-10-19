@@ -57,7 +57,7 @@ public:
 #endif
   };
 
-  enum Verbose : uint16_t { None = 0x0, Default = 0x1 };
+  enum Verbose : uint16_t { None = 0x0, Default = 0x1, VerboseLevel2 = 0x2 };
 
   enum VerifyType { VerifyReloc = 0x1 };
 
@@ -72,59 +72,70 @@ public:
 
   void setTrace(uint32_t PTrace) { Trace |= PTrace; }
 
-  bool traceTrampolines() { return Trace & TraceTrampolines; }
+  bool traceTrampolines() const { return isTraceEnabled(TraceTrampolines); }
 
-  bool traceAssignments() { return Trace & TraceAssignments; }
+  bool traceAssignments() const { return isTraceEnabled(TraceAssignments); }
 
-  bool traceFiles() { return Trace & TraceFiles; }
+  bool traceFiles() const { return isTraceEnabled(TraceFiles); }
 
-  bool traceSymbols() { return Trace & TraceSymbols; }
+  bool traceSymbols() const { return isTraceEnabled(TraceSymbols); }
 
-  bool traceDynamicLinking() { return Trace & TraceDynamicLinking; }
+  bool traceDynamicLinking() const {
+    return isTraceEnabled(TraceDynamicLinking);
+  }
 
-  bool traceCommandLine() { return Trace & TraceCommandLine; }
+  bool traceCommandLine() const { return isTraceEnabled(TraceCommandLine); }
 
-  bool traceGC() { return Trace & TraceGC; }
+  bool traceGC() const { return isTraceEnabled(TraceGC); }
 
-  bool traceGCLive() { return Trace & TraceGCLive; }
+  bool traceGCLive() const { return isTraceEnabled(TraceGCLive); }
 
-  bool traceSym() { return Trace & TraceSym; }
+  bool traceSym() const { return isTraceEnabled(TraceSym); }
 
-  bool traceReloc() { return Trace & TraceReloc; }
+  bool traceReloc() const { return isTraceEnabled(TraceReloc); }
 
-  bool traceThreads() { return Trace & TraceThreads; }
+  bool traceThreads() const { return isTraceEnabled(TraceThreads); }
 
-  bool tracePlugins() { return Trace & TracePlugin; }
+  bool tracePlugins() const { return isTraceEnabled(TracePlugin); }
 
-  bool traceWrapSymbols() { return Trace & TraceWrap; }
+  bool traceWrapSymbols() const { return isTraceEnabled(TraceWrap); }
 
-  bool traceSection() { return Trace & TraceSection; }
+  bool traceSection() const { return isTraceEnabled(TraceSection); }
 
-  bool traceMergeStrings() { return Trace & TraceMergeStrings; }
+  bool traceMergeStrings() const { return isTraceEnabled(TraceMergeStrings); }
 
-  bool traceMergeConstants() { return Trace & TraceMergeConstants; }
+  bool traceMergeConstants() const {
+    return isTraceEnabled(TraceMergeConstants);
+  }
 
-  bool traceLinkerScript() { return (Trace & TraceLinkerScript); }
+  bool traceLinkerScript() const { return isTraceEnabled(TraceLinkerScript); }
 
-  bool traceUntar() { return (Trace & TraceUntar); }
+  bool traceUntar() const { return isTraceEnabled(TraceUntar); }
 
-  bool traceRelax() { return (Trace & TraceRelax); }
+  bool traceRelax() const { return isTraceEnabled(TraceRelax); }
 
-  bool traceSymDef() { return (Trace & TraceSymDef); }
+  bool traceSymDef() const { return isTraceEnabled(TraceSymDef); }
 
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-  bool traceSymbolVersioning() const { return (Trace & TraceSymbolVersioning); }
+  bool traceSymbolVersioning() const {
+    return isTraceEnabled(TraceSymbolVersioning);
+  }
 #else
   bool traceSymbolVersioning() const { return false; }
 #endif
 
-  uint32_t trace() { return Trace; }
+  uint32_t trace() const { return Trace; }
 
-  uint32_t isVerbose() const { return VerboseLevel & Verbose::Default; }
+  uint32_t isVerbose() const { return VerboseLevel != Verbose::None; }
+
+  bool isVerboseLevel2() const {
+    return VerboseLevel == Verbose::VerboseLevel2;
+  }
 
   void setVerbose(int8_t PVerboseLevel) {
-    // All levels of verbose is Default for now.
-    VerboseLevel = Verbose::Default;
+    VerboseLevel = PVerboseLevel == Verbose::VerboseLevel2
+                       ? Verbose::VerboseLevel2
+                       : Verbose::Default;
   }
 
   void setVerify(uint32_t PVerify) { Verify |= PVerify; }
@@ -191,6 +202,10 @@ protected:
   uint32_t UserWarningLimit = 10;
   bool IsNoInhibitExec = false;
   ProgressBar *Progress = nullptr;
+
+  bool isTraceEnabled(TraceType Type) const {
+    return isVerboseLevel2() || (Trace & Type);
+  }
 };
 
 } // namespace eld
