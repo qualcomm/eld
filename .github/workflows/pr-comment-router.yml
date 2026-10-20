@@ -265,14 +265,14 @@ jobs:
       (needs.validate.outputs.command == 'check-zephyr' ||
        needs.validate.outputs.command == 'check-all-workflows') &&
       (needs.build.result == 'success' || needs.build.result == 'skipped')
-    uses: ./.github/workflows/zephyr-pr.yml
+    uses: ./.github/workflows/zephyr.yml
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
       toolset_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
       toolset_artifact: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
     permissions:
-      contents: read
+      contents: write
       actions: write
 
   thread_sanitizer_test:
