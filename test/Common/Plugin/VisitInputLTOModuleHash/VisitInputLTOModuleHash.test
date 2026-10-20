@@ -1,0 +1,17 @@
+#---VisitInputLTOModuleHash.test--------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Test setting and getting LTO module hash via BitcodeFile in VisitInput,
+# and verify duplicate set error.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -flto %p/Inputs/1.c -o %t.set_hash.o
+RUN: %link %linkopts -o %t.out %t.set_hash.o \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck --check-prefix=CHECK-SET %s
+
+RUN: %clang %clangopts -c -flto %p/Inputs/1.c -o %t.dup_hash.o
+RUN: %not %link %linkopts -o %t.out %t.dup_hash.o \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck --check-prefix=CHECK-DUP %s
+#END_TEST
+
+CHECK-SET: VisitInput: bitcode hash set=305419896
+CHECK-DUP: LTO module hash for '{{.*}}dup_hash.o' has already been set

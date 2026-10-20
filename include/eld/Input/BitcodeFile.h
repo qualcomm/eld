@@ -16,6 +16,7 @@
 #include "eld/Readers/ELFReaderBase.h"
 
 #include <memory>
+#include <optional>
 
 namespace llvm {
 namespace lto {
@@ -77,6 +78,12 @@ public:
 
   Section *getInputSectionForSymbol(const ResolveInfo &) const;
 
+  void setOverriddenModuleHash(uint64_t Hash) { OverriddenModuleHash = Hash; }
+
+  std::optional<uint64_t> getOverriddenModuleHash() const {
+    return OverriddenModuleHash;
+  }
+
 private:
   void inferObjectInfo();
 
@@ -94,6 +101,7 @@ private:
   llvm::DenseMap<int, bool> BCComdats;
   std::unordered_map<const ResolveInfo *, Section *> InputSectionForSymbol;
   plugin::LTOModule *PluginModule;
+  std::optional<uint64_t> OverriddenModuleHash;
 };
 
 } // namespace eld
