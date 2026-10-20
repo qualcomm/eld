@@ -1468,27 +1468,35 @@ bool ScriptParser::readInclude(llvm::StringRef Tok) {
     layoutInfo->recordLinkerScript(ResolvedFileName, Result, RemappedFrom);
   if (!Result && IsOptionalInclude)
     return true;
-  ThisScriptFile.module().getScript().addToHash(ResolvedFileName);
-  if (Result) {
-    Input *Input = make<eld::Input>(ResolvedFileName,
-                                    ThisConfig.getDiagEngine(), Input::Script);
-    if (!Input->resolvePath(ThisConfig)) {
-      setError("Cannot resolve path " + ResolvedFileName);
-      // return value by ScriptParser functions indicates that the command was
-      // parsed.
-      return true;
-    }
-    InputFile *IF = InputFile::create(Input, InputFile::GNULinkerScriptKind,
-                                      ThisConfig.getDiagEngine());
-    Input->setInputFile(IF);
-    ThisScriptFile.setContext(IF);
-    llvm::MemoryBufferRef MemRef = Input->getMemoryBufferRef();
-    Buffers.push_back(CurBuf);
-    CurBuf = Buffer(MemRef);
-    MemoryBuffers.push_back(MemRef);
-    if (!ActiveFilenames.insert(CurBuf.Filename).second)
-      setError("there is a cycle in linker script INCLUDEs");
+  if (!Result) {
+    // Preserve the existing failure-path hash contribution. There is no
+    // parser buffer to hash when a required include cannot be resolved.
+    ThisScriptFile.module().getScript().addToHash(ResolvedFileName);
+    return true;
   }
+  Input *Input = make<eld::Input>(ResolvedFileName, ThisConfig.getDiagEngine(),
+                                  Input::Script);
+  if (!Input->resolvePath(ThisConfig)) {
+    setError("Cannot resolve path " + ResolvedFileName);
+    // return value by ScriptParser functions indicates that the command was
+    // parsed.
+    return true;
+  }
+  InputFile *IF = InputFile::create(Input, InputFile::GNULinkerScriptKind,
+                                    ThisConfig.getDiagEngine());
+  Input->setInputFile(IF);
+  // Hash the same contents that are used to parse the include. In mapping
+  // or replay mode, reopening ResolvedFileName may read a different file.
+  ThisScriptFile.module().getScript().addToHash(ResolvedFileName,
+                                                IF->getContents());
+  ThisScriptFile.setContext(IF);
+  llvm::MemoryBufferRef MemRef = Input->getMemoryBufferRef();
+
+  Buffers.push_back(CurBuf);
+  CurBuf = Buffer(MemRef);
+  MemoryBuffers.push_back(MemRef);
+  if (!ActiveFilenames.insert(CurBuf.Filename).second)
+    setError("there is a cycle in linker script INCLUDEs");
   return true;
 }
 
