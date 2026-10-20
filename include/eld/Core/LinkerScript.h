@@ -227,7 +227,8 @@ public:
   std::string getHash();
 
   /// Mix \p FilenameOrText into the combined hash. If it names a readable
-  /// file, also mix an MD5 of the file contents.
+  /// file, also mix an MD5 of the file contents. Use the explicit-content
+  /// overload if reading the file content is undesirable.
   void addToHash(llvm::StringRef FilenameOrText);
 
   /// Mix \p PathOrText into the combined hash, then mix an MD5 of \p
