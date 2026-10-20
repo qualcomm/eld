@@ -246,7 +246,7 @@ jobs:
       (needs.validate.outputs.command == 'check-linux-kernel' ||
        needs.validate.outputs.command == 'check-all-workflows') &&
       (needs.build.result == 'success' || needs.build.result == 'skipped')
-    uses: ./.github/workflows/linux-kernel-run.yml
+    uses: ./.github/workflows/linux-kernel.yml
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
@@ -297,7 +297,7 @@ jobs:
       needs.validate.outputs.pr_sha != '' &&
       (needs.validate.outputs.command == 'check-asan-ubsan' ||
        needs.validate.outputs.command == 'check-all-workflows')
-    uses: ./.github/workflows/sanitize.yml
+    uses: ./.github/workflows/sanitize-address-undefined.yml
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}

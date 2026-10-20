@@ -1,4 +1,4 @@
-name: Nightly memory sanitizer with origins check
+name: Memory with origins sanitizer
 # owner: Steven6798
 
 on:
@@ -23,6 +23,7 @@ jobs:
           platform: x64
 
       - name: Install libc++ and libc++abi
+        id: install_dependencies
         run: |
           sudo apt update
           sudo apt install -y clang-22 lld-22 ninja-build libc++-22-dev libc++abi-22-dev ccache libclang-rt-22-dev libunwind-22-dev
@@ -68,10 +69,9 @@ jobs:
           fetch-depth: 1
 
       - name: Configure workflow environment variables
-        uses: ./llvm-project//llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
 
       - name: Restore ccache
-        id: cache-ccache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
@@ -81,12 +81,12 @@ jobs:
 
       - name: Record pre-build entry
         if: github.event_name == 'schedule'
-        uses: ./llvm-project//llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
-          project: "./llvm-project//llvm/tools/eld"
+          project: "./llvm-project/llvm/tools/eld"
           stage: "pre-"
-          workflow-name: "memory-sanitizer-with-origins"
+          workflow-name: "memory-with-origins-sanitizer"
           record-mode: "record"
           status: "fail"
           run-id: ${{github.run_id}}
@@ -119,20 +119,20 @@ jobs:
           ninja ld.eld
 
       - name: Prune ccache before save
-        if: always()
+        if: always() && steps.install_dependencies.outcome == 'success'
         env:
           CCACHE_DIR: ${{ github.workspace }}/obj/ccache
         run: ccache --evict-older-than 7200s
 
       - name: Save ccache
-        if: always()
+        if: always() && steps.install_dependencies.outcome == 'success'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
           key: memory-sanitizer-ccache-${{ runner.os }}-${{ github.run_id }}
 
       - name: Fetch nightly toolset
-        uses: ./llvm-project//llvm/tools/eld/.github/workflows/FetchNightlyToolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
       - name: Run tests
         run: |
@@ -141,12 +141,12 @@ jobs:
 
       - name: Update build entry
         if: github.event_name == 'schedule'
-        uses: ./llvm-project//llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
-          project: "./llvm-project//llvm/tools/eld"
+          project: "./llvm-project/llvm/tools/eld"
           stage: "post-"
-          workflow-name: "memory-sanitizer-with-origins"
+          workflow-name: "memory-with-origins-sanitizer"
           record-mode: "update"
           status: "pass"
           run-id: ${{github.run_id}}

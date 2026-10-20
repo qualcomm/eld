@@ -34,6 +34,7 @@ jobs:
           python-version: '3.14'
 
       - name: Install build tools
+        id: install_dependencies
         env:
           HOMEBREW_NO_AUTO_UPDATE: 1
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
@@ -117,11 +118,11 @@ jobs:
         run: ninja check-eld-summary
 
       - name: Prune ccache before save
-        if: always()
+        if: always() && steps.install_dependencies.outcome == 'success'
         run: ccache --evict-older-than 7200s --dir="$CCACHE_DIR" || true
 
       - name: Save ccache
-        if: always()
+        if: always() && steps.install_dependencies.outcome == 'success'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache

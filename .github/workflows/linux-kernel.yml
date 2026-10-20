@@ -158,7 +158,7 @@ jobs:
           tarball: ${{ inputs.toolset_tarball }}
 
       - name: Install kernel build dependencies
-        id: install_kernel_dependencies
+        id: install_dependencies
         if: matrix.enabled == 1
         shell: bash
         run: |
@@ -234,7 +234,7 @@ jobs:
           fi
           make ARCH="${KBUILD_ARCH}" olddefconfig
 
-      - name: Restore linux kernel ccache
+      - name: Restore ccache
         if: matrix.enabled == 1
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
@@ -271,14 +271,14 @@ jobs:
 
           ccache -s
 
-      - name: Prune linux kernel ccache before save
-        if: matrix.enabled == 1 && always() && steps.install_kernel_dependencies.outcome == 'success'
+      - name: Prune ccache before save
+        if: matrix.enabled == 1 && always() && steps.install_dependencies.outcome == 'success'
         env:
           CCACHE_DIR: ${{ github.workspace }}/ccache-linux
         run: ccache --evict-older-than 7200s
 
-      - name: Save linux kernel ccache
-        if: matrix.enabled == 1 && always() && steps.install_kernel_dependencies.outcome == 'success'
+      - name: Save ccache
+        if: matrix.enabled == 1 && always() && steps.install_dependencies.outcome == 'success'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/ccache-linux
@@ -418,5 +418,5 @@ jobs:
           artifact-names: |
             kernel-boot-${{ matrix.arch }}-vmlinux
             kernel-boot-${{ matrix.arch }}-log
-          workflow-id: linux-kernel-run.yml
+          workflow-id: linux-kernel.yml
           pull-request-number: ${{ inputs.pr_number }}

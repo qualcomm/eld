@@ -6,16 +6,18 @@ on:
   # checking out or executing code from the monitored workflow.
   workflow_run:
     workflows:
-      - BusyBox
+      - BusyBox with ELD
       - Windows Arm64/x86_64 CI/Nightly
       - Linux Kernel Boot with ELD
       - Nightly builder for testing eld against musl-test-suite
       - Nightly check
       - nightly picolibc builder
       - Nightly check using reverse iterators
-      - Nightly sanitizer check
+      - Address and undefined behavior sanitizer
+      - Thread sanitizer
+      - Memory with origins sanitizer
       - Hourly Build Status Dashboard Updater
-      - Zephyr Nightly with ELD
+      - Zephyr with ELD
     types: [completed]
 
 permissions: {}

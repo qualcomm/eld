@@ -4,33 +4,15 @@ run-name: "CI PR #${{ inputs.pr_number || github.event.pull_request.number || 'a
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    paths-ignore:
-      - '.github/workflows/sanitize.yml'
-      - '.github/workflows/sanitize-threads.yml'
-      - '.github/workflows/sanitize-memory.yml'
-      - '.github/workflows/reviter.yml'
-      - '.github/workflows/docs.yaml'
-      - '.github/workflows/docs-multiversion.yaml'
-      - '.github/workflows/ci-win.yml'
-      - '.github/workflows/nightly-macos.yml'
-      - '.github/workflows/clang-cross-schedule.yml'
-      - '.github/workflows/DownloadClangCrossToolchain/action.yaml'
-      - '.github/workflows/DownloadLatestBusybox/action.yaml'
-      - '.github/workflows/busybox.yml'
-      - '.github/workflows/linux-kernel-run.yml'
-      - '.github/workflows/nightly-musl-builder.yml'
-      - '.github/workflows/picolibc-builder.yml'
-      - '.github/workflows/nightly-test.yml'
-      - '.github/workflows/update-build-dashboard-data.yml'
-      - '.github/workflows/scripts/record_builds.py'
-      - '.github/workflows/BuildStatusDataRecorder/action.yaml'
-      - '.github/workflows/pr-comment-router.yml'
-      - '.github/workflows/clang-format-pr.yml'
-      - '.github/workflows/cpp-linter-pr.yml'
-      - '.github/workflows/new-pr.yml'
-      - '.github/pr-labeler.yml'
-      - 'etc/**/*.sh'
-      - '**/configure_external_llvm.sh'
+    # Keep CI changes covered while avoiding CI runs for changes to the other
+    # workflow definitions. The final positive pattern re-includes ci.yml.
+    paths:
+      - '**'
+      - '!**/configure_external_llvm.sh'
+      - '!.github/pr-labeler.yml'
+      - '!.github/workflows/**'
+      - '!etc/**/*.sh'
+      - '.github/workflows/ci.yml'
   workflow_call:
     inputs:
       pr_number:
@@ -224,7 +206,7 @@ jobs:
         working-directory: pr-${{ env.PR_NUMBER }}/obj
         run: ccache --show-stats --dir=$CCACHE_DIR
 
-      - name: Prune ccache after build
+      - name: Prune ccache before save
         if: steps.file-check.outputs.skip_build == 'false'
         working-directory: pr-${{ env.PR_NUMBER }}/obj
         run: ccache --evict-older-than 7200s --dir=$CCACHE_DIR

@@ -1,4 +1,4 @@
-name: Zephyr build and test (reusable)
+name: Zephyr with ELD
 # owner: quic-areg
 
 # Reusable Zephyr build + twister body, called by zephyr-nightly.yml and
