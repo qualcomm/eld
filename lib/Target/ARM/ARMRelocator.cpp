@@ -1471,6 +1471,16 @@ Relocator::Result ldc_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
                    pReloc.place(pParent.module()));
 }
 
+// R_ARM_LDC_SB_G1: S + A - B(S)
+Relocator::Result ldc_sb_g1(Relocation &pReloc, ARMRelocator &pParent) {
+  Relocator::Address B;
+  Relocator::Result Result = getSBRelBase(pReloc, pParent, B);
+  if (Result != Relocator::OK)
+    return Result;
+
+  return ldc_group(pReloc, pParent, /*pGroup=*/1, B);
+}
+
 // R_ARM_ALU_PC_Gn / R_ARM_ALU_PC_Gn_NC: ((S + A) | T) - P
 // Shared worker for the whole ALU_PC group family. pGroup selects which
 // group's residual to encode and pCheck selects whether encoding failure is
