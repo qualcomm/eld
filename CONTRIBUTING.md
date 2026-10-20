@@ -54,6 +54,33 @@ In general, contributors should develop on branches based off of `main` and pull
 1. Add the appropiate labels to include these changes in the release notes. Refer to `.github/release.yml` for the list of categories and their labels.
 1. Pat yourself on the back and wait for your pull request to be reviewed.
 
+## Requesting pull request checks
+
+After opening a pull request, authorized project members can request the
+following checks by commenting the command on the pull request:
+
+| Comment | Check |
+| --- | --- |
+| `check-llvm-test-suite` | LLVM test suite |
+| `check-linux-kernel` | Linux kernel boot with ELD |
+| `check-zephyr` | Zephyr with ELD |
+| `check-thread-sanitizer` | Thread sanitizer |
+| `check-asan-ubsan` | Address and undefined behavior sanitizers |
+| `check-all-workflows` | All available checks |
+
+Requests are accepted from users with GitHub `COLLABORATOR`, `MEMBER`, or
+`OWNER` association. The command must be the complete comment, with no
+additional text.
+
+The router uses the exact pull request head SHA when running a check. If a
+matching ELD toolset artifact already exists, it is reused; otherwise the CI
+workflow builds the toolset first. Push a new commit to the pull request and
+request the check again to test the new SHA.
+
+Maintainers can also run the **PR comment router** through GitHub Actions using
+the manual dispatch inputs. Provide the pull request number, its current head
+SHA, and one of the commands above.
+
 Here are a few things you can do that will increase the likelihood of your pull request to be accepted:
 
 - Use GitHub issues to report bugs, propose features, suggest architecture adjustments, or make modifications to the core codebase.
