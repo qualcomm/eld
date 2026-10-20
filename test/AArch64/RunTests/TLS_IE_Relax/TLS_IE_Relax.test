@@ -1,0 +1,21 @@
+REQUIRES: run_test, aarch64
+#---TLS_IE_Relax.test------------------- Executable ----------------#
+#BEGIN_COMMENT
+# Runtime test: AArch64 TLS IE->LE relaxation must not change behavior.
+# The initial-exec access (adrp + ldr via the GOT) is rewritten to
+# local-exec (movz + movk) when --relax is passed on a static link.
+# Link the same object with and without --relax, run both under the
+# emulator, and confirm identical, correct output.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc %clangopts -c %p/Inputs/tls_ie.c -o %t.o
+
+# Default (--no-relax): initial-exec access kept.
+RUN: %run_cc %clangopts -static -o %t.no-relax.out %t.o -Wl,--no-relax
+RUN: %run %t.no-relax.out | %filecheck %s
+
+# With --relax: initial-exec relaxed to local-exec.
+RUN: %run_cc %clangopts -static -o %t.relax.out %t.o -Wl,--relax
+RUN: %run %t.relax.out | %filecheck %s
+#END_TEST
+CHECK: 43
