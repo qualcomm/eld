@@ -2563,6 +2563,8 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     if (!OutputSect)
       return true;
 
+    std::lock_guard<std::mutex> Guard(EmitRelocsMutex);
+
     Relocation::Type ExtType =
         getTargetBackend().getRemappedInternalRelocationType(
             Relocation->type());
@@ -2592,11 +2594,8 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     // set relocation target symbol to the output section symbol's
     // resolveInfo
     R->setSymInfo(SymInfo);
-    {
-      std::lock_guard<std::mutex> Guard(EmitRelocsMutex);
-      OutputSect->addRelocation(R);
-      RelocCount[OutputSect] += 1;
-    }
+    OutputSect->addRelocation(R);
+    RelocCount[OutputSect] += 1;
     return true;
   };
 
