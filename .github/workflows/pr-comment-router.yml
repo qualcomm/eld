@@ -228,14 +228,14 @@ jobs:
       (needs.validate.outputs.command == 'check-llvm-test-suite' ||
        needs.validate.outputs.command == 'check-all-workflows') &&
       (needs.build.result == 'success' || needs.build.result == 'skipped')
-    uses: ./.github/workflows/llvm-test-suite-pr.yml
+    uses: ./.github/workflows/llvm-test-suite.yml
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
       build_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
       artifact_name: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
     permissions:
-      contents: read
+      contents: write
       actions: read
 
   linux_test:

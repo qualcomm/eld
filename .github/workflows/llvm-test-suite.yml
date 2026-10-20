@@ -1,37 +1,81 @@
-name: Nightly LLVM Test Suite (x86_64)
-# owner: BhoumikPatidar
+name: LLVM test suite
+run-name: "LLVM test suite ${{ inputs.pr_number && format('PR #{0} @{1}', inputs.pr_number, inputs.pr_sha) || 'nightly' }}"
 
 on:
   schedule:
     - cron: '0 11 * * *' # 5:00 AM CST
+  workflow_call:
+    inputs:
+      pr_number:
+        description: "Pull request number used to scope the test-suite artifact"
+        required: false
+        type: string
+        default: ""
+      pr_sha:
+        description: "Exact PR head SHA"
+        required: false
+        type: string
+        default: ""
+      build_run_id:
+        description: "CI workflow run containing the PR ELD toolset artifact"
+        required: false
+        type: string
+        default: ""
+      artifact_name:
+        description: "PR ELD toolset artifact name"
+        required: false
+        type: string
+        default: ""
   workflow_dispatch:
-
-concurrency:
-  group: llvm-test-suite-nightly
-  cancel-in-progress: true
+    inputs:
+      pr_number:
+        description: "Pull request number"
+        required: false
+        type: string
+        default: ""
+      pr_sha:
+        description: "Exact PR head SHA"
+        required: false
+        type: string
+        default: ""
+      build_run_id:
+        description: "Build workflow run containing the toolset artifact"
+        required: false
+        type: string
+        default: ""
+      artifact_name:
+        description: "PR toolset artifact name"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: write
   actions: read
 
 jobs:
-  test-llvm-test-suite-x86_64:
-    if: github.repository == 'qualcomm/eld' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+  test:
+    if: |
+      (github.repository == 'qualcomm/eld' &&
+       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')) ||
+      github.event_name == 'workflow_call'
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ inputs.pr_sha && format('llvm-test-suite-pr-{0}-{1}', inputs.pr_number, inputs.pr_sha) || 'llvm-test-suite-nightly' }}
+      cancel-in-progress: true
     permissions:
       contents: write
       actions: read
     env:
       ELD_SOURCE_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld
-
     steps:
-      - name: Checkout eld
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout eld workflow sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
         with:
           path: llvm-project/llvm/tools/eld
-          persist-credentials: true
 
       - name: Configure workflow environment variables
+        if: inputs.pr_sha == ''
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
 
       - name: Record pre-build entry
@@ -49,10 +93,53 @@ jobs:
           branch-name: "${{ env.BUILD_BRANCH }}"
 
       - name: Install dependencies
-        run: pip3 install lit
+        run: |
+          pip3 install lit
+          if [ -n "${{ inputs.pr_sha }}" ]; then
+            sudo apt-get update
+            sudo apt-get install -y libunwind-18
+          fi
 
       - name: Fetch nightly ELD
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+
+      - name: Preserve nightly compiler runtimes
+        if: inputs.pr_sha != ''
+        run: |
+          mkdir -p nightly-cxx-runtime
+          find "${GITHUB_WORKSPACE}/inst/lib" -maxdepth 1 \( \
+            -name 'libc++.so*' -o -name 'libc++abi.so*' \
+          \) -exec cp -a {} nightly-cxx-runtime/ \;
+
+      - name: Overlay PR ELD toolset
+        if: inputs.pr_sha != ''
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchEldToolset
+        with:
+          run-id: ${{ inputs.build_run_id }}
+          artifact-name: ${{ inputs.artifact_name }}
+          tarball: install-pr-toolset.tar.xz
+
+      - name: Restore nightly compiler runtimes
+        if: inputs.pr_sha != ''
+        run: |
+          cp -a nightly-cxx-runtime/. "${GITHUB_WORKSPACE}/inst/lib/"
+
+      - name: Configure nightly toolchain library path
+        if: inputs.pr_sha != ''
+        run: |
+          echo "LD_LIBRARY_PATH=${GITHUB_WORKSPACE}/inst/lib:${GITHUB_WORKSPACE}/inst/lib/x86_64-unknown-linux-gnu:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+
+      - name: Diagnose LLVM toolchain
+        shell: bash
+        run: |
+          set +e
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+          echo "clang: $(command -v clang)"
+          echo "clang++: $(command -v clang++)"
+          clang --version
+          clang++ --version
+          ldd "$(command -v clang)" | grep -E 'libc\\+\\+|libcxxabi|unwind|not found' || true
+          ldd "$(command -v clang++)" | grep -E 'libc\\+\\+|libcxxabi|unwind|not found' || true
 
       - name: Clone LLVM test suite
         run: git clone --depth 1 https://github.com/llvm/llvm-test-suite.git
@@ -110,9 +197,9 @@ jobs:
 
       - name: Upload test output
         if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 #v7.0.2
         with:
-          name: llvm-test-suite-results
+          name: llvm-test-suite-results${{ inputs.pr_sha && format('-{0}', inputs.pr_sha) || '' }}
           path: test-output.txt
           retention-days: 7
 
@@ -131,8 +218,8 @@ jobs:
           branch-name: "${{ env.BUILD_BRANCH }}"
 
       - name: Delete older LLVM test-suite results
-        if: success()
+        if: success() && inputs.pr_sha == ''
         continue-on-error: true
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts
+        uses: ./.github/workflows/DeleteOldArtifacts
         with:
           artifact-names: llvm-test-suite-results
