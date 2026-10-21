@@ -115,3 +115,8 @@ DIAG(note_empty_archive, DiagnosticEngine::Note,
      "Empty archive file: '%0'")
 DIAG(sframe_read_error, DiagnosticEngine::Error,
      "SFrame Read Error : %0 from file %1")
+DIAG(error_start_lib_input, DiagnosticEngine::Error,
+     "cannot process --start-lib input '%0': %1")
+DIAG(error_start_lib_member_type, DiagnosticEngine::Error,
+     "unsupported --start-lib member '%0': expected an ELF relocatable "
+     "object or LLVM bitcode")
