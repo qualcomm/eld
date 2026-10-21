@@ -86,6 +86,8 @@ public:
   /// \returns path rewritten as sha2 hash
   std::string rewritePath(llvm::StringRef s);
 
+  bool hasInput(llvm::StringRef s) const { return InputMap.contains(s); }
+
   const std::string getMappings() const;
 
   /// \returns vector of filenames of LTO objects
