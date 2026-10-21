@@ -1,0 +1,30 @@
+#---DWARFInfoMalformed.test------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Corrupt optional DWARF metadata without changing the linkable program.
+# Exercise both DWARF v4 and v5 encodings: both reader paths exercised by the
+# plugin must tolerate malformed optional metadata without aborting the link.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c -g -gdwarf-4 %p/Inputs/1.c -o %t.v4.o
+# Remove the abbreviation table needed to decode the DIE stream.
+RUN: %objcopy --remove-section=.rel.debug_info --remove-section=.rela.debug_info --remove-section=.debug_abbrev %t.v4.o %t.v4.bad-abbrev.o
+RUN: %link %t.v4.bad-abbrev.o -T %p/Inputs/script.t -o %t.v4.bad-abbrev.out 2>&1 | %filecheck %s --check-prefix=CORRUPT-V4 --allow-empty
+# Keep the DIE stream but remove its DWARF string backing and relocations.
+# RISC-V relocatable objects can retain debug-info relocations to the removed
+# string section. Every DIE name lookup must consume the resulting error.
+RUN: %objcopy --remove-section=.rel.debug_info --remove-section=.rela.debug_info --remove-section=.rel.debug_str --remove-section=.rela.debug_str --remove-section=.rel.debug_str_offsets --remove-section=.rela.debug_str_offsets --remove-section=.debug_str %t.v4.o %t.v4.bad-string.o
+RUN: %link %t.v4.bad-string.o -T %p/Inputs/script.t -o %t.v4.bad-string.out 2>&1 | %filecheck %s --check-prefix=BADSTRING-V4 --allow-empty
+
+RUN: %clang -c -g -gdwarf-5 %p/Inputs/1.c -o %t.v5.o
+# Repeat both corruptions for DWARF v5, whose names may also use
+# .debug_str_offsets-backed DW_FORM_strx attributes.
+RUN: %objcopy --remove-section=.rel.debug_info --remove-section=.rela.debug_info --remove-section=.debug_abbrev %t.v5.o %t.v5.bad-abbrev.o
+RUN: %link %t.v5.bad-abbrev.o -T %p/Inputs/script.t -o %t.v5.bad-abbrev.out 2>&1 | %filecheck %s --check-prefix=CORRUPT-V5 --allow-empty
+RUN: %objcopy --remove-section=.rel.debug_info --remove-section=.rela.debug_info --remove-section=.rel.debug_str --remove-section=.rela.debug_str --remove-section=.rel.debug_str_offsets --remove-section=.rela.debug_str_offsets --remove-section=.debug_str %t.v5.o %t.v5.bad-string.o
+RUN: %link %t.v5.bad-string.o -T %p/Inputs/script.t -o %t.v5.bad-string.out 2>&1 | %filecheck %s --check-prefix=BADSTRING-V5 --allow-empty
+
+CORRUPT-V4-NOT: fatalUncheckedError
+BADSTRING-V4-NOT: fatalUncheckedError
+CORRUPT-V5-NOT: fatalUncheckedError
+BADSTRING-V5-NOT: fatalUncheckedError
+#END_TEST

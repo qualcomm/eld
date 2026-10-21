@@ -2,24 +2,44 @@ name: Windows Arm64/x86_64 CI/Nightly
 # owner: Steven6798
 
 on:
-  # pull_request: {} # Uncomment to run in CI mode to build ELD PR branch.
   schedule:
     # 9:00 PM Central
     - cron: '0 2 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      pr_sha:
+        description: "Exact pull request head SHA to build"
+        required: false
+        type: string
+        default: ""
+  workflow_call:
+    inputs:
+      pr_number:
+        description: "Pull request number"
+        required: false
+        type: string
+        default: ""
+      pr_sha:
+        description: "Exact pull request head SHA"
+        required: false
+        type: string
+        default: ""
 
 
 permissions:
   contents: write
 jobs:
   build-windows:
-    if: github.repository == 'qualcomm/eld'
+    if: |
+      (github.repository == 'qualcomm/eld' &&
+       (github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch' ||
+        inputs.pr_sha != '')) ||
+      github.event_name == 'workflow_call'
     permissions:
       contents: write
     env:
-      BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
-      ELD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
-      ELD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
+      ELD_REF: ${{ inputs.pr_sha || github.ref_name }}
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
 
@@ -57,16 +77,16 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: llvm/llvm-project
-          ref: ${{ env.BASE_BRANCH_NAME }}
+          ref: main
           path: nightly/llvm-project
 
-      - name: Checkout ELD
+      - name: Checkout eld
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ env.ELD_REPO }}
+          repository: qualcomm/eld
           ref: ${{ env.ELD_REF }}
           path: nightly/llvm-project/llvm/tools/eld
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Record pre-build entry
         if: github.event_name == 'schedule'
@@ -75,7 +95,7 @@ jobs:
           enabled: true
           project: "nightly/llvm-project/llvm/tools/eld"
           stage: "pre-"
-          workflow-name: "windows_nightly"
+          workflow-name: "windows"
           record-mode: "record"
           status: "fail"
           run-id: ${{github.run_id}}
@@ -125,7 +145,7 @@ jobs:
           enabled: true
           project: "nightly/llvm-project/llvm/tools/eld"
           stage: "post-"
-          workflow-name: "windows_nightly"
+          workflow-name: "windows"
           record-mode: "update"
           status: "pass"
           run-id: ${{github.run_id}}

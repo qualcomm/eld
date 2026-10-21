@@ -12,6 +12,7 @@
 #include "eld/Support/MsgHandling.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/DebugInfo/DWARF/DWARFContext.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/MemoryBuffer.h"
 
 using namespace eld;
@@ -42,9 +43,11 @@ void ELFObjectFile::createDWARFContext(bool Is32) {
   llvm::Expected<std::unique_ptr<llvm::DWARFContext>> DC =
       llvm::DWARFContext::create(DebugSectMap, Is32 ? 4 : 8);
 
-  // FIXME: Check for error from llvm::Expected here.
-  if (DC)
-    DWARFContext = std::move(*DC);
+  if (!DC) {
+    llvm::consumeError(DC.takeError());
+    return;
+  }
+  DWARFContext = std::move(*DC);
 }
 
 void ELFObjectFile::populateDebugSections() {
