@@ -9,6 +9,7 @@ on:
       - BusyBox with ELD
       - Windows Arm64/x86_64 CI/Nightly
       - Linux Kernel Boot with ELD
+      - macOS with ELD
       - Nightly builder for testing eld against musl-test-suite
       - Nightly check
       - nightly picolibc builder

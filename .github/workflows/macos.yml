@@ -1,4 +1,4 @@
-name: macOS Nightly
+name: macOS with ELD
 # owner: malto101
 
 # GitHub-hosted Darwin host build of ld.eld (ELF linker, not a Mach-O target).
@@ -8,20 +8,36 @@ on:
     # 9:00 PM Central
     - cron: '0 2 * * *'
   workflow_dispatch: {}
+  workflow_call:
+    inputs:
+      pr_number:
+        description: "Pull request number"
+        required: false
+        type: string
+        default: ""
+      pr_sha:
+        description: "Exact pull request head SHA"
+        required: false
+        type: string
+        default: ""
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-macos:
-    if: github.repository == 'qualcomm/eld'
+    if: |
+      (github.repository == 'qualcomm/eld' &&
+       (github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch' ||
+        inputs.pr_sha != '')) ||
+      github.event_name == 'workflow_call'
     name: macOS
     runs-on: macos-latest
     timeout-minutes: 180
+    permissions:
+      contents: write
     env:
-      BASE_BRANCH_NAME: main
-      ELD_REPO: ${{ github.repository }}
-      ELD_REF: ${{ github.ref_name }}
       CCACHE_DIR: ${{ github.workspace }}/obj/ccache
       CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_COMPILERCHECK: content
@@ -54,17 +70,34 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: llvm/llvm-project
-          ref: ${{ env.BASE_BRANCH_NAME }}
+          ref: main
           path: llvm-project
           fetch-depth: 1
 
       - name: Checkout ELD
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ env.ELD_REPO }}
-          ref: ${{ env.ELD_REF }}
+          repository: qualcomm/eld
+          ref: ${{ inputs.pr_sha || github.ref_name }}
           path: llvm-project/llvm/tools/eld
-          fetch-depth: 0
+          fetch-depth: 1
+
+      - name: Configure workflow environment variables
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+
+      - name: Record pre-build entry
+        if: github.event_name == 'schedule'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "pre-"
+          workflow-name: "macos"
+          record-mode: "record"
+          status: "fail"
+          run-id: ${{ github.run_id }}
+          arch-name: "all"
+          branch-name: "${{ env.BUILD_BRANCH }}"
 
       - name: Restore ccache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
@@ -127,6 +160,20 @@ jobs:
         with:
           path: ${{ github.workspace }}/obj/ccache
           key: macos-eld-ccache-${{ runner.arch }}-${{ github.run_id }}
+
+      - name: Update build entry
+        if: github.event_name == 'schedule'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "post-"
+          workflow-name: "macos"
+          record-mode: "update"
+          status: "pass"
+          run-id: ${{ github.run_id }}
+          arch-name: "all"
+          branch-name: "${{ env.BUILD_BRANCH }}"
 
       - name: Clean up
         if: always()

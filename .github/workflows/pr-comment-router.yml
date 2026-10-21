@@ -25,6 +25,7 @@ on:
           - check-thread-sanitizer
           - check-asan-ubsan
           - check-windows
+          - check-macos
           - check-all-workflows
       request_id:
         description: "Optional request ID used to correlate an external workflow dispatch"
@@ -80,6 +81,7 @@ jobs:
               'check-thread-sanitizer',
               'check-asan-ubsan',
               'check-windows',
+              'check-macos',
               'check-all-workflows',
             ]);
             if (!supported.has(command) ||
@@ -118,12 +120,13 @@ jobs:
               ['check-thread-sanitizer', { name: 'Thread sanitizer', context: 'PR Thread Sanitizer', usesToolset: false }],
               ['check-asan-ubsan', { name: 'Address and undefined behavior sanitizer', context: 'PR Address and Undefined Behavior Sanitizer', usesToolset: false }],
               ['check-windows', { name: 'Windows CI', context: 'PR Windows CI', usesToolset: false }],
+              ['check-macos', { name: 'macOS CI', context: 'PR macOS CI', usesToolset: false }],
             ]);
             const selectedChecks = command === 'check-all-workflows'
               ? [...checkDefinitions.values()]
               : [checkDefinitions.get(command)];
             let reusableArtifact;
-            if (['check-thread-sanitizer', 'check-asan-ubsan', 'check-windows'].includes(command)) {
+            if (['check-thread-sanitizer', 'check-asan-ubsan', 'check-windows', 'check-macos'].includes(command)) {
               core.info('This check builds the PR source directly; no standard toolset artifact is required.');
             } else {
               const artifacts = await github.paginate(
@@ -154,7 +157,7 @@ jobs:
               }
             }
             if (!reusableArtifact) {
-              core.info(['check-thread-sanitizer', 'check-asan-ubsan', 'check-windows'].includes(command)
+              core.info(['check-thread-sanitizer', 'check-asan-ubsan', 'check-windows', 'check-macos'].includes(command)
                 ? 'No standard toolset artifact is required for this check.'
                 : `No reusable artifact found for ${artifactName}; the build job will run.`);
             }
@@ -211,6 +214,7 @@ jobs:
       needs.validate.outputs.command != 'check-thread-sanitizer' &&
       needs.validate.outputs.command != 'check-asan-ubsan' &&
       needs.validate.outputs.command != 'check-windows' &&
+      needs.validate.outputs.command != 'check-macos' &&
       needs.validate.outputs.artifact_reused != 'true'
     uses: ./.github/workflows/ci.yml
     with:
@@ -317,6 +321,20 @@ jobs:
       (needs.validate.outputs.command == 'check-windows' ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/ci-win.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+    permissions:
+      contents: write
+
+  macos_test:
+    needs: validate
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-macos' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/macos.yml
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
@@ -455,8 +473,30 @@ jobs:
       pull-requests: write
       statuses: write
 
+  report_macos:
+    needs: [validate, macos_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-macos' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: macOS CI
+      status_context: PR macOS CI
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: skipped
+      test_result: ${{ needs.macos_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
   report_all:
-    needs: [validate, build, llvm_test, linux_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, windows_test]
+    needs: [validate, build, llvm_test, linux_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, windows_test, macos_test]
     if: |
       always() &&
       needs.validate.outputs.pr_sha != '' &&
@@ -479,6 +519,7 @@ jobs:
           THREAD_RESULT: ${{ needs.thread_sanitizer_test.result }}
           ASAN_RESULT: ${{ needs.asan_ubsan_test.result }}
           WINDOWS_RESULT: ${{ needs.windows_test.result }}
+          MACOS_RESULT: ${{ needs.macos_test.result }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           github-token: ${{ github.token }}
@@ -490,6 +531,7 @@ jobs:
               ['Thread sanitizer', process.env.THREAD_RESULT],
               ['Address and undefined behavior sanitizer', process.env.ASAN_RESULT],
               ['Windows CI', process.env.WINDOWS_RESULT],
+              ['macOS CI', process.env.MACOS_RESULT],
             ];
             const icon = result => result === 'success'
               ? '✅'

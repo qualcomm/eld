@@ -67,6 +67,7 @@ following checks by commenting the command on the pull request:
 | `check-thread-sanitizer` | Thread sanitizer |
 | `check-asan-ubsan` | Address and undefined behavior sanitizers |
 | `check-windows` | Windows CI |
+| `check-macos` | macOS CI |
 | `check-all-workflows` | All available checks |
 
 Requests are accepted from users with GitHub `COLLABORATOR`, `MEMBER`, or
