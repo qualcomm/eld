@@ -149,7 +149,9 @@ bool BitcodeReader::readInput(InputFile &InputFile,
       (Twine(NameWithArchiveOffset) + "^^" + Twine::utohexstr(ModuleHash))
           .str();
 
-  if (!BitcodeFile->createLTOInputFile(ModuleID))
+  bool IncludeLocalSymbols =
+      LTOPlugin && m_Module.getConfig().options().hasLTOLinkerScripts();
+  if (!BitcodeFile->createLTOInputFile(ModuleID, IncludeLocalSymbols))
     return false;
 
   if (LTOPlugin) {

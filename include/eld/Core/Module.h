@@ -335,7 +335,7 @@ public:
 
   void addSymbol(ResolveInfo *R);
 
-  LDSymbol *addSymbolFromBitCode(ObjectFile &CurInput, const std::string &Name,
+  LDSymbol *addSymbolFromBitCode(BitcodeFile &CurInput, const std::string &Name,
                                  ResolveInfo::Type Type, ResolveInfo::Desc Desc,
                                  ResolveInfo::Binding Binding,
                                  ResolveInfo::SizeType Size,

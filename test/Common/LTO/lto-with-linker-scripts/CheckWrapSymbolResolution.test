@@ -1,0 +1,64 @@
+# RUN: rm -rf %t && split-file %s %t
+# RUN: %llvm-mc -filetype=obj -triple=%triple %t/1.s -o %t/1.o
+# RUN: %opt -mtriple=%triple %t/2.ll -o %t/2.o
+# RUN: %opt -mtriple=%triple %t/3.ll -o %t/3.o
+# RUN: %opt -mtriple=%triple %t/w.ll -o %t/w.o
+# RUN: %link %linkopts --lto-linker-scripts %t/1.o %t/w.o %t/2.o %t/3.o \
+# RUN:   -T %t/script.t --wrap foo -t -o %t/out
+# RUN: %objdump -Cx %t/out | %filecheck %s
+
+# CHECK: f000000 {{.*}}     F .wrap  {{.*}} __wrap_foo
+
+#--- 1.s
+.text
+.section .text.main,"ax",%progbits
+.globl main
+.type main,%function
+main:
+  .long foo
+  .byte 0
+.size main, .-main
+
+#--- 2.ll
+
+define weak i32 @foo() nounwind section ".text.foo.1" {
+  ret i32 1
+}
+
+define i32 @bar() nounwind section ".text.bar" {
+  %v = call i32 @foo()
+  ret i32 %v
+}
+
+#--- 3.ll
+
+define weak i32 @foo() nounwind section ".text.foo.2" {
+  ret i32 2
+}
+
+define i32 @b1() nounwind section ".text.b1" {
+  %v = call i32 @foo()
+  ret i32 %v
+}
+
+#--- w.ll
+
+define i32 @__wrap_foo() nounwind section ".text.__wrap_foo" {
+  ret i32 1
+}
+
+#--- script.t
+SECTIONS {
+ .near : {
+    *(.text.main)
+    *(.text.foo)
+    *(.text.bar)
+    *(.text.b1)
+    *(.text.b2)
+  }
+
+  . = 0xF000000;
+  .wrap : {
+    *(.text.__wrap_foo)
+  }
+}
