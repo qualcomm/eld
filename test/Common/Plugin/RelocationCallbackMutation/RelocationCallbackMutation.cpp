@@ -110,7 +110,9 @@ bool DLL_A_EXPORT RegisterAll() {
 
 PluginBase DLL_A_EXPORT *getPlugin(const char *) { return PluginInstance; }
 
-LinkerPluginConfig *getPluginConfig(const char *) { return ConfigInstance; }
+LinkerPluginConfig DLL_A_EXPORT *getPluginConfig(const char *) {
+  return ConfigInstance;
+}
 
 void DLL_A_EXPORT Cleanup() {
   delete ConfigInstance;
