@@ -26,6 +26,7 @@ on:
           - check-asan-ubsan
           - check-windows
           - check-macos
+          - check-memory-sanitizer
           - check-all-workflows
       request_id:
         description: "Optional request ID used to correlate an external workflow dispatch"
@@ -82,6 +83,7 @@ jobs:
               'check-asan-ubsan',
               'check-windows',
               'check-macos',
+              'check-memory-sanitizer',
               'check-all-workflows',
             ]);
             if (!supported.has(command) ||
@@ -121,12 +123,13 @@ jobs:
               ['check-asan-ubsan', { name: 'Address and undefined behavior sanitizer', context: 'PR Address and Undefined Behavior Sanitizer', usesToolset: false }],
               ['check-windows', { name: 'Windows CI', context: 'PR Windows CI', usesToolset: false }],
               ['check-macos', { name: 'macOS CI', context: 'PR macOS CI', usesToolset: false }],
+              ['check-memory-sanitizer', { name: 'Memory with origins sanitizer', context: 'PR Memory with Origins Sanitizer', usesToolset: false }],
             ]);
             const selectedChecks = command === 'check-all-workflows'
               ? [...checkDefinitions.values()]
               : [checkDefinitions.get(command)];
             let reusableArtifact;
-            if (['check-thread-sanitizer', 'check-asan-ubsan', 'check-windows', 'check-macos'].includes(command)) {
+            if (['check-thread-sanitizer', 'check-asan-ubsan', 'check-memory-sanitizer', 'check-windows', 'check-macos'].includes(command)) {
               core.info('This check builds the PR source directly; no standard toolset artifact is required.');
             } else {
               const artifacts = await github.paginate(
@@ -157,7 +160,7 @@ jobs:
               }
             }
             if (!reusableArtifact) {
-              core.info(['check-thread-sanitizer', 'check-asan-ubsan', 'check-windows', 'check-macos'].includes(command)
+              core.info(['check-thread-sanitizer', 'check-asan-ubsan', 'check-memory-sanitizer', 'check-windows', 'check-macos'].includes(command)
                 ? 'No standard toolset artifact is required for this check.'
                 : `No reusable artifact found for ${artifactName}; the build job will run.`);
             }
@@ -215,6 +218,7 @@ jobs:
       needs.validate.outputs.command != 'check-asan-ubsan' &&
       needs.validate.outputs.command != 'check-windows' &&
       needs.validate.outputs.command != 'check-macos' &&
+      needs.validate.outputs.command != 'check-memory-sanitizer' &&
       needs.validate.outputs.artifact_reused != 'true'
     uses: ./.github/workflows/ci.yml
     with:
@@ -340,6 +344,21 @@ jobs:
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
     permissions:
       contents: write
+
+  memory_sanitizer_test:
+    needs: validate
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-memory-sanitizer' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/sanitize-memory.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+    permissions:
+      contents: write
+      actions: read
 
   report_llvm:
     needs: [validate, build, llvm_test]
@@ -495,8 +514,30 @@ jobs:
       pull-requests: write
       statuses: write
 
+  report_memory_sanitizer:
+    needs: [validate, memory_sanitizer_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-memory-sanitizer' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: Memory with origins sanitizer
+      status_context: PR Memory with Origins Sanitizer
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: skipped
+      test_result: ${{ needs.memory_sanitizer_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
   report_all:
-    needs: [validate, build, llvm_test, linux_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, windows_test, macos_test]
+    needs: [validate, build, llvm_test, linux_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, memory_sanitizer_test, windows_test, macos_test]
     if: |
       always() &&
       needs.validate.outputs.pr_sha != '' &&
@@ -520,6 +561,7 @@ jobs:
           ASAN_RESULT: ${{ needs.asan_ubsan_test.result }}
           WINDOWS_RESULT: ${{ needs.windows_test.result }}
           MACOS_RESULT: ${{ needs.macos_test.result }}
+          MEMORY_RESULT: ${{ needs.memory_sanitizer_test.result }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           github-token: ${{ github.token }}
@@ -532,6 +574,7 @@ jobs:
               ['Address and undefined behavior sanitizer', process.env.ASAN_RESULT],
               ['Windows CI', process.env.WINDOWS_RESULT],
               ['macOS CI', process.env.MACOS_RESULT],
+              ['Memory with origins sanitizer', process.env.MEMORY_RESULT],
             ];
             const icon = result => result === 'success'
               ? '✅'
