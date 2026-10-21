@@ -17,7 +17,6 @@
 #include "AArch64ErrataFactory.h"
 #include "AArch64ErrataIslandFactory.h"
 #include "AArch64GOT.h"
-#include "AArch64NoteGNUPropertyFragment.h"
 #include "AArch64PLT.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Target/GNULDBackend.h"
@@ -148,13 +147,13 @@ public:
   Stub *getBranchIslandStub(Relocation *pReloc,
                             int64_t targetValue) const override;
 
-  bool readSection(InputFile &pInput, ELFSection *S) override;
+  uint32_t getGNUPropertyFeatureAndType() const override {
+    return llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_AND;
+  }
 
   bool DoesOverrideMerge(ELFSection *pSection) const override;
 
   ELFSection *mergeSection(ELFSection *pSection) override;
-
-  bool processInputFiles(std::vector<InputFile *> &Inputs) override;
 
   void initializeAttributes() override;
 
@@ -167,6 +166,9 @@ public:
 
   /// postLayout - Backend can do any needed modification after layout
   void doPostLayout() override;
+
+protected:
+  void adjustGNUPropertyFeatures(InputFile *In, uint32_t &Features) override;
 
 private:
   ELFSection *createGOTSection(InputFile &InputFile);
@@ -195,15 +197,6 @@ private:
 
   void createErratum843419Stub(Fragment *frag, uint32_t offset);
 
-  // Read features from GNU property sections.
-  template <class ELFT>
-  bool readGNUProperty(InputFile &pInput, ELFSection *S, uint32_t &featureSet);
-
-  bool processInputFile(InputFile *In);
-
-  // Create GNU property section.
-  void createGNUPropertySection(bool);
-
   // Update TCB size to support TLS alignment
   void setupStaticTCBForTLSSupport();
 
@@ -216,14 +209,9 @@ private:
 
   ELFSection *m_ptdata;
   ELFSection *m_ptbss;
-  /// GNU Property section
-  ELFSection *m_pNoteGNUProperty = nullptr;
-  /// GNU Property fragment
-  AArch64NoteGNUPropertyFragment *m_pGPF = nullptr;
   llvm::DenseMap<ResolveInfo *, AArch64GOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, AArch64GOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, AArch64PLT *> m_PLTMap;
-  std::unordered_map<InputFile *, uint32_t> NoteGNUPropertyMap;
   /// The static TLS block contains an optional gap at the beginning,
   /// that is followed by an optional alignment padding. The TLS variables
   /// are stored after the alignment padding. This member stores the
