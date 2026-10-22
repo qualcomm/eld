@@ -370,53 +370,37 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
 
-  switch (Type) {
-
-  case llvm::ELF::R_ARM_ABS32:
-  case llvm::ELF::R_ARM_ABS32_NOI: {
-    // If building PIC object (shared library or PIC executable),
-    // a dynamic relocations with RELATIVE type to this location is needed.
-    // Reserve an entry in .rel.dyn
-    if (config().isCodeIndep()) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-      if (!checkDynamicRelocAllowed(pReloc, pSection, true))
-        return;
-      helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
-                         pReloc.targetRef()->offset(),
-                         llvm::ELF::R_ARM_RELATIVE, m_Target);
-      rsym->setReserved(rsym->reserved() | ReserveRel);
-      getTarget().checkAndSetHasTextRel(pSection);
+  switch (getRelocationScanKind(Type)) {
+  case RelocationScanKind::Absolute:
+    if (Type == llvm::ELF::R_ARM_ABS32 || Type == llvm::ELF::R_ARM_ABS32_NOI) {
+      // If building PIC object (shared library or PIC executable), a dynamic
+      // relocation with RELATIVE type to this location is needed.
+      if (config().isCodeIndep()) {
+        if (!checkDynamicRelocAllowed(pReloc, pSection, true))
+          return;
+        helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
+                           pReloc.targetRef()->offset(),
+                           llvm::ELF::R_ARM_RELATIVE, m_Target);
+        rsym->setReserved(rsym->reserved() | ReserveRel);
+        getTarget().checkAndSetHasTextRel(pSection);
+      }
+      return;
     }
-    return;
-  }
-
-  case llvm::ELF::R_ARM_ABS16:
-  case llvm::ELF::R_ARM_ABS12:
-  case llvm::ELF::R_ARM_THM_ABS5:
-  case llvm::ELF::R_ARM_ABS8:
-  case llvm::ELF::R_ARM_BASE_ABS:
-  case llvm::ELF::R_ARM_MOVW_ABS_NC:
-  case llvm::ELF::R_ARM_MOVT_ABS:
-  case llvm::ELF::R_ARM_THM_MOVW_ABS_NC:
-  case llvm::ELF::R_ARM_THM_MOVT_ABS: {
-    // PIC code should not contain these kinds of relocation
+    // PIC code should not contain these kinds of relocation.
     if (config().isCodeIndep()) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
       config().raise(Diag::non_pic_relocation)
           << (int)pReloc.type() << pReloc.symInfo()->name()
           << pReloc.getSourcePath(config().options());
     }
     return;
-  }
-  case llvm::ELF::R_ARM_GOTOFF32:
-  case llvm::ELF::R_ARM_GOTOFF12: {
-    // FIXME: A GOT section is needed
-    return;
-  }
 
-  case llvm::ELF::R_ARM_GOT_BREL:
-  case llvm::ELF::R_ARM_GOT_PREL: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::Gotoff:
+    // FIXME: A GOT section is needed.
+    return;
+
+  case RelocationScanKind::GOT: {
+    if (Type != llvm::ELF::R_ARM_GOT_BREL && Type != llvm::ELF::R_ARM_GOT_PREL)
+      return;
     // A GOT entry is needed for these relocation type.
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
@@ -428,7 +412,9 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
     return;
   }
 
-  case llvm::ELF::R_ARM_BASE_PREL: {
+  case RelocationScanKind::BaseRelative: {
+    if (Type != llvm::ELF::R_ARM_BASE_PREL)
+      return;
     // FIXME: Currently we only support R_ARM_BASE_PREL against
     // symbol _GLOBAL_OFFSET_TABLE_
     if (rsym != getTarget().getGOTSymbol()->resolveInfo())
@@ -436,10 +422,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
           << (int)pReloc.type() << rsym->name();
     return;
   }
-  case llvm::ELF::R_ARM_COPY:
-  case llvm::ELF::R_ARM_GLOB_DAT:
-  case llvm::ELF::R_ARM_JUMP_SLOT:
-  case llvm::ELF::R_ARM_RELATIVE: {
+  case RelocationScanKind::Dynamic: {
     // These are relocation type for dynamic linker, should not
     // appear in object file.
     config().raise(Diag::dynamic_relocation) << (int)pReloc.type();
@@ -447,8 +430,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
     return;
   }
 
-  case llvm::ELF::R_ARM_TLS_GD32: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSGD: {
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
       config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
@@ -475,8 +457,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
     return;
   }
 
-  case llvm::ELF::R_ARM_TLS_LDM32: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSLDM: {
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
       config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
@@ -490,8 +471,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
     return;
   }
 
-  case llvm::ELF::R_ARM_TLS_IE32: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSIE: {
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
       config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
@@ -513,10 +493,12 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
     return;
   }
 
-  default: {
+  case RelocationScanKind::None:
+  case RelocationScanKind::Relative:
+  case RelocationScanKind::Branch:
+  case RelocationScanKind::NormalizeTarget1:
     break;
   }
-  } // end switch
 }
 
 void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
@@ -527,19 +509,8 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
 
-  switch (Type) {
-  case llvm::ELF::R_ARM_ABS32:
-  case llvm::ELF::R_ARM_ABS16:
-  case llvm::ELF::R_ARM_ABS12:
-  case llvm::ELF::R_ARM_THM_ABS5:
-  case llvm::ELF::R_ARM_ABS8:
-  case llvm::ELF::R_ARM_BASE_ABS:
-  case llvm::ELF::R_ARM_MOVW_ABS_NC:
-  case llvm::ELF::R_ARM_MOVT_ABS:
-  case llvm::ELF::R_ARM_THM_MOVW_ABS_NC:
-  case llvm::ELF::R_ARM_THM_MOVT_ABS:
-  case llvm::ELF::R_ARM_ABS32_NOI: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  switch (getRelocationScanKind(Type)) {
+  case RelocationScanKind::Absolute: {
     bool isSymbolPreemptible = m_Target.isSymbolPreemptible(*rsym);
     // Absolute relocation type, symbol may needs PLT entry or
     // dynamic relocation entry
@@ -581,16 +552,12 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
     return;
   }
 
-  case llvm::ELF::R_ARM_GOTOFF32:
-  case llvm::ELF::R_ARM_GOTOFF12: {
+  case RelocationScanKind::Gotoff: {
     // FIXME: A GOT section is needed
     return;
   }
 
-  case llvm::ELF::R_ARM_BASE_PREL:
-  case llvm::ELF::R_ARM_THM_MOVW_BREL_NC:
-  case llvm::ELF::R_ARM_THM_MOVW_BREL:
-  case llvm::ELF::R_ARM_THM_MOVT_BREL:
+  case RelocationScanKind::BaseRelative:
     // FIXME: Currently we only support these relocations against
     // symbol _GLOBAL_OFFSET_TABLE_
     if (rsym != getTarget().getGOTSymbol()->resolveInfo()) {
@@ -600,48 +567,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
       return;
     }
     LLVM_FALLTHROUGH;
-  case llvm::ELF::R_ARM_REL32:
-  case llvm::ELF::R_ARM_LDR_PC_G0:
-  case llvm::ELF::R_ARM_SBREL32:
-  case llvm::ELF::R_ARM_THM_PC8:
-  case llvm::ELF::R_ARM_MOVW_PREL_NC:
-  case llvm::ELF::R_ARM_MOVT_PREL:
-  case llvm::ELF::R_ARM_THM_MOVW_PREL_NC:
-  case llvm::ELF::R_ARM_THM_MOVT_PREL:
-  case llvm::ELF::R_ARM_THM_ALU_PREL_11_0:
-  case llvm::ELF::R_ARM_THM_PC12:
-  case llvm::ELF::R_ARM_REL32_NOI:
-  case llvm::ELF::R_ARM_ALU_PC_G0_NC:
-  case llvm::ELF::R_ARM_ALU_PC_G0:
-  case llvm::ELF::R_ARM_ALU_PC_G1_NC:
-  case llvm::ELF::R_ARM_ALU_PC_G1:
-  case llvm::ELF::R_ARM_ALU_PC_G2:
-  case llvm::ELF::R_ARM_LDR_PC_G1:
-  case llvm::ELF::R_ARM_LDR_PC_G2:
-  case llvm::ELF::R_ARM_LDRS_PC_G0:
-  case llvm::ELF::R_ARM_LDRS_PC_G1:
-  case llvm::ELF::R_ARM_LDRS_PC_G2:
-  case llvm::ELF::R_ARM_LDC_PC_G0:
-  case llvm::ELF::R_ARM_LDC_PC_G1:
-  case llvm::ELF::R_ARM_LDC_PC_G2:
-  case llvm::ELF::R_ARM_ALU_SB_G0_NC:
-  case llvm::ELF::R_ARM_ALU_SB_G0:
-  case llvm::ELF::R_ARM_ALU_SB_G1_NC:
-  case llvm::ELF::R_ARM_ALU_SB_G1:
-  case llvm::ELF::R_ARM_ALU_SB_G2:
-  case llvm::ELF::R_ARM_LDR_SB_G0:
-  case llvm::ELF::R_ARM_LDR_SB_G1:
-  case llvm::ELF::R_ARM_LDR_SB_G2:
-  case llvm::ELF::R_ARM_LDRS_SB_G0:
-  case llvm::ELF::R_ARM_LDRS_SB_G1:
-  case llvm::ELF::R_ARM_LDRS_SB_G2:
-  case llvm::ELF::R_ARM_LDC_SB_G0:
-  case llvm::ELF::R_ARM_LDC_SB_G1:
-  case llvm::ELF::R_ARM_LDC_SB_G2:
-  case llvm::ELF::R_ARM_MOVW_BREL_NC:
-  case llvm::ELF::R_ARM_MOVT_BREL:
-  case llvm::ELF::R_ARM_MOVW_BREL: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::Relative: {
     // Relative addressing relocation, may needs dynamic relocation
 
     if (getTarget().symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
@@ -659,19 +585,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
     return;
   }
 
-  case llvm::ELF::R_ARM_PC24:
-  case llvm::ELF::R_ARM_THM_CALL:
-  case llvm::ELF::R_ARM_PLT32:
-  case llvm::ELF::R_ARM_CALL:
-  case llvm::ELF::R_ARM_JUMP24:
-  case llvm::ELF::R_ARM_THM_JUMP24:
-  case llvm::ELF::R_ARM_SBREL31:
-  case llvm::ELF::R_ARM_PREL31:
-  case llvm::ELF::R_ARM_THM_JUMP19:
-  case llvm::ELF::R_ARM_THM_JUMP6:
-  case llvm::ELF::R_ARM_THM_JUMP11:
-  case llvm::ELF::R_ARM_THM_JUMP8: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::Branch: {
     // These are branch relocation (except PREL31)
     // A PLT entry is needed when building shared library
 
@@ -696,10 +610,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
     return;
   }
 
-  case llvm::ELF::R_ARM_GOT_BREL:
-  case llvm::ELF::R_ARM_GOT_ABS:
-  case llvm::ELF::R_ARM_GOT_PREL: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::GOT: {
     // Symbol needs GOT entry, reserve entry in .got
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
@@ -713,10 +624,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
     return;
   }
 
-  case llvm::ELF::R_ARM_COPY:
-  case llvm::ELF::R_ARM_GLOB_DAT:
-  case llvm::ELF::R_ARM_JUMP_SLOT:
-  case llvm::ELF::R_ARM_RELATIVE: {
+  case RelocationScanKind::Dynamic: {
     // These are relocation type for dynamic linker, should not
     // appear in object file.
     config().raise(Diag::dynamic_relocation) << (int)pReloc.type();
@@ -724,8 +632,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
     return;
   }
 
-  case llvm::ELF::R_ARM_TLS_GD32: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSGD: {
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
       config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
@@ -753,8 +660,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
     return;
   } break;
 
-  case llvm::ELF::R_ARM_TLS_LDM32: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSLDM: {
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
       config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
@@ -768,8 +674,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
     return;
   }
 
-  case llvm::ELF::R_ARM_TLS_IE32: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSIE: {
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
       config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
@@ -790,10 +695,10 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
-  default: {
+  case RelocationScanKind::None:
+  case RelocationScanKind::NormalizeTarget1:
     break;
   }
-  } // end switch
 }
 
 bool ARMRelocator::isControlFlowRelocation(Relocation::Type relocType) const {
@@ -867,7 +772,6 @@ bool ARMRelocator::isUnsupportedIFuncRelocation(
 
 void ARMRelocator::handleScanForNonPreemptibleIFunc(Relocation &R,
                                                     ELFObjectFile *Obj) {
-  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
   ResolveInfo *RI = R.symInfo();
   Relocation::Type RType = R.type();
 
@@ -894,6 +798,162 @@ void ARMRelocator::handleScanForNonPreemptibleIFunc(Relocation &R,
     return;
   m_Target.createPLT(RI, /*isIRelative=*/true);
   RI->setReserved(RI->reserved() | ReservePLT);
+}
+
+bool ARMRelocator::needsSerialScan(const Relocation &Reloc,
+                                   const ELFSection &) const {
+  ResolveInfo *Sym = Reloc.symInfo();
+  if (Sym->isIFunc() && config().isCodeStatic())
+    return true;
+
+  const Relocation::Type Type = Reloc.type();
+  const RelocationScanKind Kind = getRelocationScanKind(Type);
+  if (Kind == RelocationScanKind::NormalizeTarget1)
+    return true;
+
+  const bool IsLocal = Sym->isLocal();
+  const bool IsPreemptible = !IsLocal && m_Target.isSymbolPreemptible(*Sym);
+  switch (Kind) {
+  case RelocationScanKind::Absolute:
+    return config().isCodeIndep() || IsPreemptible;
+  case RelocationScanKind::BaseRelative:
+    if (IsLocal)
+      return Type == llvm::ELF::R_ARM_BASE_PREL &&
+             Sym != m_Target.getGOTSymbol()->resolveInfo();
+    if (Sym != m_Target.getGOTSymbol()->resolveInfo())
+      return true;
+    return config().isCodeIndep() || IsPreemptible;
+  case RelocationScanKind::Relative:
+    return !IsLocal && (config().isCodeIndep() || IsPreemptible);
+  case RelocationScanKind::Branch:
+    return !IsLocal && IsPreemptible &&
+           Sym->visibility() != ResolveInfo::Hidden;
+  case RelocationScanKind::GOT:
+    return !IsLocal || Type != llvm::ELF::R_ARM_GOT_ABS;
+  case RelocationScanKind::Dynamic:
+  case RelocationScanKind::TLSGD:
+  case RelocationScanKind::TLSLDM:
+  case RelocationScanKind::TLSIE:
+    return true;
+  case RelocationScanKind::None:
+  case RelocationScanKind::Gotoff:
+  case RelocationScanKind::NormalizeTarget1:
+    return false;
+  }
+}
+
+ARMRelocator::RelocationScanKind
+ARMRelocator::getRelocationScanKind(Relocation::Type Type) const {
+  if (Type == llvm::ELF::R_ARM_TARGET1)
+    return RelocationScanKind::NormalizeTarget1;
+  if (Type == llvm::ELF::R_ARM_TARGET2) {
+    switch (config().options().getTarget2Policy()) {
+    case GeneralOptions::Target2Policy::Abs:
+      Type = llvm::ELF::R_ARM_ABS32;
+      break;
+    case GeneralOptions::Target2Policy::Rel:
+      Type = llvm::ELF::R_ARM_REL32;
+      break;
+    case GeneralOptions::Target2Policy::GotRel:
+      Type = llvm::ELF::R_ARM_GOT_PREL;
+      break;
+    }
+  }
+
+  switch (Type) {
+  case llvm::ELF::R_ARM_ABS32:
+  case llvm::ELF::R_ARM_ABS32_NOI:
+  case llvm::ELF::R_ARM_ABS16:
+  case llvm::ELF::R_ARM_ABS12:
+  case llvm::ELF::R_ARM_THM_ABS5:
+  case llvm::ELF::R_ARM_ABS8:
+  case llvm::ELF::R_ARM_BASE_ABS:
+  case llvm::ELF::R_ARM_MOVW_ABS_NC:
+  case llvm::ELF::R_ARM_MOVT_ABS:
+  case llvm::ELF::R_ARM_THM_MOVW_ABS_NC:
+  case llvm::ELF::R_ARM_THM_MOVT_ABS:
+    return RelocationScanKind::Absolute;
+  case llvm::ELF::R_ARM_GOTOFF32:
+  case llvm::ELF::R_ARM_GOTOFF12:
+    return RelocationScanKind::Gotoff;
+  case llvm::ELF::R_ARM_BASE_PREL:
+  case llvm::ELF::R_ARM_THM_MOVW_BREL_NC:
+  case llvm::ELF::R_ARM_THM_MOVW_BREL:
+  case llvm::ELF::R_ARM_THM_MOVT_BREL:
+    return RelocationScanKind::BaseRelative;
+  case llvm::ELF::R_ARM_REL32:
+  case llvm::ELF::R_ARM_LDR_PC_G0:
+  case llvm::ELF::R_ARM_SBREL32:
+  case llvm::ELF::R_ARM_THM_PC8:
+  case llvm::ELF::R_ARM_MOVW_PREL_NC:
+  case llvm::ELF::R_ARM_MOVT_PREL:
+  case llvm::ELF::R_ARM_THM_MOVW_PREL_NC:
+  case llvm::ELF::R_ARM_THM_MOVT_PREL:
+  case llvm::ELF::R_ARM_THM_ALU_PREL_11_0:
+  case llvm::ELF::R_ARM_THM_PC12:
+  case llvm::ELF::R_ARM_REL32_NOI:
+  case llvm::ELF::R_ARM_ALU_PC_G0_NC:
+  case llvm::ELF::R_ARM_ALU_PC_G0:
+  case llvm::ELF::R_ARM_ALU_PC_G1_NC:
+  case llvm::ELF::R_ARM_ALU_PC_G1:
+  case llvm::ELF::R_ARM_ALU_PC_G2:
+  case llvm::ELF::R_ARM_LDR_PC_G1:
+  case llvm::ELF::R_ARM_LDR_PC_G2:
+  case llvm::ELF::R_ARM_LDRS_PC_G0:
+  case llvm::ELF::R_ARM_LDRS_PC_G1:
+  case llvm::ELF::R_ARM_LDRS_PC_G2:
+  case llvm::ELF::R_ARM_LDC_PC_G0:
+  case llvm::ELF::R_ARM_LDC_PC_G1:
+  case llvm::ELF::R_ARM_LDC_PC_G2:
+  case llvm::ELF::R_ARM_ALU_SB_G0_NC:
+  case llvm::ELF::R_ARM_ALU_SB_G0:
+  case llvm::ELF::R_ARM_ALU_SB_G1_NC:
+  case llvm::ELF::R_ARM_ALU_SB_G1:
+  case llvm::ELF::R_ARM_ALU_SB_G2:
+  case llvm::ELF::R_ARM_LDR_SB_G0:
+  case llvm::ELF::R_ARM_LDR_SB_G1:
+  case llvm::ELF::R_ARM_LDR_SB_G2:
+  case llvm::ELF::R_ARM_LDRS_SB_G0:
+  case llvm::ELF::R_ARM_LDRS_SB_G1:
+  case llvm::ELF::R_ARM_LDRS_SB_G2:
+  case llvm::ELF::R_ARM_LDC_SB_G0:
+  case llvm::ELF::R_ARM_LDC_SB_G1:
+  case llvm::ELF::R_ARM_LDC_SB_G2:
+  case llvm::ELF::R_ARM_MOVW_BREL_NC:
+  case llvm::ELF::R_ARM_MOVT_BREL:
+  case llvm::ELF::R_ARM_MOVW_BREL:
+    return RelocationScanKind::Relative;
+  case llvm::ELF::R_ARM_PC24:
+  case llvm::ELF::R_ARM_THM_CALL:
+  case llvm::ELF::R_ARM_PLT32:
+  case llvm::ELF::R_ARM_CALL:
+  case llvm::ELF::R_ARM_JUMP24:
+  case llvm::ELF::R_ARM_THM_JUMP24:
+  case llvm::ELF::R_ARM_SBREL31:
+  case llvm::ELF::R_ARM_PREL31:
+  case llvm::ELF::R_ARM_THM_JUMP19:
+  case llvm::ELF::R_ARM_THM_JUMP6:
+  case llvm::ELF::R_ARM_THM_JUMP11:
+  case llvm::ELF::R_ARM_THM_JUMP8:
+    return RelocationScanKind::Branch;
+  case llvm::ELF::R_ARM_GOT_BREL:
+  case llvm::ELF::R_ARM_GOT_ABS:
+  case llvm::ELF::R_ARM_GOT_PREL:
+    return RelocationScanKind::GOT;
+  case llvm::ELF::R_ARM_COPY:
+  case llvm::ELF::R_ARM_GLOB_DAT:
+  case llvm::ELF::R_ARM_JUMP_SLOT:
+  case llvm::ELF::R_ARM_RELATIVE:
+    return RelocationScanKind::Dynamic;
+  case llvm::ELF::R_ARM_TLS_GD32:
+    return RelocationScanKind::TLSGD;
+  case llvm::ELF::R_ARM_TLS_LDM32:
+    return RelocationScanKind::TLSLDM;
+  case llvm::ELF::R_ARM_TLS_IE32:
+    return RelocationScanKind::TLSIE;
+  default:
+    return RelocationScanKind::None;
+  }
 }
 
 void ARMRelocator::scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
