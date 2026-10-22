@@ -338,6 +338,32 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (llvm::opt::Arg *arg = Args.getLastArg(T::sysroot))
     Config.setSysRoot(arg->getValue());
 
+  // --verbose
+  if (Args.hasArg(T::verbose))
+    Config.options().setVerbose();
+
+  // --verbose=0,1,2,...
+  if (llvm::opt::Arg *arg = Args.getLastArg(T::verbose_level)) {
+    llvm::StringRef value = arg->getValue();
+    uint32_t verboseLevel = 0;
+    if (value.getAsInteger(0, verboseLevel)) {
+      Config.raise(Diag::invalid_value_for_option)
+          << arg->getOption().getPrefixedName() << arg->getValue();
+      return false;
+    }
+    // Just to be GNU compatible.
+    if (verboseLevel > 2) {
+      Config.raise(Diag::invalid_value_for_option)
+          << arg->getOption().getPrefixedName() << arg->getValue();
+      return false;
+    }
+    Config.options().setVerbose(verboseLevel);
+  }
+
+  // --chroot
+  if (llvm::opt::Arg *arg = Args.getLastArg(T::chroot))
+    Config.setChroot(arg->getValue());
+
   // --[no-]fatal-warnings
   Config.options().setFatalWarnings(
       Args.hasFlag(T::fatal_warnings, T::no_fatal_warnings, /*default=*/false));
@@ -376,28 +402,6 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --relax/--no-relax: enable/disable relaxations (disabled by default)
   Config.options().setRelax(
       Args.hasFlag(T::relax, T::no_relax, /*default=*/false));
-
-  // --verbose
-  if (Args.hasArg(T::verbose))
-    Config.options().setVerbose();
-
-  // --verbose=0,1,2,...
-  if (llvm::opt::Arg *arg = Args.getLastArg(T::verbose_level)) {
-    llvm::StringRef value = arg->getValue();
-    uint32_t verboseLevel = 0;
-    if (value.getAsInteger(0, verboseLevel)) {
-      Config.raise(Diag::invalid_value_for_option)
-          << arg->getOption().getPrefixedName() << arg->getValue();
-      return false;
-    }
-    // Just to be GNU compatible.
-    if (verboseLevel > 2) {
-      Config.raise(Diag::invalid_value_for_option)
-          << arg->getOption().getPrefixedName() << arg->getValue();
-      return false;
-    }
-    Config.options().setVerbose(verboseLevel);
-  }
 
   // --emit-stats
   if (llvm::opt::Arg *arg = Args.getLastArg(T::emit_timing_stats)) {
@@ -1777,8 +1781,8 @@ bool GnuLdDriver::processReproduceOption(
     if (auto Replacement = Config.options().findRemapInput(CapturePath))
       CapturePath = *Replacement;
 
-    std::string ResolvedPath = Input::expandSysrootMarkers(
-        CapturePath, Config.directories(), *Config.getDiagEngine());
+    std::string ResolvedPath = Config.applyChroot(Input::expandSysrootMarkers(
+        CapturePath, Config.directories(), *Config.getDiagEngine()));
     if (!llvm::sys::fs::exists(ResolvedPath) && searchScriptDirs) {
       if (const eld::sys::fs::Path *Resolved = Config.directories().find(
               CapturePath, eld::SearchDirs::SearchInputType::Script))
@@ -1802,6 +1806,8 @@ bool GnuLdDriver::processReproduceOption(
     case T::dump_mapping_file:
     case T::reproduce:
     case T::reproduce_on_fail:
+    case T::chroot:
+    case T::chroot_eq:
     case T::L:
       break;
     case T::l:
@@ -1845,7 +1851,7 @@ bool GnuLdDriver::processReproduceOption(
       break;
     }
     case T::plugin_config: {
-      const eld::sys::fs::Path *P = Config.directories().findFile(
+      const eld::sys::fs::Path *P = Config.findPluginConfigFile(
           "plugin configuration file", arg->getValue(), "");
       outputTar->createAndAddConfigFile(arg->getValue(),
                                         P ? P->getFullPath() : "");

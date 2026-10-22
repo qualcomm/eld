@@ -1,0 +1,53 @@
+#---ChrootSearch.test----------------------- CommandLine --------------------#
+# UNSUPPORTED: windows
+#BEGIN_COMMENT
+# Inputs found through -L use host paths unchanged, while direct inputs still
+# use chroot. These checks mirror POSIX absolute host paths.
+#END_COMMENT
+#START_TEST
+RUN: %rm -rf %t.dir %t.host %t.rep %t.include.rep
+RUN: %mkdir -p %t.host %t.dir%t.host %t.dir/lib
+RUN: %clang %clangopts -o %t.dir/chroot.o -c %p/Inputs/main.c
+RUN: %clang %clangopts -o %t.dir/foo.o -c %p/Inputs/foo.c
+
+# Reading the chrooted archive would duplicate main; only the host copy links.
+RUN: %ar cr %t.host/libfoo.a %t.dir/foo.o
+RUN: %ar cr %t.dir%t.host/libfoo.a %t.dir/chroot.o
+RUN: %link %linkopts -o %t1.out /chroot.o --chroot %t.dir -L %t.host --whole-archive -lfoo
+RUN: %link %linkopts -o %t2.out /chroot.o --chroot %t.dir -L %t.host --static --whole-archive -lfoo
+
+# The chrooted script is invalid; only the host copy can be parsed.
+RUN: %cp %p/Inputs/input_script.t %t.host/fallback.t
+RUN: %cp %p/Inputs/main.c %t.dir%t.host/fallback.t
+RUN: %link %linkopts -o %t3.out --chroot %t.dir -L %t.host -T fallback.t
+RUN: %cp %p/Inputs/input_script.t %t.dir/lib/chroot-only.t
+RUN: %not %link %linkopts -o %t4.out --chroot %t.dir -L /lib -T chroot-only.t 2>&1 | %filecheck %s --check-prefix=SEARCH
+
+# INPUT entries found through -L must also use their host paths.
+RUN: %cp %t.dir/foo.o %t.host/foo.o
+RUN: %cp %t.dir/chroot.o %t.dir%t.host/foo.o
+RUN: %cp %p/Inputs/search_input.t %t.dir/input.t
+RUN: %link %linkopts -o %t4.input.out --chroot %t.dir -L %t.host -T /input.t
+
+# INCLUDE searches must use the same host copy and capture its contents.
+RUN: %cp %p/Inputs/search_include.t %t.dir/include.t
+RUN: %link %linkopts -o %t4.include.out --chroot %t.dir -L %t.host -T /include.t --reproduce %t.include.tar
+RUN: %mkdir -p %t.include.rep
+RUN: cd %t.include.rep && %tar %gnutaropts -xf %t.include.tar --strip-components=1
+RUN: cd %t.include.rep && %link @response.txt -o %t4.include-replay.out
+
+# Host searches do not require any counterpart inside the chroot.
+RUN: %rm -rf %t.dir%t.host
+RUN: %link %linkopts -o %t4.host.out /chroot.o --chroot %t.dir -L %t.host --whole-archive -lfoo
+RUN: %link %linkopts -o %t4.script.out --chroot %t.dir -L %t.host -T fallback.t
+RUN: %link %linkopts -o %t4.include-host.out --chroot %t.dir -L %t.host -T /include.t
+
+# Failure before script activation must still capture the host script.
+RUN: %not %link %linkopts -o %t5.out --chroot %t.dir -L %t.host -lchroot-missing-early -T fallback.t --reproduce %t.tar
+RUN: %mkdir -p %t.rep
+RUN: cd %t.rep && %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: cat %t.rep/LinkerScript/* | %filecheck %s --check-prefix=CAPTURE
+#END_TEST
+
+SEARCH: cannot open linker script file chroot-only.t
+CAPTURE: INPUT(/chroot.o)
