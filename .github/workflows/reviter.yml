@@ -85,6 +85,7 @@ jobs:
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_REVERSE_ITERATION=ON \
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
+            -DCLANG_ENABLE_CIR=OFF \
             -DCMAKE_C_COMPILER:STRING=`which clang` \
             -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
             -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \

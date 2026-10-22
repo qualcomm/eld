@@ -121,6 +121,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_ENABLE_PROJECTS="clang" \
+            -DCLANG_ENABLE_CIR=OFF \
             -DLLVM_ENABLE_ASSERTIONS:BOOL=ON \
             -DLLVM_ENABLE_LLD:BOOL=OFF \
             -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
