@@ -18,6 +18,19 @@ RUN: ls %t1.reproduce/Config | %filecheck %s --check-prefix CONFIG_DIR
 RUN: rm %t1.some-file.txt
 RUN: cd %t1.reproduce
 RUN: %link @%t1.response.txt 2>&1 | %filecheck %s --check-prefix=REPRODUCE
+
+# Both the YAML config and the plugin's direct config path are rooted, while
+# the plugin library is still loaded from the host search directories.
+RUN: %rm -rf %t2.root %t2.reproduce
+RUN: %mkdir -p %t2.root
+RUN: %cp %t1.1.o %t2.root/chroot.o
+RUN: %cp %p/Inputs/PluginConfig.yaml %t2.root/PluginConfig.yaml
+RUN: %cp %p/Inputs/some-file.txt %t2.root/some-file.txt
+RUN: %link %emulation %linkopts -o %t2.out /chroot.o -L %p/Inputs --no-default-plugins --chroot %t2.root --plugin-config /PluginConfig.yaml --my-config-file=/some-file.txt --reproduce %t2.tar 2>&1 | %filecheck %s --check-prefix=CHROOT
+RUN: %mkdir -p %t2.reproduce
+RUN: cd %t2.reproduce && %tar %gnutaropts -xf %t2.tar --strip-components=1
+RUN: %rm -rf %t2.root
+RUN: cd %t2.reproduce && %link @response.txt 2>&1 | %filecheck %s --check-prefix=REPRODUCE
 #END_TEST
 
 CHECK: Found config file {{.*}}some-file.txt
@@ -30,3 +43,6 @@ CONFIG_DIR: some-file.txt{{.*}}
 
 REPRODUCE: Found config file {{.*}}some-file.txt
 REPRODUCE: Contents of config file: Hello, World!
+
+CHROOT: Found config file {{.*}}.root/some-file.txt
+CHROOT: Contents of config file: Hello, World!

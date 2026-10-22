@@ -1,0 +1,45 @@
+#---ChrootPluginConfig.test----------------- CommandLine --------------------#
+# UNSUPPORTED: windows
+#BEGIN_COMMENT
+# Absolute plugin configs are rooted before lookup; relative and search-found
+# configs keep host paths. Reproduction captures the rooted config contents.
+#END_COMMENT
+#START_TEST
+RUN: %rm -rf %t.root %t.host %t.rep
+RUN: %mkdir -p %t.host %t.root%t.host
+RUN: %clang %clangopts -o %t.root/chroot.o -c %p/Inputs/main.c
+RUN: %cp %p/Inputs/InvalidPluginConfig.yaml %t.host/PluginConfig.yaml
+RUN: %cp %p/Inputs/PluginConfig.yaml %t.root%t.host/PluginConfig.yaml
+
+# The valid rooted config must win over the invalid host copy.
+RUN: %link %linkopts -o %t1.out /chroot.o --no-default-plugins --chroot %t.root --plugin-config %t.host/PluginConfig.yaml --reproduce %t.tar --dump-response-file %t.rsp
+RUN: %filecheck %s --check-prefix=RESPONSE < %t.rsp
+RUN: %mkdir -p %t.rep
+RUN: cd %t.rep && %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: %filecheck %s --check-prefix=CAPTURE < %t.rep/Config/*
+RUN: %rm -rf %t.root %t.host
+RUN: cd %t.rep && %link @response.txt -o %t2.out
+
+# Relative configs and configs discovered through -L remain host paths.
+RUN: %mkdir -p %t.host %t.root%t.host
+RUN: %clang %clangopts -o %t.root/chroot.o -c %p/Inputs/main.c
+RUN: %cp %p/Inputs/PluginConfig.yaml %t.host/PluginConfig.yaml
+RUN: %cp %p/Inputs/InvalidPluginConfig.yaml %t.root%t.host/PluginConfig.yaml
+RUN: cd %t.host && %link %linkopts -o %t3.out /chroot.o --no-default-plugins --chroot %t.root --plugin-config PluginConfig.yaml
+RUN: %link %linkopts -o %t4.out /chroot.o --no-default-plugins --chroot %t.root -L %t.host --plugin-config PluginConfig.yaml
+
+# A rooted parse failure must not fall back to the valid host config.
+RUN: %not %link %linkopts -o %t5.out /chroot.o --no-default-plugins --chroot %t.root --plugin-config %t.host/PluginConfig.yaml 2>&1 | %filecheck %s --check-prefix=PARSE
+RUN: %rm %t.root%t.host/PluginConfig.yaml
+# Generic file search must not reinterpret a rooted absolute name under -L.
+RUN: %mkdir -p %t.host%t.root%t.host
+RUN: %cp %p/Inputs/PluginConfig.yaml %t.host%t.root%t.host/PluginConfig.yaml
+RUN: %not %link %linkopts -o %t6.out /chroot.o --no-default-plugins --chroot %t.root -L %t.host --plugin-config %t.host/PluginConfig.yaml 2>&1 | %filecheck %s --check-prefix=MISSING
+#END_TEST
+RESPONSE-NOT: --chroot
+RESPONSE: --plugin-config Config/
+RESPONSE-NOT: --chroot
+CAPTURE: # chroot-plugin-config
+CAPTURE: GlobalPlugins: []
+PARSE: Syntax Error in Config file {{.*}}.root{{.*}}/PluginConfig.yaml
+MISSING: {{.*}}PluginConfig.yaml{{.*}}not found
