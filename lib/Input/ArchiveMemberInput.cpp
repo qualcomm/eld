@@ -22,10 +22,10 @@ ArchiveMemberInput::ArchiveMemberInput(DiagnosticEngine *DiagEngine,
       ChildOffset(ChildOffset) {
   ResolvedPath = ArchiveFile->getInput()->getResolvedPath();
   FileName = ResolvedPath->native();
+  setRuleMatchingPathAndHash(ArchiveFile->getInput()->getRuleMatchingPath());
   setMemberName(Name);
   setMemArea(Data);
   // Update the Hash values.
-  ResolvedPathHash = llvm::hash_combine(ResolvedPath->native());
   MemberNameHash = llvm::hash_combine(Name);
 }
 

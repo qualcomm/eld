@@ -281,6 +281,18 @@ public:
 
   void setSysRoot(std::string SysRoot) { searchDirs.setSysRoot(SysRoot); }
 
+  void setChroot(llvm::StringRef C);
+
+  std::string applyChroot(llvm::StringRef Path) const;
+
+  /// Test Path directly unless it is absolute and a chroot is configured; in
+  /// that case, test it under the configured chroot.
+  bool existsInChroot(llvm::StringRef Path) const;
+
+  const sys::fs::Path *
+  findPluginConfigFile(llvm::StringRef Type, const std::string &Name,
+                       const std::string &PluginName) const;
+
   const SearchDirs &getSearchDirs() const { return searchDirs; }
 
   /// ---------------------Wall functionality---------------------------
