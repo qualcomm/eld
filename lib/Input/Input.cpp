@@ -18,6 +18,7 @@
 #include "eld/Support/ReproduceTarReader.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Path.h"
 #include <filesystem>
 
 using namespace eld;
@@ -49,13 +50,14 @@ llvm::StringRef Input::toString(Input::InputType Type) {
 //===----------------------------------------------------------------------===//
 Input::Input(std::string PName, DiagnosticEngine *DiagEngine,
              Input::InputType PType)
-    : FileName(PName), Attr(), InputOrdinal(Order++), ResolvedPathHash(0),
+    : FileName(PName), Attr(), InputOrdinal(Order++), RuleMatchingPathHash(0),
       MemberNameHash(0), Type(PType), DiagEngine(DiagEngine) {}
 
 Input::Input(std::string PName, const Attribute &Attr,
              DiagnosticEngine *DiagEngine, Input::InputType PType)
-    : FileName(PName), Attr(Attr), InputOrdinal(Order++), ResolvedPathHash(0),
-      MemberNameHash(0), Type(PType), DiagEngine(DiagEngine) {}
+    : FileName(PName), Attr(Attr), InputOrdinal(Order++),
+      RuleMatchingPathHash(0), MemberNameHash(0), Type(PType),
+      DiagEngine(DiagEngine) {}
 
 bool Input::resolvePathMappingFile(const LinkerConfig &PConfig) {
   // FileName is normally the hashed path from the reproduce response. When
@@ -67,7 +69,8 @@ bool Input::resolvePathMappingFile(const LinkerConfig &PConfig) {
   if (!isPathValid(FileName)) {
     return false;
   }
-  ResolvedPathHash = computeFilePathHash(ResolvedPathStr);
+  RuleMatchingPath = ResolvedPathStr;
+  RuleMatchingPathHash = computeFilePathHash(RuleMatchingPath);
   MemberNameHash = computeFilePathHash(FileName);
   MemoryArea *InputMem =
       Input::getMemoryAreaForPath(MappedFileName, PConfig.getDiagEngine());
@@ -110,7 +113,7 @@ std::string Input::expandSysrootMarkers(llvm::StringRef Name,
 }
 
 /// \return True if path able to be resolved, otherwise false
-bool Input::resolvePath(const LinkerConfig &PConfig) {
+bool Input::resolvePath(const LinkerConfig &PConfig, bool PathAlreadyResolved) {
   if (ResolvedPath)
     return true;
   // Apply --remap-inputs remappings (in order, first match wins).
@@ -127,6 +130,7 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
   std::string ExpandedFileName = FileName;
   if (Type == Input::InputType::Script || Type == Input::InputType::Default)
     ExpandedFileName = expandSysrootMarkers(FileName, PSearchDirs, *DiagEngine);
+  bool NeedsChroot = !PathAlreadyResolved;
 
   switch (Type) {
   default:
@@ -142,19 +146,22 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
       ResolvedPath = PSearchDirs.sysroot();
       ResolvedPath->append(ExpandedFileName);
     }
-    bool ExistsOnDisk = llvm::sys::fs::exists(ResolvedPath->native());
+    bool ExistsOnDisk = PConfig.existsInChroot(ResolvedPath->native());
     // During --replay, script files may exist only in the tarball.
     bool ExistsInReplay =
         TarReader && TarReader->hasFile(ResolvedPath->native());
     if (!ExistsOnDisk && !ExistsInReplay) {
-      const sys::fs::Path *P =
+      const SearchDirs::SearchResult *P =
           PSearchDirs.find(FileName, SearchDirs::SearchInputType::Script);
-      if (P != nullptr)
-        ResolvedPath = *P;
+      if (P != nullptr) {
+        RuleMatchingPath = P->logicalPath.native();
+        ResolvedPath = P->resolvedPath;
+        NeedsChroot = false;
+      }
     }
   }
   if (Type == Input::Namespec) {
-    const sys::fs::Path *NameSpecPath = nullptr;
+    const SearchDirs::SearchResult *NameSpecPath = nullptr;
     if (Attr.isStatic()) {
       // with --static, we must search an archive.
       NameSpecPath =
@@ -169,7 +176,15 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
       DiagEngine->raise(Diag::err_cannot_find_namespec) << FileName;
       return false;
     }
-    ResolvedPath = *NameSpecPath;
+    RuleMatchingPath = NameSpecPath->logicalPath.native();
+    ResolvedPath = NameSpecPath->resolvedPath;
+    NeedsChroot = false;
+  }
+
+  if (NeedsChroot) {
+    RuleMatchingPath = ResolvedPath->native();
+    ResolvedPath =
+        eld::sys::fs::Path(PConfig.applyChroot(ResolvedPath->native()));
   }
 
   std::string ResolvedPathStr = ResolvedPath->native();
@@ -177,7 +192,7 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
     return false;
   }
 
-  ResolvedPathHash = computeFilePathHash(ResolvedPathStr);
+  RuleMatchingPathHash = computeFilePathHash(RuleMatchingPath);
   MemberNameHash = computeFilePathHash(FileName);
   MemoryArea *InputMem =
       Input::getMemoryAreaForPath(ResolvedPathStr, PConfig.getDiagEngine());

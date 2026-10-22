@@ -4804,12 +4804,12 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
 
     for (auto &sec : PluginSections) {
       // Hash of all the required things for Match.
-      uint64_t inputFileHash = input->getInput()->getResolvedPathHash();
+      uint64_t inputFileHash = input->getInput()->getRuleMatchingPathHash();
       uint64_t nameHash = input->getInput()->getArchiveMemberNameHash();
       uint64_t inputSectionHash = sec->sectionNameHash();
       SectionMap::mapping pair = m_Module.getScript().sectionMap().findIn(
           m_Module.getScript().sectionMap().begin(),
-          input->getInput()->getResolvedPath().native(), *sec, false,
+          input->getInput()->getRuleMatchingPath(), *sec, false,
           input->getInput()->getName(), inputSectionHash, inputFileHash,
           nameHash,
           (config().options().getScriptOption() == GeneralOptions::MatchGNU));
