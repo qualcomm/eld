@@ -47,8 +47,6 @@ void HexagonRelocator::CreateGOTAbsolute(ELFObjectFile *Obj,
                                          const Relocation &pReloc) {
   ResolveInfo *rsym = pReloc.symInfo();
 
-  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-
   // return if we already create GOT for this symbol
   if (rsym->reserved() & Relocator::ReserveGOT)
     return;
@@ -99,8 +97,6 @@ void HexagonRelocator::CreateGOTGD(ELFObjectFile *Obj, const Relocation &pReloc,
     config().raise(Diag::tls_non_tls_mix)
         << (int)pReloc.type() << pReloc.symInfo()->name();
 
-  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-
   if (rsym->reserved() & Relocator::ReserveGOT)
     return;
   rsym->setReserved(rsym->reserved() | Relocator::ReserveGOT);
@@ -132,7 +128,6 @@ void HexagonRelocator::CreateGOTIE(ELFObjectFile *Obj,
     config().raise(Diag::tls_non_tls_mix)
         << (int)pReloc.type() << pReloc.symInfo()->name();
 
-  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
   m_Target.setHasStaticTLS();
 
   if (rsym->reserved() & Relocator::ReserveGOT)
@@ -163,7 +158,6 @@ void HexagonRelocator::CreateTLSPLT(ELFObjectFile *Obj, Relocation &pReloc,
   if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
     config().raise(Diag::tls_non_tls_mix)
         << (int)pReloc.type() << pReloc.symInfo()->name();
-  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
 
   if (config().isCodeStatic()) {
     HexagonTLSStub *T = m_Target.createTLSStub(StaticStub);
@@ -272,6 +266,151 @@ bool HexagonRelocator::isRelocSupported(const Relocation &Reloc) const {
   return Reloc.type() < HEXAGON_MAXRELOCS;
 }
 
+bool HexagonRelocator::needsSerialScan(const Relocation &Reloc,
+                                       const ELFSection &) const {
+  ResolveInfo *Sym = Reloc.symInfo();
+  const Relocation::Type Type = Reloc.type();
+  const RelocationScanKind Kind = getRelocationScanKind(Type);
+
+  if (Sym->isLocal()) {
+    if (Kind == RelocationScanKind::GOT &&
+        (Type == llvm::ELF::R_HEX_GOT_32_6_X ||
+         Type == llvm::ELF::R_HEX_GOT_11_X))
+      return true;
+    if (Sym->visibility() == ResolveInfo::Hidden)
+      return false;
+    switch (Kind) {
+    case RelocationScanKind::Absolute:
+      return Type == llvm::ELF::R_HEX_32 && config().isCodeIndep();
+    case RelocationScanKind::GOTRelative:
+    case RelocationScanKind::TLSGD:
+    case RelocationScanKind::TLSLD:
+    case RelocationScanKind::TLSGDPLT:
+    case RelocationScanKind::TLSLDPLT:
+    case RelocationScanKind::IE:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  switch (Kind) {
+  case RelocationScanKind::Absolute:
+    return config().isCodeIndep() || m_Target.isSymbolPreemptible(*Sym);
+  case RelocationScanKind::GOTRelative:
+  case RelocationScanKind::GOT:
+  case RelocationScanKind::TLSGD:
+  case RelocationScanKind::TLSLD:
+  case RelocationScanKind::TLSGDPLT:
+  case RelocationScanKind::TLSLDPLT:
+  case RelocationScanKind::IE:
+    return true;
+  case RelocationScanKind::Branch:
+  case RelocationScanKind::PCRelative:
+    if (!config().isCodeStatic())
+      return m_Target.isSymbolPreemptible(*Sym);
+    return !config().options().getDisableGuardForWeakUndefs() &&
+           Sym->isWeak() && Sym->isUndef();
+  case RelocationScanKind::None:
+    return false;
+  }
+}
+
+HexagonRelocator::RelocationScanKind
+HexagonRelocator::getRelocationScanKind(Relocation::Type Type) const {
+  switch (Type) {
+  case llvm::ELF::R_HEX_LO16:
+  case llvm::ELF::R_HEX_HI16:
+  case llvm::ELF::R_HEX_16:
+  case llvm::ELF::R_HEX_8:
+  case llvm::ELF::R_HEX_32_6_X:
+  case llvm::ELF::R_HEX_16_X:
+  case llvm::ELF::R_HEX_12_X:
+  case llvm::ELF::R_HEX_11_X:
+  case llvm::ELF::R_HEX_10_X:
+  case llvm::ELF::R_HEX_9_X:
+  case llvm::ELF::R_HEX_8_X:
+  case llvm::ELF::R_HEX_7_X:
+  case llvm::ELF::R_HEX_6_X:
+  case llvm::ELF::R_HEX_GPREL16_0:
+  case llvm::ELF::R_HEX_GPREL16_1:
+  case llvm::ELF::R_HEX_GPREL16_2:
+  case llvm::ELF::R_HEX_GPREL16_3:
+  case llvm::ELF::R_HEX_32:
+    return RelocationScanKind::Absolute;
+  case llvm::ELF::R_HEX_GOTREL_LO16:
+  case llvm::ELF::R_HEX_GOTREL_HI16:
+  case llvm::ELF::R_HEX_GOTREL_32:
+  case llvm::ELF::R_HEX_GOTREL_32_6_X:
+  case llvm::ELF::R_HEX_GOTREL_16_X:
+  case llvm::ELF::R_HEX_GOTREL_11_X:
+    return RelocationScanKind::GOTRelative;
+  case llvm::ELF::R_HEX_GOT_LO16:
+  case llvm::ELF::R_HEX_GOT_HI16:
+  case llvm::ELF::R_HEX_GOT_32:
+  case llvm::ELF::R_HEX_GOT_16:
+  case llvm::ELF::R_HEX_GOT_32_6_X:
+  case llvm::ELF::R_HEX_GOT_16_X:
+  case llvm::ELF::R_HEX_GOT_11_X:
+    return RelocationScanKind::GOT;
+  case llvm::ELF::R_HEX_GD_GOT_LO16:
+  case llvm::ELF::R_HEX_GD_GOT_HI16:
+  case llvm::ELF::R_HEX_GD_GOT_32:
+  case llvm::ELF::R_HEX_GD_GOT_16:
+  case llvm::ELF::R_HEX_GD_GOT_32_6_X:
+  case llvm::ELF::R_HEX_GD_GOT_16_X:
+  case llvm::ELF::R_HEX_GD_GOT_11_X:
+    return RelocationScanKind::TLSGD;
+  case llvm::ELF::R_HEX_LD_GOT_LO16:
+  case llvm::ELF::R_HEX_LD_GOT_HI16:
+  case llvm::ELF::R_HEX_LD_GOT_32:
+  case llvm::ELF::R_HEX_LD_GOT_16:
+  case llvm::ELF::R_HEX_LD_GOT_32_6_X:
+  case llvm::ELF::R_HEX_LD_GOT_16_X:
+  case llvm::ELF::R_HEX_LD_GOT_11_X:
+    return RelocationScanKind::TLSLD;
+  case llvm::ELF::R_HEX_GD_PLT_B22_PCREL:
+  case llvm::ELF::R_HEX_GD_PLT_B22_PCREL_X:
+  case llvm::ELF::R_HEX_GD_PLT_B32_PCREL_X:
+    return RelocationScanKind::TLSGDPLT;
+  case llvm::ELF::R_HEX_LD_PLT_B22_PCREL:
+  case llvm::ELF::R_HEX_LD_PLT_B22_PCREL_X:
+  case llvm::ELF::R_HEX_LD_PLT_B32_PCREL_X:
+    return RelocationScanKind::TLSLDPLT;
+  case llvm::ELF::R_HEX_PLT_B22_PCREL:
+  case llvm::ELF::R_HEX_B22_PCREL:
+  case llvm::ELF::R_HEX_B15_PCREL:
+  case llvm::ELF::R_HEX_B13_PCREL:
+  case llvm::ELF::R_HEX_B9_PCREL:
+  case llvm::ELF::R_HEX_B7_PCREL:
+    return RelocationScanKind::Branch;
+  case llvm::ELF::R_HEX_B7_PCREL_X:
+  case llvm::ELF::R_HEX_B9_PCREL_X:
+  case llvm::ELF::R_HEX_B13_PCREL_X:
+  case llvm::ELF::R_HEX_B15_PCREL_X:
+  case llvm::ELF::R_HEX_B22_PCREL_X:
+  case llvm::ELF::R_HEX_B32_PCREL_X:
+  case llvm::ELF::R_HEX_32_PCREL:
+  case llvm::ELF::R_HEX_6_PCREL_X:
+    return RelocationScanKind::PCRelative;
+  case llvm::ELF::R_HEX_IE_LO16:
+  case llvm::ELF::R_HEX_IE_HI16:
+  case llvm::ELF::R_HEX_IE_32:
+  case llvm::ELF::R_HEX_IE_32_6_X:
+  case llvm::ELF::R_HEX_IE_16_X:
+  case llvm::ELF::R_HEX_IE_GOT_LO16:
+  case llvm::ELF::R_HEX_IE_GOT_HI16:
+  case llvm::ELF::R_HEX_IE_GOT_32:
+  case llvm::ELF::R_HEX_IE_GOT_16:
+  case llvm::ELF::R_HEX_IE_GOT_32_6_X:
+  case llvm::ELF::R_HEX_IE_GOT_16_X:
+  case llvm::ELF::R_HEX_IE_GOT_11_X:
+    return RelocationScanKind::IE;
+  default:
+    return RelocationScanKind::None;
+  }
+}
+
 void HexagonRelocator::scanDeferredRelocation(InputFile &Input,
                                               Relocation &Reloc,
                                               ELFSection &Section,
@@ -292,25 +431,24 @@ void HexagonRelocator::scanLocalReloc(InputFile &InputFile, Relocation &pReloc,
 
   // Special case when the linker makes a symbol local for example linker
   // defined symbols such as _DYNAMIC
-  switch (pReloc.type()) {
-  case llvm::ELF::R_HEX_GOT_32_6_X:
-  case llvm::ELF::R_HEX_GOT_11_X:
+  if (getRelocationScanKind(pReloc.type()) == RelocationScanKind::GOT &&
+      (pReloc.type() == llvm::ELF::R_HEX_GOT_32_6_X ||
+       pReloc.type() == llvm::ELF::R_HEX_GOT_11_X)) {
     CreateGOTAbsolute(Obj, pReloc);
     return;
-  default:
-    break;
   }
 
   if (rsym && (ResolveInfo::Hidden == rsym->visibility()))
     return;
 
-  switch (pReloc.type()) {
-  case llvm::ELF::R_HEX_32:
+  switch (getRelocationScanKind(pReloc.type())) {
+  case RelocationScanKind::Absolute:
+    if (pReloc.type() != llvm::ELF::R_HEX_32)
+      return;
     // If building PIC object (shared library or PIC executable),
     // a dynamic relocations with RELATIVE type to this location is needed.
     // Reserve an entry in .rel.dyn
     if (config().isCodeIndep()) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
       if (!checkDynamicRelocAllowed(pReloc, pSection, true))
         return;
       helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
@@ -319,69 +457,38 @@ void HexagonRelocator::scanLocalReloc(InputFile &InputFile, Relocation &pReloc,
       getTarget().checkAndSetHasTextRel(pSection);
     }
     return;
-  case llvm::ELF::R_HEX_GD_GOT_LO16:
-  case llvm::ELF::R_HEX_GD_GOT_HI16:
-  case llvm::ELF::R_HEX_GD_GOT_32:
-  case llvm::ELF::R_HEX_GD_GOT_16:
-  case llvm::ELF::R_HEX_GD_GOT_32_6_X:
-  case llvm::ELF::R_HEX_GD_GOT_16_X:
-  case llvm::ELF::R_HEX_GD_GOT_11_X:
+  case RelocationScanKind::TLSGD:
     CreateGOTGD(Obj, pReloc, false);
     return;
-  case llvm::ELF::R_HEX_LD_GOT_LO16:
-  case llvm::ELF::R_HEX_LD_GOT_HI16:
-  case llvm::ELF::R_HEX_LD_GOT_32:
-  case llvm::ELF::R_HEX_LD_GOT_16:
-  case llvm::ELF::R_HEX_LD_GOT_32_6_X:
-  case llvm::ELF::R_HEX_LD_GOT_16_X:
-  case llvm::ELF::R_HEX_LD_GOT_11_X:
-
+  case RelocationScanKind::TLSLD:
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
       config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     getTLSModuleID(rsym);
     return;
 
-  case llvm::ELF::R_HEX_GD_PLT_B22_PCREL:
-  case llvm::ELF::R_HEX_GD_PLT_B22_PCREL_X:
-  case llvm::ELF::R_HEX_GD_PLT_B32_PCREL_X:
+  case RelocationScanKind::TLSGDPLT:
     CreateTLSPLT(Obj, pReloc, HexagonTLSStub::GDtoIE, HexagonTLSStub::GD);
     return;
 
-  case llvm::ELF::R_HEX_LD_PLT_B22_PCREL:
-  case llvm::ELF::R_HEX_LD_PLT_B22_PCREL_X:
-  case llvm::ELF::R_HEX_LD_PLT_B32_PCREL_X:
+  case RelocationScanKind::TLSLDPLT:
     CreateTLSPLT(Obj, pReloc, HexagonTLSStub::LDtoLE, HexagonTLSStub::GD);
     return;
 
-  case llvm::ELF::R_HEX_GOTREL_LO16:
-  case llvm::ELF::R_HEX_GOTREL_HI16:
-  case llvm::ELF::R_HEX_GOTREL_32:
-  case llvm::ELF::R_HEX_GOTREL_32_6_X:
-  case llvm::ELF::R_HEX_GOTREL_16_X:
-  case llvm::ELF::R_HEX_GOTREL_11_X: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::GOTRelative: {
     // This assumes that GOT exists, so we should handle the assumption as well.
     m_Target.createGOT(GOT::GOTPLT0, nullptr);
     return;
   }
 
-  case llvm::ELF::R_HEX_IE_LO16:
-  case llvm::ELF::R_HEX_IE_HI16:
-  case llvm::ELF::R_HEX_IE_32:
-  case llvm::ELF::R_HEX_IE_32_6_X:
-  case llvm::ELF::R_HEX_IE_16_X:
-  // TODO: on code model static, convert IE to LE
-  case llvm::ELF::R_HEX_IE_GOT_LO16:
-  case llvm::ELF::R_HEX_IE_GOT_HI16:
-  case llvm::ELF::R_HEX_IE_GOT_32:
-  case llvm::ELF::R_HEX_IE_GOT_16:
-  case llvm::ELF::R_HEX_IE_GOT_32_6_X:
-  case llvm::ELF::R_HEX_IE_GOT_16_X:
-  case llvm::ELF::R_HEX_IE_GOT_11_X:
+  case RelocationScanKind::GOT:
+    return;
+  case RelocationScanKind::IE:
     CreateGOTIE(Obj, pReloc);
     return;
-  default:
+  case RelocationScanKind::None:
+  case RelocationScanKind::Branch:
+  case RelocationScanKind::PCRelative:
     return;
   }
 }
@@ -396,38 +503,19 @@ void HexagonRelocator::scanGlobalReloc(InputFile &InputFile, Relocation &pReloc,
   HexagonLDBackend &ld_backend = getTarget();
   bool isBranchReloc = false;
 
-  switch (pReloc.type()) {
-  case llvm::ELF::R_HEX_LO16:
-  case llvm::ELF::R_HEX_HI16:
-  case llvm::ELF::R_HEX_16:
-  case llvm::ELF::R_HEX_8:
-  case llvm::ELF::R_HEX_32_6_X:
-  case llvm::ELF::R_HEX_16_X:
-  case llvm::ELF::R_HEX_12_X:
-  case llvm::ELF::R_HEX_11_X:
-  case llvm::ELF::R_HEX_10_X:
-  case llvm::ELF::R_HEX_9_X:
-  case llvm::ELF::R_HEX_8_X:
-  case llvm::ELF::R_HEX_7_X:
-  case llvm::ELF::R_HEX_6_X:
-  case llvm::ELF::R_HEX_GPREL16_0:
-  case llvm::ELF::R_HEX_GPREL16_1:
-  case llvm::ELF::R_HEX_GPREL16_2:
-  case llvm::ELF::R_HEX_GPREL16_3:
-  case llvm::ELF::R_HEX_32: {
+  switch (getRelocationScanKind(pReloc.type())) {
+  case RelocationScanKind::Absolute: {
     bool isSymbolPreemptible = m_Target.isSymbolPreemptible(*rsym);
 
     // Absolute relocation type, symbol may needs PLT entry or
     // dynamic relocation entry
     if (isSymbolPreemptible && (rsym->type() == ResolveInfo::Function)) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
       // create PLT for this symbol if it does not have.
       CreatePLT(Obj, rsym);
     }
 
     if (ld_backend.symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
                                      true)) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
       if (ld_backend.symbolNeedsCopyReloc(pReloc, *rsym)) {
         // check if the option -z nocopyreloc is given
         if (config().options().hasNoCopyReloc()) {
@@ -451,85 +539,45 @@ void HexagonRelocator::scanGlobalReloc(InputFile &InputFile, Relocation &pReloc,
   }
     return;
 
-  case llvm::ELF::R_HEX_GOTREL_LO16:
-  case llvm::ELF::R_HEX_GOTREL_HI16:
-  case llvm::ELF::R_HEX_GOTREL_32:
-  case llvm::ELF::R_HEX_GOTREL_32_6_X:
-  case llvm::ELF::R_HEX_GOTREL_16_X:
-  case llvm::ELF::R_HEX_GOTREL_11_X: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::GOTRelative: {
     // This assumes that GOT exists, so we should handle the assumption as well.
     m_Target.createGOT(GOT::GOTPLT0, nullptr);
     return;
   }
 
-  case llvm::ELF::R_HEX_GOT_LO16:
-  case llvm::ELF::R_HEX_GOT_HI16:
-  case llvm::ELF::R_HEX_GOT_32:
-  case llvm::ELF::R_HEX_GOT_16:
-  case llvm::ELF::R_HEX_GOT_32_6_X:
-  case llvm::ELF::R_HEX_GOT_16_X:
-  case llvm::ELF::R_HEX_GOT_11_X:
+  case RelocationScanKind::GOT:
     CreateGOTAbsolute(Obj, pReloc);
     return;
 
-  case llvm::ELF::R_HEX_GD_GOT_LO16:
-  case llvm::ELF::R_HEX_GD_GOT_HI16:
-  case llvm::ELF::R_HEX_GD_GOT_32:
-  case llvm::ELF::R_HEX_GD_GOT_16:
-  case llvm::ELF::R_HEX_GD_GOT_32_6_X:
-  case llvm::ELF::R_HEX_GD_GOT_16_X:
-  case llvm::ELF::R_HEX_GD_GOT_11_X:
+  case RelocationScanKind::TLSGD:
     CreateGOTGD(Obj, pReloc, true);
     return;
 
-  case llvm::ELF::R_HEX_LD_GOT_LO16:
-  case llvm::ELF::R_HEX_LD_GOT_HI16:
-  case llvm::ELF::R_HEX_LD_GOT_32:
-  case llvm::ELF::R_HEX_LD_GOT_16:
-  case llvm::ELF::R_HEX_LD_GOT_32_6_X:
-  case llvm::ELF::R_HEX_LD_GOT_16_X:
-  case llvm::ELF::R_HEX_LD_GOT_11_X:
+  case RelocationScanKind::TLSLD:
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
       config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     getTLSModuleID(rsym);
     return;
 
-  case llvm::ELF::R_HEX_GD_PLT_B22_PCREL:
-  case llvm::ELF::R_HEX_GD_PLT_B22_PCREL_X:
-  case llvm::ELF::R_HEX_GD_PLT_B32_PCREL_X:
+  case RelocationScanKind::TLSGDPLT:
     CreateTLSPLT(Obj, pReloc, HexagonTLSStub::GDtoIE, HexagonTLSStub::GD);
     return;
 
-  case llvm::ELF::R_HEX_LD_PLT_B22_PCREL:
-  case llvm::ELF::R_HEX_LD_PLT_B22_PCREL_X:
-  case llvm::ELF::R_HEX_LD_PLT_B32_PCREL_X:
+  case RelocationScanKind::TLSLDPLT:
     CreateTLSPLT(Obj, pReloc, HexagonTLSStub::LDtoLE, HexagonTLSStub::GD);
     return;
 
-  case llvm::ELF::R_HEX_PLT_B22_PCREL:
-  case llvm::ELF::R_HEX_B22_PCREL:
-  case llvm::ELF::R_HEX_B15_PCREL:
-  case llvm::ELF::R_HEX_B13_PCREL:
-  case llvm::ELF::R_HEX_B9_PCREL:
-  case llvm::ELF::R_HEX_B7_PCREL:
+  case RelocationScanKind::Branch:
     isBranchReloc = true;
     LLVM_FALLTHROUGH;
-  case llvm::ELF::R_HEX_B7_PCREL_X:
-  case llvm::ELF::R_HEX_B9_PCREL_X:
-  case llvm::ELF::R_HEX_B13_PCREL_X:
-  case llvm::ELF::R_HEX_B15_PCREL_X:
-  case llvm::ELF::R_HEX_B22_PCREL_X:
-  case llvm::ELF::R_HEX_B32_PCREL_X:
-    // By default, the code is assumed to be data. If the user needs an explicit
-    // stub to be inserted by the linker, the user has to make the type of
-    // symbol to be a function.
-    if (rsym->type() == ResolveInfo::Function)
+  case RelocationScanKind::PCRelative: {
+    // By default, the code is assumed to be data. If the user needs an
+    // explicit stub, the symbol must be a function.
+    if (getRelocationScanKind(pReloc.type()) ==
+            RelocationScanKind::PCRelative &&
+        rsym->type() == ResolveInfo::Function)
       isBranchReloc = true;
-    LLVM_FALLTHROUGH;
-  case llvm::ELF::R_HEX_32_PCREL:
-  case llvm::ELF::R_HEX_6_PCREL_X: {
     if (config().isCodeStatic() && isBranchReloc &&
         !config().options().getDisableGuardForWeakUndefs() &&
         (rsym->isWeak() && rsym->isUndef())) {
@@ -541,27 +589,14 @@ void HexagonRelocator::scanGlobalReloc(InputFile &InputFile, Relocation &pReloc,
     // Dont allocate PLT entries during static linking
     if (config().isCodeStatic() || !ld_backend.isSymbolPreemptible(*rsym))
       return;
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     CreatePLT(Obj, rsym);
     return;
   }
 
-  case llvm::ELF::R_HEX_IE_LO16:
-  case llvm::ELF::R_HEX_IE_HI16:
-  case llvm::ELF::R_HEX_IE_32:
-  case llvm::ELF::R_HEX_IE_32_6_X:
-  case llvm::ELF::R_HEX_IE_16_X:
-  // TODO: on code model static, convert IE to LE
-  case llvm::ELF::R_HEX_IE_GOT_LO16:
-  case llvm::ELF::R_HEX_IE_GOT_HI16:
-  case llvm::ELF::R_HEX_IE_GOT_32:
-  case llvm::ELF::R_HEX_IE_GOT_16:
-  case llvm::ELF::R_HEX_IE_GOT_32_6_X:
-  case llvm::ELF::R_HEX_IE_GOT_16_X:
-  case llvm::ELF::R_HEX_IE_GOT_11_X:
+  case RelocationScanKind::IE:
     CreateGOTIE(Obj, pReloc);
     return;
-  default:
+  case RelocationScanKind::None:
     break;
 
   } // end of switch
@@ -572,7 +607,6 @@ void HexagonRelocator::defineSymbolforGuard(eld::IRBuilder &pBuilder,
                                             HexagonLDBackend &pTarget) {
   static const uint8_t jmprr31[] = {0x00, 0xc0, 0x9f, 0x52};
   auto SymbolName = "__linker_guard_weak_undef";
-  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
   // Create a fragment containing jumpr r31.
   if (!m_Guard) {
     LayoutInfo *layoutInfo = pBuilder.getModule().getLayoutInfo();
@@ -622,7 +656,6 @@ void HexagonRelocator::partialScanRelocation(Relocation &pReloc,
 
 HexagonGOT *HexagonRelocator::getTLSModuleID(ResolveInfo *R) {
   static HexagonGOT *G = nullptr;
-  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
   if (!G) {
     // Allocate 2 got entries and 1 dynamic reloc for R_HEX_LD_GOT*
     G = m_Target.createGOT(GOT::TLS_LD, nullptr);
