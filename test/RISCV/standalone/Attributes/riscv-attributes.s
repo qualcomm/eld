@@ -184,7 +184,7 @@ UNSUPPORTED: riscv32, windows
 # UNRECOGNIZED_EXT1-NEXT:       Attribute {
 # UNRECOGNIZED_EXT1-NEXT:         Tag: 5
 # UNRECOGNIZED_EXT1-NEXT:         TagName: arch
-# UNRECOGNIZED_EXT1-NEXT:         Value: rv64i2p1_y2p0{{$}}
+# UNRECOGNIZED_EXT1-NEXT:         Value: rv64i2p1_w2p0{{$}}
 # UNRECOGNIZED_EXT1-NEXT:       }
 # UNRECOGNIZED_EXT1-NEXT:     }
 # UNRECOGNIZED_EXT1-NEXT:   }
@@ -197,7 +197,7 @@ UNSUPPORTED: riscv32, windows
 .byte 1  # Tag_File
 .long .Lend-.Lbegin
 .byte 5  # Tag_RISCV_arch
-.asciz "rv64i2p1_y2p0"
+.asciz "rv64i2p1_w2p0"
 .Lend:
 
 #--- unrecognized_ext2.s
