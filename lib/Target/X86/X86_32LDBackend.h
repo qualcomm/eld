@@ -24,6 +24,7 @@ public:
   bool finalizeTargetSymbols() override;
   Relocator *getRelocator() const override;
   bool initRelocator() override;
+  Relocation::Type getCopyRelType() const override;
   void initTargetSections(ObjectBuilder &pBuilder) override;
   void initDynamicSections(InputFile &pInputFile) override;
   void initTargetSymbols() override;

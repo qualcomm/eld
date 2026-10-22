@@ -22,6 +22,10 @@ Relocator *X86_32LDBackend::getRelocator() const {
   return m_pRelocator;
 }
 
+Relocation::Type X86_32LDBackend::getCopyRelType() const {
+  return llvm::ELF::R_386_COPY;
+}
+
 bool X86_32LDBackend::initRelocator() {
   if (m_pRelocator == nullptr)
     m_pRelocator = make<X86_32Relocator>(*this, config(), m_Module);
