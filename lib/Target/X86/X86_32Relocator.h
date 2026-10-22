@@ -38,6 +38,9 @@ protected:
   void scanDeferredRelocation(InputFile &, Relocation &, ELFSection &,
                               CopyRelocs &) override;
 
+  bool needsSerialScan(const Relocation &Reloc,
+                       const ELFSection &Section) const override;
+
 private:
   X86_32LDBackend &m_Target;
 };
