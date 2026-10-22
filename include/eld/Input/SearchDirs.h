@@ -57,9 +57,9 @@ public:
 
   ~SearchDirs() {}
 
-  // find - give a namespec, return a real path of the shared object.
+  // find - give a namespec, return the first matching host path.
   const sys::fs::Path *find(const std::string &PNamespec,
-                            SearchInputType PPreferType) const;
+                           SearchInputType PPreferType) const;
 
   const eld::sys::fs::Path *findLibrary(llvm::StringRef Type,
                                         std::string LibraryName,
@@ -84,6 +84,7 @@ public:
   const eld::sys::fs::Path *findInPath(llvm::StringRef Type,
                                        llvm::StringRef LibraryName) const;
 
+  // FIXME: Unused function.
   const eld::sys::fs::Path *findInCurDir(llvm::StringRef LibraryName) const;
 
   void setSysRoot(const sys::fs::Path &PSysRoot) { SysRoot = PSysRoot; }
@@ -111,6 +112,14 @@ public:
   std::vector<eld::sys::fs::Path> getDefaultPluginConfigs() const;
 
 private:
+  bool checkInputFile(SearchInputType Type, llvm::StringRef NameSpec,
+                      llvm::StringRef FileName) const;
+
+  bool checkLibraryOrConfigFile(llvm::StringRef Type,
+                                llvm::StringRef LibraryName,
+                                llvm::StringRef FileName,
+                                llvm::StringRef Using) const;
+
   DirListType DirList;
   sys::fs::Path SysRoot;
   DiagnosticEngine *DiagEngine;

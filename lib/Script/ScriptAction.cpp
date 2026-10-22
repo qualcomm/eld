@@ -38,10 +38,11 @@ bool ScriptAction::activate(InputBuilder &PBuilder) {
   auto &SearchDirs = ThisConfig.directories();
   const ReproduceTarReader *TarReader = ThisConfig.getReproduceTarReader();
   bool FoundInReplay = TarReader && TarReader->hasFile(Path);
+  bool FoundInSearchDirs = false;
   // If replay does not have this script entry, keep normal filesystem/search
   // behavior so command-line scripts still work outside replay mode.
-  if (!FoundInReplay && !llvm::sys::fs::exists(Path)) {
-    const sys::fs::Path *Res =
+  if (!FoundInReplay && !ThisConfig.existsInChroot(Path)) {
+    const eld::sys::fs::Path *Res =
         SearchDirs.find(Path, SearchDirs::SearchInputType::Script);
     if (Res == nullptr) {
       switch (ScriptFileKind) {
@@ -63,17 +64,18 @@ bool ScriptAction::activate(InputBuilder &PBuilder) {
       return false;
     }
     Path = Res->native();
+    FoundInSearchDirs = true;
   }
   setFileName(Path);
-  // For replay-resident scripts, avoid filesystem probing in InputFileAction.
-  if (FoundInReplay)
+  // SearchDirs already checked host paths; do not probe them under chroot again.
+  if (FoundInReplay || FoundInSearchDirs)
     I = PBuilder.createInputNode(Path);
   else if (!InputFileAction::activate(PBuilder))
     return false;
 
   // Resolve the path so that the appropriate file has been read and the memory
   // area created for it.
-  if (!I->resolvePath(ThisConfig))
+  if (!I->resolvePath(ThisConfig, /*PathAlreadyResolved=*/FoundInSearchDirs))
     return false;
 
   // Create an InputFile and set the Input back.
