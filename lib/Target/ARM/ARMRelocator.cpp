@@ -1401,10 +1401,9 @@ Relocator::Result ldrs_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
   return ldrs_pc_group(pReloc, pParent, /*pGroup=*/2);
 }
 
-static Relocator::Result ldc_pc_group(Relocation &pReloc, ARMRelocator &pParent,
-                                      unsigned pGroup) {
+static Relocator::Result ldc_group(Relocation &pReloc, ARMRelocator &pParent,
+                                   unsigned pGroup, Relocator::Address pBase) {
   Relocator::Address S = pParent.getSymValue(&pReloc);
-  Relocator::Address P = pReloc.place(pParent.module());
 
   if (getThumbBit(pParent, pReloc, /*IsJump*/ false))
     helper_clear_thumb_bit(S);
@@ -1418,7 +1417,7 @@ static Relocator::Result ldc_pc_group(Relocation &pReloc, ARMRelocator &pParent,
 
   A += pReloc.addend();
 
-  int64_t X = static_cast<int64_t>(S) + A - static_cast<int64_t>(P);
+  int64_t X = static_cast<int64_t>(S) + A - static_cast<int64_t>(pBase);
 
   uint32_t UBit = 0x00800000;
   uint64_t Magnitude = static_cast<uint64_t>(X);
@@ -1446,17 +1445,50 @@ static Relocator::Result ldc_pc_group(Relocation &pReloc, ARMRelocator &pParent,
 
 // R_ARM_LDC_PC_G0: S + A - P
 Relocator::Result ldc_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
-  return ldc_pc_group(pReloc, pParent, /*pGroup=*/0);
+  return ldc_group(pReloc, pParent, /*pGroup=*/0,
+                   pReloc.place(pParent.module()));
 }
 
 // R_ARM_LDC_PC_G1: S + A - P
 Relocator::Result ldc_pc_g1(Relocation &pReloc, ARMRelocator &pParent) {
-  return ldc_pc_group(pReloc, pParent, /*pGroup=*/1);
+  return ldc_group(pReloc, pParent, /*pGroup=*/1,
+                   pReloc.place(pParent.module()));
+}
+
+// R_ARM_LDC_SB_G0: S + A - B(S)
+Relocator::Result ldc_sb_g0(Relocation &pReloc, ARMRelocator &pParent) {
+  Relocator::Address B;
+  Relocator::Result Result = getSBRelBase(pReloc, pParent, B);
+  if (Result != Relocator::OK)
+    return Result;
+
+  return ldc_group(pReloc, pParent, /*pGroup=*/0, B);
 }
 
 // R_ARM_LDC_PC_G2: S + A - P
 Relocator::Result ldc_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
-  return ldc_pc_group(pReloc, pParent, /*pGroup=*/2);
+  return ldc_group(pReloc, pParent, /*pGroup=*/2,
+                   pReloc.place(pParent.module()));
+}
+
+// R_ARM_LDC_SB_G1: S + A - B(S)
+Relocator::Result ldc_sb_g1(Relocation &pReloc, ARMRelocator &pParent) {
+  Relocator::Address B;
+  Relocator::Result Result = getSBRelBase(pReloc, pParent, B);
+  if (Result != Relocator::OK)
+    return Result;
+
+  return ldc_group(pReloc, pParent, /*pGroup=*/1, B);
+}
+
+// R_ARM_LDC_SB_G2: S + A - B(S)
+Relocator::Result ldc_sb_g2(Relocation &pReloc, ARMRelocator &pParent) {
+  Relocator::Address B;
+  Relocator::Result Result = getSBRelBase(pReloc, pParent, B);
+  if (Result != Relocator::OK)
+    return Result;
+
+  return ldc_group(pReloc, pParent, /*pGroup=*/2, B);
 }
 
 // R_ARM_ALU_PC_Gn / R_ARM_ALU_PC_Gn_NC: ((S + A) | T) - P
