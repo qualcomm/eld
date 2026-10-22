@@ -1,0 +1,25 @@
+.syntax unified
+.arm
+
+.section .text,"ax",%progbits
+.balign 4
+
+load_target:
+    // U=1, imm8=0 gives A = 0.
+    .inst 0xed9f0100
+    .reloc load_target, R_ARM_LDC_SB_G2, target
+
+    bx lr
+
+.section .bss,"aw",%nobits
+    // B(S) = 0x1000 and target = 0x41404.
+    //
+    // X = S + A - B(S)
+    //   = 0x40404.
+    //
+    // G2 residual = 0x4, so imm8 = 1.
+    .space 0x40404
+
+.type target, %object
+target:
+    .space 4
