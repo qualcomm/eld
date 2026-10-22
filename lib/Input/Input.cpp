@@ -110,7 +110,7 @@ std::string Input::expandSysrootMarkers(llvm::StringRef Name,
 }
 
 /// \return True if path able to be resolved, otherwise false
-bool Input::resolvePath(const LinkerConfig &PConfig) {
+bool Input::resolvePath(const LinkerConfig &PConfig, bool PathAlreadyResolved) {
   if (ResolvedPath)
     return true;
   // Apply --remap-inputs remappings (in order, first match wins).
@@ -127,6 +127,7 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
   std::string ExpandedFileName = FileName;
   if (Type == Input::InputType::Script || Type == Input::InputType::Default)
     ExpandedFileName = expandSysrootMarkers(FileName, PSearchDirs, *DiagEngine);
+  bool NeedsChroot = !PathAlreadyResolved;
 
   switch (Type) {
   default:
@@ -142,15 +143,17 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
       ResolvedPath = PSearchDirs.sysroot();
       ResolvedPath->append(ExpandedFileName);
     }
-    bool ExistsOnDisk = llvm::sys::fs::exists(ResolvedPath->native());
+    bool ExistsOnDisk = PConfig.existsInChroot(ResolvedPath->native());
     // During --replay, script files may exist only in the tarball.
     bool ExistsInReplay =
         TarReader && TarReader->hasFile(ResolvedPath->native());
     if (!ExistsOnDisk && !ExistsInReplay) {
       const sys::fs::Path *P =
           PSearchDirs.find(FileName, SearchDirs::SearchInputType::Script);
-      if (P != nullptr)
+      if (P != nullptr) {
         ResolvedPath = *P;
+        NeedsChroot = false;
+      }
     }
   }
   if (Type == Input::Namespec) {
@@ -170,7 +173,12 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
       return false;
     }
     ResolvedPath = *NameSpecPath;
+    NeedsChroot = false;
   }
+
+  if (NeedsChroot)
+    ResolvedPath =
+        eld::sys::fs::Path(PConfig.applyChroot(ResolvedPath->native()));
 
   std::string ResolvedPathStr = ResolvedPath->native();
   if (!isPathValid(ResolvedPathStr)) {

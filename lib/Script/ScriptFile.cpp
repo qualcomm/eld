@@ -222,8 +222,9 @@ void ScriptFile::addInputToTar(const std::string &Filename,
 namespace {
 
 inline bool searchIncludeFile(llvm::StringRef Name, llvm::StringRef FileName,
-                              DiagnosticEngine *DiagEngine) {
-  bool Found = llvm::sys::fs::exists(FileName);
+                              DiagnosticEngine *DiagEngine,
+                              const LinkerConfig &Config) {
+  bool Found = Config.existsInChroot(FileName);
   DiagEngine->raise(Diag::verbose_trying_script_include_file)
       << FileName << Name << (Found ? "found" : "not found");
   return Found;
@@ -281,7 +282,7 @@ std::string ScriptFile::findIncludeFile(const std::string &Filename,
   }
 
   if (searchIncludeFile(Filename, Filename,
-                        ThisModule.getConfig().getDiagEngine())) {
+                        ThisModule.getConfig().getDiagEngine(), Config)) {
     addInputToTar(Filename, Filename);
     return Filename;
   }
@@ -291,7 +292,7 @@ std::string ScriptFile::findIncludeFile(const std::string &Filename,
     Path += "/";
     Path += Filename;
     if (searchIncludeFile(Filename, Path,
-                          ThisModule.getConfig().getDiagEngine())) {
+                          ThisModule.getConfig().getDiagEngine(), Config)) {
       addInputToTar(Filename, Path);
       return Path;
     }

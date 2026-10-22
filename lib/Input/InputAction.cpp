@@ -51,8 +51,9 @@ bool InputFileAction::activate(InputBuilder &PBuilder) {
   std::string ExpandedName = Input::expandSysrootMarkers(
       Name, Config.directories(), *Config.getDiagEngine());
 
+  std::string CheckPath = Config.applyChroot(ExpandedName);
   std::ifstream Is;
-  Is.open(ExpandedName.c_str(), std::ifstream::in);
+  Is.open(CheckPath.c_str(), std::ifstream::in);
   if (!Is.good()) {
     PBuilder.getDiagEngine()->raise(Diag::fatal_cannot_read_input)
         << ExpandedName;
