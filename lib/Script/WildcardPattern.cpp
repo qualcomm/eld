@@ -78,6 +78,12 @@ bool WildcardPattern::matched(llvm::StringRef PName) const {
   if (Name == "\\")
     return false;
 
+  if (MBPatternIsPrefix)
+    return PName.starts_with(prefix());
+
+  if (MBPatternIsSuffix)
+    return PName.ends_with(suffix());
+
   return !name().empty() && (MPattern.match(PName));
 }
 
@@ -90,8 +96,16 @@ void WildcardPattern::createGlobPattern(llvm::StringRef Pattern) {
   if (!E)
     ASSERT(0, "Pattern cannot be created for " + Pattern.str());
   MPattern = std::move(*E);
-  if (!hasGlob())
+  if (!hasGlob()) {
     setHash(llvm::hash_combine(Pattern));
+  } else if (Pattern.ends_with('*') && Pattern.drop_back(1).find_first_of(
+                                           "*?[]\\") == llvm::StringRef::npos) {
+    MBPatternIsPrefix = true;
+  } else if (Pattern.starts_with('*') &&
+             Pattern.drop_front(1).find_first_of("*?[]\\") ==
+                 llvm::StringRef::npos) {
+    MBPatternIsSuffix = true;
+  }
 }
 
 WildcardPattern *WildcardPattern::create(StrToken *S, SortPolicy PPolicy,
