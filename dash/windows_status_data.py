@@ -1,0 +1,1 @@
+windows_build_states = [{"run_id": "39709205632", "state": "fail", "date": "2026-10-22", "time": "02:05", "arch": "x64", "branch": "main"}, {"run_id": "39709205632", "state": "fail", "date": "2026-10-21", "time": "19:08", "arch": "ARM64", "branch": "main"}]

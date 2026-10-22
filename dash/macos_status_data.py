@@ -1,0 +1,1 @@
+macos_build_states = [{"run_id": "39709760011", "state": "fail", "date": "2026-10-22", "time": "02:10", "arch": "all", "branch": "main"}]
