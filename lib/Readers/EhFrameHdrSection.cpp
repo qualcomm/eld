@@ -25,8 +25,20 @@ EhFrameHdrSection::EhFrameHdrSection(std::string Name, uint32_t pType,
 
 void EhFrameHdrSection::addEhFrame(EhFrameFragment &F) {
   EhFrames.push_back(&F);
-  for (auto *CIE : F.getCIEs()) {
-    ++NumCIE;
-    NumFDE += CIE->getNumFDE();
-  }
+}
+
+size_t EhFrameHdrSection::getNumCIE() const {
+  size_t Count = 0;
+  for (const EhFrameFragment *F : EhFrames)
+    Count += F->getCIEs().size();
+  return Count;
+}
+
+size_t EhFrameHdrSection::getNumFDE() const {
+  // A later input fragment can append an FDE to an already registered CIE.
+  size_t Count = 0;
+  for (const EhFrameFragment *F : EhFrames)
+    for (const EhFrameCIE *CIE : F->getCIEs())
+      Count += CIE->getNumFDE();
+  return Count;
 }
