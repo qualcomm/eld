@@ -37,6 +37,7 @@ jobs:
       (github.event_name == 'workflow_run' &&
        github.repository == 'qualcomm/eld' &&
        github.event.workflow_run.conclusion == 'success') ||
+      (github.repository == 'qualcomm/eld' && inputs.pr_sha != '') ||
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'workflow_call'
     runs-on: ubuntu-latest

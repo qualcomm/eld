@@ -57,7 +57,9 @@ jobs:
   test:
     if: |
       (github.repository == 'qualcomm/eld' &&
-       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')) ||
+       (github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch' ||
+        inputs.pr_sha != '')) ||
       github.event_name == 'workflow_call'
     runs-on: ubuntu-latest
     concurrency:
