@@ -1,0 +1,200 @@
+# Cherry-pick workflow for eld
+#
+# Allows developers to backport a merged PR to a release branch by posting
+# a comment on the PR with the command:
+#
+#   /cherry-pick release/23.x
+#
+# The workflow will:
+#   1. Verify the PR is merged.
+#   2. Cherry-pick all commits from the PR onto the target branch.
+#   3. Push a new backport branch and open a PR.
+#   4. Post a comment on the original PR with the result.
+
+name: Cherry Pick Workflow
+
+on:
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  cherry-pick:
+    name: Cherry Pick to Release Branch
+    runs-on: ubuntu-latest
+    # Only trigger for PR comments (not plain issue comments) containing /cherry-pick
+    if: >-
+      github.event.issue.pull_request != null &&
+      contains(github.event.comment.body, '/cherry-pick')
+
+    steps:
+      - name: Parse /cherry-pick command
+        id: parse
+        run: |
+          set -euo pipefail
+          COMMENT='${{ github.event.comment.body }}'
+          # Extract the branch name following /cherry-pick
+          TARGET_BRANCH=$(echo "$COMMENT" | grep -oP '(?<=/cherry-pick\s)\S+' | head -1)
+          if [ -z "$TARGET_BRANCH" ]; then
+            echo "::error::Could not parse a target branch from the /cherry-pick command."
+            exit 1
+          fi
+          echo "target_branch=$TARGET_BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Verify PR is merged
+        id: pr_info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            if (!pr.data.merged) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `@${context.payload.comment.user.login} \`/cherry-pick\` can only be used on **merged** pull requests.`
+              });
+              core.setFailed('PR is not yet merged.');
+              return;
+            }
+            core.setOutput('title', pr.data.title);
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Get commits from PR
+        id: commits
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const commits = await github.paginate(github.rest.pulls.listCommits, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            const shas = commits.map(c => c.sha).join(' ');
+            core.setOutput('shas', shas);
+
+      - name: Cherry-pick commits onto target branch
+        id: cherry_pick
+        env:
+          TARGET_BRANCH: ${{ steps.parse.outputs.target_branch }}
+          COMMIT_SHAS: ${{ steps.commits.outputs.shas }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+
+          # Verify the target branch exists on the remote.
+          if ! git ls-remote --exit-code origin "refs/heads/${TARGET_BRANCH}" > /dev/null 2>&1; then
+            echo "failed_reason=Branch \`${TARGET_BRANCH}\` does not exist in this repository." \
+              >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          # Build a safe backport branch name, e.g. cherry-pick-pr42-to-release-23.x
+          SAFE_BRANCH="${TARGET_BRANCH//\//-}"
+          BACKPORT_BRANCH="cherry-pick-pr${PR_NUMBER}-to-${SAFE_BRANCH}"
+          echo "backport_branch=${BACKPORT_BRANCH}" >> "$GITHUB_OUTPUT"
+
+          git fetch origin "${TARGET_BRANCH}"
+          git checkout -b "${BACKPORT_BRANCH}" "origin/${TARGET_BRANCH}"
+
+          # Cherry-pick each commit in order.
+          for SHA in ${COMMIT_SHAS}; do
+            echo "Cherry-picking ${SHA} ..."
+            if ! git cherry-pick -x "${SHA}"; then
+              git cherry-pick --abort 2>/dev/null || true
+              echo "failed_commit=${SHA}" >> "$GITHUB_OUTPUT"
+              echo "failed_reason=Cherry-pick of commit \`${SHA}\` failed due to merge conflicts." \
+                >> "$GITHUB_OUTPUT"
+              exit 1
+            fi
+          done
+
+          # Push with force in case this branch was created by a previous attempt.
+          git push origin "${BACKPORT_BRANCH}" --force
+
+      - name: Create backport pull request
+        if: success()
+        uses: actions/github-script@v7
+        env:
+          TARGET_BRANCH: ${{ steps.parse.outputs.target_branch }}
+          BACKPORT_BRANCH: ${{ steps.cherry_pick.outputs.backport_branch }}
+          PR_TITLE: ${{ steps.pr_info.outputs.title }}
+        with:
+          script: |
+            const targetBranch = process.env.TARGET_BRANCH;
+            const backportBranch = process.env.BACKPORT_BRANCH;
+            const origTitle = process.env.PR_TITLE;
+            const requester = context.payload.comment.user.login;
+
+            // Check if a PR for this backport branch already exists.
+            const existing = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${backportBranch}`,
+              state: 'open'
+            });
+
+            let newPRUrl;
+            if (existing.data.length > 0) {
+              newPRUrl = existing.data[0].html_url;
+            } else {
+              const newPR = await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `[${targetBranch}] ${origTitle}`,
+                body: `Backport of #${context.issue.number} to \`${targetBranch}\`.\n\nRequested by: @${requester}`,
+                base: targetBranch,
+                head: backportBranch,
+                maintainer_can_modify: true
+              });
+              newPRUrl = newPR.data.html_url;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `@${requester} Cherry-pick PR created: ${newPRUrl}`
+            });
+
+      - name: Post failure comment
+        if: failure() && steps.parse.outcome == 'success'
+        uses: actions/github-script@v7
+        env:
+          TARGET_BRANCH: ${{ steps.parse.outputs.target_branch }}
+          FAILED_REASON: ${{ steps.cherry_pick.outputs.failed_reason }}
+        with:
+          script: |
+            const requester = context.payload.comment.user.login;
+            const targetBranch = process.env.TARGET_BRANCH || '(unknown)';
+            const reason = process.env.FAILED_REASON || 'An unexpected error occurred.';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                `@${requester} Failed to cherry-pick to \`${targetBranch}\`: ${reason}`,
+                '',
+                'Please manually cherry-pick the commits and open a PR targeting `' + targetBranch + '`.'
+              ].join('\n')
+            });
