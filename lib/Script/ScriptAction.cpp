@@ -40,7 +40,7 @@ bool ScriptAction::activate(InputBuilder &PBuilder) {
   bool FoundInReplay = TarReader && TarReader->hasFile(Path);
   // If replay does not have this script entry, keep normal filesystem/search
   // behavior so command-line scripts still work outside replay mode.
-  if (!FoundInReplay && !llvm::sys::fs::exists(Path)) {
+  if (!FoundInReplay && !ThisConfig.existsInChroot(Path)) {
     const sys::fs::Path *Res =
         SearchDirs.find(Path, SearchDirs::SearchInputType::Script);
     if (Res == nullptr) {

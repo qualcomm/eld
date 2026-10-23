@@ -140,7 +140,8 @@ public:
   uint64_t getArchiveMemberNameHash() const { return MemberNameHash; }
 
   // -----------------------Namespec support -------------------------------
-  bool resolvePath(const LinkerConfig &PConfig);
+  bool resolvePath(const LinkerConfig &PConfig,
+                   bool PathAlreadyResolved = false);
 
   bool resolvePathMappingFile(const LinkerConfig &PConfig);
 

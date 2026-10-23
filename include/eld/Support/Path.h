@@ -14,6 +14,8 @@
 #ifndef ELD_SUPPORT_PATH_H
 #define ELD_SUPPORT_PATH_H
 
+#include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 #include <functional>
 #include <iosfwd>
@@ -23,6 +25,18 @@
 namespace eld {
 namespace sys {
 namespace fs {
+
+inline std::string applyChrootPath(llvm::StringRef Root, llvm::StringRef Path) {
+  if (!Root.empty() && !Path.empty() &&
+      llvm::sys::path::is_separator(Path.front())) {
+    while (Root.size() > 1 && llvm::sys::path::is_separator(Root.back()))
+      Root = Root.drop_back();
+    if (Root == "/" || Root == "\\")
+      return Path.str();
+    return (Root + Path).str();
+  }
+  return Path.str();
+}
 
 #if defined(ELD_ON_WIN32)
 const char preferred_separator = '/';
