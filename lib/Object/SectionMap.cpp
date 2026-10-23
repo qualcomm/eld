@@ -351,12 +351,17 @@ bool SectionMap::matched(const RuleContainer &PInput, InputFile *I,
     }
   }
 
+  bool FileMatchAll =
+      !PInput.spec().hasFile() || PInput.spec().file().isMatchAll();
+
   if (IsArchive && PInput.spec().hasFile()) {
-    MatchedArchiveMember = matched(PInput.spec().file(), Name, NameHash);
+    MatchedArchiveMember =
+        FileMatchAll || matched(PInput.spec().file(), Name, NameHash);
   }
 
   if (!MatchedArchiveMember && PInput.spec().hasFile()) {
-    bool Res = matched(PInput.spec().file(), PInputFile, FileNameHash);
+    bool Res =
+        FileMatchAll || matched(PInput.spec().file(), PInputFile, FileNameHash);
     if (!Res)
       return false;
   }
@@ -365,9 +370,16 @@ bool SectionMap::matched(const RuleContainer &PInput, InputFile *I,
   bool MatchedRule = false;
 
   if (PInput.spec().hasSections()) {
+    const ExcludeFiles *SpecEF = PInput.spec().getExcludeFiles();
     for (auto *Sect : PInput.spec().sections().tokens()) {
       const WildcardPattern &Pattern = llvm::cast<WildcardPattern>(*Sect);
-      ExcludeFiles EF(PInput.spec().getExcludeFiles(), Pattern.excludeFiles());
+      const ExcludeFiles *PatEF = Pattern.excludeFiles();
+      bool HasEF = (SpecEF && !SpecEF->empty()) || (PatEF && !PatEF->empty());
+      std::optional<ExcludeFiles> OptEF;
+      if (HasEF)
+        OptEF.emplace(SpecEF, PatEF);
+      static const ExcludeFiles EmptyEF;
+      const ExcludeFiles &EF = HasEF ? *OptEF : EmptyEF;
       if (!EF.empty() && !DoOnce) {
         // Try to do only for Archive files and Archive patterns. If the Spec is
         // an archive and this matches any archive member, just reject and move
@@ -432,10 +444,13 @@ bool SectionMap::matchedSections(
     std::string const &PFilename, std::string const &CurInputSection,
     bool IsArchive, uint64_t InputSectionHash, uint64_t FileNameHash,
     uint64_t NameHash, bool IsCommonSection, const ExcludeFiles &EF) const {
-  WildcardPattern Pattern = PPattern;
-  if (IsCommonSection)
-    Pattern = getWithSyntacticSugarForCommonPattern(Pattern);
-  bool Match = matched(Pattern, CurInputSection, InputSectionHash);
+  bool Match = false;
+  if (LLVM_UNLIKELY(IsCommonSection)) {
+    WildcardPattern Pattern = getWithSyntacticSugarForCommonPattern(PPattern);
+    Match = matched(Pattern, CurInputSection, InputSectionHash);
+  } else {
+    Match = matched(PPattern, CurInputSection, InputSectionHash);
+  }
   if (Match) {
     if (!EF.empty()) {
       for (auto *Elem : EF.patterns()) {

@@ -316,6 +316,15 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
   SectionMap &SectionMap = ThisModule.getScript().sectionMap();
   ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Obj);
   std::vector<Section *> Sections = getInputSectionsForRuleMatching(ObjFile);
+  const std::string &DefaultInputFile =
+      Obj->getInput()->getResolvedPath().native();
+  const std::string &DefaultName = Obj->getInput()->getName();
+  bool DefaultIsArchive =
+      Obj->isArchive() ||
+      llvm::dyn_cast<eld::ArchiveMemberInput>(Obj->getInput());
+  uint64_t DefaultInputFileHash = Obj->getInput()->getResolvedPathHash();
+  uint64_t DefaultNameHash = Obj->getInput()->getArchiveMemberNameHash();
+
   // For each input section.
   for (Section *Sect : Sections) {
     ELFSection *ELFSect = llvm::dyn_cast<eld::ELFSection>(Sect);
@@ -336,14 +345,27 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
     }
     if (Sect->getOldInputFile())
       Input = Sect->getOldInputFile();
-    std::string const &PInputFile =
-        Input->getInput()->getResolvedPath().native();
-    std::string const &Name = Input->getInput()->getName();
-    bool IsArchive = Input->isArchive() ||
-                     llvm::dyn_cast<eld::ArchiveMemberInput>(Input->getInput());
-    // Hash of all the required things for Match.
-    uint64_t InputFileHash = Input->getInput()->getResolvedPathHash();
-    uint64_t NameHash = Input->getInput()->getArchiveMemberNameHash();
+
+    const std::string *PInputFilePtr = &DefaultInputFile;
+    std::string OtherInputFile;
+    std::string OtherName;
+    const std::string *NamePtr = &DefaultName;
+    bool IsArchive = DefaultIsArchive;
+    uint64_t InputFileHash = DefaultInputFileHash;
+    uint64_t NameHash = DefaultNameHash;
+    if (LLVM_UNLIKELY(Input != Obj)) {
+      OtherInputFile = Input->getInput()->getResolvedPath().native();
+      OtherName = Input->getInput()->getName();
+      PInputFilePtr = &OtherInputFile;
+      NamePtr = &OtherName;
+      IsArchive = Input->isArchive() ||
+                  llvm::dyn_cast<eld::ArchiveMemberInput>(Input->getInput());
+      InputFileHash = Input->getInput()->getResolvedPathHash();
+      NameHash = Input->getInput()->getArchiveMemberNameHash();
+    }
+    const std::string &PInputFile = *PInputFilePtr;
+    const std::string &Name = *NamePtr;
+
     std::string SectName = Sect->name().str();
     uint64_t InputSectionHash = Sect->sectionNameHash();
     if (ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(Sect)) {
@@ -397,11 +419,13 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
                   << ELFSect->getDecoratedName(ThisConfig.options())
                   << ObjFile->getInput()->decoratedPath();
           }
-          if (IsRetrySect && !In->isSpecial())
+          if (!In->isSpecial()) {
             IsRetrySect = false;
+            shouldSkipMatch = true;
+            break;
+          }
           // Retry the match until the closest match is found.
-          if (In->isSpecial())
-            IsRetrySect = true;
+          IsRetrySect = true;
         } // end match
         // RuleMatchTimes[In] += std::chrono::system_clock::now() - Start;
       } // end each rule
