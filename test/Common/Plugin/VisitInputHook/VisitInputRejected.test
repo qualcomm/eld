@@ -1,0 +1,16 @@
+#---VisitInputRejected.test-------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Test that rejected incompatible inputs (like DSO in partial link) do not trigger VisitInput,
+# but are still preserved in reproducer tar.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.foo.o %p/Inputs/2.c -c -fPIC
+RUN: %link %linkopts -shared -o %t.libfoo.so %t.foo.o
+RUN: not %link %linkopts -r %t.libfoo.so --reproduce=%t.tar \
+RUN:   --trace=plugin -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+RUN: %tar -tf %t.tar | %filecheck %s --check-prefix=TAR
+#END_TEST
+
+CHECK: Shared libraries are not allowed with partial links, found {{.*}}libfoo.so
+CHECK-NOT: Calling plugin hook handler VisitInputHookPlugin::VisitInput for the input file '{{.*}}libfoo.so'
+TAR: libfoo.so
