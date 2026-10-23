@@ -1,0 +1,2 @@
+add_eld_unittest(DWARFInfoTests DWARFInfoTest.cpp)
+target_link_libraries(DWARFInfoTests PRIVATE ELDInput LW)
