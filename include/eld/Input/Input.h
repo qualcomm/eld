@@ -142,6 +142,10 @@ public:
   // -----------------------Namespec support -------------------------------
   bool resolvePath(const LinkerConfig &PConfig);
 
+  /// Resolve an input using mapping-file semantics.
+  /// Unmapped namespecs retain normal -l search behavior.
+  bool resolveMappedPath(const LinkerConfig &PConfig);
+
   bool resolvePathMappingFile(const LinkerConfig &PConfig);
 
   /// -------------------------Input Type ---------------------------
