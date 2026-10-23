@@ -227,13 +227,13 @@ public:
   std::string getHash();
 
   /// Mix \p FilenameOrText into the combined hash. If it names a readable
-  /// file, also mix an MD5 of the file contents.
+  /// file, also mix an MD5 of the file contents. Legacy callers should use
+  /// the explicit-content overload to hash the buffer that was consumed.
   void addToHash(llvm::StringRef FilenameOrText);
 
   /// Mix \p PathOrText into the combined hash, then mix an MD5 of \p
-  /// Contents. Use this overload when the file has already been read into
-  /// memory (e.g. an archive member) and does not have a path that
-  /// llvm::sys::fs can stat.
+  /// Contents. \p PathOrText is the stable logical identity; \p Contents
+  /// must be the exact buffer consumed by the linker-script parser.
   void addToHash(llvm::StringRef PathOrText, llvm::StringRef Contents);
 
   // ------------- WildCardPattern support -----------------------
