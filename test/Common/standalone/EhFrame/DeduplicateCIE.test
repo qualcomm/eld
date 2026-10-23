@@ -1,0 +1,9 @@
+UNSUPPORTED: arm
+RUN: %clang %clangopts -funwind-tables -c %p/Inputs/foo.c -o %t1.o
+RUN: %clang %clangopts -funwind-tables -c %p/Inputs/bar.c -o %t2.o
+RUN: %link %linkopts --eh-frame-hdr -e foo %t1.o %t2.o -o %t.out
+RUN: %dwarfdump --eh-frame %t.out | %filecheck %s
+
+# CHECK-COUNT-1: CIE
+# CHECK-COUNT-2: FDE cie=
+# CHECK: ZERO terminator

@@ -1037,8 +1037,9 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
       if (Sect->getKind() == LinkerSectionKind::EhFrame) {
         if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)->splitEhFrameSection())
           return false;
+        // A relocatable output must retain each input CIE and its relocations.
         if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)
-                 ->createCIEAndFDEFragments())
+                 ->createCIEAndFDEFragments(!IsPartialLink))
           return false;
         llvm::dyn_cast<eld::EhFrameSection>(Sect)->finishAddingFragments(
             *ThisModule);

@@ -28,13 +28,16 @@ EhFramePiece &EhFrameFragment::addPiece(size_t Off, size_t Sz, Relocation *R) {
   return Pieces.back();
 }
 
-eld::Expected<void> FDEPiece::emit(MemoryRegion &Mr, Module &M,
-                                   const EhFrameFragment &F) {
+eld::Expected<void> FDEPiece::emit(MemoryRegion &Mr) {
   assert(FDE.hasOutputOffset() && "FDE output offset must be assigned");
   uint8_t *Buf = Mr.begin() + FDE.getOutputOffset();
-  memcpy(Buf, getContent(F).data(), size());
+  memcpy(Buf, getContent().data(), size());
   llvm::support::endian::write32le(Buf, FDE.getSize() - 4);
   return {};
+}
+
+llvm::ArrayRef<uint8_t> FDEPiece::getContent() const {
+  return FDE.getData(Source.getRegion());
 }
 
 size_t EhFrameCIE::size() const {
@@ -61,8 +64,7 @@ void EhFrameCIE::setOffset(uint32_t CieOff) {
   CIE.setOutputOffset(CieOff);
 }
 
-eld::Expected<void> EhFrameCIE::emit(MemoryRegion &Mr, Module &M,
-                                     uint32_t CieOff,
+eld::Expected<void> EhFrameCIE::emit(MemoryRegion &Mr, uint32_t CieOff,
                                      const EhFrameFragment &F) {
   if (!FDEs.size())
     return {};
@@ -70,7 +72,7 @@ eld::Expected<void> EhFrameCIE::emit(MemoryRegion &Mr, Module &M,
   memcpy(Buf, getContent(F).data(), CIE.getSize());
   llvm::support::endian::write32le(Buf, CIE.getSize() - 4);
   for (auto *Fde : FDEs) {
-    auto ExpEmit = Fde->emit(Mr, M, F);
+    auto ExpEmit = Fde->emit(Mr);
     if (!ExpEmit)
       return ExpEmit;
     uint32_t FdeOff = Fde->getFDE().getOutputOffset();
@@ -87,8 +89,6 @@ uint8_t EhFrameCIE::getFdeEncoding(const EhFrameFragment &F, bool Is64Bit,
 }
 
 size_t EhFrameFragment::size() const {
-  if (CIEs.empty())
-    return RegionFragment::size();
   size_t Total = 0;
   for (auto *C : CIEs)
     Total += C->size();
@@ -97,8 +97,6 @@ size_t EhFrameFragment::size() const {
 
 void EhFrameFragment::setOffset(uint32_t O) {
   Fragment::setOffset(O);
-  if (CIEs.empty())
-    return;
   uint32_t Off = O;
   for (auto *C : CIEs) {
     if (!C->size())
@@ -109,13 +107,11 @@ void EhFrameFragment::setOffset(uint32_t O) {
 }
 
 eld::Expected<void> EhFrameFragment::emit(MemoryRegion &Mr, Module &M) {
-  if (CIEs.empty())
-    return RegionFragment::emit(Mr, M);
   uint32_t Off = getOffset(M.getConfig().getDiagEngine());
   for (auto *C : CIEs) {
     if (!C->size())
       continue;
-    auto ExpEmit = C->emit(Mr, M, Off, *this);
+    auto ExpEmit = C->emit(Mr, Off, *this);
     if (!ExpEmit)
       return ExpEmit;
     Off += C->size();

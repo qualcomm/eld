@@ -79,7 +79,7 @@ public:
 
   llvm::ArrayRef<uint8_t> getContent(const EhFrameFragment &F) const;
 
-  eld::Expected<void> emit(MemoryRegion &Mr, Module &M, uint32_t CieOff,
+  eld::Expected<void> emit(MemoryRegion &Mr, uint32_t CieOff,
                            const EhFrameFragment &F);
 
   void dump(llvm::raw_ostream &OS) {}
@@ -128,22 +128,21 @@ private:
 
 class FDEPiece {
 public:
-  explicit FDEPiece(EhFramePiece &P) : FDE(P) {}
+  FDEPiece(EhFramePiece &P, const EhFrameFragment &F) : FDE(P), Source(F) {}
 
   size_t size() const { return FDE.getSize(); }
 
-  llvm::ArrayRef<uint8_t> getContent(const EhFrameFragment &F) const {
-    return FDE.getData(F.getRegion());
-  }
+  llvm::ArrayRef<uint8_t> getContent() const;
 
-  eld::Expected<void> emit(MemoryRegion &Mr, Module &M,
-                           const EhFrameFragment &F);
+  eld::Expected<void> emit(MemoryRegion &Mr);
 
   EhFramePiece &getFDE() { return FDE; }
   const EhFramePiece &getFDE() const { return FDE; }
 
 private:
   EhFramePiece &FDE;
+  // FDE offsets are relative to the fragment that supplied the FDE.
+  const EhFrameFragment &Source;
 };
 
 } // namespace eld
