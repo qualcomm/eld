@@ -1,0 +1,42 @@
+# Cherry-pick workflow for eld
+#
+# Allows developers to backport a merged PR to a release branch by posting
+# a comment on the merged PR (or a GitHub Issue) with:
+#
+#   /cherry-pick release/23.x
+#
+# Multiple targets in one comment are also supported:
+#
+#   /cherry-pick release/23.x release/22.x
+#
+# Uses: https://github.com/creydr/cherry-pick-action
+
+name: Cherry Pick Workflow
+
+on:
+  pull_request_target:
+    types: [closed]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  cherry-pick:
+    name: Cherry Pick
+    runs-on: ubuntu-latest
+    if: >
+      (
+        github.event_name == 'pull_request_target' &&
+        github.event.pull_request.merged
+      ) || (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        contains(github.event.comment.body, '/cherry-pick')
+      )
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Cherry-pick pull request
+        uses: creydr/cherry-pick-action@ec00f4dad513cd4391203d27478a0910385cfa8f # v1.0.14
