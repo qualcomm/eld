@@ -170,6 +170,8 @@ bool GeneralOptions::setRequestedTimingRegions(const char *TimingRegion) {
 }
 
 bool GeneralOptions::shouldTraceMergeStrSection(const ELFSection *S) const {
+  if (DiagEngine->getPrinter()->isVerbose())
+    return true;
   switch (MergeStrTraceValue) {
   case NONE:
     return false;
@@ -362,6 +364,8 @@ void GeneralOptions::setLTOOptions(uint32_t LtoOption) {
 }
 
 bool GeneralOptions::traceSymbol(std::string const &PSym) const {
+  if (DiagEngine->getPrinter()->isVerbose())
+    return true;
   StringRef SymRef(PSym);
   // Try to improve performance a bit.
   if (!SymbolTrace.size())
@@ -377,6 +381,8 @@ bool GeneralOptions::traceSymbol(std::string const &PSym) const {
 }
 
 bool GeneralOptions::traceSection(std::string const &PSec) const {
+  if (DiagEngine->getPrinter()->isVerbose())
+    return true;
   StringRef SecRef(PSec);
   // Try to improve performance a bit.
   if (SectionTrace.empty())
@@ -404,6 +410,8 @@ bool GeneralOptions::traceSection(const Section *S) const {
 }
 
 bool GeneralOptions::traceReloc(std::string const &RelocName) const {
+  if (DiagEngine->getPrinter()->isVerbose())
+    return true;
   StringRef RelocRef(RelocName);
   // Look for an exact match first
   return llvm::any_of(RelocsToTrace,
@@ -414,6 +422,8 @@ bool GeneralOptions::traceReloc(std::string const &RelocName) const {
 }
 
 bool GeneralOptions::tracePlugin(std::string const &PluginName) const {
+  if (DiagEngine->getPrinter()->isVerbose())
+    return true;
   if (!DiagEngine->getPrinter()->tracePlugins())
     return false;
   // Bare "--trace=plugin" (no scoped names given): trace every plugin.
@@ -445,7 +455,8 @@ std::vector<llvm::StringRef> GeneralOptions::getLTOOptionsAsString() const {
 
 /// Returns true if LTO trace is required
 bool GeneralOptions::traceLTO(void) const {
-  return (trace() & DiagEngine->getPrinter()->TraceLTO) ||
+  return DiagEngine->getPrinter()->isVerbose() ||
+         (trace() & DiagEngine->getPrinter()->TraceLTO) ||
          (LTOOptions & LTOVerbose);
 }
 
