@@ -984,6 +984,12 @@ protected:
   virtual void addTargetSpecificSegments();
 
   void addSectionInfo(LDSymbol *symbol, ELFSection *section);
+  /// Define _GLOBAL_OFFSET_TABLE_ as an AsReferred symbol, so it is emitted
+  /// only if an input references it. Symbol properties:
+  ///   Type:       Object - consistent with ARM ELD and BFD (LLD uses NOTYPE).
+  ///   Binding:    Local  - consistent with ARM ELD and BFD (LLD uses GLOBAL).
+  ///   Visibility: Hidden - consistent with ARM ELD and LLD (BFD uses DEFAULT).
+  LDSymbol *defineGlobalOffsetTableSymbol();
 
   /// Returns the name of the common symbol associated with the section
   /// 'commonSection'.
