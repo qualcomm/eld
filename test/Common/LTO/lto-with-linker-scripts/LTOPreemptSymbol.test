@@ -1,0 +1,46 @@
+# RUN: rm -rf %t && split-file %s %t
+# RUN: %opt -mtriple=%triple %t/1.ll -o %t/1.o
+# RUN: %llvm-mc -filetype=obj -triple=%triple %t/2.s -o %t/2.o
+# RUN: %link %linkopts --lto-linker-scripts %t/1.o %t/2.o -Map=%t/map.txt -T %t/script.t -o %t/out
+# RUN: %filecheck %s < %t/map.txt
+
+# CHECK: .tcm
+# CHECK: {{.*}}1.o
+# CHECK: bar
+# CHECK: .text
+# CHECK: {{.*}}2.o
+# CHECK: foo
+
+#--- 1.ll
+
+define weak i32 @foo() nounwind section ".tcm_static" {
+  ret i32 0
+}
+
+define weak i32 @bar() nounwind section ".tcm_static" {
+  ret i32 0
+}
+
+#--- 2.s
+.text
+.section .text.foo,"ax",%progbits
+.globl foo
+.type foo,%function
+foo:
+  .byte 0
+.size foo, .-foo
+
+.section .text.main,"ax",%progbits
+.globl main
+.type main,%function
+main:
+  .long foo
+  .long bar
+  .byte 0
+.size main, .-main
+
+#--- script.t
+SECTIONS {
+  .tcm : { KEEP (*(.tcm_static)) }
+  .text : { *(.text*) }
+}

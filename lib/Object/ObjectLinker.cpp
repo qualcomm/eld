@@ -32,6 +32,7 @@
 #include "eld/Object/GroupReader.h"
 #include "eld/Object/LibReader.h"
 #include "eld/Object/ObjectBuilder.h"
+#include "eld/Object/RuleContainer.h"
 #include "eld/Object/SectionMap.h"
 #include "eld/PluginAPI/LinkerPlugin.h"
 #include "eld/PluginAPI/OutputSectionIteratorPlugin.h"
@@ -3042,28 +3043,57 @@ bool ObjectLinker::finalizeLtoSymbolResolution(
 
   bool HasSectionsCmd =
       ThisModule->getScript().linkerScriptHasSectionsCommand();
+  std::unordered_set<std::string> PrevailingGlobalSymbols;
+  for (BitcodeFile *Inp : BitCodeInputs) {
+    for (auto [Index, Sym] : llvm::enumerate(Inp->getInputFile().symbols())) {
+      if (Sym.isUndefined())
+        continue;
+      ResolveInfo *Info = Inp->getResolveInfoForLTOSymbol(Index);
+      if (!Info && Sym.isGlobal())
+        Info = ThisModule->getNamePool().findInfo(Sym.getName().str());
+      if (!Info || Info->resolvedOrigin() != Inp ||
+          Info->binding() == ResolveInfo::Local)
+        continue;
+      PrevailingGlobalSymbols.insert(Sym.getName().str());
+    }
+  }
+
+  std::unordered_set<std::string> PrevailingLocalSymbols;
 
   // Add the input files
   for (BitcodeFile *Inp : BitCodeInputs) {
 
     // Compute the LTO resolutions
     std::vector<llvm::lto::SymbolResolution> LTOResolutions;
-    for (const auto &Sym : Inp->getInputFile().symbols()) {
+    for (auto [Index, Sym] : llvm::enumerate(Inp->getInputFile().symbols())) {
 
       // Only needed: name, isCommon, isUndefined
 
       llvm::lto::SymbolResolution LTORes;
 
-      ResolveInfo *Info =
-          ThisModule->getNamePool().findInfo(Sym.getName().str());
+      ResolveInfo *Info = Inp->getResolveInfoForLTOSymbol(Index);
+      if (!Info && Sym.isGlobal())
+        Info = ThisModule->getNamePool().findInfo(Sym.getName().str());
 
       if (!Info) {
         llvm_unreachable("Global LTO symbol not in namepool");
       } else if (!Sym.isUndefined()) {
 
         // If this definition is chosen, set the prevailing property.
-        if (Info->resolvedOrigin() == Inp)
-          LTORes.Prevailing = true;
+        if (Info->resolvedOrigin() == Inp) {
+          // LTO's GlobalResolutions map is keyed by symbol name. Local IR
+          // symbols may have the same name in different bitcode files, so only
+          // one of them can be reported as prevailing for that map.
+          // Empty-name asm symbols are module-asm placeholders. They are not
+          // entered in LTO's GlobalResolutions map, and marking duplicate
+          // ones non-prevailing makes LTO emit invalid ".lto_discard , ..."
+          // asm.
+          bool IsLocalSymbol = Info->binding() == ResolveInfo::Local;
+          LTORes.Prevailing =
+              !IsLocalSymbol || Sym.getName().empty() ||
+              (!PrevailingGlobalSymbols.count(Sym.getName().str()) &&
+               PrevailingLocalSymbols.insert(Sym.getName().str()).second);
+        }
         // If a symbol needs to be preserved, because its being referenced
         // from regular object files, set the VisibletoRegularObj property
         // appropriately.
@@ -3084,7 +3114,8 @@ bool ObjectLinker::finalizeLtoSymbolResolution(
           WrapSymbolName = WrapSymbolName.drop_front(7);
         llvm::StringMap<std::string>::iterator RenameSym =
             ThisConfig.options().renameMap().find(WrapSymbolName);
-        if (ThisConfig.options().renameMap().end() != RenameSym) {
+        if (Sym.isGlobal() && Info->resolvedOrigin() == Inp &&
+            ThisConfig.options().renameMap().end() != RenameSym) {
           LTORes.Prevailing = true;
           LTORes.VisibleToRegularObj = true;
           if (MTraceLTO || TraceWrap)
@@ -3109,6 +3140,19 @@ bool ObjectLinker::finalizeLtoSymbolResolution(
         // their linker script.
         if (HasSectionsCmd && Sym.isCommon())
           LTORes.VisibleToRegularObj = true;
+
+        if (ThisConfig.options().hasLTOLinkerScripts() && HasSectionsCmd &&
+            Info->resolvedOrigin() == Inp) {
+          if (Section *InputSection = Inp->getInputSectionForSymbol(*Info)) {
+            if (RuleContainer *Rule =
+                    InputSection->getMatchedLinkerScriptRule();
+                Rule && Rule->isEntry())
+              LTORes.VisibleToRegularObj = true;
+            if (OutputSectionEntry *OutSection =
+                    InputSection->getOutputSection())
+              LTORes.OutputSectionName = OutSection->name();
+          }
+        }
 
         // This copies the behavior of the gold plugin.
         if (!Info->isDyn() && !Info->isUndef() &&
