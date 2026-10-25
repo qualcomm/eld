@@ -143,6 +143,15 @@ public:
   /// after calling ModifyLTOOptions (BeforeLayout state).
   /// This hook is called for the LTO plugin only.
   virtual void ActBeforeLTO(llvm::lto::Config &Config) {}
+
+  /// The VisitInput hook is invoked for each input file. It is called
+  /// immediately after an InputFile component is created and passes initial
+  /// validation, before its sections or symbols are parsed.
+  ///
+  /// Use plugin::InputFile methods to inspect file properties, resolved path,
+  /// size, format kind, and raw buffer contents.
+  /// Note: getSections() and getSymbols() are empty during VisitInput.
+  virtual void VisitInput(plugin::InputFile IF) {}
 };
 } // namespace eld::plugin
 #endif

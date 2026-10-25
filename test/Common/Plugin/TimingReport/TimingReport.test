@@ -13,6 +13,7 @@ RUN: %filecheck %s < %t1.1.timing.stats
 CHECK: Plugins
 CHECK-DAG: Load Linker Plugins
 CHECK-DAG: Init
+CHECK-DAG: VisitInput
 CHECK-DAG: VisitSections
 CHECK-DAG: ActBeforeSectionMerging
 CHECK-DAG: ActBeforePerformingLayout
