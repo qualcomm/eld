@@ -1,0 +1,202 @@
+name: Ubuntu
+run-name: "Ubuntu #${{ inputs.pr_number || github.event.pull_request.number || 'automatic' }} @${{ inputs.pr_sha || 'unknown' }} (${{ inputs.request_id || 'automatic' }})"
+
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        description: "PR number to build"
+        required: true
+        type: string
+      request_id:
+        description: "Optional request ID used to correlate an external workflow dispatch"
+        required: true
+        type: string
+      pr_sha:
+        description: "PR head SHA used to identify reusable toolset artifacts"
+        required: true
+        type: string
+      skip_tests:
+        description: "Build and package the PR toolset without running CI tests"
+        required: false
+        default: false
+        type: boolean
+    outputs:
+      artifact_name:
+        description: "Name of the uploaded PR ELD toolset artifact"
+        value: ${{ jobs.build.outputs.artifact_name }}
+      artifact_run_id:
+        description: "CI workflow run containing the toolset artifact"
+        value: ${{ jobs.build.outputs.artifact_run_id }}
+permissions: {}
+jobs:
+  build:
+    outputs:
+      artifact_name: ${{ format('pr-eld-toolset-{0}', inputs.pr_sha) }}
+      artifact_run_id: ${{ github.run_id }}
+    runs-on: self-hosted
+    concurrency:
+      group: ${{ github.workflow }}-${{ inputs.pr_number }}
+      cancel-in-progress: true
+    permissions:
+      actions: write
+      contents: write
+      statuses: write
+
+    env:
+      PR_NUMBER: ${{ inputs.pr_number }}
+      CCACHE_DIR: /local/mnt/workspace/ccache/main
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_COMPILERCHECK: content
+      CCACHE_NOHASHDIR: true
+
+    steps:
+      - name: Checkout llvm-project
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: llvm/llvm-project
+          ref: main
+          path: pr-${{ env.PR_NUMBER }}/llvm-project
+
+      - name: Checkout qualcomm/eld PR branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: qualcomm/eld
+          ref: ${{ inputs.pr_sha }}
+          path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
+          fetch-depth: 0
+
+      - name: Setup musl environment
+        run: echo "/opt/musl/bin" >> $GITHUB_PATH
+
+      - name: Run CMake
+        working-directory: pr-${{ env.PR_NUMBER }}
+        run: |
+          mkdir -p "$CCACHE_DIR"
+          ccache --zero-stats
+          ccache --set-config "max_size=0"
+          ccache --show-config
+
+          rm -rf obj
+          mkdir -p obj
+          cd obj
+          cmake -G Ninja \
+            ../llvm-project/llvm \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
+            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
+            -DCLANG_ENABLE_CIR=OFF \
+            -DLLVM_ENABLE_ASSERTIONS:BOOL=ON \
+            -DCMAKE_INSTALL_RPATH:STRING="$ORIGIN/../lib" \
+            -DCMAKE_C_COMPILER="$(which clang)" \
+            -DCMAKE_CXX_COMPILER="$(which clang++)" \
+            -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+            -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
+            -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86;Template' \
+            -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+            -DLLVM_CCACHE_BUILD:BOOL=ON \
+            -DLLVM_CCACHE_DIR:STRING="$CCACHE_DIR" \
+            -DELD_ENABLE_SYMBOL_VERSIONING=ON \
+            -DLLVM_ENABLE_WERROR:BOOL=ON \
+            -DELD_ENABLE_RUN_TESTS:BOOL=On
+
+      - name: Cache Usage before build
+        working-directory: pr-${{ env.PR_NUMBER }}/obj
+        run: ccache --show-stats --dir=$CCACHE_DIR
+
+      - name: Build
+        working-directory: pr-${{ env.PR_NUMBER }}/obj
+        run: |
+          if [[ "${{ inputs.skip_tests }}" == "true" ]]; then
+            ninja ld.eld
+          else
+            ninja
+          fi
+
+      - name: Cache usage after build
+        working-directory: pr-${{ env.PR_NUMBER }}/obj
+        run: ccache --show-stats --dir=$CCACHE_DIR
+
+      - name: Prune ccache before save
+        working-directory: pr-${{ env.PR_NUMBER }}/obj
+        run: ccache --evict-older-than 7200s --dir=$CCACHE_DIR
+
+      - name: Run tests
+        if: inputs.skip_tests == false
+        working-directory: pr-${{ env.PR_NUMBER }}/obj
+        run: |
+          export PATH="$PATH:/opt/qemu/bin"
+          export PATH="$PATH:/local/mnt/workspace/arm-unknown-linux-gnueabi/bin"
+          export PATH="$PATH:/local/mnt/workspace/aarch64-unknown-linux-gnu/bin"
+          export PATH="$PATH:/local/mnt/workspace/riscv32-unknown-linux-gnu/bin"
+          export PATH="$PATH:/local/mnt/workspace/riscv64-unknown-linux-gnu/bin"
+          export PATH="$PATH:/local/mnt/workspace/x86_64-unknown-linux-gnu/bin"
+
+          export ELD_ARM_C_COMPILER=arm-unknown-linux-gnueabi-cc
+          export ELD_ARM_CXX_COMPILER=arm-unknown-linux-gnueabi-c++
+          export ELD_ARM_SYSROOT=/local/mnt/workspace/arm-unknown-linux-gnueabi/arm-unknown-linux-gnueabi/sysroot
+          export ELD_AARCH64_C_COMPILER=aarch64-unknown-linux-gnu-cc
+          export ELD_AARCH64_CXX_COMPILER=aarch64-unknown-linux-gnu-c++
+          export ELD_AARCH64_SYSROOT=/local/mnt/workspace/aarch64-unknown-linux-gnu/aarch64-unknown-linux-gnu/sysroot
+          export ELD_RISCV32_C_COMPILER=riscv32-unknown-linux-gnu-cc
+          export ELD_RISCV32_CXX_COMPILER=riscv32-unknown-linux-gnu-c++
+          export ELD_RISCV32_SYSROOT=/local/mnt/workspace/riscv32-unknown-linux-gnu/riscv32-unknown-linux-gnu/sysroot
+          export ELD_RISCV64_C_COMPILER=riscv64-unknown-linux-gnu-cc
+          export ELD_RISCV64_CXX_COMPILER=riscv64-unknown-linux-gnu-c++
+          export ELD_RISCV64_SYSROOT=/local/mnt/workspace/riscv64-unknown-linux-gnu/riscv64-unknown-linux-gnu/sysroot
+          export ELD_X86_64_C_COMPILER=x86_64-unknown-linux-gnu-cc
+          export ELD_X86_64_CXX_COMPILER=x86_64-unknown-linux-gnu-c++
+          export ELD_X86_64_SYSROOT=/local/mnt/workspace/x86_64-unknown-linux-gnu/x86_64-unknown-linux-gnu/sysroot
+
+          ninja check-eld
+
+      - name: Summarize test results
+        if: inputs.skip_tests == false
+        working-directory: pr-${{ env.PR_NUMBER }}/obj
+        run: ninja check-eld-summary
+
+      # Package the PR-built ld.eld (+ libs) for PR integration workflows.
+      # `inst/` layout matches FetchNightlyToolset (~27MB compressed).
+      - name: Package PR ELD toolset
+        working-directory: pr-${{ env.PR_NUMBER }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p inst/bin inst/lib
+
+          cp obj/bin/ld.eld          inst/bin/
+          cp -P obj/lib/libLW.so.5   inst/lib/
+          ln -sf libLW.so.5          inst/lib/libLW.so
+
+          # Bundle libc++/libc++abi dependencies.
+          bash llvm-project/llvm/tools/eld/.github/workflows/scripts/BundleSharedLibDeps.sh \
+            inst ld.eld
+
+          XZ_OPT=-T0 tar -Jcf install-pr-toolset.tar.xz inst
+
+      - name: Upload PR ELD toolset
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 #v7.0.2
+        with:
+          name: ${{ format('pr-eld-toolset-{0}', inputs.pr_sha) }}
+          # Keep a fallback copy in case the workflow fails before cleanup.
+          retention-days: 7
+          path: pr-${{ env.PR_NUMBER }}/install-pr-toolset.tar.xz
+
+      # Local action paths must be literal, so copy the PR version to a fixed
+      # workspace path before invoking it.
+      - name: Stage DeleteOldArtifacts action
+        run: |
+          mkdir -p .github/workflows/DeleteOldArtifacts
+          cp "pr-${PR_NUMBER}/llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts/action.yaml" .github/workflows/DeleteOldArtifacts/action.yaml
+
+      - name: Delete older PR ELD toolsets
+        continue-on-error: true
+        uses: ./.github/workflows/DeleteOldArtifacts
+        with:
+          artifact-names: ${{ format('pr-eld-toolset-{0}', inputs.pr_sha) }}
+          pull-request-number: ${{ inputs.pr_number }}
+
+      - name: Clean up
+        if: always()
+        run: |
+          rm -rf "pr-${PR_NUMBER}"

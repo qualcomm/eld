@@ -220,7 +220,7 @@ jobs:
       needs.validate.outputs.command != 'check-macos' &&
       needs.validate.outputs.command != 'check-memory-sanitizer' &&
       needs.validate.outputs.artifact_reused != 'true'
-    uses: ./.github/workflows/ci.yml
+    uses: ./.github/workflows/ubuntu.yml
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
