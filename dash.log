@@ -6407,3 +6407,4 @@ Tue Oct 27 12:08:46 UTC 2026 -> Add linux-kernel riscv32 build status data in DB
 Tue Oct 27 12:09:08 UTC 2026 -> Add data lock for linux-kernel riscv64 build status data to be written
 Tue Oct 27 12:09:10 UTC 2026 -> Add linux-kernel riscv64 build status data in DB
 Tue Oct 27 12:32:34 PM UTC 2026 -> Add data lock for zephyr  build status data to be written
+Tue Oct 27 12:32:35 PM UTC 2026 -> Add zephyr  build status data in DB
