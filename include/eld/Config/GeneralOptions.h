@@ -518,7 +518,6 @@ public:
   bool printGCSections() const { return BPrintGCSections; }
 
   void setICFMode(ICFMode Mode) { ICF = Mode; }
-  ICFMode getICFMode() const { return ICF; }
   bool icfEnabled() const { return ICF != ICFMode::None; }
 
   void setPrintICFSections(bool Enable = true) { BPrintICFSections = Enable; }

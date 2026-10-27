@@ -272,14 +272,8 @@ public:
     return m_OutputSection ? m_OutputSection->getSection() : nullptr;
   }
 
-  ELFSection *getCanonicalSection() {
-    return CanonicalSection ? CanonicalSection : this;
-  }
-  const ELFSection *getCanonicalSection() const {
-    return CanonicalSection ? CanonicalSection : this;
-  }
-  void setCanonicalSection(ELFSection &Section) { CanonicalSection = &Section; }
-  bool isFolded() const { return CanonicalSection != nullptr; }
+  void setFolded() { IsFolded = true; }
+  bool isFolded() const { return IsFolded; }
 
   //  LTO Tracking support
   bool hasOldInputFile() const override {
@@ -413,7 +407,7 @@ protected:
 
   llvm::SmallVector<Fragment *, 0> Fragments;
   llvm::SmallVector<Relocation *, 0> Relocations;
-  ELFSection *CanonicalSection = nullptr;
+  bool IsFolded = false;
 };
 
 } // namespace eld

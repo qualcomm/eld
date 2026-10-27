@@ -100,7 +100,7 @@ void ICF::run() {
       if (Folded->isFolded() || !haveSameIdentity(*Canonical, *Folded))
         continue;
       retargetSymbols(ThisModule, *Folded, *Canonical);
-      Folded->setCanonicalSection(*Canonical);
+      Folded->setFolded();
       Folded->setKind(LinkerSectionKind::Discard);
       if (ThisConfig.options().printICFSections())
         llvm::errs() << "ICF folding "
