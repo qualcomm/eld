@@ -1,0 +1,21 @@
+# GC precedes ICF, and ICF consistently chooses the first input section as the
+# canonical representative.
+
+# RUN: split-file %s %t
+# RUN: %clang -O0 -ffunction-sections -fno-stack-protector -c %t/gc.c -o %t/gc.o
+# RUN: %link %linkopts --entry=foo --gc-sections --icf=all --print-icf-sections %t/gc.o -o %t/gc 2>&1 | %filecheck %s --check-prefix=GC --allow-empty
+# RUN: %clang -O2 -ffunction-sections -fno-stack-protector -c %t/order.c -o %t/order.o
+# RUN: %link %linkopts --entry=foo --icf=all --print-icf-sections %t/order.o -o %t/order 2>&1 | %filecheck %s --check-prefix=ORDER
+
+# GC-NOT: ICF folding
+# ORDER: ICF folding {{.*}}:(.text.bar) into {{.*}}:(.text.foo)
+# ORDER-NEXT: ICF folding {{.*}}:(.text.baz) into {{.*}}:(.text.foo)
+
+#--- gc.c
+int foo(void) { return 42; }
+static int unused(void) { return 42; }
+
+#--- order.c
+int foo(void) { return 42; }
+int bar(void) { return 42; }
+int baz(void) { return 42; }

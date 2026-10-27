@@ -1,0 +1,13 @@
+# ICF only considers executable sections. Identical read-only and writable C
+# data must not be folded even when both remain live in the output.
+
+# RUN: split-file %s %t
+# RUN: %clang -O2 -ffunction-sections -fno-stack-protector -c %t/input.c -o %t/input.o
+# RUN: %link %linkopts --entry=foo --icf=all --print-icf-sections %t/input.o -o %t/out 2>&1 | %filecheck %s --check-prefix=NOFOLD --allow-empty
+
+# NOFOLD-NOT: ICF folding
+
+#--- input.c
+int foo(void) { return 42; }
+const unsigned char readonly_data[] = {1, 2, 3, 4};
+unsigned char writable_data[] = {1, 2, 3, 4};

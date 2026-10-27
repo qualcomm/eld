@@ -60,6 +60,8 @@ public:
 
   enum OrphanMode { Place, Warn, Error, Invalid };
 
+  enum class ICFMode { None, Safe, All };
+
   enum ErrorStyleType { gnu, llvm };
 
   enum ScriptOptionType { MatchGNU, MatchLLVM };
@@ -514,6 +516,13 @@ public:
   void setPrintGCSections(bool PEnable = true) { BPrintGCSections = PEnable; }
 
   bool printGCSections() const { return BPrintGCSections; }
+
+  void setICFMode(ICFMode Mode) { ICF = Mode; }
+  ICFMode getICFMode() const { return ICF; }
+  bool icfEnabled() const { return ICF != ICFMode::None; }
+
+  void setPrintICFSections(bool Enable = true) { BPrintICFSections = Enable; }
+  bool printICFSections() const { return BPrintICFSections; }
 
   // --plugin-activity-file
   void setPluginActivityLogFile(llvm::StringRef File) {
@@ -1308,6 +1317,8 @@ private:
   bool BUseOldRuleMatching = false;          // --use-old-rule-matching
   bool BGCSections = false;          // --gc-sections
   bool BPrintGCSections = false;     // --print-gc-sections
+  ICFMode ICF = ICFMode::None;       // --icf
+  bool BPrintICFSections = false;    // --print-icf-sections
   bool BGenUnwindInfo = true;        // --ld-generated-unwind-info
   bool BForceDynamic = false;        // --force-dynamic
   bool BDynamicList = false;         // --dynamic-list flag

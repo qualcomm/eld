@@ -272,6 +272,15 @@ public:
     return m_OutputSection ? m_OutputSection->getSection() : nullptr;
   }
 
+  ELFSection *getCanonicalSection() {
+    return CanonicalSection ? CanonicalSection : this;
+  }
+  const ELFSection *getCanonicalSection() const {
+    return CanonicalSection ? CanonicalSection : this;
+  }
+  void setCanonicalSection(ELFSection &Section) { CanonicalSection = &Section; }
+  bool isFolded() const { return CanonicalSection != nullptr; }
+
   //  LTO Tracking support
   bool hasOldInputFile() const override {
     auto *ObjFile = llvm::dyn_cast_or_null<ELFObjectFile>(getInputFile());
@@ -404,6 +413,7 @@ protected:
 
   llvm::SmallVector<Fragment *, 0> Fragments;
   llvm::SmallVector<Relocation *, 0> Relocations;
+  ELFSection *CanonicalSection = nullptr;
 };
 
 } // namespace eld

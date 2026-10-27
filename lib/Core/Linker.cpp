@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 #include "eld/Core/Linker.h"
 #include "eld/Config/LinkerConfig.h"
+#include "eld/Core/ICF.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Driver/GnuLdDriver.h"
@@ -531,6 +532,12 @@ bool Linker::resolve() {
   LinkerProgress->incrementAndDisplayProgress("Garbage collect sections");
   if (LinkerConfig::Object != ThisConfig->codeGenType()) {
     ObjLinker->dataStrippingOpt();
+  }
+
+  {
+    eld::RegisterTimer T("Identical Code Folding", "ICF",
+                         ThisConfig->options().printTimingStats());
+    ICF(*ThisModule, *ThisConfig).run();
   }
 
   recordCommonSymbols();
