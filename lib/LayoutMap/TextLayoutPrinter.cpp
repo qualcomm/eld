@@ -166,6 +166,8 @@ void TextLayoutPrinter::printStats(LayoutInfo::Stats &L,
   outputStream() << "# "
                  << "LinkStats Begin"
                  << "\n";
+  if (ThisLayoutInfo->showLinkStatsDetails())
+    outputStream() << "# Detailed link stats enabled\n";
   printStat("ObjectFiles", L.NumElfObjectFiles);
   printStat("ExecutableFiles", L.NumElfExecutableFiles);
   printStat("LinkerScripts", L.NumLinkerScripts);

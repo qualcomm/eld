@@ -83,7 +83,8 @@ public:
     ShowTiming = 0x20,
     ShowDebugStrings = 0x40,
     ShowRelativePath = 0x80,
-    ShowInitialLayout = 0x100
+    ShowInitialLayout = 0x100,
+    ShowLinkStatsDetails = 0x200
   };
 
   enum InputKindPrefix {
@@ -210,6 +211,10 @@ public:
   bool showHeaderDetails() const { return (LayoutDetail & ShowHeaderDetails); }
 
   bool showInitialLayout() const { return LayoutDetail & ShowInitialLayout; }
+
+  bool showLinkStatsDetails() const {
+    return LayoutDetail & ShowLinkStatsDetails;
+  }
 
   static eld::Expected<void> setLayoutDetail(llvm::StringRef Option,
                                              DiagnosticEngine *);
