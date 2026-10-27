@@ -1,0 +1,29 @@
+name: Delete old workflow runs
+
+on:
+  pull_request: {}
+  schedule:
+    - cron: '30 2 * * *' # Daily at 02:30 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview deletions without removing workflow runs"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  delete-old-runs:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Delete workflow runs older than 30 days
+        uses: Mattraks/delete-workflow-runs@v2.1.0
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 30
+          keep_minimum_runs: 0
+          dry_run: ${{ inputs.dry_run || false }}
