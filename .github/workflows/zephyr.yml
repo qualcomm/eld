@@ -30,87 +30,20 @@ on:
         required: false
         type: string
         default: ""
+      toolset_tarball:
+        description: "Tar filename inside the PR ELD toolset artifact"
+        required: false
+        type: string
+        default: "install-pr-toolset.tar.xz"
 
 jobs:
-  resolve:
+  zephyr:
     if: |
-      (github.event_name == 'workflow_run' &&
-       github.repository == 'qualcomm/eld' &&
-       github.event.workflow_run.conclusion == 'success') ||
-      (github.repository == 'qualcomm/eld' && inputs.pr_sha != '') ||
-      github.event_name == 'workflow_dispatch' ||
+      (github.repository == 'qualcomm/eld' &&
+       ((github.event_name == 'workflow_run' &&
+         github.event.workflow_run.conclusion == 'success') ||
+        github.event_name == 'workflow_dispatch')) ||
       github.event_name == 'workflow_call'
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-    outputs:
-      run_id: ${{ steps.find.outputs.run_id }}
-      toolset_run_id: ${{ steps.find.outputs.toolset_run_id }}
-      toolset_artifact: ${{ steps.find.outputs.toolset_artifact }}
-      toolset_tarball: ${{ steps.find.outputs.toolset_tarball }}
-      artifact_workflow_id: ${{ steps.find.outputs.artifact_workflow_id }}
-      artifact_pull_request_number: ${{ steps.find.outputs.artifact_pull_request_number }}
-      pr_number: ${{ steps.find.outputs.pr_number }}
-    steps:
-      - name: Resolve toolset
-        id: find
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
-        env:
-          PR_NUMBER: ${{ inputs.pr_number }}
-          PR_SHA: ${{ inputs.pr_sha }}
-          TOOLSET_RUN_ID: ${{ inputs.toolset_run_id }}
-          TOOLSET_ARTIFACT: ${{ inputs.toolset_artifact }}
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const prNumber = (process.env.PR_NUMBER || '').trim();
-            const prSha = (process.env.PR_SHA || '').trim();
-
-            if (prSha) {
-              if (!process.env.TOOLSET_RUN_ID || !process.env.TOOLSET_ARTIFACT) {
-                core.setFailed('PR Zephyr runs require a toolset run ID and artifact name.');
-                return;
-              }
-              core.setOutput('run_id', process.env.TOOLSET_RUN_ID);
-              core.setOutput('toolset_run_id', process.env.TOOLSET_RUN_ID);
-              core.setOutput('toolset_artifact', process.env.TOOLSET_ARTIFACT);
-              core.setOutput('toolset_tarball', 'install-pr-toolset.tar.xz');
-              core.setOutput('artifact_workflow_id', 'zephyr.yml');
-              core.setOutput('artifact_pull_request_number', prNumber);
-              core.setOutput('pr_number', prNumber);
-              return;
-            }
-
-            const workflowRun = context.payload.workflow_run;
-            let runId = workflowRun?.id;
-            if (!runId) {
-              const response = await github.rest.actions.listWorkflowRuns({
-                owner,
-                repo,
-                workflow_id: 'nightly-test.yml',
-                status: 'success',
-                per_page: 1,
-              });
-              const runs = response.data.workflow_runs || [];
-              if (!runs.length) {
-                core.setFailed('No successful nightly-test.yml run found.');
-                return;
-              }
-              runId = runs[0].id;
-            }
-            core.setOutput('run_id', String(runId));
-            core.setOutput('toolset_run_id', String(runId));
-            core.setOutput('toolset_artifact', 'install-nightly-toolchain.tar.xz');
-            core.setOutput('toolset_tarball', 'install-nightly-toolchain.tar.xz');
-            core.setOutput('artifact_workflow_id', 'zephyr.yml');
-            core.setOutput('artifact_pull_request_number', '');
-            core.setOutput('pr_number', '');
-
-  zephyr-build-and-test:
-    needs: resolve
-    if: needs.resolve.outputs.run_id != ''
     permissions:
       contents: write
       actions: write
@@ -176,7 +109,7 @@ jobs:
         run: ccache -s -v || ccache -s
 
       - name: Record pre-build entry
-        if: needs.resolve.outputs.artifact_pull_request_number == ''
+        if: inputs.pr_sha == ''
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -189,12 +122,16 @@ jobs:
           arch-name: ${{ matrix.target.arch }}
           branch-name: "main"
 
-      - name: Fetch ELD toolset
+      - name: Fetch nightly toolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+
+      - name: Overlay PR ELD toolset
+        if: inputs.pr_sha != ''
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchEldToolset
         with:
-          run-id: ${{ needs.resolve.outputs.toolset_run_id }}
-          artifact-name: ${{ needs.resolve.outputs.toolset_artifact }}
-          tarball: ${{ needs.resolve.outputs.toolset_tarball }}
+          run-id: ${{ inputs.toolset_run_id }}
+          artifact-name: ${{ inputs.toolset_artifact }}
+          tarball: ${{ inputs.toolset_tarball }}
 
       - name: Install cpullvm toolchain and splice ELD
         if: (matrix.target.toolchain || 'cpullvm') == 'cpullvm'
@@ -312,7 +249,7 @@ jobs:
         shell: bash
         env:
           BOARD: ${{ matrix.target.board }}
-          TEST_SCOPE: ${{ needs.resolve.outputs.artifact_pull_request_number != '' && 'tests/kernel' || 'tests' }}
+          TEST_SCOPE: ${{ inputs.pr_sha != '' && 'tests/kernel' || 'tests' }}
           EXTRA_ARGS: ${{ matrix.target.extra_args }}
         run: |
           cd zephyr
@@ -351,14 +288,14 @@ jobs:
       - name: Prune ccache before save
         if: |
           success() &&
-          needs.resolve.outputs.artifact_pull_request_number == '' &&
+          inputs.pr_sha == '' &&
           matrix.target.arch == 'riscv64'
         run: ccache --cleanup
 
       - name: Save ccache
         if: |
           success() &&
-          needs.resolve.outputs.artifact_pull_request_number == '' &&
+          inputs.pr_sha == '' &&
           matrix.target.arch == 'riscv64'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
@@ -366,7 +303,7 @@ jobs:
           key: ccache-${{ matrix.target.arch }}-${{ matrix.target.toolchain || 'cpullvm' }}-${{ github.run_id }}
 
       - name: Update build entry
-        if: success() && needs.resolve.outputs.artifact_pull_request_number == ''
+        if: success() && inputs.pr_sha == ''
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -380,10 +317,8 @@ jobs:
       - name: Delete older Zephyr results
         if: success()
         continue-on-error: true
-        uses: ./.github/workflows/DeleteOldArtifacts
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts
         with:
           artifact-names: zephyr-twister-results-${{ matrix.target.board }}
           workflow-id: zephyr.yml
-          pull-request-number: ${{ needs.resolve.outputs.artifact_pull_request_number }}
-          arch-name: ${{ matrix.target.arch }}
-          branch-name: "main"
+          pull-request-number: ${{ inputs.pr_number }}

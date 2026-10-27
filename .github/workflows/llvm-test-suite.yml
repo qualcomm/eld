@@ -2,8 +2,9 @@ name: LLVM test suite
 run-name: "LLVM test suite ${{ inputs.pr_number && format('PR #{0} @{1}', inputs.pr_number, inputs.pr_sha) || 'nightly' }}"
 
 on:
-  schedule:
-    - cron: '0 11 * * *' # 5:00 AM CST
+  workflow_run:
+    workflows: [Nightly check]
+    types: [completed]
   workflow_call:
     inputs:
       pr_number:
@@ -16,50 +17,30 @@ on:
         required: false
         type: string
         default: ""
-      build_run_id:
-        description: "CI workflow run containing the PR ELD toolset artifact"
+      toolset_run_id:
+        description: "Workflow run containing the PR ELD toolset artifact"
         required: false
         type: string
         default: ""
-      artifact_name:
+      toolset_artifact:
         description: "PR ELD toolset artifact name"
         required: false
         type: string
         default: ""
+      toolset_tarball:
+        description: "Tar filename inside the PR toolset artifact"
+        required: false
+        type: string
+        default: "install-pr-toolset.tar.xz"
   workflow_dispatch:
-    inputs:
-      pr_number:
-        description: "Pull request number"
-        required: false
-        type: string
-        default: ""
-      pr_sha:
-        description: "Exact PR head SHA"
-        required: false
-        type: string
-        default: ""
-      build_run_id:
-        description: "Build workflow run containing the toolset artifact"
-        required: false
-        type: string
-        default: ""
-      artifact_name:
-        description: "PR toolset artifact name"
-        required: false
-        type: string
-        default: ""
-
-permissions:
-  contents: write
-  actions: read
 
 jobs:
-  test:
+  llvm-test-suite:
     if: |
       (github.repository == 'qualcomm/eld' &&
-       (github.event_name == 'schedule' ||
-        github.event_name == 'workflow_dispatch' ||
-        inputs.pr_sha != '')) ||
+       ((github.event_name == 'workflow_run' &&
+         github.event.workflow_run.conclusion == 'success') ||
+        github.event_name == 'workflow_dispatch')) ||
       github.event_name == 'workflow_call'
     runs-on: ubuntu-latest
     concurrency:
@@ -67,13 +48,14 @@ jobs:
       cancel-in-progress: true
     permissions:
       contents: write
-      actions: read
+      actions: write
     env:
       ELD_SOURCE_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld
     steps:
       - name: Checkout eld workflow sources
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
         with:
+          ref: ${{ github.ref }}
           path: llvm-project/llvm/tools/eld
 
       - name: Configure workflow environment variables
@@ -81,7 +63,7 @@ jobs:
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
 
       - name: Record pre-build entry
-        if: github.event_name == 'schedule'
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -117,9 +99,9 @@ jobs:
         if: inputs.pr_sha != ''
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchEldToolset
         with:
-          run-id: ${{ inputs.build_run_id }}
-          artifact-name: ${{ inputs.artifact_name }}
-          tarball: install-pr-toolset.tar.xz
+          run-id: ${{ inputs.toolset_run_id }}
+          artifact-name: ${{ inputs.toolset_artifact }}
+          tarball: ${{ inputs.toolset_tarball }}
 
       - name: Restore nightly compiler runtimes
         if: inputs.pr_sha != ''
@@ -206,7 +188,7 @@ jobs:
           retention-days: 7
 
       - name: Update build entry
-        if: github.event_name == 'schedule'
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -222,6 +204,7 @@ jobs:
       - name: Delete older LLVM test-suite results
         if: success() && inputs.pr_sha == ''
         continue-on-error: true
-        uses: ./.github/workflows/DeleteOldArtifacts
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts
         with:
           artifact-names: llvm-test-suite-results
+          workflow-id: llvm-test-suite.yml

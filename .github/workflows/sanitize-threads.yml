@@ -2,9 +2,10 @@ name: Thread sanitizer
 # owner: Steven6798
 
 on:
-  schedule:
-    - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
-  workflow_dispatch:     # Allows manual triggering
+  workflow_run:
+    workflows: [Nightly check]
+    types: [completed]
+  workflow_dispatch:
   workflow_call:
     inputs:
       pr_number:
@@ -24,7 +25,12 @@ permissions:
 jobs:
   tsan:
     runs-on: ubuntu-latest
-    if: github.repository == 'qualcomm/eld'
+    if: |
+      (github.repository == 'qualcomm/eld' &&
+       ((github.event_name == 'workflow_run' &&
+         github.event.workflow_run.conclusion == 'success') ||
+        github.event_name == 'workflow_dispatch')) ||
+      github.event_name == 'workflow_call'
 
     steps:
       - name: Set up Clang 22
@@ -81,7 +87,7 @@ jobs:
             thread-sanitizer-ccache-${{ runner.os }}-
 
       - name: Record pre-build entry
-        if: github.event_name == 'schedule'
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -118,7 +124,7 @@ jobs:
       - name: Build Project
         run: |
           cd obj
-          ninja
+          ninja ld.eld
 
       - name: Prune ccache before save
         if: always() && steps.install_dependencies.outcome == 'success'
@@ -149,7 +155,7 @@ jobs:
           ninja check-eld
 
       - name: Update build entry
-        if: github.event_name == 'schedule'
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true

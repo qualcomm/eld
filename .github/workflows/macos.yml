@@ -21,16 +21,12 @@ on:
         type: string
         default: ""
 
-permissions:
-  contents: write
-
 jobs:
   build-macos:
     if: |
       (github.repository == 'qualcomm/eld' &&
        (github.event_name == 'schedule' ||
-        github.event_name == 'workflow_dispatch' ||
-        inputs.pr_sha != '')) ||
+        github.event_name == 'workflow_dispatch')) ||
       github.event_name == 'workflow_call'
     name: macOS
     runs-on: macos-latest

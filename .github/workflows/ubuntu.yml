@@ -12,6 +12,10 @@ on:
         description: "Optional request ID used to correlate an external workflow dispatch"
         required: true
         type: string
+      check_name:
+        description: "Check that owns this Ubuntu build"
+        required: true
+        type: string
       pr_sha:
         description: "PR head SHA used to identify reusable toolset artifacts"
         required: true
@@ -30,13 +34,14 @@ on:
         value: ${{ jobs.build.outputs.artifact_run_id }}
 permissions: {}
 jobs:
-  build:
+  ubuntu:
+    name: Build and test ELD on Ubuntu
     outputs:
       artifact_name: ${{ format('pr-eld-toolset-{0}', inputs.pr_sha) }}
       artifact_run_id: ${{ github.run_id }}
     runs-on: self-hosted
     concurrency:
-      group: ${{ github.workflow }}-${{ inputs.pr_number }}
+      group: ${{ github.workflow }}-${{ inputs.pr_number }}-${{ inputs.check_name }}
       cancel-in-progress: true
     permissions:
       actions: write

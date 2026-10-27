@@ -17,6 +17,7 @@ on:
 
 jobs:
   changes:
+    name: Check for non-documentation changes
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
@@ -45,6 +46,7 @@ jobs:
             core.setOutput('skip_build', String(onlyDocs));
 
   build:
+    name: Ubuntu CI
     needs: changes
     if: needs.changes.outputs.skip_build == 'false'
     uses: ./.github/workflows/ubuntu.yml
@@ -52,6 +54,7 @@ jobs:
       pr_number: ${{ github.event.pull_request.number }}
       pr_sha: ${{ github.event.pull_request.head.sha }}
       request_id: automatic
+      check_name: ci
       skip_tests: false
     permissions:
       actions: write

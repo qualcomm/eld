@@ -22,11 +22,11 @@ on:
           - check-llvm-test-suite
           - check-linux-kernel
           - check-zephyr
-          - check-thread-sanitizer
+          - check-tsan
           - check-asan-ubsan
           - check-windows
           - check-macos
-          - check-memory-sanitizer
+          - check-msan
           - check-all-workflows
       request_id:
         description: "Optional request ID used to correlate an external workflow dispatch"
@@ -36,7 +36,7 @@ on:
 
 concurrency:
   group: pr-comment-router-${{ inputs.pr_number || github.event.issue.number }}-${{ inputs.command || github.event.comment.body || 'manual' }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -79,11 +79,11 @@ jobs:
               'check-llvm-test-suite',
               'check-linux-kernel',
               'check-zephyr',
-              'check-thread-sanitizer',
+              'check-tsan',
               'check-asan-ubsan',
               'check-windows',
               'check-macos',
-              'check-memory-sanitizer',
+              'check-msan',
               'check-all-workflows',
             ]);
             if (!supported.has(command) ||
@@ -119,19 +119,19 @@ jobs:
               ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
               ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
               ['check-zephyr', { name: 'Zephyr', context: 'PR Zephyr', usesToolset: true }],
-              ['check-thread-sanitizer', { name: 'Thread sanitizer', context: 'PR Thread Sanitizer', usesToolset: false }],
+              ['check-tsan', { name: 'Thread sanitizer', context: 'PR Thread Sanitizer', usesToolset: false }],
               ['check-asan-ubsan', { name: 'Address and undefined behavior sanitizer', context: 'PR Address and Undefined Behavior Sanitizer', usesToolset: false }],
               ['check-windows', { name: 'Windows CI', context: 'PR Windows CI', usesToolset: false }],
               ['check-macos', { name: 'macOS CI', context: 'PR macOS CI', usesToolset: false }],
-              ['check-memory-sanitizer', { name: 'Memory with origins sanitizer', context: 'PR Memory with Origins Sanitizer', usesToolset: false }],
+              ['check-msan', { name: 'Memory with origins sanitizer', context: 'PR Memory with Origins Sanitizer', usesToolset: false }],
             ]);
             const selectedChecks = command === 'check-all-workflows'
               ? [...checkDefinitions.values()]
               : [checkDefinitions.get(command)];
+            const requiresToolset = command === 'check-all-workflows' ||
+              checkDefinitions.get(command).usesToolset;
             let reusableArtifact;
-            if (['check-thread-sanitizer', 'check-asan-ubsan', 'check-memory-sanitizer', 'check-windows', 'check-macos'].includes(command)) {
-              core.info('This check builds the PR source directly; no standard toolset artifact is required.');
-            } else {
+            if (requiresToolset) {
               const artifacts = await github.paginate(
                 github.rest.actions.listArtifactsForRepo,
                 {
@@ -158,9 +158,11 @@ jobs:
                 );
                 break;
               }
+            } else {
+              core.info('This check builds the PR source directly; no standard toolset artifact is required.');
             }
             if (!reusableArtifact) {
-              core.info(['check-thread-sanitizer', 'check-asan-ubsan', 'check-memory-sanitizer', 'check-windows', 'check-macos'].includes(command)
+              core.info(!requiresToolset
                 ? 'No standard toolset artifact is required for this check.'
                 : `No reusable artifact found for ${artifactName}; the build job will run.`);
             }
@@ -214,17 +216,18 @@ jobs:
     needs: validate
     if: |
       needs.validate.outputs.pr_sha != '' &&
-      needs.validate.outputs.command != 'check-thread-sanitizer' &&
+      needs.validate.outputs.command != 'check-tsan' &&
       needs.validate.outputs.command != 'check-asan-ubsan' &&
       needs.validate.outputs.command != 'check-windows' &&
       needs.validate.outputs.command != 'check-macos' &&
-      needs.validate.outputs.command != 'check-memory-sanitizer' &&
+      needs.validate.outputs.command != 'check-msan' &&
       needs.validate.outputs.artifact_reused != 'true'
     uses: ./.github/workflows/ubuntu.yml
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
       request_id: ${{ needs.validate.outputs.request_id }}
+      check_name: ${{ needs.validate.outputs.command }}
       skip_tests: true
     permissions:
       contents: write
@@ -235,7 +238,7 @@ jobs:
   llvm_test:
     needs: [validate, build]
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
       (needs.validate.outputs.command == 'check-llvm-test-suite' ||
        needs.validate.outputs.command == 'check-all-workflows') &&
@@ -244,16 +247,17 @@ jobs:
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
-      artifact_name: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
+      toolset_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
+      toolset_artifact: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
+      toolset_tarball: install-pr-toolset.tar.xz
     permissions:
       contents: write
-      actions: read
+      actions: write
 
   linux_test:
     needs: [validate, build]
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
       (needs.validate.outputs.command == 'check-linux-kernel' ||
        needs.validate.outputs.command == 'check-all-workflows') &&
@@ -272,7 +276,7 @@ jobs:
   zephyr_test:
     needs: [validate, build]
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
       (needs.validate.outputs.command == 'check-zephyr' ||
        needs.validate.outputs.command == 'check-all-workflows') &&
@@ -283,6 +287,7 @@ jobs:
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
       toolset_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
       toolset_artifact: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
+      toolset_tarball: install-pr-toolset.tar.xz
     permissions:
       contents: write
       actions: write
@@ -290,9 +295,9 @@ jobs:
   thread_sanitizer_test:
     needs: validate
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-thread-sanitizer' ||
+      (needs.validate.outputs.command == 'check-tsan' ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/sanitize-threads.yml
     with:
@@ -305,7 +310,7 @@ jobs:
   asan_ubsan_test:
     needs: validate
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
       (needs.validate.outputs.command == 'check-asan-ubsan' ||
        needs.validate.outputs.command == 'check-all-workflows')
@@ -320,11 +325,11 @@ jobs:
   windows_test:
     needs: validate
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
       (needs.validate.outputs.command == 'check-windows' ||
        needs.validate.outputs.command == 'check-all-workflows')
-    uses: ./.github/workflows/ci-win.yml
+    uses: ./.github/workflows/windows.yml
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
@@ -334,7 +339,7 @@ jobs:
   macos_test:
     needs: validate
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
       (needs.validate.outputs.command == 'check-macos' ||
        needs.validate.outputs.command == 'check-all-workflows')
@@ -348,9 +353,9 @@ jobs:
   memory_sanitizer_test:
     needs: validate
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-memory-sanitizer' ||
+      (needs.validate.outputs.command == 'check-msan' ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/sanitize-memory.yml
     with:
@@ -363,7 +368,7 @@ jobs:
   report_llvm:
     needs: [validate, build, llvm_test]
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
       (needs.validate.outputs.command == 'check-llvm-test-suite' ||
        needs.validate.outputs.command == 'check-all-workflows')
@@ -385,7 +390,7 @@ jobs:
   report_linux:
     needs: [validate, build, linux_test]
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
       (needs.validate.outputs.command == 'check-linux-kernel' ||
        needs.validate.outputs.command == 'check-all-workflows')
@@ -407,7 +412,7 @@ jobs:
   report_zephyr:
     needs: [validate, build, zephyr_test]
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
       (needs.validate.outputs.command == 'check-zephyr' ||
        needs.validate.outputs.command == 'check-all-workflows')
@@ -427,11 +432,11 @@ jobs:
       statuses: write
 
   report_thread_sanitizer:
-    needs: [validate, build, thread_sanitizer_test]
+    needs: [validate, thread_sanitizer_test]
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-thread-sanitizer' ||
+      (needs.validate.outputs.command == 'check-tsan' ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/report-pr-check.yml
     with:
@@ -439,7 +444,7 @@ jobs:
       status_context: PR Thread Sanitizer
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_result: ${{ needs.build.result }}
+      build_result: skipped
       test_result: ${{ needs.thread_sanitizer_test.result }}
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
@@ -449,9 +454,9 @@ jobs:
       statuses: write
 
   report_asan_ubsan:
-    needs: [validate, build, asan_ubsan_test]
+    needs: [validate, asan_ubsan_test]
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
       (needs.validate.outputs.command == 'check-asan-ubsan' ||
        needs.validate.outputs.command == 'check-all-workflows')
@@ -461,7 +466,7 @@ jobs:
       status_context: PR Address and Undefined Behavior Sanitizer
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_result: ${{ needs.build.result }}
+      build_result: skipped
       test_result: ${{ needs.asan_ubsan_test.result }}
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
@@ -473,7 +478,7 @@ jobs:
   report_windows:
     needs: [validate, windows_test]
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
       (needs.validate.outputs.command == 'check-windows' ||
        needs.validate.outputs.command == 'check-all-workflows')
@@ -495,7 +500,7 @@ jobs:
   report_macos:
     needs: [validate, macos_test]
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
       (needs.validate.outputs.command == 'check-macos' ||
        needs.validate.outputs.command == 'check-all-workflows')
@@ -517,9 +522,9 @@ jobs:
   report_memory_sanitizer:
     needs: [validate, memory_sanitizer_test]
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-memory-sanitizer' ||
+      (needs.validate.outputs.command == 'check-msan' ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/report-pr-check.yml
     with:
@@ -539,7 +544,7 @@ jobs:
   report_all:
     needs: [validate, build, llvm_test, linux_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, memory_sanitizer_test, windows_test, macos_test]
     if: |
-      always() &&
+      !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
       needs.validate.outputs.command == 'check-all-workflows'
     runs-on: ubuntu-latest

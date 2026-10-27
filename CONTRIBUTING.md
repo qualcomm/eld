@@ -64,9 +64,9 @@ following checks by commenting the command on the pull request:
 | `check-llvm-test-suite` | LLVM test suite |
 | `check-linux-kernel` | Linux kernel boot with ELD |
 | `check-zephyr` | Zephyr with ELD |
-| `check-thread-sanitizer` | Thread sanitizer |
+| `check-tsan` | Thread sanitizer |
 | `check-asan-ubsan` | Address and undefined behavior sanitizers |
-| `check-memory-sanitizer` | Memory with origins sanitizer |
+| `check-msan` | Memory with origins sanitizer |
 | `check-windows` | Windows CI |
 | `check-macos` | macOS CI |
 | `check-all-workflows` | All available checks |
