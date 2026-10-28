@@ -40,9 +40,9 @@ public:
 
   llvm::ArrayRef<uint8_t> getData() const;
 
-  bool createCIEAndFDEFragments();
+  bool createCIEAndFDEFragments(bool DeduplicateCIEs);
 
-  EhFrameCIE *addCie(EhFramePiece &P);
+  EhFrameCIE *addCie(EhFramePiece &P, bool DeduplicateCIEs);
 
   bool isFdeLive(EhFramePiece &P);
 

@@ -1,0 +1,19 @@
+REQUIRES: run_test, aarch64
+#---EhFrameMarkerSymbols.test---------------------- Executable------------------#
+#BEGIN_COMMENT
+# A static AArch64 C link includes crtbeginT.o and crtend.o. frame_dummy in
+# crtbeginT.o has a relocation to .eh_frame + 0. After CIE deduplication, it
+# must resolve to a valid output CIE. __FRAME_END__ must resolve to the final
+# terminator.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc -o %t.o %p/Inputs/HelloWorld.c -c -fno-pic
+RUN: %run_cc -o %t.out %t.o -static
+RUN: %readelf -Ss %t.out | %filecheck %s --check-prefix=SYMS
+RUN: %run %t.out | %filecheck %s --check-prefix=OUTPUT
+#END_TEST
+
+SYMS: .eh_frame PROGBITS [[#%x,EH_FRAME:]] {{[0-9a-f]+}} [[#%x,EH_FRAME_SIZE:]]
+SYMS: [[#EH_FRAME + EH_FRAME_SIZE - 4]] {{.*}} __FRAME_END__
+
+OUTPUT: Hello World

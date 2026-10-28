@@ -1037,8 +1037,11 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
       if (Sect->getKind() == LinkerSectionKind::EhFrame) {
         if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)->splitEhFrameSection())
           return false;
+        // A partial link still creates a new .eh_frame section. Parse, lay out,
+        // and rewrite its CIE/FDE records as usual, but leave CIE
+        // deduplication to the later final link.
         if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)
-                 ->createCIEAndFDEFragments())
+                 ->createCIEAndFDEFragments(!IsPartialLink))
           return false;
         llvm::dyn_cast<eld::EhFrameSection>(Sect)->finishAddingFragments(
             *ThisModule);
