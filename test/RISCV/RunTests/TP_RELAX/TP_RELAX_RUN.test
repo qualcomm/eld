@@ -1,0 +1,27 @@
+REQUIRES: run_test
+#----------TP_RELAX_RUN.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# Run tests for RISC-V thread-pointer relaxations. Verifies that the
+# correct runtime behavior is produced for simple executables.
+#END_COMMENT
+#START_TEST
+
+RUN: %run_cc -ftls-model=local-exec -c %p/Inputs/tp_relax_run.c -o %t.o
+RUN: %run_cc -static %t.o -o %t.out
+RUN: %run %t.out | %filecheck %s
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.out | %filecheck %s --check-prefix=DUMP
+
+CHECK: a: 52
+CHECK: b: 41
+CHECK: a + b: 93
+CHECK: b2: 93
+
+DUMP-LABEL: <get_a>:
+DUMP: lw a0, 0(tp)
+DUMP-LABEL: <get_b>:
+DUMP: lw a0, 4(tp)
+DUMP-LABEL: <get_a_plus_b>:
+DUMP: lw a0, 0(tp)
+DUMP-NEXT: lw a1, 4(tp)
+DUMP-LABEL: <set_b>:
+DUMP: sw a0, 4(tp)
