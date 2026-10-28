@@ -168,17 +168,17 @@ void TextLayoutPrinter::printStats(LayoutInfo::Stats &L,
                  << "\n";
   if (ThisLayoutInfo->showLinkStatsDetails())
     outputStream() << "# Detailed link stats enabled\n";
-  printStat("ObjectFiles", L.NumElfObjectFiles);
-  printStat("ExecutableFiles", L.NumElfExecutableFiles);
-  printStat("LinkerScripts", L.NumLinkerScripts);
-  printStat("SharedObjects", L.NumSharedObjectFiles);
-  printStat("SymDefFiles", L.NumSymDefFiles);
+  printStat("ObjectFiles", L.InputFiles.NumElfObjectFiles);
+  printStat("ExecutableFiles", L.InputFiles.NumElfExecutableFiles);
+  printStat("LinkerScripts", L.InputFiles.NumLinkerScripts);
+  printStat("SharedObjects", L.InputFiles.NumSharedObjectFiles);
+  printStat("SymDefFiles", L.InputFiles.NumSymDefFiles);
   printStat("ThreadCount", L.NumThreads);
-  printStat("ArchiveFiles", L.NumArchiveFiles);
-  printStat("GroupTraversals", L.NumGroupTraversal);
-  printStat("BitcodeFiles", L.NumBitCodeFiles);
+  printStat("ArchiveFiles", L.InputFiles.NumArchiveFiles);
+  printStat("GroupTraversals", L.InputFiles.NumGroupTraversal);
+  printStat("BitcodeFiles", L.InputFiles.NumBitCodeFiles);
   printStat("NumInputSections", ObjLinker.getAllInputSections().size());
-  printStat("ZeroSizedSections", L.NumZeroSizedSection);
+  printStat("ZeroSizedSections", L.Sections.NumZeroSizedSection);
   printStat("SectionsGarbageCollected", L.NumSectionsGarbageCollected);
   printStat("ZeroSizedSectionsGarbageCollected",
             L.NumZeroSizedSectionsGarbageCollected);

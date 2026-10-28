@@ -97,7 +97,7 @@ public:
     EndLib,
   };
 
-  struct Stats {
+  struct InputFileStats {
     uint64_t NumElfObjectFiles = 0;
     uint64_t NumElfExecutableFiles = 0;
     uint64_t NumLinkerScripts = 0;
@@ -106,8 +106,25 @@ public:
     uint64_t NumArchiveFiles = 0;
     uint64_t NumGroupTraversal = 0;
     uint64_t NumBitCodeFiles = 0;
-    uint64_t NumSectionsGarbageCollected = 0;
+    uint32_t NumBinaryFiles = 0;
+
+    bool hasStats() const {
+      return NumElfObjectFiles || NumElfExecutableFiles || NumLinkerScripts ||
+             NumSharedObjectFiles || NumSymDefFiles || NumArchiveFiles ||
+             NumGroupTraversal || NumBitCodeFiles || NumBinaryFiles;
+    }
+  };
+
+  struct InputSectionStats {
     uint64_t NumZeroSizedSection = 0;
+    bool hasStats() const { return NumZeroSizedSection != 0; }
+  };
+
+  struct Stats {
+    InputFileStats InputFiles;
+    InputSectionStats Sections;
+
+    uint64_t NumSectionsGarbageCollected = 0;
     uint64_t NumZeroSizedSectionsGarbageCollected = 0;
     uint64_t NumLinkerScriptRules = 0;
     uint64_t NumOutputSections = 0;
@@ -118,19 +135,15 @@ public:
     uint64_t NumNoRuleMatch = 0;
     uint32_t LinkTime = 0;
     uint64_t NumRetainedSections = 0;
-    uint32_t NumBinaryFiles = 0;
     std::optional<uint32_t> OutputFileSize;
 
     bool hasStats() const {
-      return (NumElfObjectFiles + NumElfExecutableFiles + NumLinkerScripts +
-                  NumSharedObjectFiles + NumSymDefFiles + NumArchiveFiles +
-                  NumGroupTraversal + NumBitCodeFiles +
-                  NumSectionsGarbageCollected + NumZeroSizedSection +
-                  NumZeroSizedSectionsGarbageCollected + NumLinkerScriptRules +
-                  NumOutputSections + NumPlugins + NumOrphans + NumTrampolines +
-                  NumNoRuleMatch + LinkTime + NumRetainedSections +
-                  NumBinaryFiles >
-              0);
+      return InputFiles.hasStats() || Sections.hasStats() ||
+             NumSectionsGarbageCollected ||
+             NumZeroSizedSectionsGarbageCollected || NumLinkerScriptRules ||
+             NumOutputSections || NumPlugins || NumThreads || NumOrphans ||
+             NumTrampolines || NumNoRuleMatch || LinkTime ||
+             NumRetainedSections || OutputFileSize.has_value();
     }
   };
 
