@@ -1,0 +1,43 @@
+# REQUIRES: hexagon
+RUN: %llvm-mc -triple=hexagon -filetype=obj %p/Inputs/absolute.s -o %t.abs.o
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=0 %p/Inputs/pairs.s -o %t.0.o
+RUN: %not %link --shared %t.0.o %t.abs.o -o %t.0.so 2>&1 | %filecheck %s --check-prefix=HIGH
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=1 %p/Inputs/pairs.s -o %t.1.o
+RUN: %not %link --shared %t.1.o %t.abs.o -o %t.1.so 2>&1 | %filecheck %s --check-prefix=LOW
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=2 %p/Inputs/pairs.s -o %t.2.o
+RUN: %not %link --shared %t.2.o %t.abs.o -o %t.2.so 2>&1 | %filecheck %s --check-prefix=LOW
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=3 %p/Inputs/pairs.s -o %t.3.o
+RUN: %not %link --shared %t.3.o %t.abs.o -o %t.3.so 2>&1 | %filecheck %s --check-prefix=ADDEND
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=4 %p/Inputs/pairs.s -o %t.4.o
+RUN: %not %link --shared %t.4.o %t.abs.o -o %t.4.so 2>&1 | %filecheck %s --check-prefix=LOW
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=5 %p/Inputs/pairs.s -o %t.5.o
+RUN: %not %link --shared %t.5.o %t.abs.o -o %t.5.so 2>&1 | %filecheck %s --check-prefix=OPCODE
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=6 %p/Inputs/pairs.s -o %t.6.o
+RUN: %not %link --shared %t.6.o %t.abs.o -o %t.6.so 2>&1 | %filecheck %s --check-prefix=OPCODE
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=7 %p/Inputs/pairs.s -o %t.7.o
+RUN: %not %link --shared %t.7.o %t.abs.o -o %t.7.so 2>&1 | %filecheck %s --check-prefix=PACKET
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=8 %p/Inputs/pairs.s -o %t.8.o
+RUN: %not %link --shared %t.8.o %t.abs.o -o %t.8.so 2>&1 | %filecheck %s --check-prefix=PACKET
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=11 %p/Inputs/pairs.s -o %t.11.o
+RUN: %not %link --shared %t.11.o %t.abs.o -o %t.11.so 2>&1 | %filecheck %s --check-prefix=LOW
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=12 %p/Inputs/pairs.s -o %t.12.o
+RUN: %not %link --shared %t.12.o %t.abs.o -o %t.12.so 2>&1 | %filecheck %s --check-prefix=OPCODE
+
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=9 %p/Inputs/pairs.s -o %t.9.o
+RUN: %link --shared %t.9.o %t.abs.o -o %t.9.so
+RUN: %objdump -d %t.9.so | %filecheck %s --check-prefix=REVERSED
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=10 %p/Inputs/pairs.s -o %t.10.o
+RUN: %link --shared %t.10.o %t.abs.o -o %t.10.so
+RUN: %objdump -d %t.10.so | %filecheck %s --check-prefix=OFFSET
+
+# A malformed pair in a garbage-collected section must not be diagnosed.
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=CASE=13 %p/Inputs/pairs.s -o %t.13.o
+RUN: %link --shared --gc-sections %t.13.o %t.abs.o -o %t.13.so
+
+HIGH: cannot rewrite Hexagon PC-relative address of absolute symbol 'data' at offset 0x0: missing or conflicting immediate-extender relocation
+LOW: cannot rewrite Hexagon PC-relative address of absolute symbol '{{data|high}}' at offset 0x0: missing or conflicting add(pc) relocation
+ADDEND: inconsistent packet-adjusted addends
+OPCODE: expected an immediate extender followed by add(pc)
+PACKET: invalid or truncated instruction packet
+REVERSED: r0 = ##0x12345678
+OFFSET: r17 = ##0x12345678

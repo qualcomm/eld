@@ -1,0 +1,61 @@
+# REQUIRES: hexagon
+RUN: split-file %s %t
+RUN: %llvm-mc -triple=hexagon -filetype=obj %p/Inputs/dynamic.s -o %t.o
+
+# Aligning the output section itself is supported and does not move later data.
+RUN: %link --shared -T %t/aligned.t -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.o -o %t.aligned
+RUN: %python %p/Inputs/check_dynamic.py --readelf %readelf --image %t.aligned
+RUN: %link --shared -T %t/aligned.t %t.o -o %t.ordinary
+RUN: %python %p/Inputs/check_dynamic.py --readelf %readelf --image %t.aligned --layout-reference %t.ordinary
+
+# Neither ordinary pointers nor GOT slots can be statically stored in NOLOAD.
+RUN: %not %link --shared -T %t/noload-data.t -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.o -o %t.noload-data 2>&1 | %filecheck %s --check-prefix=NOBITS
+RUN: %not %link --shared -T %t/noload-got.t -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.o -o %t.noload-got 2>&1 | %filecheck %s --check-prefix=NOBITS
+
+# GOT SymbolValue emission cannot represent a nonzero dynamic addend.
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=ADDEND=5 %t/got-addend.s -o %t.addend.o
+RUN: %not %link --shared %t.addend.o -o %t.addend 2>&1 | %filecheck %s --check-prefix=ADDEND
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=ADDEND=-1 %t/got-addend.s -o %t.negative.o
+RUN: %not %link --shared %t.negative.o -o %t.negative 2>&1 | %filecheck %s --check-prefix=ADDEND
+
+# An IFUNC denotes a resolver, not an ordinary absolute address.
+RUN: %llvm-mc -triple=hexagon -filetype=obj %t/ifunc.s -o %t.ifunc.o
+RUN: %link --shared %t.ifunc.o -o %t.ifunc
+RUN: %objdump -d %t.ifunc | %filecheck %s --check-prefix=IFUNC
+
+NOBITS: Error: {{.*}}cannot materialize Hexagon absolute symbol 'data': pointer storage is in a NOBITS output section
+ADDEND: Error: {{.*}}cannot materialize Hexagon absolute symbol 'data': nonzero GOT relocation addend
+IFUNC: r0 = add(pc,
+
+#--- aligned.t
+SECTIONS {
+  .rela.dyn 0x10000 : { *(.rela.dyn) }
+}
+#--- noload-data.t
+SECTIONS {
+  .data (NOLOAD) : { *(.data*) }
+}
+#--- noload-got.t
+SECTIONS {
+  .got (NOLOAD) : { *(.got) }
+}
+#--- got-addend.s
+.text
+.globl entry
+entry:
+{ r0 = memw(r1 + ##data@GOT+ADDEND) }
+{ jumpr r31 }
+.globl data
+.protected data
+.type data,@object
+.set data, 0x12345678
+#--- ifunc.s
+.text
+.globl entry
+entry:
+{ r0 = add(pc, ##resolver@PCREL) }
+{ jumpr r31 }
+.globl resolver
+.hidden resolver
+.type resolver,@gnu_indirect_function
+.set resolver, 0x12345678

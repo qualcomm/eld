@@ -586,6 +586,24 @@ public:
   /// converged, and before the symbol table and relocations are finalized
   /// and emitted.
   ///
+  /// \note Relocations must reference S itself to observe the new value;
+  /// references to its original section symbol plus an offset are not
+  /// retargeted. For local Hexagon symbols, compile with
+  /// \c -Wa,--reloc-section-sym=none to preserve direct symbol references,
+  /// whether compiling PIC or non-PIC code. Section-splitting compiler flags
+  /// alone do not preserve this relocation identity.
+  ///
+  /// \note On Hexagon, any supported immediate-extender/add(pc) relocation
+  /// pair referencing a defined, non-preemptible absolute symbol is rewritten
+  /// in place to an absolute immediate assignment during final linking. This
+  /// is independent of PIC compilation and applies to executables, shared
+  /// libraries, and PIEs. It avoids runtime PC/load-bias dependence; already
+  /// absolute direct relocations retain normal handling. Obsolete runtime
+  /// fixups for non-preemptible absolute data pointers and regular GOT slots
+  /// are removed, so the loader does not add load bias to the assigned value.
+  /// This does not retarget section-symbol-plus-offset references or rewrite
+  /// arbitrary instructions, and does not change code size.
+  ///
   /// \note Reassigning a symbol's address this way does not change the
   /// address range that the linker's virtual-address overlap check
   /// associates with the symbol's original output section. If the new

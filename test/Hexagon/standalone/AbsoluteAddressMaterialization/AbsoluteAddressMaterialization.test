@@ -1,0 +1,62 @@
+# REQUIRES: hexagon
+# Any eligible address-materialization pair is rewritten, independent of
+# compiler PIC flags or final output type. The shared and static links below
+# use the same hand-written assembly inputs; shared/PIE rebasing must not add
+# load bias to the absolute value.
+RUN: %llvm-mc -triple=hexagon -filetype=obj %p/Inputs/references.s -o %t.refs.o
+RUN: %llvm-mc -triple=hexagon -filetype=obj %p/Inputs/absolute.s -o %t.abs.o
+RUN: %link --shared --threads --thread-count 4 -T %p/Inputs/layout.t %t.refs.o %t.abs.o -o %t.so
+RUN: %objdump -d %t.so | %filecheck %s --check-prefix=CODE
+RUN: %readelf -SW %t.refs.o | %filecheck %s --check-prefix=SIZE
+RUN: %readelf -SW %t.so | %filecheck %s --check-prefix=SIZE
+RUN: %readelf -r %t.so | %filecheck %s --check-prefix=DYNAMIC
+RUN: %link --shared --no-threads -T %p/Inputs/layout.t %t.refs.o %t.abs.o -o %t.serial.so
+RUN: cmp %t.so %t.serial.so
+
+# Retained relocation records are copied before application. They must reflect
+# the converted types and the actual symbol offset, without packet adjustment.
+RUN: %link --static --emit-relocs -e entry -T %p/Inputs/layout.t %t.refs.o %t.abs.o -o %t.elf
+RUN: %objdump -d %t.elf | %filecheck %s --check-prefix=CODE
+RUN: %readelf -r %t.elf | %filecheck %s --check-prefix=RELOCS
+
+# A partial link must preserve the PC-relative pairs for the final link.
+RUN: %link -r %t.refs.o -o %t.partial.o
+RUN: %readelf -r %t.partial.o | %filecheck %s --check-prefix=PARTIAL
+RUN: %link --shared -T %p/Inputs/layout.t %t.partial.o %t.abs.o -o %t.partial.so
+RUN: %objdump -d %t.partial.so | %filecheck %s --check-prefix=CODE
+
+CODE-LABEL: <entry>:
+CODE: r0 = ##0x12345678
+CODE-LABEL: <offset>:
+CODE: r17 = ##0x1234567d
+CODE-LABEL: <high_bit>:
+CODE: r31 = ##{{-?0x80000000}}
+CODE-LABEL: <all_bits>:
+CODE: r1 = ##{{0xffffffff|-0x1}}
+CODE-LABEL: <zero_value>:
+CODE: r2 = ##0x0
+CODE-LABEL: <ordinary>:
+CODE: r0 = add(pc,
+CODE-LABEL: <branch>:
+CODE: jump
+CODE-LABEL: <new_value>:
+CODE: r0 = ##0x12345678
+CODE-NEXT: memw(r1{{.*}}) = r0.new
+CODE-LABEL: <loop_packet>:
+CODE: r3 = ##0x12345678
+CODE: endloop0
+CODE-LABEL: <absolute_branch>:
+CODE: jump
+
+DYNAMIC: There are no relocations in this file.
+SIZE: .text PROGBITS {{[0-9a-f]+}} {{[0-9a-f]+}} 000078
+RELOCS: R_HEX_32_6_X {{.*}} data + 0
+RELOCS-NEXT: R_HEX_16_X {{.*}} data + 0
+RELOCS: R_HEX_32_6_X {{.*}} data + 5
+RELOCS-NEXT: R_HEX_16_X {{.*}} data + 5
+RELOCS: R_HEX_B32_PCREL_X {{.*}} .data + 0
+RELOCS-NEXT: R_HEX_6_PCREL_X {{.*}} .data + 4
+RELOCS: R_HEX_B32_PCREL_X
+RELOCS-NEXT: R_HEX_B22_PCREL_X
+PARTIAL: R_HEX_B32_PCREL_X {{.*}} data + 0
+PARTIAL-NEXT: R_HEX_6_PCREL_X {{.*}} data + 4

@@ -129,6 +129,65 @@ void HexagonLDBackend::doPostLayout() {
   GNULDBackend::doPostLayout();
 }
 
+bool HexagonLDBackend::isNonPreemptibleAbsolute(const ResolveInfo &Sym) const {
+  return Sym.isDefine() && !Sym.isDyn() && !Sym.isFile() &&
+         Sym.type() != ResolveInfo::ThreadLocal &&
+         Sym.type() != ResolveInfo::IndirectFunc &&
+         Sym.type() != ResolveInfo::Section && Sym.outSymbol() &&
+         !Sym.outSymbol()->hasFragRef() && !isSymbolPreemptible(Sym);
+}
+
+void HexagonLDBackend::finalizeBeforeWrite() {
+  ELFSection *RelDyn = config().isLinkPartial() ? nullptr : getRelaDyn();
+  if (RelDyn) {
+    const size_t OldCount = RelDyn->getRelocationCount();
+    RelDyn->removeRelocationsIf([&](Relocation *R) {
+      // Scanning precedes AfterLayout plugins. An absolute address must not
+      // acquire load bias through a previously reserved runtime relocation.
+      if (R->type() != llvm::ELF::R_HEX_RELATIVE &&
+          R->type() != llvm::ELF::R_HEX_GLOB_DAT &&
+          R->type() != llvm::ELF::R_HEX_32)
+        return false;
+      ResolveInfo *Sym = R->symInfo();
+      if (!Sym || !isNonPreemptibleAbsolute(*Sym) ||
+          (Sym->reserved() & Relocator::ReservePLT))
+        return false;
+
+      auto Fail = [&](const char *Reason) {
+        config().raise(Diag::error_hexagon_absolute_dynamic)
+            << R->getSourcePath(config().options()) << Sym->name() << Reason;
+        return false;
+      };
+      if (R->targetRef()->getOutputELFSection()->isNoBits())
+        return Fail("pointer storage is in a NOBITS output section");
+
+      // Ordinary pointer initializers have already been computed statically.
+      // GOT slots are emitted later and must now contain the symbol value,
+      // including slots originally reserved for GLOB_DAT rather than RELATIVE.
+      if (auto *G = llvm::dyn_cast<GOT>(R->targetRef()->frag())) {
+        if (G->getType() != GOT::Regular)
+          return false;
+        if (R->addend())
+          return Fail("nonzero GOT relocation addend");
+        G->setValueType(GOT::SymbolValue);
+      }
+      return true;
+    });
+    if (OldCount != RelDyn->getRelocationCount()) {
+      ELFSection *Output = RelDyn->getOutputELFSection();
+      const uint64_t NewSize =
+          RelDyn->getRelocationCount() * getRelaEntrySize();
+      RelDyn->setSize(NewSize);
+      if (Output && Output != RelDyn)
+        Output->setSize(NewSize);
+      // Keep all laid-out addresses and offsets. The unused reservation is
+      // trailing padding, not R_HEX_NONE records visited by the loader. Section
+      // headers and dynamic tags are emitted from the reduced table size.
+    }
+  }
+  GNULDBackend::finalizeBeforeWrite();
+}
+
 eld::Expected<void>
 HexagonLDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
   eld::Expected<void> expBasePostProcess =
@@ -148,6 +207,16 @@ void HexagonLDBackend::applyTargetDynamicEntries() {
   for (auto &it : getRelaDyn()->getRelocations()) {
     if ((*it).type() == llvm::ELF::R_HEX_RELATIVE)
       relaCount++;
+    else if (!config().options().hasCombReloc())
+      // Without sorting, only the leading relative records can be handled
+      // through DT_RELACOUNT; later ones use the loader's ordinary dispatch.
+      break;
+    else if (!hasSymInfo(it)) {
+      // Symbol-less TLS records may sort before RELATIVE. Let the loader
+      // dispatch all records normally rather than claim an unsafe prefix.
+      relaCount = 0;
+      break;
+    }
   }
   m_pDynamic->applyOne(llvm::ELF::DT_RELACOUNT, relaCount);
 }

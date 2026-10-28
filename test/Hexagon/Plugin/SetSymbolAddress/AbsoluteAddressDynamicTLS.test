@@ -1,0 +1,50 @@
+# REQUIRES: hexagon
+RUN: split-file %s %t
+RUN: %llvm-mc -triple=hexagon -filetype=obj %t/mixed.s -o %t.o
+# Local TLS records have no dynamic symbol index, just like RELATIVE records.
+# With .got before .data, generic sorting places DTPMOD before RELATIVE.
+# DT_RELACOUNT must not tell the loader to treat that TLS record as RELATIVE.
+RUN: %link --shared --threads --thread-count 4 -T %t/layout.t -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.o -o %t.shared
+RUN: %readelf -d -r %t.shared | %filecheck %s
+RUN: %link --shared --no-threads -T %t/layout.t -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.o -o %t.serial
+RUN: cmp %t.shared %t.serial
+RUN: %link --shared -z nocombreloc -T %t/layout.t -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.o -o %t.unsorted
+RUN: %readelf -d -r %t.unsorted | %filecheck %s
+
+CHECK: (RELACOUNT){{ +}}0
+CHECK: (RELASZ){{ +}}24 (bytes)
+CHECK: R_HEX_DTPMOD_32
+CHECK-NEXT: {{.*}}R_HEX_RELATIVE
+
+#--- layout.t
+SECTIONS {
+  .text 0x10000 : { *(.text*) }
+  .got : { *(.got) }
+  .data : { *(.data*) }
+}
+#--- mixed.s
+.text
+.globl entry
+entry:
+{ r0 = add(r1, ##tls@GDGOT) }
+{ r0 = memw(r1 + ##data@GOT) }
+{ jumpr r31 }
+.section .tdata,"awT",@progbits
+.local tls
+.type tls,@tls_object
+tls:
+.word 456
+.size tls, 4
+.data
+.globl data
+.protected data
+.type data,@object
+data:
+.word 123
+.size data, 4
+.local normal
+.type normal,@object
+normal:
+.word 456
+.size normal, 4
+.word normal

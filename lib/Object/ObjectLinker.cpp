@@ -2606,6 +2606,9 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
       // Skip internal relocation sections.
       if (Section->isRelocationSection())
         continue;
+      if (ThisModule->isLinkStateAfterLayout() &&
+          !getTargetBackend().getRelocator()->prepareRelocations(*Section))
+        return false;
       for (auto &Relocation : Section->getRelocations()) {
         Relocation->apply(*getTargetBackend().getRelocator());
       }
@@ -2625,6 +2628,12 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
         continue;
       if (Rs->isDiscard())
         continue;
+      ELFSection *ApplySection = Rs->getLink();
+      if (ApplySection->isIgnore() || ApplySection->isDiscard())
+        continue;
+      if (ThisModule->isLinkStateAfterLayout() &&
+          !getTargetBackend().getRelocator()->prepareRelocations(*ApplySection))
+        return false;
       auto ProcessReloc = [&](Relocation *Relocation) -> bool {
         // bypass the reloc if the symbol is in the discarded input section
         ResolveInfo *Info = Relocation->symInfo();

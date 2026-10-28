@@ -49,6 +49,12 @@ public:
   /// postLayout - Backend can do any needed modification after layout
   void doPostLayout() override;
 
+  void finalizeBeforeWrite() override;
+
+  /// Includes symbols made absolute by setSymbolAddress, which clears the
+  /// fragment reference without changing the original binding.
+  bool isNonPreemptibleAbsolute(const ResolveInfo &Sym) const;
+
   /// postProcessing - Backend can do any needed modification in the final stage
   eld::Expected<void> postProcessing(llvm::FileOutputBuffer &pOutput) override;
 
