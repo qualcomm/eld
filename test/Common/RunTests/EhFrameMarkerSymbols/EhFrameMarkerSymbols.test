@@ -1,0 +1,27 @@
+REQUIRES: run_test
+UNSUPPORTED: arm
+#---EhFrameMarkerSymbols.test---------------------- Executable------------------#
+#BEGIN_COMMENT
+# In a static link, __EH_FRAME_BEGIN__ must point to a retained CIE after
+# deduplication. In both static and dynamic links, __FRAME_END__ must point
+# to the final zero terminator. Run both executables to exercise CRT startup.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc -o %t.o %p/Inputs/HelloWorld.c -c -fno-pic -funwind-tables
+RUN: %run_cc -o %t.out %t.o -static
+RUN: %readelf -Ss %t.out > %t.dump
+RUN: %readelf --unwind %t.out >> %t.dump
+RUN: %filecheck %s --input-file=%t.dump --check-prefixes=SYMS,START
+RUN: %run %t.out | %filecheck %s --check-prefix=OUTPUT
+RUN: %run_cc -o %t.pic.o %p/Inputs/HelloWorld.c -c -fPIC -funwind-tables
+RUN: %run_cc -o %t.dyn.out %t.pic.o -Wl,-dy
+RUN: %readelf -Ss %t.dyn.out | %filecheck %s --check-prefix=SYMS
+RUN: %run %t.dyn.out | %filecheck %s --check-prefix=OUTPUT
+#END_TEST
+
+SYMS: .eh_frame {{(PROGBITS|X86_64_UNWIND)}} [[#%x,EH_FRAME:]] {{[0-9a-f]+}} [[#%x,EH_FRAME_SIZE:]]
+START-DAG: [[#%x,FRAME_BEGIN:]] {{.*}} __EH_FRAME_BEGIN__
+SYMS-DAG: [[#EH_FRAME + EH_FRAME_SIZE - 4]] {{.*}} __FRAME_END__
+START: [0x[[#FRAME_BEGIN]]] CIE length={{[1-9][0-9]*}}
+
+OUTPUT: Hello World

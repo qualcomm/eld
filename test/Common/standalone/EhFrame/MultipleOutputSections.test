@@ -1,0 +1,13 @@
+UNSUPPORTED: arm
+# Check that equivalent CIEs assigned to different output sections are rejected.
+RUN: %clang %clangopts -funwind-tables -c %p/Inputs/foo.c -o %t1.o
+RUN: %clang %clangopts -funwind-tables -c %p/Inputs/bar.c -o %t2.o
+RUN: %not %link %linkopts -e foo -T %p/Inputs/multiple-output-sections.t %t1.o %t2.o -o %t.out 2>&1 | %filecheck %s
+RUN: %not %link %linkopts --eh-frame-hdr -e foo -T %p/Inputs/multiple-output-sections.t %t1.o %t2.o -o %t.out 2>&1 | %filecheck %s
+RUN: %link %linkopts --noinhibit-exec -e foo -T %p/Inputs/multiple-output-sections.t %t1.o %t2.o -o %t.out 2>&1 | %filecheck %s
+RUN: %readelf -S %t.out > /dev/null
+
+# Partial links do not deduplicate CIEs and allow separate output sections.
+RUN: %link %linkopts -r -T %p/Inputs/multiple-output-sections.t %t1.o %t2.o -o %t.partial.o
+
+# CHECK: Error: Multiple output sections containing .eh_frame are not supported: '.eh_a' and '.eh_b'

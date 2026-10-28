@@ -1,0 +1,21 @@
+UNSUPPORTED: arm
+# An input end marker must resolve to the final output zero record whether or
+# not the optional .eh_frame_hdr section is requested.
+RUN: %clang %clangopts -funwind-tables -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/terminator.s -o %t.terminator.o
+RUN: %link %linkopts -e foo %t.foo.o %t.terminator.o -o %t.nohdr.out
+RUN: %readelf -Ss %t.nohdr.out > %t.nohdr.dump
+RUN: %dwarfdump --eh-frame %t.nohdr.out >> %t.nohdr.dump
+RUN: %filecheck %s --input-file=%t.nohdr.dump --check-prefix=NOHDR
+RUN: %link %linkopts --eh-frame-hdr -e foo %t.foo.o %t.terminator.o -o %t.hdr.out
+RUN: %readelf -Ss %t.hdr.out > %t.hdr.dump
+RUN: %dwarfdump --eh-frame %t.hdr.out >> %t.hdr.dump
+RUN: %filecheck %s --input-file=%t.hdr.dump --check-prefix=HDR
+
+# NOHDR: .eh_frame {{(PROGBITS|X86_64_UNWIND)}} [[#%x,EH_FRAME:]] {{[0-9a-f]+}} [[#%x,EH_FRAME_SIZE:]]
+# NOHDR-DAG: [[#EH_FRAME + EH_FRAME_SIZE - 4]] {{.*}} __FRAME_END__
+# NOHDR: ZERO terminator
+
+# HDR: .eh_frame {{(PROGBITS|X86_64_UNWIND)}} [[#%x,EH_FRAME:]] {{[0-9a-f]+}} [[#%x,EH_FRAME_SIZE:]]
+# HDR-DAG: [[#EH_FRAME + EH_FRAME_SIZE - 4]] {{.*}} __FRAME_END__
+# HDR: ZERO terminator

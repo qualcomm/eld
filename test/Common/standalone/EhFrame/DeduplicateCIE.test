@@ -1,0 +1,19 @@
+UNSUPPORTED: arm
+# The non-leaf bar has different FDE contents from foo. Both must retain their
+# function ranges while sharing one CIE, and both must appear in the header.
+RUN: %clang %clangopts -funwind-tables -c %p/Inputs/foo.c -o %t1.o
+RUN: %clang %clangopts -funwind-tables -c %p/Inputs/bar.c -o %t2.o
+RUN: %link %linkopts --eh-frame-hdr -e foo %t1.o %t2.o -o %t.out
+RUN: %readelf -sW %t.out > %t.dump
+RUN: %dwarfdump --eh-frame %t.out >> %t.dump
+RUN: %filecheck %s --input-file=%t.dump --implicit-check-not=" CIE" --implicit-check-not=" FDE cie="
+RUN: %readelf --unwind %t.out | %filecheck %s --check-prefix=HDR
+
+# CHECK-DAG: [[#%x,FOO:]] [[#FOO_SIZE:]] FUNC {{.*}} foo
+# CHECK-DAG: [[#%x,BAR:]] [[#BAR_SIZE:]] FUNC {{.*}} bar
+# CHECK: [[#%x,CIE:]] {{.*}} CIE
+# CHECK: FDE cie=[[#%.8x,CIE]] pc=[[#%.8x,FOO]]...[[#%.8x,FOO + FOO_SIZE]]
+# CHECK: FDE cie=[[#%.8x,CIE]] pc=[[#%.8x,BAR]]...[[#%.8x,BAR + BAR_SIZE]]
+# CHECK: ZERO terminator
+
+# HDR: fde_count: 2{{$}}

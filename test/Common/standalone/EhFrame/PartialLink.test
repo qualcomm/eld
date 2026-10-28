@@ -1,0 +1,19 @@
+UNSUPPORTED: arm
+RUN: %clang %clangopts -funwind-tables -c %p/Inputs/foo.c -o %t1.o
+RUN: %clang %clangopts -funwind-tables -c %p/Inputs/bar.c -o %t2.o
+RUN: %link %linkopts -r %t1.o %t2.o -o %t.partial.o
+RUN: %dwarfdump --eh-frame %t.partial.o | %filecheck %s --check-prefix=PARTIAL
+RUN: %link %linkopts -e foo %t.partial.o -o %t.out
+RUN: %dwarfdump --eh-frame %t.out | %filecheck %s --check-prefix=FINAL
+
+# PARTIAL: CIE
+# PARTIAL: FDE cie=
+# PARTIAL: CIE
+# PARTIAL: FDE cie=
+# PARTIAL-NOT: CIE
+# PARTIAL-NOT: FDE cie=
+# FINAL: CIE
+# FINAL: FDE cie=
+# FINAL: FDE cie=
+# FINAL-NOT: CIE
+# FINAL-NOT: FDE cie=
