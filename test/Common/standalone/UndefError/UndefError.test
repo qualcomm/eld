@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---UndefError.test--------- Executable-----------------------------#
 #BEGIN_COMMENT
 #Show the full resolved name when reporting an undefined symbol

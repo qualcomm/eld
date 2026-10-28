@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---OrphanNoteGNUStack.test------------Executable --------------------#
 #BEGIN_COMMENT
 # This test checks if a diagnostic warning is not emitted when "note.GNU.stack"

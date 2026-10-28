@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---RuleOrigin.test--------------------- Executable---------------------#
 #BEGIN_COMMENT
 # This test checks for support added in the Linker to print the Rule and where

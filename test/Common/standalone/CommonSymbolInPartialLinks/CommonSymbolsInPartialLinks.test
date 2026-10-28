@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---CommonSymbolsInPartialLinks.test--------------------------- Executable -----------------#
 #BEGIN_COMMENT
 # This test checks the usage of common symbols in partial links.

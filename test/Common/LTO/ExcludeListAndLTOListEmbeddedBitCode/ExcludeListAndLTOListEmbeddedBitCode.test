@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 UNSUPPORTED: aarch64
 #---ExcludeListAndLTOListEmbeddedBitCode.test------------- Executable,LTO -----------------#
 

@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---GroupCmd.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This tests that the GROUP specified in the linker script is handled properly.

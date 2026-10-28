@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---LTOInternalizeCommonsNoLS.test------------------ Executable,LTO ---------------------#
 #BEGIN_COMMENT
 # This tests that LTO will internalize commons if there is no linker script. Other

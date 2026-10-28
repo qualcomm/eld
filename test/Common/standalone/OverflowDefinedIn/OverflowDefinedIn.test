@@ -1,5 +1,5 @@
 ## Does not overflows on these targets so no link would run at all.
-UNSUPPORTED: riscv32, x86
+UNSUPPORTED: riscv32
 
 ## Verify an overflow diagnostic names where the referenced symbol is defined.
 

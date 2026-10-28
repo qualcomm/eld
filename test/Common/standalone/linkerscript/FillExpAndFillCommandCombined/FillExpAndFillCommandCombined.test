@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---FillExpAndFillCommandCombined.test--------------------------- Executable --------------------#
 #BEGIN_COMMENT
 # This tests check that the padding contains content as per the

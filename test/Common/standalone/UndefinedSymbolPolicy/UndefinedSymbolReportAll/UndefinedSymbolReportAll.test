@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---UndefinedSymbolReportAll.test--------------------------- Executable -----------------#
 #BEGIN_COMMENT
 # This checks that all undefined symbols are reported,
