@@ -8,6 +8,7 @@
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Input/ArchiveFile.h"
+#include "eld/Input/ArchiveMemberInput.h"
 #include "eld/Input/Input.h"
 #include "eld/Input/InputFile.h"
 #include "eld/LayoutMap/LayoutInfo.h"
@@ -39,6 +40,18 @@
 #include <memory>
 
 using namespace eld;
+
+inline eld::Expected<bool>
+ArchiveParser::readSymbolTypesIfNeeded(ArchiveFile *archive,
+                                       const ArchiveFile::Symbol &symbol,
+                                       const ResolveInfo *info) const {
+  if (!info || !info->isCommon() ||
+      symbol.Type != ArchiveFile::Symbol::Uninitialized)
+    return true;
+  Input *member = archive->getLazyLoadMember(symbol.FileOffset);
+  ASSERT(member, "Lazy load member must never be null!");
+  return readSymbolTypesForMember(archive, member);
+}
 
 eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
   ArchiveFile *archiveFile = llvm::cast<ArchiveFile>(&inputFile);
@@ -109,6 +122,10 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
     eld::Expected<bool> expReadSymTab =
         readSymbolTable(*archiveReader, archiveFile);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadSymTab);
+    eld::Expected<bool> expSniff = sniffTargetAndWarnMembers(archiveFile);
+    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expSniff);
+    if (!expSniff.value())
+      return 0;
   }
 
   // include the needed members in the archive and build up the input tree
@@ -128,8 +145,14 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
 
       // check if we should include this defined symbol
       ArchiveFile::Symbol &symbol = archiveFile->getSymbolTable()[idx];
+      llvm::StringRef symbolName = archiveFile->getSymbolName(symbol);
+      const ResolveInfo *info =
+          m_Module.getNamePool().findInfo(symbolName.str());
+      eld::Expected<bool> expReadTypes =
+          readSymbolTypesIfNeeded(archiveFile, symbol, info);
+      ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadTypes);
       ArchiveFile::Symbol::SymbolStatus status =
-          shouldIncludeSymbol(*archiveFile, symbol, &referredSite);
+          shouldIncludeSymbol(symbolName, info, symbol, &referredSite);
       if (ArchiveFile::Symbol::Include == status) {
         // include the object member from the given offset
         Input *I =
@@ -167,68 +190,105 @@ ArchiveParser::readSymbolTable(const llvm::object::Archive &archiveReader,
         Diag::err_no_ar_symtab, {archive->getInput()->decoratedPath()}});
   }
 
-  eld::Expected<ArchiveSymbolInfoTable> expSymbolInfoTable =
-      computeSymInfoTable(archiveReader, archive);
-  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expSymbolInfoTable);
-  ArchiveSymbolInfoTable symbolInfoTable = expSymbolInfoTable.value();
-
   for (const llvm::object::Archive::Symbol &sym : archiveReader.symbols()) {
     llvm::Expected<llvm::object::Archive::Child> expMember = sym.getMember();
     LLVMEXP_RETURN_DIAGENTRY_IF_ERROR(expMember);
     const llvm::object::Archive::Child &member = expMember.get();
-    auto symIt = symbolInfoTable.find({member.getChildOffset(), sym.getName()});
-    ASSERT(symIt != symbolInfoTable.end(),
-           "Missing required symbol information!");
-    archive->addSymbol(sym.getName(), member.getChildOffset(), symIt->second);
+    archive->addSymbol(sym.getName(), member.getChildOffset(),
+                       ArchiveFile::Symbol::Uninitialized);
   }
   return true;
 }
 
-eld::Expected<ArchiveParser::ArchiveSymbolInfoTable>
-ArchiveParser::computeSymInfoTable(const llvm::object::Archive &archiveReader,
-                                   ArchiveFile *archive) const {
+eld::Expected<bool>
+ArchiveParser::sniffTargetAndWarnMembers(ArchiveFile *archive) const {
+  // Target sniffing and member warnings must not depend on COMMON resolution.
   LinkerConfig &config = m_Module.getConfig();
-  ArchiveSymbolInfoTable symbolInfoTable;
+  for (Input *input : archive->getAllMembers()) {
+    if (m_Module.isBackendInitialized()) {
+      if (!config.showArchiveFileWarnings())
+        break;
+      if (input->getInputFile()->isObjectFile() ||
+          input->getInputFile()->isBitcode())
+        continue;
+    }
+    auto *member = llvm::cast<ArchiveMemberInput>(input);
+    auto expBinaryObj = createMemberReader(*member);
+    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expBinaryObj);
+    const auto &binaryObj = expBinaryObj.value();
+    if (!binaryObj) {
+      if (config.showArchiveFileWarnings())
+        config.raise(Diag::warn_unsupported_archive_member)
+            << member->getMemberName() << archive->getInput()->decoratedPath();
+      continue;
+    }
+    if (m_Module.isBackendInitialized())
+      continue;
 
-  eld::Expected<bool> expAddReqSymbols =
-      addReqSymbolsWithPlaceholderValue(archiveReader, symbolInfoTable);
-  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expAddReqSymbols);
-
-  llvm::Error err = llvm::Error::success();
-  for (const llvm::object::Archive::Child &child :
-       archiveReader.children(err, /*SkipInternal=*/true)) {
-    eld::Expected<bool> expComputeResult = computeSymInfoTableForMember(
-        *archive, archiveReader, child, symbolInfoTable);
-    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expComputeResult);
+    uint16_t machine;
+    bool is64Bit;
+    if (auto *ELFObj =
+            llvm::dyn_cast<llvm::object::ELFObjectFileBase>(binaryObj.get())) {
+      if (!ELFObj->isLittleEndian())
+        return std::make_unique<plugin::DiagnosticEntry>(
+            plugin::DiagnosticEntry(Diag::fatal_big_endian_target,
+                                    {archive->getInput()->decoratedPath()}));
+      machine = ELFObj->getEMachine();
+      is64Bit = ELFObj->is64Bit();
+    } else if (auto *IRObj = llvm::dyn_cast<llvm::object::IRObjectFile>(
+                   binaryObj.get())) {
+      llvm::Triple triple(IRObj->getTargetTriple());
+      if (!triple.isLittleEndian())
+        return std::make_unique<plugin::DiagnosticEntry>(
+            plugin::DiagnosticEntry(Diag::fatal_big_endian_target,
+                                    {archive->getInput()->decoratedPath()}));
+      machine = llvm::ELF::convertTripleArchTypeToEMachine(triple.getArch());
+      is64Bit = triple.isArch64Bit();
+    } else {
+      continue;
+    }
+    if (!m_Module.getLinker()->initializeTarget(machine, is64Bit))
+      return false;
   }
-  if (err)
-    return std::make_unique<plugin::DiagnosticEntry>(
-        config.getDiagEngine()->convertToDiagEntry(std::move(err)));
-
-  return symbolInfoTable;
+  return true;
 }
 
-eld::Expected<bool> ArchiveParser::addReqSymbolsWithPlaceholderValue(
-    const llvm::object::Archive &archiveReader,
-    ArchiveSymbolInfoTable &symbolInfoTable) const {
-  for (const llvm::object::Archive::Symbol &sym : archiveReader.symbols()) {
-    llvm::Expected<llvm::object::Archive::Child> expMember = sym.getMember();
-    LLVMEXP_RETURN_DIAGENTRY_IF_ERROR(expMember);
-    const llvm::object::Archive::Child &member = expMember.get();
-    llvm::StringRef symName = sym.getName();
-    symbolInfoTable[{member.getChildOffset(), symName}] =
-        ArchiveFile::Symbol::NoType;
+eld::Expected<bool>
+ArchiveParser::readSymbolTypesForMember(ArchiveFile *archive,
+                                        Input *memberInput) const {
+  ArchiveMemberInput *member = llvm::cast<ArchiveMemberInput>(memberInput);
+  uint64_t memberOffset = member->getChildOffset();
+  ArchiveSymbolInfoTable symbolInfoTable;
+
+  for (const ArchiveFile::Symbol &symbol : archive->getSymbolTable()) {
+    if (symbol.FileOffset == memberOffset)
+      symbolInfoTable[{memberOffset, archive->getSymbolName(symbol)}] =
+          ArchiveFile::Symbol::NoType;
+  }
+
+  eld::Expected<bool> expComputeResult =
+      computeSymInfoTableForMember(*member, symbolInfoTable);
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expComputeResult);
+
+  // TODO: Perhaps it can be parallellized/improved.
+  for (ArchiveFile::Symbol &symbol : archive->getSymbolTable()) {
+    if (symbol.FileOffset != memberOffset)
+      continue;
+    auto symIt =
+        symbolInfoTable.find({memberOffset, archive->getSymbolName(symbol)});
+    ASSERT(symIt != symbolInfoTable.end(),
+           "Missing required symbol information!");
+    symbol.Type = symIt->second;
   }
   return true;
 }
 
 eld::Expected<bool> ArchiveParser::computeSymInfoTableForMember(
-    const ArchiveFile &archiveFile, const llvm::object::Archive &archiveReader,
-    const llvm::object::Archive::Child &member,
+    const ArchiveMemberInput &member,
     ArchiveSymbolInfoTable &symbolInfoTable) const {
 
   eld::Expected<std::unique_ptr<llvm::object::Binary>> expBinaryObj =
-      createMemberReader(archiveFile, archiveReader, member);
+      createMemberReader(member);
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expBinaryObj);
 
   std::unique_ptr<llvm::object::Binary> binaryObj =
@@ -246,14 +306,14 @@ eld::Expected<bool> ArchiveParser::computeSymInfoTableForMember(
     if (auto ELFObjFile =
             llvm::dyn_cast<llvm::object::ELFObjectFile<llvm::object::ELF32LE>>(
                 binaryObj.get())) {
-      eld::Expected<bool> expComputeResult =
-          computeSymInfoTableForELFMember(*ELFObjFile, member, symbolInfoTable);
+      eld::Expected<bool> expComputeResult = computeSymInfoTableForELFMember(
+          *ELFObjFile, member.getChildOffset(), symbolInfoTable);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expComputeResult);
     } else if (auto ELFObjFile = llvm::dyn_cast<
                    llvm::object::ELFObjectFile<llvm::object::ELF64LE>>(
                    binaryObj.get())) {
-      eld::Expected<bool> expComputeResult =
-          computeSymInfoTableForELFMember(*ELFObjFile, member, symbolInfoTable);
+      eld::Expected<bool> expComputeResult = computeSymInfoTableForELFMember(
+          *ELFObjFile, member.getChildOffset(), symbolInfoTable);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expComputeResult);
     } else {
       std::string message =
@@ -263,7 +323,7 @@ eld::Expected<bool> ArchiveParser::computeSymInfoTableForMember(
   } else if (auto IRObj =
                  llvm::dyn_cast<llvm::object::IRObjectFile>(binaryObj.get())) {
     eld::Expected<bool> expComputeResult = computeSymInfoTableForIRMember(
-        archiveFile, *IRObj, member, symbolInfoTable);
+        *IRObj, member.getChildOffset(), symbolInfoTable);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expComputeResult);
   } else {
     std::string message =
@@ -275,20 +335,11 @@ eld::Expected<bool> ArchiveParser::computeSymInfoTableForMember(
 
 template <class ELFT>
 eld::Expected<bool> ArchiveParser::computeSymInfoTableForELFMember(
-    const llvm::object::ELFObjectFile<ELFT> &ELFObjFile,
-    const llvm::object::Archive::Child &member,
+    const llvm::object::ELFObjectFile<ELFT> &ELFObjFile, uint64_t memberOffset,
     ArchiveSymbolInfoTable &symbolInfoTable) const {
   ASSERT(ELFObjFile.isRelocatableObject(),
          "Only relocatable object files are supported as archive members!");
   using Elf_Sym = typename ELFT::Sym;
-
-  if (!m_Module.isBackendInitialized()) {
-    auto *ELFObj = llvm::dyn_cast<llvm::object::ELFObjectFileBase>(&ELFObjFile);
-    uint16_t machine = ELFObj->getEMachine();
-    bool is64Bit = ELFObj->is64Bit();
-    if (!m_Module.getLinker()->initializeTarget(machine, is64Bit))
-      return false;
-  }
 
   for (const llvm::object::ELFSymbolRef &sym : ELFObjFile.symbols()) {
     llvm::Expected<const Elf_Sym *> expRawSym =
@@ -305,7 +356,7 @@ eld::Expected<bool> ArchiveParser::computeSymInfoTableForELFMember(
       LLVMEXP_RETURN_DIAGENTRY_IF_ERROR(expRefType);
       llvm::object::SymbolRef::Type reftype = expRefType.get();
 
-      auto iter = symbolInfoTable.find({member.getChildOffset(), name});
+      auto iter = symbolInfoTable.find({memberOffset, name});
       if (iter == symbolInfoTable.end())
         continue;
 
@@ -329,24 +380,9 @@ eld::Expected<bool> ArchiveParser::computeSymInfoTableForELFMember(
 }
 
 eld::Expected<bool> ArchiveParser::computeSymInfoTableForIRMember(
-    const ArchiveFile &archiveFile, const llvm::object::IRObjectFile &IRObj,
-    const llvm::object::Archive::Child &member,
+    const llvm::object::IRObjectFile &IRObj, uint64_t memberOffset,
     ArchiveSymbolInfoTable &symbolInfoTable) const {
   LinkerConfig &config = m_Module.getConfig();
-
-  if (!m_Module.isBackendInitialized()) {
-    llvm::Triple Triple(IRObj.getTargetTriple());
-    if (!Triple.isLittleEndian())
-      return std::make_unique<plugin::DiagnosticEntry>(
-          plugin::DiagnosticEntry(Diag::fatal_big_endian_target,
-                                  {archiveFile.getInput()->decoratedPath()}));
-
-    uint16_t machine =
-        llvm::ELF::convertTripleArchTypeToEMachine(Triple.getArch());
-    bool is64Bit = Triple.isArch64Bit();
-    if (!m_Module.getLinker()->initializeTarget(machine, is64Bit))
-      return false;
-  }
 
   for (const llvm::object::BasicSymbolRef &sym : IRObj.symbols()) {
     // FIXME: Should we use auto for LLVM APIs?
@@ -365,7 +401,7 @@ eld::Expected<bool> ArchiveParser::computeSymInfoTableForIRMember(
           config.getDiagEngine()->convertToDiagEntry(std::move(err)));
     nameOS.flush();
 
-    auto it = symbolInfoTable.find({member.getChildOffset(), name});
+    auto it = symbolInfoTable.find({memberOffset, name});
     if (it == symbolInfoTable.end())
       continue;
     ArchiveFile::Symbol::SymbolType &type = it->second;
@@ -458,14 +494,11 @@ eld::Expected<bool> ArchiveParser::includeMember(Input *member) const {
   return true;
 }
 
-ArchiveFile::Symbol::SymbolStatus
-ArchiveParser::shouldIncludeSymbol(const ArchiveFile &archive,
-                                   const ArchiveFile::Symbol &S,
-                                   InputFile **F) const {
+ArchiveFile::Symbol::SymbolStatus ArchiveParser::shouldIncludeSymbol(
+    llvm::StringRef SymName, const ResolveInfo *info,
+    const ArchiveFile::Symbol &S, InputFile **F) const {
   bool isPostLTOPhase = m_Module.isPostLTOPhase();
   // TODO: handle symbol version issue and user defined symbols
-  llvm::StringRef SymName = archive.getSymbolName(S);
-  const ResolveInfo *info = m_Module.getNamePool().findInfo(SymName.str());
   LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
 
   if (!info)
@@ -534,20 +567,10 @@ bool ArchiveParser::definedSameType(
 }
 
 eld::Expected<std::unique_ptr<llvm::object::Binary>>
-ArchiveParser::createMemberReader(
-    const ArchiveFile &archiveFile, const llvm::object::Archive &archiveReader,
-    const llvm::object::Archive::Child &member) const {
-  LinkerConfig &config = m_Module.getConfig();
+ArchiveParser::createMemberReader(const ArchiveMemberInput &member) const {
   llvm::LLVMContext &context = *llvm::unwrap(llvm::getGlobalContextForCAPI());
-  Input *archiveMemInput =
-      archiveFile.getLazyLoadMember(member.getChildOffset());
-  ASSERT(archiveMemInput,
-         "Member missing in the " +
-             archiveFile.getInput()->decoratedPath(/*showAbsolute=*/false) +
-             " archive!");
   llvm::Expected<std::unique_ptr<llvm::object::Binary>> expBinaryObj =
-      llvm::object::createBinary(archiveMemInput->getMemoryBufferRef(),
-                                 &context);
+      llvm::object::createBinary(member.getMemoryBufferRef(), &context);
   DiagnosticEngine &diagEngine = *m_Module.getConfig().getDiagEngine();
 
   if (expBinaryObj)
@@ -560,14 +583,6 @@ ArchiveParser::createMemberReader(
         if (EIB->convertToErrorCode() !=
             llvm::object::object_error::invalid_file_type)
           return std::move(EIB);
-        llvm::Expected<llvm::StringRef> expMemName = member.getName();
-        if (!expMemName)
-          return expMemName.takeError();
-        if (config.showArchiveFileWarnings()) {
-          llvm::StringRef memName = expMemName.get();
-          diagEngine.raise(Diag::warn_unsupported_archive_member)
-              << memName << archiveReader.getFileName();
-        }
         return llvm::Error::success();
       });
   if (newE)

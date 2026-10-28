@@ -19,6 +19,7 @@
 
 namespace eld {
 class Module;
+class ArchiveMemberInput;
 class ResolveInfo;
 
 class ArchiveParser final {
@@ -29,9 +30,9 @@ public:
   /// Parses the archive file.
   ///
   /// The parsing consists of the following things in the same order as listed:
-  /// - Reads symbol table. This computes the required symbol information for
-  ///   each symbol in the archive symbol table, and adds the symbols to the
-  ///   eld representation of the archive.
+  /// - Reads the archive symbol table and adds its symbols to the eld
+  ///   representation of the archive. Member symbol types are read lazily
+  ///   if COMMON symbol resolution needs them.
   /// - Sets the archive string table.
   /// - Adds archive members to the eld representation of the archive.
   /// - Finds the required symbols, and includes the archive members, that
@@ -61,17 +62,9 @@ private:
 
   /// Creates an LLVM object for reading an archive member.
   ///
-  /// It internally reports diagnostics with less severity than an error.
-  /// Diagnostics with severity of error or higher are returned to the caller
-  /// function.
-  ///
-  /// If archive member is unsupported, then it internally reports
-  /// a warning if the archive file warning configuration is enabled
-  /// and returns nullptr.
+  /// Returns nullptr for unsupported members and propagates other errors.
   eld::Expected<std::unique_ptr<llvm::object::Binary>>
-  createMemberReader(const ArchiveFile &archiveFile,
-                     const llvm::object::Archive &archiveReader,
-                     const llvm::object::Archive::Child &member) const;
+  createMemberReader(const ArchiveMemberInput &member) const;
 
   /// Adds all the symbols present in the archive symbol table to the eld
   /// representation of the archive.
@@ -79,29 +72,26 @@ private:
   readSymbolTable(const llvm::object::Archive &archiveReader,
                   ArchiveFile *archive) const;
 
+  /// Infers the target if needed and reports unsupported archive members.
+  eld::Expected<bool> sniffTargetAndWarnMembers(ArchiveFile *archive) const;
+
   /// Sets string table.
   eld::Expected<bool> setStringTable(llvm::object::Archive &archiveReader,
                                      ArchiveFile *archive) const;
 
-  /// Computes symbol information table for all the symbols present in the
-  /// archive symbol table.
-  eld::Expected<ArchiveParser::ArchiveSymbolInfoTable>
-  computeSymInfoTable(const llvm::object::Archive &archiveReader,
-                      ArchiveFile *archive) const;
+  /// Reads symbol types from an archive member when one is needed for COMMON
+  /// symbol resolution.
+  eld::Expected<bool> readSymbolTypesForMember(ArchiveFile *archive,
+                                               Input *member) const;
 
-  /// Adds all the required symbols (symbols present in the archive symbol
-  /// table) to symbolInfoTable with a placeholder value
-  /// (ArchiveFile::Symbol::NoType).
-  eld::Expected<bool> addReqSymbolsWithPlaceholderValue(
-      const llvm::object::Archive &archiveReader,
-      ArchiveSymbolInfoTable &symbolInfoTable) const;
+  eld::Expected<bool> readSymbolTypesIfNeeded(ArchiveFile *archive,
+                                              const ArchiveFile::Symbol &symbol,
+                                              const ResolveInfo *info) const;
 
   /// It computes symbol information for the provided archive member symbols
   /// that are present in the archive symbol table.
   eld::Expected<bool>
-  computeSymInfoTableForMember(const ArchiveFile &archiveFile,
-                               const llvm::object::Archive &archiveReader,
-                               const llvm::object::Archive::Child &member,
+  computeSymInfoTableForMember(const ArchiveMemberInput &member,
                                ArchiveSymbolInfoTable &symbolInfoTable) const;
 
   /// It computes symbol information for the provided archive ELF member symbols
@@ -109,15 +99,13 @@ private:
   template <class ELFT>
   eld::Expected<bool> computeSymInfoTableForELFMember(
       const llvm::object::ELFObjectFile<ELFT> &ELFObjFile,
-      const llvm::object::Archive::Child &member,
-      ArchiveSymbolInfoTable &symbolInfoTable) const;
+      uint64_t memberOffset, ArchiveSymbolInfoTable &symbolInfoTable) const;
 
   /// It computes symbol information for the provided archive IR member symbols
   /// that are present in the archive symbol table.
   eld::Expected<bool>
-  computeSymInfoTableForIRMember(const ArchiveFile &archiveFile,
-                                 const llvm::object::IRObjectFile &IRObj,
-                                 const llvm::object::Archive::Child &member,
+  computeSymInfoTableForIRMember(const llvm::object::IRObjectFile &IRObj,
+                                 uint64_t memberOffset,
                                  ArchiveSymbolInfoTable &symbolInfoTable) const;
 
   /// Adds all the archive members to the ArchiveFile.
@@ -138,8 +126,8 @@ private:
 
   /// Determines if a symbol should be included or not.
   ArchiveFile::Symbol::SymbolStatus
-  shouldIncludeSymbol(const ArchiveFile &A, const ArchiveFile::Symbol &S,
-                      InputFile **F) const;
+  shouldIncludeSymbol(llvm::StringRef SymName, const ResolveInfo *info,
+                      const ArchiveFile::Symbol &S, InputFile **F) const;
 
   /// Returns true if both info and type represents the same type of
   /// information.
