@@ -1,16 +1,62 @@
 UNSUPPORTED: x86
 #---ExcludeLibsResolvedPath.test--------------------- Executable------------------#
 #BEGIN_COMMENT
-# Test -exclude-libs option with resolved paths.
+# Test --exclude-libs handling for archive namespecs and resolved paths.
+# Verify that symbols from excluded archives are not exported, including for
+# comma-separated exclusions and multiple archives with the same basename.
+# Also verify that this behavior is preserved when replaying a reproducer
+# response file.
 #END_COMMENT
 #-------------------------------------------------------------------------------
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -fPIC
 RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o -fPIC
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t3.o -fPIC
 RUN: mkdir -p %t2
+RUN: mkdir -p %t3
 RUN: %ar -cr %t2/lib2.a %t2.o
+RUN: %ar -cr %t3/lib3.a %t3.o
 RUN: %link %linkopts -shared %t1.o %t2/lib2.a --exclude-libs lib2.a -o %t2.out.1
 RUN: %readelf --dyn-symbols  %t2.out.1 |%filecheck %s
 RUN: %link %linkopts -shared %t1.o -L %t2 -l2 --exclude-libs lib2.a -o %t2.out.2
 RUN: %readelf --dyn-symbols  %t2.out.2 |%filecheck %s
 
+# Replaying a namespec must preserve --exclude-libs matching.
+RUN: %link %linkopts -shared %t1.o -L %t2 -l2 --exclude-libs lib2.a -o %t2.reproduce.out --reproduce %t2.reproduce.tar --dump-response-file %t2.reproduce.response
+RUN: %mkdir %t2.reproduce
+RUN: cd %t2.reproduce
+RUN: %tar %gnutaropts -xf %t2.reproduce.tar --strip-components=1
+RUN: %link @response.txt -o reproduce.out
+RUN: %readelf --dyn-symbols %t2.reproduce/reproduce.out | %filecheck %s
+
+# A full resolved archive path must also be rewritten for replay.
+RUN: %link %linkopts -shared %t1.o -L %t2 -l2 --exclude-libs %t2/lib2.a -o %t.resolved.reproduce.out --reproduce %t.resolved.reproduce.tar --dump-response-file %t.resolved.reproduce.response
+RUN: %mkdir %t.resolved.reproduce
+RUN: cd %t.resolved.reproduce
+RUN: %tar %gnutaropts -xf %t.resolved.reproduce.tar --strip-components=1
+RUN: %link @response.txt -o reproduce.out
+RUN: %readelf --dyn-symbols %t.resolved.reproduce/reproduce.out  | %filecheck %s
+
+# Literal namespecs and comma-separated exclusions must also survive replay.
+RUN: %link %linkopts -shared %t1.o --whole-archive -L %t2 -L %t3 -l:lib2.a -l:lib3.a --no-whole-archive --exclude-libs lib2.a,lib3.a -o %t.literal.reproduce.out --reproduce %t.literal.reproduce.tar --dump-response-file %t.literal.reproduce.response
+RUN: %mkdir %t.literal.reproduce
+RUN: cd %t.literal.reproduce
+RUN: %tar %gnutaropts -xf %t.literal.reproduce.tar --strip-components=1
+RUN: %link @response.txt -o reproduce.out
+RUN: %readelf --dyn-symbols %t.literal.reproduce/reproduce.out | %filecheck %s
+
+# Archives with the same basename must all be rewritten in the exclusion list.
+RUN: %mkdir -p %t.dup1 %t.dup2
+RUN: %ar -cr %t.dup1/libdup.a %t2.o
+RUN: %ar -cr %t.dup2/libdup.a %t3.o
+RUN: %link %linkopts -shared %t1.o --whole-archive %t.dup1/libdup.a %t.dup2/libdup.a --no-whole-archive --exclude-libs libdup.a -o %t.duplicate.out --reproduce %t.duplicate.tar --dump-response-file %t.duplicate.response
+RUN: %readelf --dyn-symbols %t.duplicate.out | %filecheck %s --check-prefix=DUPLICATE
+RUN: %mkdir %t.duplicate.reproduce
+RUN: cd %t.duplicate.reproduce
+RUN: %tar %gnutaropts -xf %t.duplicate.tar --strip-components=1
+RUN: %link @response.txt -o reproduce.out
+RUN: %readelf --dyn-symbols %t.duplicate.reproduce/reproduce.out | %filecheck %s --check-prefix=DUPLICATE
+
 #CHECK-NOT: foo
+#CHECK-NOT: bar
+#DUPLICATE-NOT: foo
+#DUPLICATE-NOT: bar
