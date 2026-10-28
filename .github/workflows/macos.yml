@@ -24,10 +24,11 @@ on:
 jobs:
   build-macos:
     if: |
-      (github.repository == 'qualcomm/eld' &&
+      github.repository == 'qualcomm/eld' &&
        (github.event_name == 'schedule' ||
-        github.event_name == 'workflow_dispatch')) ||
-      github.event_name == 'workflow_call'
+        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'workflow_call' ||
+        inputs.pr_sha != '')
     name: macOS
     runs-on: macos-latest
     timeout-minutes: 180

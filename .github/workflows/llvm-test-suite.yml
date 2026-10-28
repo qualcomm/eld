@@ -37,11 +37,12 @@ on:
 jobs:
   llvm-test-suite:
     if: |
-      (github.repository == 'qualcomm/eld' &&
+      github.repository == 'qualcomm/eld' &&
        ((github.event_name == 'workflow_run' &&
          github.event.workflow_run.conclusion == 'success') ||
-        github.event_name == 'workflow_dispatch')) ||
-      github.event_name == 'workflow_call'
+        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'workflow_call' ||
+        inputs.pr_sha != '')
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ inputs.pr_sha && format('llvm-test-suite-pr-{0}-{1}', inputs.pr_number, inputs.pr_sha) || 'llvm-test-suite-nightly' }}

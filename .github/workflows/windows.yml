@@ -31,11 +31,11 @@ permissions:
 jobs:
   build-windows:
     if: |
-      (github.repository == 'qualcomm/eld' &&
+      github.repository == 'qualcomm/eld' &&
        (github.event_name == 'schedule' ||
         github.event_name == 'workflow_dispatch' ||
-        inputs.pr_sha != '')) ||
-      github.event_name == 'workflow_call'
+        github.event_name == 'workflow_call' ||
+        inputs.pr_sha != '')
     permissions:
       contents: write
     env:

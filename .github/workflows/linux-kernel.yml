@@ -52,11 +52,12 @@ jobs:
   kernel-boot:
     runs-on: ubuntu-latest
     if: |
-      (github.repository == 'qualcomm/eld' &&
+      github.repository == 'qualcomm/eld' &&
        ((github.event_name == 'workflow_run' &&
          github.event.workflow_run.conclusion == 'success') ||
-        github.event_name == 'workflow_dispatch')) ||
-      github.event_name == 'workflow_call'
+        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'workflow_call' ||
+        inputs.pr_sha != '')
     strategy:
       fail-fast: false
       matrix:
