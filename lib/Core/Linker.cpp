@@ -537,7 +537,7 @@ bool Linker::resolve() {
   {
     eld::RegisterTimer T("Identical Code Folding", "ICF",
                          ThisConfig->options().printTimingStats());
-    ICF(*ThisModule, *ThisConfig).run();
+    ICF(*ThisModule).run();
   }
 
   recordCommonSymbols();

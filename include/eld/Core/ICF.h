@@ -7,17 +7,17 @@
 #ifndef ELD_CORE_ICF_H
 #define ELD_CORE_ICF_H
 
+#include "eld/Core/Module.h"
+
 namespace eld {
 class LinkerConfig;
-class Module;
 
 /// The initial identical code folding pass. It intentionally accepts only
 /// relocation-free sections for now. Relocation equivalence support will be
 /// added later.
 class ICF {
 public:
-  ICF(Module &Module, LinkerConfig &Config)
-      : ThisModule(Module), ThisConfig(Config) {}
+  ICF(Module &Module) : ThisModule(Module), ThisConfig(Module.getConfig()) {}
   void run();
 
 private:
