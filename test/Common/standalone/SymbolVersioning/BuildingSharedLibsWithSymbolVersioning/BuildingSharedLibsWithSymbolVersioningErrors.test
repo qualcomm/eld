@@ -20,8 +20,8 @@ RUN: %clang %clangopts -o %t1.idc.o %p/Inputs/independent_default_clash.c -c -fP
 RUN: %not %link %linkopts -o %t1.lib3.so %t1.idc.o -shared --version-script %p/Inputs/vs.3.t 2>&1 | %filecheck %s --check-prefix=ERRORS3
 #END_TEST
 
-ERRORS1: Error: {{.*}}2.o: symbol foo@V1 has undefined version V1
-ERRORS1: Error: {{.*}}2.o: symbol bar@V1 has undefined version V1
+ERRORS1: Error: {{.*}}2.o: symbol foo has undefined version V1
+ERRORS1: Error: {{.*}}2.o: symbol bar has undefined version V1
 
 ERRORS2: Error: multiple definition of symbol `baz'
 

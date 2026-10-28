@@ -1,0 +1,47 @@
+#---R_ARM_LDC_PC_G2.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify R_ARM_LDC_PC_G2 relocation is correctly applied.
+#
+# X = S + A - P = 0x40404.
+# G2 selects residual 0x4.
+# The LDC/STC immediate is scaled by four:
+# imm8 = 0x4 >> 2 = 0x1.
+#
+# Input instruction:  0xed9f0100
+# Output instruction: 0xed9f0101
+#END_COMMENT
+#START_TEST
+RUN: %clangas -c %p/Inputs/main.s -o %t.o
+RUN: %link %linkopts -march arm -static %t.o -o %t.out
+RUN: %readelf -x .text %t.out | %filecheck %s
+
+CHECK: 00000000 01019fed 1eff2fe1
+
+RUN: %clangas -c %p/Inputs/negative.s -o %t.neg.o
+RUN: %link %linkopts -march arm -static %t.neg.o -o %t.neg.out
+RUN: %readelf -x .text %t.neg.out | %filecheck %s --check-prefix=NEGATIVE
+
+NEGATIVE: 0x00040400 00000000 01011fed 1eff2fe1
+RUN: %clangas -c %p/Inputs/positive-addend.s -o %t.posadd.o
+RUN: %link %linkopts -march arm -static %t.posadd.o -o %t.posadd.out
+RUN: %readelf -x .text %t.posadd.out | %filecheck %s --check-prefix=POSADD
+
+POSADD: 00000000 02019fed 1eff2fe1
+
+RUN: %clangas -c %p/Inputs/negative-addend.s -o %t.negadd.o
+RUN: %link %linkopts -march arm -static %t.negadd.o -o %t.negadd.out
+RUN: %readelf -x .text %t.negadd.out | %filecheck %s --check-prefix=NEGADD
+
+NEGADD: 0x00040400 00000000 02011fed 1eff2fe1
+
+RUN: %clangas -c %p/Inputs/unaligned-positive.s -o %t.unaligned.pos.o
+RUN: %not %link %linkopts -march arm -static %t.unaligned.pos.o -o %t.unaligned.pos.out 2>&1 | %filecheck %s --check-prefix=UNALIGNED-POS
+
+UNALIGNED-POS: Relocation error when applying relocation `R_ARM_LDC_PC_G2'
+
+RUN: %clangas -c %p/Inputs/unaligned-negative.s -o %t.unaligned.neg.o
+RUN: %not %link %linkopts -march arm -static %t.unaligned.neg.o -o %t.unaligned.neg.out 2>&1 | %filecheck %s --check-prefix=UNALIGNED-NEG
+
+UNALIGNED-NEG: Relocation error when applying relocation `R_ARM_LDC_PC_G2'
+
+#END_TEST

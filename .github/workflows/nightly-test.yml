@@ -29,6 +29,7 @@ jobs:
           platform: x64
 
       - name: Install libc++ and libc++abi
+        id: install_dependencies
         run: |
           sudo apt update
           sudo apt install -y clang-22 lld-22 ninja-build libc++-22-dev libc++abi-22-dev ccache libclang-rt-22-dev libunwind-22-dev
@@ -84,7 +85,6 @@ jobs:
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
 
       - name: Restore ccache
-        id: cache-ccache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
@@ -158,6 +158,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra;lld" \
+            -DCLANG_ENABLE_CIR=OFF \
             -DLLVM_ENABLE_RUNTIMES="compiler-rt;libcxx;libcxxabi;libunwind" \
             -DCMAKE_C_COMPILER:STRING=`which clang` \
             -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
@@ -224,13 +225,13 @@ jobs:
           done
 
       - name: Prune ccache before save
-        if: always()
+        if: always() && steps.install_dependencies.outcome == 'success'
         env:
           CCACHE_DIR: ${{ github.workspace }}/obj/ccache
         run: ccache --evict-older-than 7200s
 
       - name: Save ccache
-        if: always()
+        if: always() && steps.install_dependencies.outcome == 'success'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
@@ -259,7 +260,7 @@ jobs:
               -Jcvf eld-unstable.tar.xz eld-unstable
 
       - name: Upload toolchain tarball
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 #v7.0.2
         with:
           name: install-nightly-toolchain.tar.xz
           path: install-nightly-toolchain.tar.xz

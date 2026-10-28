@@ -70,6 +70,7 @@ jobs:
         run: |
           cmake -G Ninja -B build \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCLANG_ENABLE_CIR=OFF \
             -DCMAKE_C_COMPILER=$(which clang) \
             -DCMAKE_CXX_COMPILER=$(which clang++) \
             -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon" \

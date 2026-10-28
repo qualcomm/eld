@@ -1,7 +1,7 @@
 alabaster==0.7.12
 Babel==2.10.3
 breathe==4.34.0
-certifi==2024.7.4
+certifi==2026.10.19
 charset-normalizer==2.1.1
 docutils==0.15
 docxsphinx==1.0.0
@@ -13,7 +13,7 @@ lxml==6.1.0
 MarkupSafe==2.1.1
 myst-parser==0.18.1
 packaging==21.3
-Pillow==12.3.0
+Pillow==13.0.0
 Pygments==2.20.0
 pyparsing==3.0.9
 python-docx==1.1.0

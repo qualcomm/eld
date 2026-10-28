@@ -896,53 +896,15 @@ void ARMRelocator::handleScanForNonPreemptibleIFunc(Relocation &R,
   RI->setReserved(RI->reserved() | ReservePLT);
 }
 
-void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
-                                  ELFSection &pSection, InputFile &pInputFile,
-                                  CopyRelocs &CopyRelocs) {
-  if (LinkerConfig::Object == config().codeGenType())
-    return;
+void ARMRelocator::scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
+                                          ELFSection &Section,
+                                          CopyRelocs &CopyRelocSet) {
+  ResolveInfo *Sym = Reloc.symInfo();
 
-  if (!checkPICRelocSupported(pReloc))
-    return;
+  if (Reloc.type() == llvm::ELF::R_ARM_TARGET1)
+    Reloc.setType(llvm::ELF::R_ARM_ABS32);
 
-  // rsym - The relocation target symbol
-  ResolveInfo *rsym = pReloc.symInfo();
-  assert(nullptr != rsym &&
-         "ResolveInfo of relocation not set while scanRelocation");
-
-  // Check if we are tracing relocations.
-  if (m_Module.getPrinter()->traceReloc()) {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    std::string relocName = getName(pReloc.type());
-    if (config().options().traceReloc(relocName))
-      config().raise(Diag::reloc_trace)
-          << relocName << pReloc.symInfo()->name()
-          << pInputFile.getInput()->decoratedPath();
-  }
-
-  // check if we should issue undefined reference for the relocation target
-  // symbol
-  {
-    if (rsym->isUndef() || rsym->isBitCode()) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-      if (m_Target.canIssueUndef(rsym)) {
-        if (rsym->visibility() != ResolveInfo::Default)
-          issueInvisibleRef(pReloc, pInputFile);
-        issueUndefRef(pReloc, pInputFile, &pSection);
-      }
-    }
-  }
-
-  ELFSection *section = pSection.getLink();
-
-  if (!section->isAlloc())
-    return;
-
-  if (pReloc.type() == llvm::ELF::R_ARM_TARGET1) {
-    pReloc.setType(llvm::ELF::R_ARM_ABS32);
-  }
-
-  Relocation::Type Type = pReloc.type();
+  Relocation::Type Type = Reloc.type();
 
   // Set R_ARM_TARGET2 to R_ARM_ABS32/R_ARM_REL32/R_ARM_GOT_PREL.
   if (Type == llvm::ELF::R_ARM_TARGET2) {
@@ -959,18 +921,19 @@ void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
     }
   }
 
-  ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
+  ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&Input);
 
   // A reference to a non-preemptible IFunc in a static link is resolved
   // through an IRELATIVE PLT entry regardless of whether the symbol is local
   // or global.
-  if (rsym->isIFunc() && config().isCodeStatic())
-    return handleScanForNonPreemptibleIFunc(pReloc, Obj);
+  if (Sym->isIFunc() && config().isCodeStatic())
+    return handleScanForNonPreemptibleIFunc(Reloc, Obj);
 
-  if (rsym->isLocal()) // rsym is local
-    scanLocalReloc(pInputFile, Type, pReloc, *section);
-  else // rsym is external
-    scanGlobalReloc(pInputFile, Type, pReloc, pBuilder, *section, CopyRelocs);
+  if (Sym->isLocal())
+    scanLocalReloc(Input, Type, Reloc, Section);
+  else
+    scanGlobalReloc(Input, Type, Reloc, *module().getIRBuilder(), Section,
+                    CopyRelocSet);
 }
 
 //=========================================//
@@ -1136,6 +1099,46 @@ Relocator::Result abs32(Relocation &pReloc, ARMRelocator &pParent) {
   return Relocator::OK;
 }
 
+static Relocator::Result getSBRelBase(Relocation &pReloc, ARMRelocator &pParent,
+                                      Relocator::Address &pBase) {
+  DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
+
+  std::lock_guard<std::mutex> relocGuard(m_ApplyRelocMutex);
+  ELFSegment *SBRelSeg = pParent.getSBRELSegment();
+  ELFSegment *RSeg = nullptr;
+
+  // If the symbol is not associated with any fragment, the symbol
+  // may be a linker script symbol. Figure out where the linker
+  // script symbol belongs to.
+  if (!pReloc.symInfo()->outSymbol()->fragRef()->frag()) {
+    ELFSection *SInfo =
+        pParent.getTarget().getSectionInfo(pReloc.symInfo()->outSymbol());
+    if (!SInfo || !SInfo->getOutputSection()) {
+      DiagEngine->raise(Diag::sbrel_reloc_no_section)
+          << pReloc.symInfo()->name();
+      return Relocator::BadReloc;
+    }
+    RSeg = SInfo->getOutputSection()->getLoadSegment();
+  } else {
+    RSeg = pReloc.getTargetSegment();
+  }
+
+  if (!SBRelSeg) {
+    SBRelSeg = RSeg;
+    pParent.setSBRELSegment(RSeg);
+  }
+
+  if (RSeg && RSeg != SBRelSeg) {
+    DiagEngine->raise(Diag::sbrel_reloc_different_seg)
+        << pReloc.symInfo()->name()
+        << pReloc.getSourcePath(pParent.config().options());
+    return Relocator::BadReloc;
+  }
+
+  pBase = RSeg->vaddr();
+  return Relocator::OK;
+}
+
 // R_ARM_REL32: ((S + A) | T) - P
 // R_ARM_SBREL32: ((S + A) | T) - B(S)
 Relocator::Result rel32(Relocation &pReloc, ARMRelocator &pParent) {
@@ -1161,35 +1164,9 @@ Relocator::Result rel32(Relocation &pReloc, ARMRelocator &pParent) {
 
   // perform relocation
   if (pReloc.type() == llvm::ELF::R_ARM_SBREL32) {
-    std::lock_guard<std::mutex> relocGuard(m_ApplyRelocMutex);
-    ELFSegment *S = pParent.getSBRELSegment();
-    ELFSegment *RSeg = nullptr;
-    // If the symbol is not associated with any fragment, the symbol
-    // may be a linker script symbol. Figure out where the linker
-    // script symbol belongs to.
-    if (!pReloc.symInfo()->outSymbol()->fragRef()->frag()) {
-      ELFSection *SInfo =
-          pParent.getTarget().getSectionInfo(pReloc.symInfo()->outSymbol());
-      if (!SInfo || !SInfo->getOutputSection()) {
-        DiagEngine->raise(Diag::sbrel_reloc_no_section)
-            << pReloc.symInfo()->name();
-        return Relocator::BadReloc;
-      }
-      RSeg = SInfo->getOutputSection()->getLoadSegment();
-    } else {
-      RSeg = pReloc.getTargetSegment();
-    }
-    if (!S) {
-      S = RSeg;
-      pParent.setSBRELSegment(RSeg);
-    }
-    if (RSeg && (RSeg != S)) {
-      DiagEngine->raise(Diag::sbrel_reloc_different_seg)
-          << pReloc.symInfo()->name()
-          << pReloc.getSourcePath(pParent.config().options());
-      return Relocator::BadReloc;
-    }
-    P = RSeg->vaddr();
+    Relocator::Result Result = getSBRelBase(pReloc, pParent, P);
+    if (Result != Relocator::OK)
+      return Result;
   }
 
   pReloc.target() = ((S + A) | T) - P;
@@ -1475,6 +1452,11 @@ Relocator::Result ldc_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
 // R_ARM_LDC_PC_G1: S + A - P
 Relocator::Result ldc_pc_g1(Relocation &pReloc, ARMRelocator &pParent) {
   return ldc_pc_group(pReloc, pParent, /*pGroup=*/1);
+}
+
+// R_ARM_LDC_PC_G2: S + A - P
+Relocator::Result ldc_pc_g2(Relocation &pReloc, ARMRelocator &pParent) {
+  return ldc_pc_group(pReloc, pParent, /*pGroup=*/2);
 }
 
 // R_ARM_ALU_PC_Gn / R_ARM_ALU_PC_Gn_NC: ((S + A) | T) - P

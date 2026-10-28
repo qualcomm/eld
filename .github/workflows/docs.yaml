@@ -69,6 +69,7 @@ jobs:
           cd obj
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCLANG_ENABLE_CIR=OFF \
             -DCMAKE_C_COMPILER:STRING=`which clang` \
             -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon" \

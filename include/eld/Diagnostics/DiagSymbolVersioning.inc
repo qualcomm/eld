@@ -25,6 +25,8 @@ DIAG(error_undefined_version, DiagnosticEngine::Error,
      "defined")
 DIAG(error_unknown_version_node_dependency, DiagnosticEngine::Error,
      "%2: version node '%0' depends on unknown version node '%1'")
+DIAG(error_versioned_undef_symbol, DiagnosticEngine::Error,
+     "%0: undefined symbol '%1' cannot have version")
 DIAG(trace_assign_output_version_ids, DiagnosticEngine::Trace,
      "Assigning version IDs to output symbols")
 DIAG(trace_adding_verneed_entry, DiagnosticEngine::Trace,

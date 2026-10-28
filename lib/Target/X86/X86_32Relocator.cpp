@@ -95,6 +95,14 @@ X86_32Relocator::X86_32Relocator(X86_32LDBackend &pParent,
                                  LinkerConfig &pConfig, Module &pModule)
     : Relocator(pConfig, pModule), m_Target(pParent) {}
 
+bool X86_32Relocator::canIssueUndefRef(ResolveInfo *Sym) {
+  // _GLOBAL_OFFSET_TABLE_ is created while GOT-base relocations are replayed
+  // in the serial scan phase.
+  if (isGOTBaseSymbol(Sym))
+    return false;
+  return Relocator::canIssueUndefRef(Sym);
+}
+
 Relocator::Result X86_32Relocator::applyRelocation(Relocation &pRelocation) {
   const Relocation::Type Type = pRelocation.type();
   if (Type >= x86_32::RelocationTableSize)
@@ -117,50 +125,16 @@ Relocator::Result X86_32Relocator::applyRelocation(Relocation &pRelocation) {
   return x86_32::Relocs[Type].Handler(pRelocation, *this);
 }
 
-void X86_32Relocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &,
-                                     ELFSection &pSection,
-                                     InputFile &pInputFile, CopyRelocs &) {
-  if (LinkerConfig::Object == config().codeGenType())
-    return;
+bool X86_32Relocator::isRelocSupported(const Relocation &Reloc) const {
+  return isSupportedRelocation(Reloc.type()) &&
+         (!isGOTBaseSymbol(Reloc.symInfo()) ||
+          isGOTBaseRelocation(Reloc.type()));
+}
 
-  if (!isSupportedRelocation(pReloc.type())) {
-    config().raise(Diag::unsupported_reloc)
-        << pReloc.type() << pSection.getDecoratedName(config().options())
-        << pInputFile.getInput()->decoratedPath();
-    return;
-  }
-
-  ResolveInfo *SymInfo = pReloc.symInfo();
-  assert(SymInfo != nullptr &&
-         "ResolveInfo of relocation not set while scanRelocation");
-
-  if (isGOTBaseSymbol(SymInfo) && !isGOTBaseRelocation(pReloc.type())) {
-    config().raise(Diag::unsupported_reloc)
-        << pReloc.type() << pSection.getDecoratedName(config().options())
-        << pInputFile.getInput()->decoratedPath();
-    return;
-  }
-
-  if (isGOTBaseRelocation(pReloc.type()))
+void X86_32Relocator::scanDeferredRelocation(InputFile &, Relocation &Reloc,
+                                             ELFSection &, CopyRelocs &) {
+  if (isGOTBaseRelocation(Reloc.type()))
     m_Target.ensureGOTBaseRelocations();
-
-  if (m_Module.getPrinter()->traceReloc()) {
-    std::lock_guard<std::mutex> RelocGuard(m_RelocMutex);
-    const std::string RelocName = getName(pReloc.type());
-    if (config().options().traceReloc(RelocName))
-      config().raise(Diag::reloc_trace)
-          << RelocName << SymInfo->name()
-          << pInputFile.getInput()->decoratedPath();
-  }
-
-  if (SymInfo->isUndef() || SymInfo->isBitCode()) {
-    std::lock_guard<std::mutex> RelocGuard(m_RelocMutex);
-    if (m_Target.canIssueUndef(SymInfo)) {
-      if (SymInfo->visibility() != ResolveInfo::Default)
-        issueInvisibleRef(pReloc, pInputFile);
-      issueUndefRef(pReloc, pInputFile, &pSection);
-    }
-  }
 }
 
 const char *X86_32Relocator::getName(Relocation::Type pType) const {

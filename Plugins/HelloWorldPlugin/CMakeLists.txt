@@ -1,6 +1,9 @@
 set(SOURCES HelloWorldPlugin.cpp)
 
-if(NOT CYGWIN AND LLVM_ENABLE_PIC)
+if(ELD_STANDALONE)
+  eld_add_standalone_plugin(HelloWorldPlugin
+    SOURCES ${SOURCES})
+elseif(NOT CYGWIN AND LLVM_ENABLE_PIC)
   set(SHARED_LIB_SOURCES ${SOURCES})
 
   set(bsl ${BUILD_SHARED_LIBS})

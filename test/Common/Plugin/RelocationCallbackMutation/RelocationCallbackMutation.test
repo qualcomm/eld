@@ -1,0 +1,47 @@
+## Check that relocation callbacks observe mutations made by earlier callbacks.
+
+# RUN: split-file %s %t
+# RUN: %clang %clangopts -c %t/discard.s -o %t/discard.o
+# RUN: %clang %clangopts -c %t/add.s -o %t/add.o
+
+# RUN: %link %linkopts --no-default-plugins --enable-threads=all \
+# RUN:   --thread-count=8 -L%libsdir/test --plugin-config=%t/plugin.yaml \
+# RUN:   %t/discard.o -o %t/discard.out 2>&1 | \
+# RUN:   %filecheck %s --check-prefix=DISCARD
+# RUN: %link %linkopts --no-default-plugins --enable-threads=all \
+# RUN:   --thread-count=8 -L%libsdir/test --plugin-config=%t/plugin.yaml \
+# RUN:   %t/add.o -o %t/add.out 2>&1 | %filecheck %s --check-prefix=ADD
+
+# DISCARD: callback .discard.trigger
+# DISCARD-NOT: callback .discard.later
+
+# ADD: callback .add.trigger
+# ADD-NEXT: callback .add.later
+# ADD-NEXT: callback .add.later
+
+#--- plugin.yaml
+GlobalPlugins:
+  - Type: SectionIterator
+    Name: RELOCATIONCALLBACKMUTATION
+    Library: RelocationCallbackMutation
+
+#--- discard.s
+        .section .discard.trigger,"aw",%progbits
+        .long target
+        .section .discard.later,"aw",%progbits
+        .long target
+        .section .target,"aw",%progbits
+        .globl target
+target:
+        .long 0
+
+#--- add.s
+        .section .add.trigger,"aw",%progbits
+        .long target
+        .section .add.later,"aw",%progbits
+        .long target
+        .space 4
+        .section .target,"aw",%progbits
+        .globl target
+target:
+        .long 0

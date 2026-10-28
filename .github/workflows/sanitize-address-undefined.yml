@@ -1,17 +1,28 @@
-name: Nightly sanitizer check
+name: Address and undefined behavior sanitizer
 # owner: quic-seaswara
 
 on:
-  #pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
   workflow_dispatch:     # Allows manual triggering
+  workflow_call:
+    inputs:
+      pr_number:
+        description: "Pull request number"
+        required: false
+        type: string
+        default: ""
+      pr_sha:
+        description: "Exact pull request head SHA"
+        required: false
+        type: string
+        default: ""
 
 
 permissions:
   contents: write
 jobs:
-  build-and-runtest-with-asan-ubsan:
+  asan-ubsan:
     runs-on: ubuntu-latest
     if: github.repository == 'qualcomm/eld'
 
@@ -23,6 +34,7 @@ jobs:
           platform: x64
 
       - name: Install libc++ and libc++abi
+        id: install_dependencies
         run: |
           sudo apt update
           sudo apt install -y clang-22 lld-22 ninja-build libc++-22-dev libc++abi-22-dev ccache libclang-rt-22-dev libunwind-22-dev
@@ -52,29 +64,30 @@ jobs:
       - name: Checkout eld
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          repository: qualcomm/eld
           path: ./llvm-project/llvm/tools/eld
-          ref: main
+          ref: ${{ inputs.pr_sha || github.ref_name }}
+          fetch-depth: 1
 
       - name: Configure workflow environment variables
-        uses: ./llvm-project//llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
 
       - name: Restore ccache
-        id: cache-ccache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
-          key: sanitizer-ccache-${{ runner.os }}-${{ github.run_id }}
+          key: asan-ubsan-ccache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
-            sanitizer-ccache-${{ runner.os }}-
+            asan-ubsan-ccache-${{ runner.os }}-
 
       - name: Record pre-build entry
         if: github.event_name == 'schedule'
-        uses: ./llvm-project//llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
-          project: "./llvm-project//llvm/tools/eld"
+          project: "./llvm-project/llvm/tools/eld"
           stage: "pre-"
-          workflow-name: "sanitizer"
+          workflow-name: "address-and-undefined-behavior-sanitizer"
           record-mode: "record"
           status: "fail"
           run-id: ${{github.run_id}}
@@ -88,6 +101,7 @@ jobs:
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
+            -DCLANG_ENABLE_CIR=OFF \
             -DLLVM_USE_SANITIZER="Address;Undefined" \
             -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
             -DCMAKE_C_COMPILER:STRING=`which clang` \
@@ -107,20 +121,20 @@ jobs:
           ninja ld.eld
 
       - name: Prune ccache before save
-        if: always()
+        if: always() && steps.install_dependencies.outcome == 'success'
         env:
           CCACHE_DIR: ${{ github.workspace }}/obj/ccache
         run: ccache --evict-older-than 7200s
 
       - name: Save ccache
-        if: always()
+        if: always() && steps.install_dependencies.outcome == 'success'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
-          key: sanitizer-ccache-${{ runner.os }}-${{ github.run_id }}
+          key: asan-ubsan-ccache-${{ runner.os }}-${{ github.run_id }}
 
-      - name: Fetch nightly toolset
-        uses: ./llvm-project//llvm/tools/eld/.github/workflows/FetchNightlyToolset
+      - name: Fetch nightly toolset utilities
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
       - name: Run tests
         run: |
@@ -129,19 +143,19 @@ jobs:
 
       - name: Update build entry
         if: github.event_name == 'schedule'
-        uses: ./llvm-project//llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
-          project: "./llvm-project//llvm/tools/eld"
+          project: "./llvm-project/llvm/tools/eld"
           stage: "post-"
-          workflow-name: "sanitizer"
+          workflow-name: "address-and-undefined-behavior-sanitizer"
           record-mode: "update"
           status: "pass"
           run-id: ${{github.run_id}}
           arch-name: "all"
           branch-name: "${{env.BUILD_BRANCH}}"
 
-      - name: Clean up nightly toolset
+      - name: Clean up toolset
         if: always()
         run: |
           rm -rf ${{ github.workspace }}/inst

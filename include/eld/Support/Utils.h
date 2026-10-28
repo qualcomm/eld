@@ -6,6 +6,7 @@
 #ifndef ELD_SUPPORT_UTILS_H
 #define ELD_SUPPORT_UTILS_H
 
+#include "llvm/ADT/StringRef.h"
 #include <cstdint>
 #include <string>
 
@@ -14,6 +15,14 @@ namespace utility {
 const std::string toHex(uint64_t number);
 
 bool isNullDevice(const std::string &Path);
+
+bool isHostWindows();
+
+/// Serialize an argument for response files parsed with GNU tokenization.
+std::string serializeGNUResponseFileArgument(llvm::StringRef Value);
+
+/// Serialize an argument for response files parsed with Windows tokenization.
+std::string serializeWindowsResponseFileArgument(llvm::StringRef Value);
 } // namespace utility
 } // namespace eld
 

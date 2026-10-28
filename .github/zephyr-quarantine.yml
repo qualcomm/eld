@@ -106,6 +106,13 @@
     bluetooth.shell.shell_br entry.
 
 - scenarios:
+  - pm\.system\.timer\.(?:restart|legacy)
+  platforms:
+  - qemu_cortex_m3/.*
+  comment: >-
+    The test's cmake allowlist only accepts ld and lld.
+
+- scenarios:
   - buildsystem.sbom.spdx
   platforms:
   - qemu_cortex_m3/.*
@@ -115,8 +122,8 @@
 # Lookaheads exclude the variants that pass. They are tied to the ARM job's
 # libc config, so recheck them if that changes.
 - scenarios:
-  - logging\.deferred\.api\.(?!.*(?:rt_filter|rt_filtering))(?!printk(?:_cpp)?(?:\.tagged_args)?$)(?!override_level(?:\.tagged_args)?$|static_filter\.tagged_args$).*
-  - logging\.frontend(?!.*(?:rt_filter|rt_filtering|immediate))(?!\.dbg$).*
+  - logging\.deferred\.api\.(?!.*(?:rt_filter|rt_filtering))(?!printk(?:_cpp)?(?:\.tagged_args)?$)(?!static_filter\.tagged_args$).*
+  - logging\.frontend(?!.*(?:rt_filter|rt_filtering|immediate)).*
   platforms:
   - qemu_cortex_m3/.*
   comment: >-

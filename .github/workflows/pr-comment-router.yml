@@ -1,0 +1,607 @@
+name: PR comment router
+run-name: "PR comment router #${{ inputs.pr_number || github.event.issue.number }}"
+
+on:
+  issue_comment:
+    types: [created, edited]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull request number"
+        required: true
+        type: number
+      pr_sha:
+        description: "Exact pull request head SHA"
+        required: true
+        type: string
+      command:
+        description: "Test workflow to run"
+        required: true
+        type: choice
+        options:
+          - check-llvm-test-suite
+          - check-linux-kernel
+          - check-zephyr
+          - check-thread-sanitizer
+          - check-asan-ubsan
+          - check-windows
+          - check-macos
+          - check-memory-sanitizer
+          - check-all-workflows
+      request_id:
+        description: "Optional request ID used to correlate an external workflow dispatch"
+        required: false
+        default: "manual"
+        type: string
+
+concurrency:
+  group: pr-comment-router-${{ inputs.pr_number || github.event.issue.number }}-${{ inputs.command || github.event.comment.body || 'manual' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  actions: read
+  statuses: write
+
+jobs:
+  validate:
+    if: github.repository == 'qualcomm/eld' && (github.event_name == 'workflow_dispatch' || github.event.issue.pull_request != null)
+    runs-on: ubuntu-latest
+    outputs:
+      pr_number: ${{ steps.request.outputs.pr_number }}
+      pr_sha: ${{ steps.request.outputs.pr_sha }}
+      request_id: ${{ steps.request.outputs.request_id }}
+      artifact_name: ${{ steps.request.outputs.artifact_name }}
+      artifact_run_id: ${{ steps.request.outputs.artifact_run_id }}
+      artifact_reused: ${{ steps.request.outputs.artifact_reused }}
+      command: ${{ steps.request.outputs.command }}
+    steps:
+      - name: Validate comment request
+        id: request
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body || '' }}
+          INPUT_PR_NUMBER: ${{ inputs.pr_number }}
+          INPUT_PR_SHA: ${{ inputs.pr_sha }}
+          INPUT_COMMAND: ${{ inputs.command }}
+          INPUT_REQUEST_ID: ${{ inputs.request_id }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const isWorkflowDispatch = context.eventName === 'workflow_dispatch';
+            const command = isWorkflowDispatch
+              ? process.env.INPUT_COMMAND
+              : process.env.COMMENT_BODY.trim();
+            const allowed = new Set(['COLLABORATOR', 'MEMBER', 'OWNER']);
+            const supported = new Set([
+              'check-llvm-test-suite',
+              'check-linux-kernel',
+              'check-zephyr',
+              'check-thread-sanitizer',
+              'check-asan-ubsan',
+              'check-windows',
+              'check-macos',
+              'check-memory-sanitizer',
+              'check-all-workflows',
+            ]);
+            if (!supported.has(command) ||
+                (!isWorkflowDispatch &&
+                 !allowed.has(context.payload.comment.author_association))) {
+              core.info('Ignoring unrelated or unauthorized comment.');
+              return;
+            }
+
+            const prNumber = isWorkflowDispatch
+              ? Number(process.env.INPUT_PR_NUMBER)
+              : context.issue.number;
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
+              core.setFailed('A valid pull request number is required.');
+              return;
+            }
+            const pullRequest = (await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            })).data;
+            if (isWorkflowDispatch && pullRequest.head.sha !== process.env.INPUT_PR_SHA) {
+              core.setFailed(
+                `PR #${prNumber} moved from ${process.env.INPUT_PR_SHA} to ${pullRequest.head.sha}.`
+              );
+              return;
+            }
+            const requestId = isWorkflowDispatch
+              ? process.env.INPUT_REQUEST_ID
+              : `${context.issue.number}-${pullRequest.head.sha}-${context.payload.comment.id}`;
+            const artifactName = `pr-eld-toolset-${pullRequest.head.sha}`;
+            const checkDefinitions = new Map([
+              ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
+              ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
+              ['check-zephyr', { name: 'Zephyr', context: 'PR Zephyr', usesToolset: true }],
+              ['check-thread-sanitizer', { name: 'Thread sanitizer', context: 'PR Thread Sanitizer', usesToolset: false }],
+              ['check-asan-ubsan', { name: 'Address and undefined behavior sanitizer', context: 'PR Address and Undefined Behavior Sanitizer', usesToolset: false }],
+              ['check-windows', { name: 'Windows CI', context: 'PR Windows CI', usesToolset: false }],
+              ['check-macos', { name: 'macOS CI', context: 'PR macOS CI', usesToolset: false }],
+              ['check-memory-sanitizer', { name: 'Memory with origins sanitizer', context: 'PR Memory with Origins Sanitizer', usesToolset: false }],
+            ]);
+            const selectedChecks = command === 'check-all-workflows'
+              ? [...checkDefinitions.values()]
+              : [checkDefinitions.get(command)];
+            let reusableArtifact;
+            if (['check-thread-sanitizer', 'check-asan-ubsan', 'check-memory-sanitizer', 'check-windows', 'check-macos'].includes(command)) {
+              core.info('This check builds the PR source directly; no standard toolset artifact is required.');
+            } else {
+              const artifacts = await github.paginate(
+                github.rest.actions.listArtifactsForRepo,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: artifactName,
+                  per_page: 100,
+                }
+              );
+              for (const artifact of artifacts) {
+                const runId = artifact.workflow_run?.id;
+                if (artifact.expired || !runId) {
+                  continue;
+                }
+                const run = await github.rest.actions.getWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: runId,
+                });
+                reusableArtifact = artifact;
+                core.info(
+                  `Reusing artifact ${artifactName} from workflow run ${runId} ` +
+                  `(overall conclusion: ${run.data.conclusion || run.data.status}).`
+                );
+                break;
+              }
+            }
+            if (!reusableArtifact) {
+              core.info(['check-thread-sanitizer', 'check-asan-ubsan', 'check-memory-sanitizer', 'check-windows', 'check-macos'].includes(command)
+                ? 'No standard toolset artifact is required for this check.'
+                : `No reusable artifact found for ${artifactName}; the build job will run.`);
+            }
+
+            core.setOutput('pr_number', String(prNumber));
+            core.setOutput('pr_sha', pullRequest.head.sha);
+            core.setOutput('request_id', requestId);
+            core.setOutput('artifact_name', artifactName);
+            core.setOutput('artifact_run_id', reusableArtifact ? String(reusableArtifact.workflow_run.id) : '');
+            core.setOutput('artifact_reused', reusableArtifact ? 'true' : 'false');
+            core.setOutput('command', command);
+
+            for (const check of selectedChecks) {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: pullRequest.head.sha,
+                state: 'pending',
+                context: check.context,
+                target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                description: check.usesToolset
+                  ? reusableArtifact
+                    ? `Reusing the PR ELD toolset for ${check.name}.`
+                    : `Building the PR ELD toolset for ${check.name}.`
+                  : `Building the PR source with ${check.name}.`,
+              });
+            }
+            if (command === 'check-all-workflows') {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: pullRequest.head.sha,
+                state: 'pending',
+                context: 'PR All checks',
+                target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                description: 'All PR checks are starting.',
+              });
+            }
+            if (!isWorkflowDispatch) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: reusableArtifact
+                  ? `${command === 'check-all-workflows' ? 'All checks' : selectedChecks[0].name} request accepted for \`${pullRequest.head.sha}\`. Reusing the existing PR toolset artifact and starting the jobs.`
+                  : `${command === 'check-all-workflows' ? 'All checks' : selectedChecks[0].name} request accepted for \`${pullRequest.head.sha}\`. The checks are starting in this workflow run.`,
+              });
+            }
+
+  build:
+    needs: validate
+    if: |
+      needs.validate.outputs.pr_sha != '' &&
+      needs.validate.outputs.command != 'check-thread-sanitizer' &&
+      needs.validate.outputs.command != 'check-asan-ubsan' &&
+      needs.validate.outputs.command != 'check-windows' &&
+      needs.validate.outputs.command != 'check-macos' &&
+      needs.validate.outputs.command != 'check-memory-sanitizer' &&
+      needs.validate.outputs.artifact_reused != 'true'
+    uses: ./.github/workflows/ubuntu.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      request_id: ${{ needs.validate.outputs.request_id }}
+      skip_tests: true
+    permissions:
+      contents: write
+      actions: write
+      pull-requests: read
+      statuses: write
+
+  llvm_test:
+    needs: [validate, build]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-llvm-test-suite' ||
+       needs.validate.outputs.command == 'check-all-workflows') &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    uses: ./.github/workflows/llvm-test-suite.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
+      artifact_name: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
+    permissions:
+      contents: write
+      actions: read
+
+  linux_test:
+    needs: [validate, build]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-linux-kernel' ||
+       needs.validate.outputs.command == 'check-all-workflows') &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    uses: ./.github/workflows/linux-kernel.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      toolset_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
+      toolset_artifact: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
+      toolset_tarball: install-pr-toolset.tar.xz
+    permissions:
+      contents: write
+      actions: write
+
+  zephyr_test:
+    needs: [validate, build]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-zephyr' ||
+       needs.validate.outputs.command == 'check-all-workflows') &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    uses: ./.github/workflows/zephyr.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      toolset_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
+      toolset_artifact: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
+    permissions:
+      contents: write
+      actions: write
+
+  thread_sanitizer_test:
+    needs: validate
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-thread-sanitizer' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/sanitize-threads.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+    permissions:
+      contents: write
+      actions: read
+
+  asan_ubsan_test:
+    needs: validate
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-asan-ubsan' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/sanitize-address-undefined.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+    permissions:
+      contents: write
+      actions: read
+
+  windows_test:
+    needs: validate
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-windows' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/ci-win.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+    permissions:
+      contents: write
+
+  macos_test:
+    needs: validate
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-macos' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/macos.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+    permissions:
+      contents: write
+
+  memory_sanitizer_test:
+    needs: validate
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-memory-sanitizer' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/sanitize-memory.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+    permissions:
+      contents: write
+      actions: read
+
+  report_llvm:
+    needs: [validate, build, llvm_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-llvm-test-suite' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: LLVM test suite
+      status_context: PR LLVM test suite
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: ${{ needs.build.result }}
+      test_result: ${{ needs.llvm_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_linux:
+    needs: [validate, build, linux_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-linux-kernel' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: Linux kernel boot
+      status_context: PR Linux kernel boot
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: ${{ needs.build.result }}
+      test_result: ${{ needs.linux_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_zephyr:
+    needs: [validate, build, zephyr_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-zephyr' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: Zephyr
+      status_context: PR Zephyr
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: ${{ needs.build.result }}
+      test_result: ${{ needs.zephyr_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_thread_sanitizer:
+    needs: [validate, build, thread_sanitizer_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-thread-sanitizer' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: Thread sanitizer
+      status_context: PR Thread Sanitizer
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: ${{ needs.build.result }}
+      test_result: ${{ needs.thread_sanitizer_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_asan_ubsan:
+    needs: [validate, build, asan_ubsan_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-asan-ubsan' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: Address and undefined behavior sanitizer
+      status_context: PR Address and Undefined Behavior Sanitizer
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: ${{ needs.build.result }}
+      test_result: ${{ needs.asan_ubsan_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_windows:
+    needs: [validate, windows_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-windows' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: Windows CI
+      status_context: PR Windows CI
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: skipped
+      test_result: ${{ needs.windows_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_macos:
+    needs: [validate, macos_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-macos' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: macOS CI
+      status_context: PR macOS CI
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: skipped
+      test_result: ${{ needs.macos_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_memory_sanitizer:
+    needs: [validate, memory_sanitizer_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (needs.validate.outputs.command == 'check-memory-sanitizer' ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: Memory with origins sanitizer
+      status_context: PR Memory with Origins Sanitizer
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: skipped
+      test_result: ${{ needs.memory_sanitizer_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_all:
+    needs: [validate, build, llvm_test, linux_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, memory_sanitizer_test, windows_test, macos_test]
+    if: |
+      always() &&
+      needs.validate.outputs.pr_sha != '' &&
+      needs.validate.outputs.command == 'check-all-workflows'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - name: Report all PR check results
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        env:
+          PR_NUMBER: ${{ needs.validate.outputs.pr_number }}
+          PR_SHA: ${{ needs.validate.outputs.pr_sha }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          LLVM_RESULT: ${{ needs.llvm_test.result }}
+          LINUX_RESULT: ${{ needs.linux_test.result }}
+          ZEPHYR_RESULT: ${{ needs.zephyr_test.result }}
+          THREAD_RESULT: ${{ needs.thread_sanitizer_test.result }}
+          ASAN_RESULT: ${{ needs.asan_ubsan_test.result }}
+          WINDOWS_RESULT: ${{ needs.windows_test.result }}
+          MACOS_RESULT: ${{ needs.macos_test.result }}
+          MEMORY_RESULT: ${{ needs.memory_sanitizer_test.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const checks = [
+              ['LLVM test suite', process.env.LLVM_RESULT],
+              ['Linux kernel boot', process.env.LINUX_RESULT],
+              ['Zephyr', process.env.ZEPHYR_RESULT],
+              ['Thread sanitizer', process.env.THREAD_RESULT],
+              ['Address and undefined behavior sanitizer', process.env.ASAN_RESULT],
+              ['Windows CI', process.env.WINDOWS_RESULT],
+              ['macOS CI', process.env.MACOS_RESULT],
+              ['Memory with origins sanitizer', process.env.MEMORY_RESULT],
+            ];
+            const icon = result => result === 'success'
+              ? '✅'
+              : ['failure', 'cancelled'].includes(result)
+                ? '❌'
+                : '⏭️';
+            const allPassed = process.env.BUILD_RESULT !== 'failure' &&
+              process.env.BUILD_RESULT !== 'cancelled' &&
+              checks.every(([, result]) => result === 'success');
+            const message = allPassed
+              ? `✅ All PR checks passed for \`${process.env.PR_SHA}\`.`
+              : `❌ One or more PR checks failed for \`${process.env.PR_SHA}\`.`;
+            const details = checks
+              .map(([name, result]) => `${icon(result)} ${name}: ${result}`)
+              .join('\n');
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: process.env.PR_SHA,
+              state: allPassed ? 'success' : 'failure',
+              context: 'PR All checks',
+              target_url: process.env.RUN_URL,
+              description: message,
+            });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.PR_NUMBER),
+              body: `${message}\n\n${details}\n\n[View workflow run](${process.env.RUN_URL}).`,
+            });

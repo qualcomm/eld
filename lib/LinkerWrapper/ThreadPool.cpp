@@ -24,7 +24,8 @@ ThreadPool &ThreadPool::operator=(ThreadPool &&other) noexcept {
   if (this == &other)
     return *this;
 
-  std::scoped_lock Lock(FuturesMutex, other.FuturesMutex);
+  std::scoped_lock<std::mutex, std::mutex> Lock(FuturesMutex,
+                                                other.FuturesMutex);
   std::swap(TPool, other.TPool);
   std::swap(Futures, other.Futures);
   return *this;

@@ -31,6 +31,7 @@ runs:
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=$PWD/../inst \
           -DLLVM_ENABLE_PROJECTS="llvm;clang;compiler-rt" \
+          -DCLANG_ENABLE_CIR=OFF \
           -DCMAKE_C_COMPILER=`which clang` \
           -DCMAKE_CXX_COMPILER=`which clang++` \
           -DCMAKE_CXX_FLAGS="-stdlib=libc++" \

@@ -1,0 +1,12 @@
+#---LinkStatsDetails.test----------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This tests that detailed link statistics can be enabled with MapDetail.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %link %linkopts %t.1.o -M --MapDetail=link-stats-details -o %t.1.out 2>&1 | %filecheck %s --check-prefix=ENABLED
+RUN: %link %linkopts %t.1.o -M -o %t.2.out 2>&1 | %filecheck %s --check-prefix=DISABLED
+#END_TEST
+
+#ENABLED: # Detailed link stats enabled
+#DISABLED-NOT: # Detailed link stats enabled

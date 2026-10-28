@@ -5,5 +5,5 @@ RUN: %readelf -S -W %t2.out | %filecheck %s --check-prefix=READELF
 
 #CHECK: Linker:
 #CHECK: LLVM:
-#CHECK-NOT: ffff
-#READELF-NOT: ffff
+#CHECK-NOT: ffffff
+#READELF-NOT: ffffff

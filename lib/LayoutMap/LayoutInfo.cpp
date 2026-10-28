@@ -183,6 +183,7 @@ LayoutInfo::setLayoutDetail(llvm::StringRef Option,
           .Case("show-timing", ShowTiming)
           .Case("show-debug-strings", ShowDebugStrings)
           .Case("show-initial-layout", ShowInitialLayout)
+          .Case("link-stats-details", ShowLinkStatsDetails)
           .StartsWith(ShowRelativePathOptionStr, ShowRelativePath)
           .Default(0);
   LayoutDetail |= OptionLayoutDetail;

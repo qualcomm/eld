@@ -432,10 +432,13 @@ bool SectionMap::matchedSections(
     std::string const &PFilename, std::string const &CurInputSection,
     bool IsArchive, uint64_t InputSectionHash, uint64_t FileNameHash,
     uint64_t NameHash, bool IsCommonSection, const ExcludeFiles &EF) const {
-  WildcardPattern Pattern = PPattern;
-  if (IsCommonSection)
-    Pattern = getWithSyntacticSugarForCommonPattern(Pattern);
-  bool Match = matched(Pattern, CurInputSection, InputSectionHash);
+  bool Match = false;
+  if (LLVM_UNLIKELY(IsCommonSection)) {
+    WildcardPattern Pattern = getWithSyntacticSugarForCommonPattern(PPattern);
+    Match = matched(Pattern, CurInputSection, InputSectionHash);
+  } else {
+    Match = matched(PPattern, CurInputSection, InputSectionHash);
+  }
   if (Match) {
     if (!EF.empty()) {
       for (auto *Elem : EF.patterns()) {
