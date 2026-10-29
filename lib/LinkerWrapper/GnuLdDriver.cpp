@@ -337,6 +337,32 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (llvm::opt::Arg *arg = Args.getLastArg(T::sysroot))
     Config.setSysRoot(arg->getValue());
 
+  // --verbose
+  if (Args.hasArg(T::verbose))
+    Config.options().setVerbose();
+
+  // --verbose=0,1,2,...
+  if (llvm::opt::Arg *arg = Args.getLastArg(T::verbose_level)) {
+    llvm::StringRef value = arg->getValue();
+    uint32_t verboseLevel = 0;
+    if (value.getAsInteger(0, verboseLevel)) {
+      Config.raise(Diag::invalid_value_for_option)
+          << arg->getOption().getPrefixedName() << arg->getValue();
+      return false;
+    }
+    // Just to be GNU compatible.
+    if (verboseLevel > 2) {
+      Config.raise(Diag::invalid_value_for_option)
+          << arg->getOption().getPrefixedName() << arg->getValue();
+      return false;
+    }
+    Config.options().setVerbose(verboseLevel);
+  }
+
+  // --chroot
+  if (llvm::opt::Arg *arg = Args.getLastArg(T::chroot))
+    Config.setChroot(arg->getValue());
+
   // --[no-]fatal-warnings
   Config.options().setFatalWarnings(
       Args.hasFlag(T::fatal_warnings, T::no_fatal_warnings, /*default=*/false));
@@ -371,28 +397,6 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
 
   // -pie
   Config.options().setPIE(Args.hasFlag(T::pie, T::no_pie, false));
-
-  // --verbose
-  if (Args.hasArg(T::verbose))
-    Config.options().setVerbose();
-
-  // --verbose=0,1,2,...
-  if (llvm::opt::Arg *arg = Args.getLastArg(T::verbose_level)) {
-    llvm::StringRef value = arg->getValue();
-    uint32_t verboseLevel = 0;
-    if (value.getAsInteger(0, verboseLevel)) {
-      Config.raise(Diag::invalid_value_for_option)
-          << arg->getOption().getPrefixedName() << arg->getValue();
-      return false;
-    }
-    // Just to be GNU compatible.
-    if (verboseLevel > 2) {
-      Config.raise(Diag::invalid_value_for_option)
-          << arg->getOption().getPrefixedName() << arg->getValue();
-      return false;
-    }
-    Config.options().setVerbose(verboseLevel);
-  }
 
   // --emit-stats
   if (llvm::opt::Arg *arg = Args.getLastArg(T::emit_timing_stats)) {
@@ -1757,6 +1761,8 @@ bool GnuLdDriver::processReproduceOption(
     case T::dump_mapping_file:
     case T::reproduce:
     case T::reproduce_on_fail:
+    case T::chroot:
+    case T::chroot_eq:
     case T::L:
       break;
     case T::l:

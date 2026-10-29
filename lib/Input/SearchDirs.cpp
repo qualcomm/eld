@@ -53,23 +53,6 @@ llvm::StringRef toString(SearchDirs::SearchInputType Type) {
   llvm_unreachable("SearchDirs::SearchInputType out of range");
 }
 
-bool checkInputFile(SearchDirs::SearchInputType Type, llvm::StringRef NameSpec,
-                    llvm::StringRef FileName, DiagnosticEngine *DiagEngine) {
-  bool Found = llvm::sys::fs::exists(FileName);
-  DiagEngine->raise(Diag::verbose_trying_input_file)
-      << FileName << toString(Type) << NameSpec << foundString(Found);
-  return Found;
-}
-
-bool checkLibraryOrConfigFile(llvm::StringRef Type, llvm::StringRef LibraryName,
-                              llvm::StringRef FileName, llvm::StringRef Using,
-                              DiagnosticEngine *DiagEngine) {
-  bool Found = llvm::sys::fs::exists(FileName);
-  DiagEngine->raise(Diag::verbose_trying_library)
-      << FileName << Type << LibraryName << Using << foundString(Found);
-  return Found;
-}
-
 } // namespace
 
 //===----------------------------------------------------------------------===//
@@ -105,9 +88,34 @@ static inline bool SpecToFilename(const std::string &pSpec, std::string &pFile,
 //===----------------------------------------------------------------------===//
 // SearchDirs
 //===----------------------------------------------------------------------===//
+std::string SearchDirs::applyChroot(llvm::StringRef Path) const {
+  return eld::sys::fs::applyChrootPath(Chroot.native(), Path);
+}
+
+bool SearchDirs::checkInputFile(SearchDirs::SearchInputType Type,
+                                llvm::StringRef NameSpec,
+                                llvm::StringRef FileName) const {
+  std::string CheckPath = applyChroot(FileName);
+  bool Found = llvm::sys::fs::exists(CheckPath);
+  DiagEngine->raise(Diag::verbose_trying_input_file)
+      << FileName << toString(Type) << NameSpec << foundString(Found);
+  return Found;
+}
+
+bool SearchDirs::checkLibraryOrConfigFile(llvm::StringRef Type,
+                                          llvm::StringRef LibraryName,
+                                          llvm::StringRef FileName,
+                                          llvm::StringRef Using) const {
+  std::string CheckPath = applyChroot(FileName);
+  bool Found = llvm::sys::fs::exists(CheckPath);
+  DiagEngine->raise(Diag::verbose_trying_library)
+      << FileName << Type << LibraryName << Using << foundString(Found);
+  return Found;
+}
+
 bool SearchDirs::insert(const std::string &PPath) {
   auto *Dir = make<ELDDirectory>(PPath, SysRoot.native());
-  if (!llvm::sys::fs::is_directory(Dir->name())) {
+  if (!llvm::sys::fs::is_directory(applyChroot(Dir->name()))) {
     Dir->setIsFound(false);
     DirList.push_back(Dir);
     return false;
@@ -125,8 +133,8 @@ bool SearchDirs::insert(const sys::fs::Path &PPath) {
   return insert(PPath.native());
 }
 
-const eld::sys::fs::Path *SearchDirs::find(const std::string &pNamespec,
-                                           SearchInputType pType) const {
+const SearchDirs::SearchResult *SearchDirs::find(const std::string &pNamespec,
+                                                 SearchInputType pType) const {
   std::string File;
   bool hasNamespace = false;
   hasNamespace = SpecToFilename(pNamespec, File, pType);
@@ -137,15 +145,19 @@ const eld::sys::fs::Path *SearchDirs::find(const std::string &pNamespec,
     std::string dirName = (*EldDir)->name().c_str();
     // Need to insert the / in the path between dirName and fileName manually
     std::string fileName = dirName + "/" + File;
-    if (checkInputFile(pType, pNamespec, fileName, DiagEngine))
-      return make<eld::sys::fs::Path>(fileName);
+    if (checkInputFile(pType, pNamespec, fileName))
+      return make<SearchResult>(
+          SearchResult{eld::sys::fs::Path(fileName),
+                       eld::sys::fs::Path(applyChroot(fileName))});
     if (SearchDirs::SearchInputType::DynObj == pType && !hasNamespace) {
       // we should also try linking with archives if we dont find a DSO
       SpecToFilename(pNamespec, fileName, SearchDirs::SearchInputType::Archive);
       fileName = dirName + "/" + fileName;
       if (checkInputFile(SearchDirs::SearchInputType::Archive, pNamespec,
-                         fileName, DiagEngine))
-        return make<eld::sys::fs::Path>(fileName);
+                         fileName))
+        return make<SearchResult>(
+            SearchResult{eld::sys::fs::Path(fileName),
+                         eld::sys::fs::Path(applyChroot(fileName))});
     }
   } // end of for
   return nullptr;
@@ -157,9 +169,8 @@ SearchDirs::findInDirList(llvm::StringRef Type, const std::string &FileName,
   for (const ELDDirectory *Dir : DirList) {
     llvm::SmallString<128> Path(Dir->name());
     llvm::sys::path::append(Path, FileName);
-    if (checkLibraryOrConfigFile(Type, FileName, Path, "search path",
-                                 DiagEngine))
-      return make<eld::sys::fs::Path>(Path.str().str());
+    if (checkLibraryOrConfigFile(Type, FileName, Path, "search path"))
+      return make<eld::sys::fs::Path>(applyChroot(Path));
   }
   if (PluginName.empty())
     return nullptr;
@@ -202,8 +213,8 @@ std::vector<eld::sys::fs::Path> SearchDirs::getDefaultPluginConfigs() const {
 const eld::sys::fs::Path *
 SearchDirs::findFile(llvm::StringRef Type, const std::string &Name,
                      const std::string &PluginName) const {
-  if (checkLibraryOrConfigFile(Type, Name, Name, "file path", DiagEngine))
-    return make<eld::sys::fs::Path>(Name);
+  if (checkLibraryOrConfigFile(Type, Name, Name, "file path"))
+    return make<eld::sys::fs::Path>(applyChroot(Name));
   return findInDirList(Type, Name, PluginName);
 }
 
@@ -215,9 +226,8 @@ SearchDirs::findLibrary(llvm::StringRef Type, std::string LibraryName,
     LibraryName = Config.getHashFromFile(LibraryName);
     HasHash = true;
   }
-  if (checkLibraryOrConfigFile(Type, LibraryName, LibraryName, "file path",
-                               DiagEngine))
-    return make<eld::sys::fs::Path>(LibraryName);
+  if (checkLibraryOrConfigFile(Type, LibraryName, LibraryName, "file path"))
+    return make<eld::sys::fs::Path>(applyChroot(LibraryName));
   // We should not try to find libraries at other places if mapping file is
   // provided and it contains the hash for the LibraryName parameter.
   if (HasHash) {
@@ -239,9 +249,8 @@ const eld::sys::fs::Path *SearchDirs::findInRPath(llvm::StringRef Type,
 #ifdef _WIN32
   const std::string fileName =
       SearchDirs::MainExecutablePath + "/" + LibraryName.str();
-  if (checkLibraryOrConfigFile(Type, LibraryName, fileName, "rpath",
-                               DiagEngine))
-    return make<eld::sys::fs::Path>(fileName);
+  if (checkLibraryOrConfigFile(Type, LibraryName, fileName, "rpath"))
+    return make<eld::sys::fs::Path>(applyChroot(fileName));
 #else
   llvm::SmallVector<llvm::StringRef, 8> RPathSplit;
   RPath.split(RPathSplit, ":", -1, false);
@@ -254,9 +263,8 @@ const eld::sys::fs::Path *SearchDirs::findInRPath(llvm::StringRef Type,
     eld::string::ReplaceString(CRPath, "@executable_path",
                                SearchDirs::MainExecutablePath);
     const std::string FileName = CRPath + "/" + LibraryName.str();
-    if (checkLibraryOrConfigFile(Type, LibraryName, FileName, "rpath",
-                                 DiagEngine))
-      return make<eld::sys::fs::Path>(FileName);
+    if (checkLibraryOrConfigFile(Type, LibraryName, FileName, "rpath"))
+      return make<eld::sys::fs::Path>(applyChroot(FileName));
   }
 #endif
   return nullptr;
@@ -272,9 +280,8 @@ SearchDirs::findInDefaultConfigPath(llvm::StringRef Type,
   llvm::sys::path::append(Path, PluginConfigDir);
   llvm::sys::path::append(Path, PluginName);
   llvm::sys::path::append(Path, ConfigName);
-  if (checkLibraryOrConfigFile(Type, ConfigName, Path, "search path",
-                               DiagEngine))
-    return make<eld::sys::fs::Path>(Path.str().str());
+  if (checkLibraryOrConfigFile(Type, ConfigName, Path, "search path"))
+    return make<eld::sys::fs::Path>(applyChroot(Path));
   return nullptr;
 }
 
@@ -307,9 +314,8 @@ SearchDirs::findInPath(llvm::StringRef Type,
 #endif
   for (auto R : PathSplit) {
     const std::string FileName = R + "/" + LibraryName.str();
-    if (checkLibraryOrConfigFile(Type, LibraryName, FileName, "system path",
-                                 DiagEngine))
-      return make<eld::sys::fs::Path>(FileName);
+    if (checkLibraryOrConfigFile(Type, LibraryName, FileName, "system path"))
+      return make<eld::sys::fs::Path>(applyChroot(FileName));
   }
   return nullptr;
 }
@@ -321,7 +327,7 @@ SearchDirs::findInCurDir(llvm::StringRef LibraryName) const {
   if (PWD.empty())
     return nullptr;
   const std::string FileName = std::string(PWD) + "/" + LibraryName.str();
-  if (llvm::sys::fs::exists(FileName))
-    return make<eld::sys::fs::Path>(FileName);
+  if (llvm::sys::fs::exists(applyChroot(FileName)))
+    return make<eld::sys::fs::Path>(applyChroot(FileName));
   return nullptr;
 }

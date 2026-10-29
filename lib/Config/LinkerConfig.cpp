@@ -19,8 +19,10 @@
 #include "eld/Input/InputTree.h"
 #include "eld/Support/MappingFile.h"
 #include "eld/Support/MsgHandling.h"
+#include "eld/Support/Path.h"
 #include "eld/Support/StringUtils.h"
 #include "eld/Target/GNULDBackend.h"
+#include "llvm/Support/FileSystem.h"
 #include <string>
 
 using namespace eld;
@@ -38,6 +40,20 @@ LinkerConfig::LinkerConfig(DiagnosticEngine *DiagEngine,
       CodePos(Unset), DiagEngine(DiagEngine), searchDirs(DiagEngine) {}
 
 LinkerConfig::~LinkerConfig() {}
+
+void LinkerConfig::setChroot(llvm::StringRef C) {
+  options().setChroot(C);
+  searchDirs.setChroot(sys::fs::Path(C.str()));
+  raise(Diag::verbose_setting_chroot) << C;
+}
+
+std::string LinkerConfig::applyChroot(llvm::StringRef Path) const {
+  return eld::sys::fs::applyChrootPath(getChroot(), Path);
+}
+
+bool LinkerConfig::existsInChroot(llvm::StringRef Path) const {
+  return llvm::sys::fs::exists(applyChroot(Path));
+}
 
 void LinkerConfig::addCommandLine(llvm::StringRef Option, bool Flag) {
   CommandLineVector.push_back(eld::make<Flags>(Option.str(), Flag));

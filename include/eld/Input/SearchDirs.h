@@ -49,6 +49,15 @@ public:
     Script,
   };
 
+  struct SearchResult {
+    /// Path without the chroot applied. It should be used for linker script
+    /// rule-matching and diagnostics where feasible.
+    sys::fs::Path logicalPath;
+    /// Path after applying chroot. It should be used to actually read the
+    /// input.
+    sys::fs::Path resolvedPath;
+  };
+
 public:
   SearchDirs(DiagnosticEngine *Diag) : DiagEngine(Diag) {}
 
@@ -57,9 +66,9 @@ public:
 
   ~SearchDirs() {}
 
-  // find - give a namespec, return a real path of the shared object.
-  const sys::fs::Path *find(const std::string &PNamespec,
-                            SearchInputType PPreferType) const;
+  // find - give a namespec, return logical and chroot-resolved paths.
+  const SearchResult *find(const std::string &PNamespec,
+                           SearchInputType PPreferType) const;
 
   const eld::sys::fs::Path *findLibrary(llvm::StringRef Type,
                                         std::string LibraryName,
@@ -84,11 +93,20 @@ public:
   const eld::sys::fs::Path *findInPath(llvm::StringRef Type,
                                        llvm::StringRef LibraryName) const;
 
+  // FIXME: Unused function.
   const eld::sys::fs::Path *findInCurDir(llvm::StringRef LibraryName) const;
 
   void setSysRoot(const sys::fs::Path &PSysRoot) { SysRoot = PSysRoot; }
   const sys::fs::Path &sysroot() const { return SysRoot; }
   bool hasSysRoot() const { return !SysRoot.empty(); }
+
+  void setChroot(const sys::fs::Path &PChroot) { Chroot = PChroot; }
+
+  const sys::fs::Path &chroot() const { return Chroot; }
+
+  bool hasChroot() const { return !Chroot.empty(); }
+
+  std::string applyChroot(llvm::StringRef Path) const;
 
   // -----  iterator range  ----- //
   DirRange getDirectories() {
@@ -111,8 +129,17 @@ public:
   std::vector<eld::sys::fs::Path> getDefaultPluginConfigs() const;
 
 private:
+  bool checkInputFile(SearchInputType Type, llvm::StringRef NameSpec,
+                      llvm::StringRef FileName) const;
+
+  bool checkLibraryOrConfigFile(llvm::StringRef Type,
+                                llvm::StringRef LibraryName,
+                                llvm::StringRef FileName,
+                                llvm::StringRef Using) const;
+
   DirListType DirList;
   sys::fs::Path SysRoot;
+  sys::fs::Path Chroot;
   DiagnosticEngine *DiagEngine;
 };
 

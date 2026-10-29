@@ -336,13 +336,12 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
     }
     if (Sect->getOldInputFile())
       Input = Sect->getOldInputFile();
-    std::string const &PInputFile =
-        Input->getInput()->getResolvedPath().native();
+    std::string const &PInputFile = Input->getInput()->getRuleMatchingPath();
     std::string const &Name = Input->getInput()->getName();
     bool IsArchive = Input->isArchive() ||
                      llvm::dyn_cast<eld::ArchiveMemberInput>(Input->getInput());
     // Hash of all the required things for Match.
-    uint64_t InputFileHash = Input->getInput()->getResolvedPathHash();
+    uint64_t InputFileHash = Input->getInput()->getRuleMatchingPathHash();
     uint64_t NameHash = Input->getInput()->getArchiveMemberNameHash();
     std::string SectName = Sect->name().str();
     uint64_t InputSectionHash = Sect->sectionNameHash();
@@ -474,13 +473,13 @@ void ObjectBuilder::assignInputFromOutputLegacy(eld::InputFile *Obj) {
         if (Section->getOldInputFile())
           Input = Section->getOldInputFile();
         std::string const &PInputFile =
-            Input->getInput()->getResolvedPath().native();
+            Input->getInput()->getRuleMatchingPath();
         std::string const &Name = Input->getInput()->getName();
         bool IsArchive =
             Input->isArchive() ||
             llvm::dyn_cast<eld::ArchiveMemberInput>(Input->getInput());
         // Hash of all the required things for Match.
-        uint64_t InputFileHash = Input->getInput()->getResolvedPathHash();
+        uint64_t InputFileHash = Input->getInput()->getRuleMatchingPathHash();
         uint64_t NameHash = Input->getInput()->getArchiveMemberNameHash();
         std::string SectName = Section->name().str();
         uint64_t InputSectionHash = Section->sectionNameHash();
@@ -851,12 +850,12 @@ void ObjectBuilder::reAssignOutputSections(const plugin::LinkerWrapper *LW) {
           Input->isArchive() ||
           llvm::dyn_cast<eld::ArchiveMemberInput>(Input->getInput());
       // Hash of all the required things for Match.
-      uint64_t InputFileHash = Input->getInput()->getResolvedPathHash();
+      uint64_t InputFileHash = Input->getInput()->getRuleMatchingPathHash();
       uint64_t NameHash = Input->getInput()->getArchiveMemberNameHash();
       uint64_t InputSectionHash = ELFSect->sectionNameHash();
       SectionMap::mapping Pair = ThisModule.getScript().sectionMap().findOnlyIn(
-          OutputSectIter, Input->getInput()->getResolvedPath().native(),
-          *ELFSect, IsArchive, Name, InputSectionHash, InputFileHash, NameHash,
+          OutputSectIter, Input->getInput()->getRuleMatchingPath(), *ELFSect,
+          IsArchive, Name, InputSectionHash, InputFileHash, NameHash,
           IsGnuCompatible);
       if (Pair.first) {
         ELFSect->setOutputSection(Pair.first);

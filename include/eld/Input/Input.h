@@ -89,7 +89,15 @@ public:
 
   void setResolvedPath(std::string Path) { ResolvedPath = Path; }
 
-  void setResolvedPathHash(uint64_t Hash) { ResolvedPathHash = Hash; }
+  /// Must only be used for inputs not resolved by resolvePath.
+  void setRuleMatchingPathAndHash(llvm::StringRef Path) {
+    RuleMatchingPath = Path;
+    RuleMatchingPathHash = computeFilePathHash(RuleMatchingPath);
+  }
+
+  const std::string &getRuleMatchingPath() const { return RuleMatchingPath; }
+
+  uint64_t getRuleMatchingPathHash() const { return RuleMatchingPathHash; }
 
   void setMemberNameHash(uint64_t Hash) { MemberNameHash = Hash; }
 
@@ -135,12 +143,15 @@ public:
     return std::make_pair(getResolvedPath().native(), "");
   }
 
-  uint64_t getResolvedPathHash() const { return ResolvedPathHash; }
+  uint64_t getResolvedPathHash() const {
+    return computeFilePathHash(ResolvedPath->native());
+  }
 
   uint64_t getArchiveMemberNameHash() const { return MemberNameHash; }
 
   // -----------------------Namespec support -------------------------------
-  bool resolvePath(const LinkerConfig &PConfig);
+  bool resolvePath(const LinkerConfig &PConfig,
+                   bool PathAlreadyResolved = false);
 
   bool resolvePathMappingFile(const LinkerConfig &PConfig);
 
@@ -207,9 +218,18 @@ protected:
   std::string OriginalFileName;              // FileName before --remap-inputs
                                              // Member Name or the SONAME.
   std::optional<sys::fs::Path> ResolvedPath; // Resolved path.
+  /// The path that is used for linker script rule-matching.
+  /// - for general input files specified on the command-line, it is the path as
+  ///   it is.
+  //  - for namespec input files specified on the command-line, it is the
+  ///   resolved path
+  ///   obtained from searching the input in -L directories.
+  /// - the sysroot marker, if present, is expanded to the sysoot.
+  /// - chroot path is not added in the rule-matching path.
+  std::string RuleMatchingPath;
   Attribute Attr;                            // Attribute
   uint32_t InputOrdinal = 0;
-  uint64_t ResolvedPathHash = 0;
+  uint64_t RuleMatchingPathHash = 0;
   uint64_t MemberNameHash = 0;
   InputType Type = Default; // The type of input file.
   bool TraceMe = false;

@@ -1,0 +1,72 @@
+#---Chroot.test----------------------------- CommandLine -----------------------#
+#BEGIN_COMMENT
+# Verifies that --chroot re-roots absolute input paths starting with /
+#END_COMMENT
+#START_TEST
+RUN: %rm -rf %t.dir && %mkdir -p %t.dir/lib
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.dir/chroot.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t.dir/foo.o
+RUN: %ar cr %t.dir/lib/libfoo.a %t.dir/foo.o
+RUN: %cp %p/Inputs/input_script.t %t.dir/input_script.t
+RUN: %cp %p/Inputs/group_script.t %t.dir/group_script.t
+RUN: %cp %p/Inputs/include_script.t %t.dir/include_script.t
+RUN: %cp %p/Inputs/subscript.t %t.dir/subscript.t
+RUN: %cp %p/Inputs/ver.map %t.dir/ver.map
+RUN: %cp %p/Inputs/dyn.list %t.dir/dyn.list
+RUN: %cp %p/Inputs/rule_matching.t %t.dir/rule_matching.t
+
+# 1. Positional input starting with /
+RUN: %link %linkopts --chroot %t.dir -o %t1.out /chroot.o
+
+# 2. Script input starting with / containing INPUT(/chroot.o)
+RUN: %link %linkopts --chroot %t.dir -o %t2.out /input_script.t
+
+# 3. Script input containing GROUP(/chroot.o)
+RUN: %link %linkopts --chroot %t.dir -o %t3.out /group_script.t
+
+# 4. Script input containing INCLUDE /subscript.t
+RUN: %link %linkopts --chroot %t.dir -o %t4.out /include_script.t
+
+# 5. Linker script via -T /input_script.t
+RUN: %link %linkopts --chroot %t.dir -T /input_script.t -o %t5.out
+
+# 6. Search directory resolution: -L /lib -lfoo
+RUN: %link %linkopts --chroot %t.dir -L /lib -lfoo -o %t6.out /chroot.o
+
+# 7. Joined syntax --chroot=<dir>
+RUN: %link %linkopts --chroot=%t.dir -o %t7.out /chroot.o
+
+# 8. Verbose mode reports the configured chroot
+RUN: %link %linkopts --verbose --chroot %t.dir -o %t8.out /chroot.o 2>&1 | %filecheck %s --check-prefix=CHROOT
+
+# 9. Version script and dynamic list
+RUN: %link %linkopts --chroot %t.dir --version-script=/ver.map --dynamic-list=/dyn.list -o %t8.out /chroot.o
+
+# 10. Relative paths are untouched
+RUN: cd %t.dir && %link %linkopts --chroot %t.dir -o %t9.out chroot.o
+
+# 11. Response file expansion with --chroot inside response file
+RUN: %echo "--chroot %t.dir /chroot.o -o %t10.out" > %t.rsp
+RUN: %link %linkopts @%t.rsp
+
+# 12. Reproducer behavior and replayability with a chrooted INCLUDE:
+RUN: %link %linkopts --chroot %t.dir -T /include_script.t -o %t11.out --reproduce %t.tar --dump-response-file %t.dump.rsp
+RUN: %filecheck %s --check-prefix=REPRO < %t.dump.rsp
+RUN: %rm -rf %t.rep && %mkdir -p %t.rep
+RUN: cd %t.rep && %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: cd %t.rep && %link @response.txt
+
+# 13. Non-existent file inside chroot produces fatal error
+RUN: %not %link %linkopts --chroot %t.dir -o %t12.out /missing.o 2>&1 | %filecheck %s --check-prefix=MISSING
+
+# 14. Linker-script rules match the logical input path
+RUN: %link -MapStyle txt %linkopts --chroot %t.dir -T /rule_matching.t -o %t13.out /chroot.o -Map %t13.map
+RUN: %filecheck %s --check-prefix=RULEMATCH < %t13.map
+
+#END_TEST
+REPRO-NOT: --chroot
+REPRO: --mapping-file
+CHROOT: Setting chroot to '
+MISSING: cannot read file '/missing.o'
+RULEMATCH: .chroot_text
+RULEMATCH: chroot.o

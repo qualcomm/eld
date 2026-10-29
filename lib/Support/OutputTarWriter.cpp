@@ -207,7 +207,7 @@ void OutputTarWriter::createAndAddFile(std::string Filename,
                                        MappingFile::Kind K, bool IsLTOObject) {
   auto *Ipt =
       make<Input>(ResolvedPath, m_Config.getDiagEngine(), Input::Default);
-  if (!Ipt->resolvePath(m_Config))
+  if (!Ipt->resolvePath(m_Config, /*PathAlreadyResolved=*/true))
     return;
   Ipt->setName(Filename);
   auto *IptFile = make<InputFile>(Ipt, m_Config.getDiagEngine());

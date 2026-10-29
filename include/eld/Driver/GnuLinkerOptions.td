@@ -1095,6 +1095,9 @@ def replay_begin_internal : FF<"__replay_begin">, Flags<[HelpHidden]>,
                                Group<grp_extendedopts>;
 def replay_end_internal : FF<"__replay_end">, Flags<[HelpHidden]>,
                              Group<grp_extendedopts>;
+// --chroot doesn't have a help text because it is an internal option (matching LLD).
+def chroot : Separate<["--"], "chroot">, Flags<[HelpHidden]>;
+def chroot_eq : JJ<"chroot=">, Alias<chroot>, Flags<[HelpHidden]>;
 defm mapping_file : mDashDeprEqWithOpt<"mapping-file", "mapping_file",
                                        "Reproduce link using a mapping file">,
                     MetaVarName<"<INI-file>">,

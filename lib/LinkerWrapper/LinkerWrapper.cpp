@@ -355,9 +355,9 @@ LinkerWrapper::getOutputSectionAndRule(Section S) {
   auto *Input = F.getInputFile()->getInput();
 
   auto [Section, Rule] = Script->sectionMap().findIn(
-      Script->sectionMap().begin(), Input->getResolvedPath().native(),
+      Script->sectionMap().begin(), Input->getRuleMatchingPath(),
       *llvm::cast<ELFSection>(S.getSection()), F.isArchive(), Input->getName(),
-      S.getSection()->sectionNameHash(), Input->getResolvedPathHash(),
+      S.getSection()->sectionNameHash(), Input->getRuleMatchingPathHash(),
       Input->getArchiveMemberNameHash(),
       m_Module.getConfig().options().getScriptOption() ==
           GeneralOptions::MatchGNU);
