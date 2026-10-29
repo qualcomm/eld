@@ -29,9 +29,9 @@ public:
 
   void addEhFrame(EhFrameFragment &F);
 
-  size_t getNumCIE() const { return NumCIE; }
+  size_t getNumCIE() const;
 
-  size_t getNumFDE() const { return NumFDE; }
+  size_t getNumFDE() const;
 
   size_t sizeOfHeader() const { return 12; }
 
@@ -39,8 +39,6 @@ public:
 
 private:
   std::vector<EhFrameFragment *> EhFrames;
-  size_t NumCIE = 0;
-  size_t NumFDE = 0;
 };
 } // namespace eld
 
