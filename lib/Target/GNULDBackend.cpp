@@ -4437,7 +4437,8 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
     layoutInfo->recordFragment(copyRelocSect->getInputFile(), copyRelocSect,
                                frag);
 
-  // Preserve the binding when defining COPY relocation storage.
+  // Preserve the COPY storage owner's original binding.
+  // GNU ld (BFD) also retains WEAK for weak COPY symbols on x86-64.
   ResolveInfo::Binding binding = (ResolveInfo::Binding)pSym->binding();
 
   // Define the copy symbol in the bss section and resolve it

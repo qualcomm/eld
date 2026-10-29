@@ -2269,10 +2269,10 @@ getCopyRelocGroup(ResolveInfo &Sym,
                   [[maybe_unused]] const GNULDBackend &Backend) {
   llvm::MapVector<uint32_t, ResolveInfo *> Group;
   LDSymbol *SymInput = Sym.outSymbol();
-  auto *DynObj = llvm::dyn_cast_or_null<ELFDynObjectFile>(Sym.resolvedOrigin());
-  const uint32_t SymIdx = SymInput ? SymInput->getSymbolIndex() : 0;
+  auto *DynObj = llvm::dyn_cast<ELFDynObjectFile>(Sym.resolvedOrigin());
+  const uint32_t SymIdx = SymInput->getSymbolIndex();
   Group.insert({SymIdx, &Sym});
-  if (!DynObj || !SymInput || Sym.type() != ResolveInfo::Object)
+  if (!DynObj || Sym.type() != ResolveInfo::Object)
     return Group;
 
   // Non-default ("hidden") versions are copied on their own, as lld does.
