@@ -1,0 +1,38 @@
+.top-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #495057;
+}
+
+.top-nav-label {
+    color: #f8f9fa;
+    font-weight: 600;
+}
+
+.arch-filter-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.arch-filter {
+    color: #f8f9fa;
+    background-color: #343a40;
+    border: 1px solid #495057;
+    border-radius: 16px;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+.arch-filter.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.arch-filter-hint {
+    color: #adb5bd;
+    margin-left: 4px;
+}
