@@ -77,6 +77,7 @@ protected:
                               CopyRelocs &CopyRelocSet) override;
 
 private:
+  bool isTLSLocalExecReloc(const Relocation &reloc) const override;
   bool isPICRelocTypeSupported(const Relocation &reloc) const override;
   bool relocNeedsDynRel(Relocation &pReloc) const;
 

@@ -82,3 +82,5 @@ DIAG(warn_unsupported_reloc_for_ifunc, DiagnosticEngine::Warning,
      "Unsupported relocation %0 used for STT_GNU_IFUNC symbol '%1'")
 DIAG(warn_invalid_reloc_for_ifunc, DiagnosticEngine::Warning,
      "Invalid relocation %0 used for STT_GNU_IFUNC symbol '%1'")
+DIAG(tls_le_relocation_in_shared, DiagnosticEngine::Fatal,
+     "relocation %0 against %1 referred from %2 cannot be used with -shared")
