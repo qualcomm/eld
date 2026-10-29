@@ -435,6 +435,16 @@ x86_64PLT *x86_64LDBackend::findEntryInPLT(ResolveInfo *I) const {
   return Entry->second;
 }
 
+bool x86_64LDBackend::DoesOverrideMerge(ELFSection *pSection) const {
+  return isGNUPropertyMergeSection(pSection);
+}
+
+ELFSection *x86_64LDBackend::mergeSection(ELFSection *S) {
+  if (isGNUPropertyMergeSection(S))
+    return getGNUPropertySection();
+  return nullptr;
+}
+
 uint64_t
 x86_64LDBackend::getValueForDiscardedRelocations(const Relocation *R) const {
   if (!m_pEndOfImage)

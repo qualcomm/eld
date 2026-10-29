@@ -220,6 +220,8 @@ bool RISCVLDBackend::initBRIslandFactory() { return true; }
 bool RISCVLDBackend::initStubFactory() { return true; }
 
 bool RISCVLDBackend::readSection(InputFile &pInput, ELFSection *S) {
+  if (S->getKind() == LinkerSectionKind::GNUProperty)
+    return GNULDBackend::readSection(pInput, S);
   eld::LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   if (S->isCode()) {
     const char *Buf = pInput.getCopyForWrite(S->offset(), S->size());
@@ -234,6 +236,8 @@ bool RISCVLDBackend::readSection(InputFile &pInput, ELFSection *S) {
 }
 
 bool RISCVLDBackend::DoesOverrideMerge(ELFSection *pSection) const {
+  if (isGNUPropertyMergeSection(pSection))
+    return true;
   if (pSection->getKind() == LinkerSectionKind::Internal)
     return false;
   if (pSection->getType() == llvm::ELF::SHT_RISCV_ATTRIBUTES)
@@ -242,6 +246,8 @@ bool RISCVLDBackend::DoesOverrideMerge(ELFSection *pSection) const {
 }
 
 ELFSection *RISCVLDBackend::mergeSection(ELFSection *S) {
+  if (isGNUPropertyMergeSection(S))
+    return getGNUPropertySection();
   if (S->getType() == llvm::ELF::SHT_RISCV_ATTRIBUTES) {
     RegionFragment *R = llvm::dyn_cast<RegionFragment>(S->getFrontFragment());
     if (R)
