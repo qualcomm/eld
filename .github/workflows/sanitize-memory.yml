@@ -22,6 +22,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 jobs:
   msan-origins:
     runs-on: ubuntu-latest
@@ -83,9 +84,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
-          key: memory-sanitizer-ccache-${{ runner.os }}-${{ github.run_id }}
+          key: sanitize-memory-ccache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
-            memory-sanitizer-ccache-${{ runner.os }}-
+            sanitize-memory-ccache-${{ runner.os }}-
 
       - name: Record pre-build entry
         if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
@@ -102,6 +103,7 @@ jobs:
           branch-name: "${{env.BUILD_BRANCH}}"
 
       - name: Build MSan-instrumented libc++ and libc++abi
+        id: build_msan_libcxx
         run: |
           cmake -G Ninja \
             -S ./llvm-project/runtimes \
@@ -152,22 +154,35 @@ jobs:
             ../llvm-project/llvm
 
       - name: Build MSan test tools
+        id: build_msan_tools
         run: |
           cd obj
           ninja ld.eld LSParserVerifier llvm-config
 
       - name: Prune ccache before save
-        if: always() && steps.install_dependencies.outcome == 'success'
+        if: always() &&
+          steps.build_msan_libcxx.outcome == 'success' &&
+          steps.build_msan_tools.outcome == 'success'
         env:
           CCACHE_DIR: ${{ github.workspace }}/obj/ccache
         run: ccache --evict-older-than 7200s
 
       - name: Save ccache
-        if: always() && steps.install_dependencies.outcome == 'success'
+        if: always() &&
+          steps.build_msan_libcxx.outcome == 'success' &&
+          steps.build_msan_tools.outcome == 'success'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
-          key: memory-sanitizer-ccache-${{ runner.os }}-${{ github.run_id }}
+          key: sanitize-memory-ccache-${{ runner.os }}-${{ github.run_id }}
+
+      - name: Delete old ccache entries
+        if: always() &&
+          steps.build_msan_libcxx.outcome == 'success' &&
+          steps.build_msan_tools.outcome == 'success'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldCaches
+        with:
+          cache-key-prefixes: sanitize-memory-ccache-${{ runner.os }}-
 
       - name: Fetch nightly toolset utilities
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset

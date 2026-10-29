@@ -242,11 +242,12 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/ccache-linux
-          key: kernel-boot-linux-ccache-${{ matrix.arch }}-${{ runner.os }}-${{ github.run_id }}
+          key: linux-kernel-ccache-${{ matrix.arch }}-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
-            kernel-boot-linux-ccache-${{ matrix.arch }}-${{ runner.os }}-
+            linux-kernel-ccache-${{ matrix.arch }}-${{ runner.os }}-
 
       - name: Build kernel with ELD
+        id: build_kernel
         if: matrix.enabled == 1
         shell: bash
         env:
@@ -275,17 +276,23 @@ jobs:
           ccache -s
 
       - name: Prune ccache before save
-        if: matrix.enabled == 1 && always() && steps.install_dependencies.outcome == 'success'
+        if: always() && matrix.enabled == 1 && steps.build_kernel.outcome == 'success'
         env:
           CCACHE_DIR: ${{ github.workspace }}/ccache-linux
         run: ccache --evict-older-than 7200s
 
       - name: Save ccache
-        if: matrix.enabled == 1 && always() && steps.install_dependencies.outcome == 'success'
+        if: always() && matrix.enabled == 1 && steps.build_kernel.outcome == 'success'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/ccache-linux
-          key: kernel-boot-linux-ccache-${{ matrix.arch }}-${{ runner.os }}-${{ github.run_id }}
+          key: linux-kernel-ccache-${{ matrix.arch }}-${{ runner.os }}-${{ github.run_id }}
+
+      - name: Delete old ccache entries
+        if: always() && matrix.enabled == 1 && steps.build_kernel.outcome == 'success'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldCaches
+        with:
+          cache-key-prefixes: linux-kernel-ccache-${{ matrix.arch }}-${{ runner.os }}-
 
       - name: Upload vmlinux and linker map
         if: matrix.enabled == 1 && always()

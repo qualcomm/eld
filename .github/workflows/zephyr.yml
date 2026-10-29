@@ -87,9 +87,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-${{ matrix.target.arch }}-${{ matrix.target.toolchain || 'cpullvm' }}-${{ github.run_id }}
+          key: zephyr-ccache-${{ matrix.target.arch }}-${{ matrix.target.toolchain || 'cpullvm' }}-${{ github.run_id }}
           restore-keys: |
-            ccache-${{ matrix.target.arch }}-${{ matrix.target.toolchain || 'cpullvm' }}-
+            zephyr-ccache-${{ matrix.target.arch }}-${{ matrix.target.toolchain || 'cpullvm' }}-
 
       - name: Configure ccache
         env:
@@ -213,6 +213,7 @@ jobs:
             --personal-access-token "${{ github.token }}"
 
       - name: Build hello_world for ${{ matrix.target.board }} with ELD
+        id: build_hello_world
         shell: bash
         env:
           BOARD: ${{ matrix.target.board }}
@@ -287,20 +288,32 @@ jobs:
 
       - name: Prune ccache before save
         if: |
-          success() &&
+          always() &&
+          steps.build_hello_world.outcome == 'success' &&
           inputs.pr_sha == '' &&
           matrix.target.arch == 'riscv64'
         run: ccache --cleanup
 
       - name: Save ccache
         if: |
-          success() &&
+          always() &&
+          steps.build_hello_world.outcome == 'success' &&
           inputs.pr_sha == '' &&
           matrix.target.arch == 'riscv64'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-${{ matrix.target.arch }}-${{ matrix.target.toolchain || 'cpullvm' }}-${{ github.run_id }}
+          key: zephyr-ccache-${{ matrix.target.arch }}-${{ matrix.target.toolchain || 'cpullvm' }}-${{ github.run_id }}
+
+      - name: Delete old ccache entries
+        if: |
+          always() &&
+          steps.build_hello_world.outcome == 'success' &&
+          inputs.pr_sha == '' &&
+          matrix.target.arch == 'riscv64'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldCaches
+        with:
+          cache-key-prefixes: zephyr-ccache-
 
       - name: Update build entry
         if: success() && inputs.pr_sha == ''

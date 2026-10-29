@@ -309,7 +309,7 @@ jobs:
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
     permissions:
       contents: write
-      actions: read
+      actions: write
 
   asan_ubsan_test:
     needs: validate
@@ -325,7 +325,7 @@ jobs:
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
     permissions:
       contents: write
-      actions: read
+      actions: write
 
   windows_test:
     needs: validate
@@ -356,6 +356,7 @@ jobs:
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
     permissions:
       contents: write
+      actions: write
 
   memory_sanitizer_test:
     needs: validate
@@ -371,7 +372,7 @@ jobs:
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
     permissions:
       contents: write
-      actions: read
+      actions: write
 
   report_llvm:
     needs: [validate, build, llvm_test]

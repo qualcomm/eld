@@ -28,10 +28,10 @@ on:
     outputs:
       artifact_name:
         description: "Name of the uploaded PR ELD toolset artifact"
-        value: ${{ jobs.build.outputs.artifact_name }}
+        value: ${{ jobs.ubuntu.outputs.artifact_name }}
       artifact_run_id:
         description: "CI workflow run containing the toolset artifact"
-        value: ${{ jobs.build.outputs.artifact_run_id }}
+        value: ${{ jobs.ubuntu.outputs.artifact_run_id }}
 permissions: {}
 jobs:
   ubuntu:
