@@ -4086,13 +4086,13 @@ bool GNULDBackend::symbolNeedsCopyReloc(const Relocation &pReloc,
       pSym.type() == ResolveInfo::Function || pSym.size() == 0)
     return false;
 
-  // TODO: Is this check necessary?
-  // if relocation target place is readonly, a copy relocation is needed
-  uint32_t flag = pReloc.targetRef()->getOutputELFSection()->getFlags();
-  if (0 == (flag & llvm::ELF::SHF_WRITE))
-    return true;
+  const ELFSection *InputSection =
+      pReloc.targetRef()->frag()->getOwningSection();
 
-  return false;
+  if (!InputSection->getOutputELFSection())
+    return InputSection->isAlloc() && !InputSection->isWritable();
+
+  return isTargetReadOnly(*InputSection);
 }
 
 uint64_t GNULDBackend::getImageBase(bool HasInterp, bool LoadEHdr) const {
