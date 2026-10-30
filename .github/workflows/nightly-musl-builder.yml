@@ -67,24 +67,27 @@ jobs:
 
       - name: Setup ELD Environment
         run: |
-          echo "PATH=$PWD/install/bin:$PATH" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=$PWD/obj/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          printf 'PATH=%s\nLD_LIBRARY_PATH=%s\n' \
+            "$PWD/install/bin:$PATH" "$PWD/obj/lib:$LD_LIBRARY_PATH" \
+            >> "$GITHUB_ENV"
 
       - name: Download and Build musl
         run: |
           git clone --depth 1 https://git.musl-libc.org/git/musl
           cd musl
-          CC=clang CXX=clang++ ./configure --prefix=$PWD/../musl-install
-          make -j$(nproc)
+          CC=clang CXX=clang++ ./configure --prefix="$PWD/../musl-install"
+          make -j"$(nproc)"
           make install
 
       - name: Configure build environment and toolchain
         run: |
           # Set environment variables for subsequent steps
-          echo "LD=eld" >> $GITHUB_ENV
-          echo "PATH=$PWD/musl-install/bin:$PWD/install/bin:$PATH" >> $GITHUB_ENV
-          echo "CC=$PWD/musl-install/bin/musl-clang" >> $GITHUB_ENV
-          echo "CFLAGS=-Wno-unused-command-line-argument" >> $GITHUB_ENV
+          {
+            printf 'LD=eld\n'
+            printf 'PATH=%s\n' "$PWD/musl-install/bin:$PWD/install/bin:$PATH"
+            printf 'CC=%s\n' "$PWD/musl-install/bin/musl-clang"
+            printf 'CFLAGS=-Wno-unused-command-line-argument\n'
+          } >> "$GITHUB_ENV"
 
       - name: Download and Setup libc-test
         run: |
@@ -99,7 +102,7 @@ jobs:
       - name: Build and test libc-test with ELD + musl
         run: |
           cd libc-test
-          make -j$(nproc) 2>&1 | tee build.log
+          make -j"$(nproc)" 2>&1 | tee build.log
 
       - name: Validate test results with FileCheck
         run: |
@@ -175,12 +178,14 @@ jobs:
           if [[ "${ARCH}" == "arm" ]]; then
             arm_toolchain_name_suffix="eabi"
           fi
-          echo "arm_toolchain_name_suffix=${arm_toolchain_name_suffix}" >> $GITHUB_ENV
           wget "https://github.com/cross-tools/clang-cross/releases/download/20251023/${ARCH}-unknown-linux-musl${arm_toolchain_name_suffix}.tar.xz"
           mkdir toolchain
           tar -xvf "${ARCH}-unknown-linux-musl${arm_toolchain_name_suffix}.tar.xz" -C toolchain --strip-components=1
-          echo "PATH=$PWD/toolchain/bin:$PATH" >> $GITHUB_ENV
-          echo "TOOLCHAIN_ROOT=$(pwd)/toolchain" >> $GITHUB_ENV
+          {
+            printf 'arm_toolchain_name_suffix=%s\n' "$arm_toolchain_name_suffix"
+            printf 'PATH=%s\n' "$PWD/toolchain/bin:$PATH"
+            printf 'TOOLCHAIN_ROOT=%s\n' "$PWD/toolchain"
+          } >> "$GITHUB_ENV"
 
       - name: Download musl libc-test
         run: |
@@ -197,10 +202,11 @@ jobs:
           cd libc-test
           which grep
           which which
+          eld_bin="$(command -v ld.eld)"
           cp config.mak.def config.mak
           cat >>config.mak <<EOF
             CFLAGS += -Wno-error -Wno-strict-prototypes -Wno-switch-bool -Wno-c23-extensions
-            LDFLAGS += --ld-path=$(which ld.eld) -Wl,--image-base=0x1000
+            LDFLAGS += --ld-path=${eld_bin} -Wl,--image-base=0x1000
           EOF
           cat >"qemu-${ARCH}-wrapper.sh" <<EOF
           #!/usr/bin/bash

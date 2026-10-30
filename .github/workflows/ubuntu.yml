@@ -72,7 +72,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup musl environment
-        run: echo "/opt/musl/bin" >> $GITHUB_PATH
+        run: echo "/opt/musl/bin" >> "$GITHUB_PATH"
 
       - name: Run CMake
         working-directory: pr-${{ env.PR_NUMBER }}
@@ -107,7 +107,7 @@ jobs:
 
       - name: Cache Usage before build
         working-directory: pr-${{ env.PR_NUMBER }}/obj
-        run: ccache --show-stats --dir=$CCACHE_DIR
+        run: ccache --show-stats --dir="$CCACHE_DIR"
 
       - name: Build
         working-directory: pr-${{ env.PR_NUMBER }}/obj
@@ -120,11 +120,11 @@ jobs:
 
       - name: Cache usage after build
         working-directory: pr-${{ env.PR_NUMBER }}/obj
-        run: ccache --show-stats --dir=$CCACHE_DIR
+        run: ccache --show-stats --dir="$CCACHE_DIR"
 
       - name: Prune ccache before save
         working-directory: pr-${{ env.PR_NUMBER }}/obj
-        run: ccache --evict-older-than 7200s --dir=$CCACHE_DIR
+        run: ccache --evict-older-than 7200s --dir="$CCACHE_DIR"
 
       - name: Run tests
         if: inputs.skip_tests == false

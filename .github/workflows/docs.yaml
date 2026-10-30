@@ -70,8 +70,8 @@ jobs:
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCLANG_ENABLE_CIR=OFF \
-            -DCMAKE_C_COMPILER:STRING=`which clang` \
-            -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+            -DCMAKE_C_COMPILER:STRING="$(command -v clang)" \
+            -DCMAKE_CXX_COMPILER:STRING="$(command -v clang++)" \
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon" \
             -DLLVM_ENABLE_SPHINX=On \
             -DELD_ENABLE_PDF_DOCS:BOOL=ON \
@@ -90,7 +90,7 @@ jobs:
           git config --global user.email 'github-actions@github.com'
           git checkout --orphan docs
           git rm -rf .
-          cp -r ${ROOT}/obj/tools/eld/docs/userguide/html/. .
+          cp -r "${ROOT}/obj/tools/eld/docs/userguide/html/." .
           touch .nojekyll
           git add .
           git commit -m "Update documentation"
