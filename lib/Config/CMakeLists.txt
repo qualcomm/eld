@@ -13,7 +13,9 @@ llvm_add_library(
   TargetOptions.cpp
   Version.cpp
   DEPENDS
-  ${LLVM_VCS_DEPS})
+  ${LLVM_VCS_DEPS}
+  LINK_COMPONENTS
+  Option)
 
-target_link_libraries(ELDConfig PRIVATE ELDDiagnostics ELDSupport ELDScript LLVMOption)
+target_link_libraries(ELDConfig PRIVATE ELDDiagnostics ELDSupport ELDScript)
 add_dependencies(ELDConfig update-eld-verinfo)
