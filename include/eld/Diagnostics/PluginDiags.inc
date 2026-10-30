@@ -55,6 +55,8 @@ DIAG(error_invalid_input_file, DiagnosticEngine::Error,
      "Invalid input file %0")
 DIAG(error_dwarf_context_not_available, DiagnosticEngine::Error,
      "Dwarf context is not available for %0")
+DIAG(warn_dwarf_object_unavailable, DiagnosticEngine::Warning,
+     "Cannot inspect DWARF information in input file '%0': %1")
 DIAG(error_symbol_not_found, DiagnosticEngine::Error,
      "Symbol '%0' not found")
 DIAG(error_invalid_link_state, DiagnosticEngine::Error,
