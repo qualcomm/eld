@@ -4,27 +4,28 @@ run-name: "CI PR #${{ github.event.pull_request.number }} @${{ github.event.pull
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    # Keep CI changes covered while avoiding CI runs for changes to the other
-    # workflow definitions.
+    # Run the lightweight workflow lint job for workflow-only changes without
+    # running the Ubuntu build.
     paths:
       - '**'
       - '!**/configure_external_llvm.sh'
       - '!.github/pr-labeler.yml'
       - '!.github/workflows/**'
       - '!etc/**/*.sh'
-      - '.github/workflows/ci.yml'
-      - '.github/workflows/ubuntu.yml'
+      - '.github/workflows/**'
 
 jobs:
   changes:
-    name: Check for non-documentation changes
+    name: Classify changed files
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
     outputs:
       skip_build: ${{ steps.file-check.outputs.skip_build }}
+      workflow_changed: ${{ steps.file-check.outputs.workflow_changed }}
+      workflow_files: ${{ steps.file-check.outputs.workflow_files }}
     steps:
-      - name: Check for non-doc changes
+      - name: Classify changed files
         id: file-check
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
         with:
@@ -42,8 +43,35 @@ jobs:
             const onlyDocs = files.length > 0 && files.every(({ filename }) =>
               filename.startsWith('docs/') || filename.endsWith('.md')
             );
+            // Lint only top-level workflow definitions, not nested composite
+            // action metadata or helper scripts.
+            const workflowFiles = files
+              .filter(({ filename, status }) => {
+                const relativePath = filename.slice('.github/workflows/'.length);
+                return filename.startsWith('.github/workflows/') &&
+                  !relativePath.includes('/') &&
+                  /\.(yml|yaml)$/i.test(filename) &&
+                  status !== 'removed';
+              })
+              .map(({ filename }) => filename);
+            const onlyWorkflows = files.length > 0 && files.every(({ filename }) =>
+              filename.startsWith('.github/workflows/')
+            );
             core.info(`Changed files: ${files.map(({ filename }) => filename).join(', ')}`);
-            core.setOutput('skip_build', String(onlyDocs));
+            core.setOutput('skip_build', String(onlyDocs || onlyWorkflows));
+            core.setOutput('workflow_changed', String(workflowFiles.length > 0));
+            core.setOutput('workflow_files', JSON.stringify(workflowFiles));
+
+  workflow-lint:
+    name: Lint GitHub Actions workflows
+    needs: changes
+    if: needs.changes.outputs.workflow_changed == 'true'
+    uses: ./.github/workflows/workflow-lint.yml
+    with:
+      ref: ${{ github.event.pull_request.head.sha }}
+      workflow_files: ${{ needs.changes.outputs.workflow_files }}
+    permissions:
+      contents: read
 
   build:
     name: Ubuntu CI
