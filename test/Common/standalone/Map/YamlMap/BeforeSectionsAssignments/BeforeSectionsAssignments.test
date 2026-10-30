@@ -1,0 +1,31 @@
+# Assignments before SECTIONS must precede the output sections in the YAML map,
+# including assignments from included scripts. Preserve each assignment's value
+# when the same symbol is reassigned inside and after SECTIONS.
+RUN: %clang %clangopts -c "%p/Inputs/1.c" -o "%t.o"
+RUN: %link %linkopts "%t.o" -T "%p/Inputs/script.t" -L "%p/Inputs" -MapStyle yaml -Map "%t.map" -o "%t.out"
+RUN: %filecheck "%s" < "%t.map"
+
+# A script without SECTIONS must also retain its assignments in the map.
+RUN: %link %linkopts "%t.o" -T "%p/Inputs/included.t" -MapStyle yaml -Map "%t.no-sections.map" -o "%t.no-sections.out"
+RUN: %filecheck "%s" --check-prefix=NO-SECTIONS < "%t.no-sections.map"
+
+CHECK:      OutputSections:
+CHECK-NEXT:   - Name: u
+CHECK-NEXT:     Value: 0x13
+CHECK-NEXT:     Text: '0x13'
+CHECK-NEXT:   - Name: included
+CHECK-NEXT:     Value: 0x12
+CHECK-NEXT:     Text: '0x12'
+CHECK:        - Name: .text
+CHECK:          Contents:
+CHECK-NEXT:       - Name: u
+CHECK-NEXT:         Value: 0x15
+CHECK-NEXT:         Text: '0x15'
+CHECK:        - Name: u
+CHECK-NEXT:     Value: 0x17
+CHECK-NEXT:     Text: '0x17'
+
+NO-SECTIONS:      OutputSections:
+NO-SECTIONS-NEXT:   - Name: included
+NO-SECTIONS-NEXT:     Value: 0x12
+NO-SECTIONS-NEXT:     Text: '0x12'
