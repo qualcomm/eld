@@ -1,0 +1,10 @@
+#---GlobalOffsetTableInputDefinition.test----------- Shared Library ----------#
+#BEGIN_COMMENT
+# _GLOBAL_OFFSET_TABLE_ is a linker defined symbol. Verify that ELD reports an
+# error when an input file defines it, consistent with LLD and BFD.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -fPIC
+RUN: %not %link %linkopts -shared %t1.o -o %t1.so 2>&1 | %filecheck %s
+#END_TEST
+CHECK: Error: {{.*}}1.o cannot redefine linker defined symbol `_GLOBAL_OFFSET_TABLE_'
