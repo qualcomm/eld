@@ -1,3 +1,2 @@
-llvm_add_library(ELDAArch64TargetInfo STATIC AArch64TargetInfo.cpp)
-target_link_libraries(ELDAArch64TargetInfo PRIVATE LLVMAArch64AsmParser
-                      LLVMAArch64CodeGen)
+llvm_add_library(ELDAArch64TargetInfo STATIC AArch64TargetInfo.cpp
+                 LINK_COMPONENTS AArch64AsmParser AArch64CodeGen)
