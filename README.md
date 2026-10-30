@@ -41,7 +41,7 @@ ELD `main`.
 
 You can build ELD either:
 - Integrated into an `llvm-project` build (recommended for running tests), or
-- Against an external, prebuilt LLVM installation (using a compatible LLVM revision).
+- Against an external, prebuilt LLVM installation (using a compatible LLVM revision). The compatible LLVM revision for eld main branch is the llvm-project main branch, and for eld release `release/N.x` branches, it is the corresponding llvm-project release `release/N.x` branch.
 
 You will need a recent C++ compiler for building LLVM and ELD.
 
