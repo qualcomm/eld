@@ -237,52 +237,43 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
   ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInput);
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
-  switch (pReloc.type()) {
-  case llvm::ELF::R_AARCH64_AUTH_ABS64:
-  case llvm::ELF::R_AARCH64_ABS64: {
-    bool isAuthAbs = pReloc.type() == llvm::ELF::R_AARCH64_AUTH_ABS64;
-    // If building PIC object (shared library or PIC executable)
-    // or dealing with a signed relocation,
-    // a dynamic relocations with RELATIVE type to this location is needed.
-    // Reserve an entry in .rel.dyn
-    if (config().isCodeIndep() || isAuthAbs) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-      if (!checkDynamicRelocAllowed(pReloc, pSection, true))
-        return;
-      // set Rel bit
-      rsym->setReserved(rsym->reserved() | ReserveRel);
-      getTarget().checkAndSetHasTextRel(pSection);
-      // set up the dyn rel directly
-      Relocation::Type relType = isAuthAbs ? llvm::ELF::R_AARCH64_AUTH_RELATIVE
-                                           : llvm::ELF::R_AARCH64_RELATIVE;
-      helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
-                         pReloc.targetRef()->offset(), relType, m_Target);
+  const Relocation::Type Type = pReloc.type();
+  switch (getRelocationScanKind(Type)) {
+  case RelocationScanKind::Absolute: {
+    if (Type == llvm::ELF::R_AARCH64_AUTH_ABS64 ||
+        Type == llvm::ELF::R_AARCH64_ABS64) {
+      bool isAuthAbs = Type == llvm::ELF::R_AARCH64_AUTH_ABS64;
+      // If building PIC object (shared library or PIC executable)
+      // or dealing with a signed relocation, a dynamic relocation with
+      // RELATIVE type to this location is needed.
+      if (config().isCodeIndep() || isAuthAbs) {
+        if (!checkDynamicRelocAllowed(pReloc, pSection, true))
+          return;
+        rsym->setReserved(rsym->reserved() | ReserveRel);
+        getTarget().checkAndSetHasTextRel(pSection);
+        Relocation::Type relType = isAuthAbs
+                                       ? llvm::ELF::R_AARCH64_AUTH_RELATIVE
+                                       : llvm::ELF::R_AARCH64_RELATIVE;
+        helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
+                           pReloc.targetRef()->offset(), relType, m_Target);
+      }
+      return;
     }
-  }
-    return;
 
-  case llvm::ELF::R_AARCH64_ABS32:
-  case llvm::ELF::R_AARCH64_ABS16:
-    // If building PIC object (shared library or PIC executable),
-    // a dynamic relocations with RELATIVE type to this location is needed.
-    // Reserve an entry in .rel.dyn
+    // If building PIC object (shared library or PIC executable), a dynamic
+    // relocation with RELATIVE type to this location is needed.
     if (config().isCodeIndep()) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
       if (!checkDynamicRelocAllowed(pReloc, pSection, true))
         return;
-      // set up the dyn rel directly
       helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
                          pReloc.targetRef()->offset(), pReloc.type(), m_Target);
-      // set Rel bit
       rsym->setReserved(rsym->reserved() | ReserveRel);
       getTarget().checkAndSetHasTextRel(pSection);
     }
     return;
+  }
 
-  case llvm::ELF::R_AARCH64_ADR_GOT_PAGE:
-  case llvm::ELF::R_AARCH64_LD64_GOT_LO12_NC:
-  case llvm::ELF::R_AARCH64_LD64_GOTPAGE_LO15: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::GOT: {
     // Symbol needs GOT entry, reserve entry in .got
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
@@ -296,9 +287,7 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     return;
   }
 
-  case llvm::ELF::R_AARCH64_TLSIE_ADR_GOTTPREL_PAGE21:
-  case llvm::ELF::R_AARCH64_TLSIE_LD64_GOTTPREL_LO12_NC: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSIE: {
     if (rsym->reserved() & ReserveGOT)
       return;
 
@@ -320,11 +309,7 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     return;
   }
 
-  case llvm::ELF::R_AARCH64_TLSDESC_ADR_PAGE21:
-  case llvm::ELF::R_AARCH64_TLSDESC_LD64_LO12:
-  case llvm::ELF::R_AARCH64_TLSDESC_ADD_LO12: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-
+  case RelocationScanKind::TLSDESC: {
     // Symbol needs GOT entry, reserve entry in .got
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
@@ -344,7 +329,10 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     return;
   }
 
-  default:
+  case RelocationScanKind::None:
+  case RelocationScanKind::Prel:
+  case RelocationScanKind::Branch:
+  case RelocationScanKind::Adr:
     break;
   }
 }
@@ -358,12 +346,8 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   ResolveInfo *rsym = pReloc.symInfo();
   if (rsym && rsym->isIFunc() && config().isCodeStatic())
     return handleScanForNonPreemptibleIFunc(pReloc, Obj);
-  switch (pReloc.type()) {
-  case llvm::ELF::R_AARCH64_AUTH_ABS64:
-  case llvm::ELF::R_AARCH64_ABS16:
-  case llvm::ELF::R_AARCH64_ABS32:
-  case llvm::ELF::R_AARCH64_ABS64: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  switch (getRelocationScanKind(pReloc.type())) {
+  case RelocationScanKind::Absolute: {
     bool isAuthAbs = pReloc.type() == llvm::ELF::R_AARCH64_AUTH_ABS64;
     // Absolute relocation type, symbol may needs PLT entry or
     // dynamic relocation entry
@@ -422,10 +406,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   }
     return;
 
-  case llvm::ELF::R_AARCH64_PREL64:
-  case llvm::ELF::R_AARCH64_PREL32:
-  case llvm::ELF::R_AARCH64_PREL16: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::Prel: {
     bool isSymbolPreemptible = m_Target.isSymbolPreemptible(*rsym);
     if (isSymbolPreemptible) {
       if ((rsym->type() == ResolveInfo::Function) &&
@@ -456,10 +437,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     return;
   }
 
-  case llvm::ELF::R_AARCH64_CONDBR19:
-  case llvm::ELF::R_AARCH64_JUMP26:
-  case llvm::ELF::R_AARCH64_CALL26: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::Branch: {
     // return if we already create plt for this symbol
     if (rsym->reserved() & ReservePLT)
       return;
@@ -479,9 +457,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     return;
   }
 
-  case llvm::ELF::R_AARCH64_ADR_PREL_PG_HI21:
-  case R_AARCH64_ADR_PREL_PG_HI21_NC: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::Adr: {
     if (relocNeedsDynRel(pReloc)) {
       if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
         // check if the option -z nocopyreloc is given
@@ -511,10 +487,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     return;
   }
 
-  case llvm::ELF::R_AARCH64_ADR_GOT_PAGE:
-  case llvm::ELF::R_AARCH64_LD64_GOT_LO12_NC:
-  case llvm::ELF::R_AARCH64_LD64_GOTPAGE_LO15: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::GOT: {
     // Symbol needs GOT entry, reserve entry in .got
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
@@ -529,9 +502,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     return;
   }
 
-  case llvm::ELF::R_AARCH64_TLSIE_ADR_GOTTPREL_PAGE21:
-  case llvm::ELF::R_AARCH64_TLSIE_LD64_GOTTPREL_LO12_NC: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSIE: {
     // Symbol needs GOT entry, reserve entry in .got
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
@@ -552,11 +523,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     return;
   }
 
-  case llvm::ELF::R_AARCH64_TLSDESC_ADR_PAGE21:
-  case llvm::ELF::R_AARCH64_TLSDESC_LD64_LO12:
-  case llvm::ELF::R_AARCH64_TLSDESC_ADD_LO12: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-
+  case RelocationScanKind::TLSDESC: {
     // Symbol needs GOT entry, reserve entry in .got
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
@@ -576,7 +543,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     return;
   };
 
-  default:
+  case RelocationScanKind::None:
     break;
   }
 }
@@ -610,6 +577,69 @@ void AArch64Relocator::scanNonAllocReloc(Relocation &Reloc,
       << getName(Reloc.type()) << Reloc.symInfo()->name()
       << Section.getDecoratedName(config().options());
   m_Target.getModule().setFailure(true);
+}
+
+bool AArch64Relocator::needsSerialScan(const Relocation &Reloc,
+                                       const ELFSection &) const {
+  ResolveInfo *Sym = Reloc.symInfo();
+  const bool IsLocal = Sym->isLocal();
+
+  if (!IsLocal && Sym->isIFunc() && config().isCodeStatic())
+    return true;
+
+  switch (getRelocationScanKind(Reloc.type())) {
+  case RelocationScanKind::Absolute:
+    if (Reloc.type() == llvm::ELF::R_AARCH64_AUTH_ABS64)
+      return true;
+    return config().isCodeIndep() ||
+           (!IsLocal && m_Target.isSymbolPreemptible(*Sym));
+  case RelocationScanKind::Prel:
+  case RelocationScanKind::Branch:
+  case RelocationScanKind::Adr:
+    return !IsLocal && m_Target.isSymbolPreemptible(*Sym);
+  case RelocationScanKind::GOT:
+  case RelocationScanKind::TLSDESC:
+    return true;
+  case RelocationScanKind::TLSIE:
+    return !IsLocal || !config().isCodeStatic();
+  case RelocationScanKind::None:
+    return false;
+  }
+}
+
+AArch64Relocator::RelocationScanKind
+AArch64Relocator::getRelocationScanKind(Relocation::Type Type) const {
+  switch (Type) {
+  case llvm::ELF::R_AARCH64_AUTH_ABS64:
+  case llvm::ELF::R_AARCH64_ABS64:
+  case llvm::ELF::R_AARCH64_ABS32:
+  case llvm::ELF::R_AARCH64_ABS16:
+    return RelocationScanKind::Absolute;
+  case llvm::ELF::R_AARCH64_PREL64:
+  case llvm::ELF::R_AARCH64_PREL32:
+  case llvm::ELF::R_AARCH64_PREL16:
+    return RelocationScanKind::Prel;
+  case llvm::ELF::R_AARCH64_CONDBR19:
+  case llvm::ELF::R_AARCH64_JUMP26:
+  case llvm::ELF::R_AARCH64_CALL26:
+    return RelocationScanKind::Branch;
+  case llvm::ELF::R_AARCH64_ADR_PREL_PG_HI21:
+  case R_AARCH64_ADR_PREL_PG_HI21_NC:
+    return RelocationScanKind::Adr;
+  case llvm::ELF::R_AARCH64_ADR_GOT_PAGE:
+  case llvm::ELF::R_AARCH64_LD64_GOT_LO12_NC:
+  case llvm::ELF::R_AARCH64_LD64_GOTPAGE_LO15:
+    return RelocationScanKind::GOT;
+  case llvm::ELF::R_AARCH64_TLSIE_ADR_GOTTPREL_PAGE21:
+  case llvm::ELF::R_AARCH64_TLSIE_LD64_GOTTPREL_LO12_NC:
+    return RelocationScanKind::TLSIE;
+  case llvm::ELF::R_AARCH64_TLSDESC_ADR_PAGE21:
+  case llvm::ELF::R_AARCH64_TLSDESC_LD64_LO12:
+  case llvm::ELF::R_AARCH64_TLSDESC_ADD_LO12:
+    return RelocationScanKind::TLSDESC;
+  default:
+    return RelocationScanKind::None;
+  }
 }
 
 void AArch64Relocator::scanDeferredRelocation(InputFile &Input,
@@ -1306,7 +1336,6 @@ Relocator::Result copyInstruction(Relocation &pReloc,
 
 void AArch64Relocator::handleScanForNonPreemptibleIFunc(Relocation &R,
                                                         ELFObjectFile *Obj) {
-  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
   ResolveInfo *RI = R.symInfo();
   Relocator::Type RType = R.type();
   bool isValidRelocForIFunc =
