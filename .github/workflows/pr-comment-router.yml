@@ -15,19 +15,9 @@ on:
         required: true
         type: string
       command:
-        description: "Test workflow to run"
+        description: "Space-separated test workflows to run"
         required: true
-        type: choice
-        options:
-          - check-llvm-test-suite
-          - check-linux-kernel
-          - check-zephyr
-          - check-tsan
-          - check-asan-ubsan
-          - check-windows
-          - check-macos
-          - check-msan
-          - check-all-workflows
+        type: string
       request_id:
         description: "Optional request ID used to correlate an external workflow dispatch"
         required: false
@@ -35,7 +25,8 @@ on:
         type: string
 
 concurrency:
-  group: pr-comment-router-${{ inputs.pr_number || github.event.issue.number }}-${{ inputs.command || github.event.comment.body || 'manual' }}
+  # Keep the group short: comment bodies are user-controlled and may exceed GitHub's 400-character limit.
+  group: pr-comment-router-${{ inputs.pr_number || github.event.issue.number }}-${{ github.event.comment.id || github.run_id }}
   cancel-in-progress: true
 
 permissions:
@@ -54,11 +45,12 @@ jobs:
       pr_sha: ${{ steps.request.outputs.pr_sha }}
       request_id: ${{ steps.request.outputs.request_id }}
       artifact_name: ${{ steps.request.outputs.artifact_name }}
-      artifact_run_id: ${{ steps.request.outputs.artifact_run_id }}
-      artifact_reused: ${{ steps.request.outputs.artifact_reused }}
+      artifact_run_id: ${{ steps.artifact.outputs.artifact_run_id }}
+      artifact_reused: ${{ steps.artifact.outputs.artifact_reused }}
       command: ${{ steps.request.outputs.command }}
+      requires_toolset: ${{ steps.request.outputs.requires_toolset }}
     steps:
-      - name: Validate comment request
+      - name: Validate and parse comment request
         id: request
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
         env:
@@ -70,10 +62,11 @@ jobs:
         with:
           github-token: ${{ github.token }}
           script: |
+            // Normalize a request into supported check tokens; the all-checks alias must stand alone.
             const isWorkflowDispatch = context.eventName === 'workflow_dispatch';
-            const command = isWorkflowDispatch
+            const command = (isWorkflowDispatch
               ? process.env.INPUT_COMMAND
-              : process.env.COMMENT_BODY.trim();
+              : process.env.COMMENT_BODY.trim()).trim();
             const allowed = new Set(['COLLABORATOR', 'MEMBER', 'OWNER']);
             const supported = new Set([
               'check-llvm-test-suite',
@@ -86,7 +79,11 @@ jobs:
               'check-msan',
               'check-all-workflows',
             ]);
-            if (!supported.has(command) ||
+            const requestedCommands = [...new Set(command.split(/\s+/).filter(Boolean))];
+            const runAll = requestedCommands.includes('check-all-workflows');
+            if (!requestedCommands.length ||
+                (runAll && requestedCommands.length !== 1) ||
+                requestedCommands.some(requestedCommand => !supported.has(requestedCommand)) ||
                 (!isWorkflowDispatch &&
                  !allowed.has(context.payload.comment.author_association))) {
               core.info('Ignoring unrelated or unauthorized comment.');
@@ -125,90 +122,134 @@ jobs:
               ['check-macos', { name: 'macOS CI', context: 'PR macOS CI', usesToolset: false }],
               ['check-msan', { name: 'Memory with origins sanitizer', context: 'PR Memory with Origins Sanitizer', usesToolset: false }],
             ]);
-            const selectedChecks = command === 'check-all-workflows'
+            const selectedChecks = runAll
               ? [...checkDefinitions.values()]
-              : [checkDefinitions.get(command)];
-            const requiresToolset = command === 'check-all-workflows' ||
-              checkDefinitions.get(command).usesToolset;
-            let reusableArtifact;
-            if (requiresToolset) {
-              const artifacts = await github.paginate(
-                github.rest.actions.listArtifactsForRepo,
-                {
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name: artifactName,
-                  per_page: 100,
-                }
-              );
-              for (const artifact of artifacts) {
-                const runId = artifact.workflow_run?.id;
-                if (artifact.expired || !runId) {
-                  continue;
-                }
-                const run = await github.rest.actions.getWorkflowRun({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  run_id: runId,
-                });
-                reusableArtifact = artifact;
-                core.info(
-                  `Reusing artifact ${artifactName} from workflow run ${runId} ` +
-                  `(overall conclusion: ${run.data.conclusion || run.data.status}).`
-                );
-                break;
-              }
-            } else {
-              core.info('This check builds the PR source directly; no standard toolset artifact is required.');
-            }
-            if (!reusableArtifact) {
-              core.info(!requiresToolset
-                ? 'No standard toolset artifact is required for this check.'
-                : `No reusable artifact found for ${artifactName}; the build job will run.`);
-            }
-
+              : requestedCommands.map(requestedCommand => checkDefinitions.get(requestedCommand));
+            const requiresToolset = selectedChecks.some(check => check.usesToolset);
             core.setOutput('pr_number', String(prNumber));
             core.setOutput('pr_sha', pullRequest.head.sha);
             core.setOutput('request_id', requestId);
             core.setOutput('artifact_name', artifactName);
+            core.setOutput('command', runAll ? 'check-all-workflows' : requestedCommands.join(' '));
+            core.setOutput('requires_toolset', String(requiresToolset));
+
+      - name: Resolve reusable PR toolset artifact
+        id: artifact
+        if: steps.request.outputs.pr_sha != ''
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        env:
+          ARTIFACT_NAME: ${{ steps.request.outputs.artifact_name }}
+          REQUIRES_TOOLSET: ${{ steps.request.outputs.requires_toolset }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            // Direct-build checks need no artifact lookup; toolset-based checks reuse an artifact for this exact PR SHA.
+            if (process.env.REQUIRES_TOOLSET !== 'true') {
+              core.info('No standard toolset artifact is required for this request.');
+              core.setOutput('artifact_run_id', '');
+              core.setOutput('artifact_reused', 'false');
+              return;
+            }
+
+            const artifacts = await github.paginate(
+              github.rest.actions.listArtifactsForRepo,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: process.env.ARTIFACT_NAME,
+                per_page: 100,
+              }
+            );
+            let reusableArtifact;
+            for (const artifact of artifacts) {
+              const runId = artifact.workflow_run?.id;
+              if (artifact.expired || !runId) {
+                continue;
+              }
+              const run = await github.rest.actions.getWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: runId,
+              });
+              reusableArtifact = artifact;
+              core.info(
+                `Reusing artifact ${process.env.ARTIFACT_NAME} from workflow run ${runId} ` +
+                `(overall conclusion: ${run.data.conclusion || run.data.status}).`
+              );
+              break;
+            }
+            if (!reusableArtifact) {
+              core.info(`No reusable artifact found for ${process.env.ARTIFACT_NAME}; the build job will run.`);
+            }
             core.setOutput('artifact_run_id', reusableArtifact ? String(reusableArtifact.workflow_run.id) : '');
             core.setOutput('artifact_reused', reusableArtifact ? 'true' : 'false');
-            core.setOutput('command', command);
 
+      - name: Report accepted request
+        if: steps.request.outputs.pr_sha != ''
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        env:
+          COMMAND: ${{ steps.request.outputs.command }}
+          ARTIFACT_REUSED: ${{ steps.artifact.outputs.artifact_reused }}
+          PR_NUMBER: ${{ steps.request.outputs.pr_number }}
+          PR_SHA: ${{ steps.request.outputs.pr_sha }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            // Publish pending commit statuses before the selected reusable workflows begin.
+            const command = process.env.COMMAND;
+            const runAll = command === 'check-all-workflows';
+            const checkDefinitions = new Map([
+              ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
+              ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
+              ['check-zephyr', { name: 'Zephyr', context: 'PR Zephyr', usesToolset: true }],
+              ['check-tsan', { name: 'Thread sanitizer', context: 'PR Thread Sanitizer', usesToolset: false }],
+              ['check-asan-ubsan', { name: 'Address and undefined behavior sanitizer', context: 'PR Address and Undefined Behavior Sanitizer', usesToolset: false }],
+              ['check-windows', { name: 'Windows CI', context: 'PR Windows CI', usesToolset: false }],
+              ['check-macos', { name: 'macOS CI', context: 'PR macOS CI', usesToolset: false }],
+              ['check-msan', { name: 'Memory with origins sanitizer', context: 'PR Memory with Origins Sanitizer', usesToolset: false }],
+            ]);
+            const selectedChecks = runAll
+              ? [...checkDefinitions.values()]
+              : command.split(/\s+/).map(requestedCommand => checkDefinitions.get(requestedCommand));
+            const targetUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             for (const check of selectedChecks) {
               await github.rest.repos.createCommitStatus({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                sha: pullRequest.head.sha,
+                sha: process.env.PR_SHA,
                 state: 'pending',
                 context: check.context,
-                target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                target_url: targetUrl,
                 description: check.usesToolset
-                  ? reusableArtifact
+                  ? process.env.ARTIFACT_REUSED === 'true'
                     ? `Reusing the PR ELD toolset for ${check.name}.`
                     : `Building the PR ELD toolset for ${check.name}.`
                   : `Building the PR source with ${check.name}.`,
               });
             }
-            if (command === 'check-all-workflows') {
+            if (runAll) {
               await github.rest.repos.createCommitStatus({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                sha: pullRequest.head.sha,
+                sha: process.env.PR_SHA,
                 state: 'pending',
                 context: 'PR All checks',
-                target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                target_url: targetUrl,
                 description: 'All PR checks are starting.',
               });
             }
-            if (!isWorkflowDispatch) {
+            if (context.eventName !== 'workflow_dispatch') {
+              const checkLabel = runAll
+                ? 'All checks'
+                : selectedChecks.map(check => check.name).join(', ');
+              const artifactMessage = process.env.ARTIFACT_REUSED === 'true'
+                ? ' Reusing the existing PR toolset artifact and starting the jobs.'
+                : ' The checks are starting in this workflow run.';
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: prNumber,
-                body: reusableArtifact
-                  ? `${command === 'check-all-workflows' ? 'All checks' : selectedChecks[0].name} request accepted for \`${pullRequest.head.sha}\`. Reusing the existing PR toolset artifact and starting the jobs.`
-                  : `${command === 'check-all-workflows' ? 'All checks' : selectedChecks[0].name} request accepted for \`${pullRequest.head.sha}\`. The checks are starting in this workflow run.`,
+                issue_number: Number(process.env.PR_NUMBER),
+                body: `${checkLabel} request accepted for \`${process.env.PR_SHA}\`.${artifactMessage}`,
               });
             }
 
@@ -216,11 +257,7 @@ jobs:
     needs: validate
     if: |
       needs.validate.outputs.pr_sha != '' &&
-      needs.validate.outputs.command != 'check-tsan' &&
-      needs.validate.outputs.command != 'check-asan-ubsan' &&
-      needs.validate.outputs.command != 'check-windows' &&
-      needs.validate.outputs.command != 'check-macos' &&
-      needs.validate.outputs.command != 'check-msan' &&
+      needs.validate.outputs.requires_toolset == 'true' &&
       needs.validate.outputs.artifact_reused != 'true'
     uses: ./.github/workflows/ubuntu.yml
     with:
@@ -240,8 +277,9 @@ jobs:
     if: |
       always() &&
       !cancelled() &&
+      needs.validate.result == 'success' &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-llvm-test-suite' ||
+      (contains(needs.validate.outputs.command, 'check-llvm-test-suite') ||
        needs.validate.outputs.command == 'check-all-workflows') &&
       (needs.build.result == 'success' || needs.build.result == 'skipped')
     uses: ./.github/workflows/llvm-test-suite.yml
@@ -260,8 +298,9 @@ jobs:
     if: |
       always() &&
       !cancelled() &&
+      needs.validate.result == 'success' &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-linux-kernel' ||
+      (contains(needs.validate.outputs.command, 'check-linux-kernel') ||
        needs.validate.outputs.command == 'check-all-workflows') &&
       (needs.build.result == 'success' || needs.build.result == 'skipped')
     uses: ./.github/workflows/linux-kernel.yml
@@ -280,8 +319,9 @@ jobs:
     if: |
       always() &&
       !cancelled() &&
+      needs.validate.result == 'success' &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-zephyr' ||
+      (contains(needs.validate.outputs.command, 'check-zephyr') ||
        needs.validate.outputs.command == 'check-all-workflows') &&
       (needs.build.result == 'success' || needs.build.result == 'skipped')
     uses: ./.github/workflows/zephyr.yml
@@ -300,8 +340,9 @@ jobs:
     if: |
       always() &&
       !cancelled() &&
+      needs.validate.result == 'success' &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-tsan' ||
+      (contains(needs.validate.outputs.command, 'check-tsan') ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/sanitize-threads.yml
     with:
@@ -316,8 +357,9 @@ jobs:
     if: |
       always() &&
       !cancelled() &&
+      needs.validate.result == 'success' &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-asan-ubsan' ||
+      (contains(needs.validate.outputs.command, 'check-asan-ubsan') ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/sanitize-address-undefined.yml
     with:
@@ -332,8 +374,9 @@ jobs:
     if: |
       always() &&
       !cancelled() &&
+      needs.validate.result == 'success' &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-windows' ||
+      (contains(needs.validate.outputs.command, 'check-windows') ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/windows.yml
     with:
@@ -347,8 +390,9 @@ jobs:
     if: |
       always() &&
       !cancelled() &&
+      needs.validate.result == 'success' &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-macos' ||
+      (contains(needs.validate.outputs.command, 'check-macos') ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/macos.yml
     with:
@@ -363,8 +407,9 @@ jobs:
     if: |
       always() &&
       !cancelled() &&
+      needs.validate.result == 'success' &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-msan' ||
+      (contains(needs.validate.outputs.command, 'check-msan') ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/sanitize-memory.yml
     with:
@@ -380,7 +425,7 @@ jobs:
       always() &&
       !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-llvm-test-suite' ||
+      (contains(needs.validate.outputs.command, 'check-llvm-test-suite') ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/report-pr-check.yml
     with:
@@ -403,7 +448,7 @@ jobs:
       always() &&
       !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-linux-kernel' ||
+      (contains(needs.validate.outputs.command, 'check-linux-kernel') ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/report-pr-check.yml
     with:
@@ -426,7 +471,7 @@ jobs:
       always() &&
       !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-zephyr' ||
+      (contains(needs.validate.outputs.command, 'check-zephyr') ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/report-pr-check.yml
     with:
@@ -449,7 +494,7 @@ jobs:
       always() &&
       !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-tsan' ||
+      (contains(needs.validate.outputs.command, 'check-tsan') ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/report-pr-check.yml
     with:
@@ -472,7 +517,7 @@ jobs:
       always() &&
       !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-asan-ubsan' ||
+      (contains(needs.validate.outputs.command, 'check-asan-ubsan') ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/report-pr-check.yml
     with:
@@ -495,7 +540,7 @@ jobs:
       always() &&
       !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-windows' ||
+      (contains(needs.validate.outputs.command, 'check-windows') ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/report-pr-check.yml
     with:
@@ -518,7 +563,7 @@ jobs:
       always() &&
       !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-macos' ||
+      (contains(needs.validate.outputs.command, 'check-macos') ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/report-pr-check.yml
     with:
@@ -541,7 +586,7 @@ jobs:
       always() &&
       !cancelled() &&
       needs.validate.outputs.pr_sha != '' &&
-      (needs.validate.outputs.command == 'check-msan' ||
+      (contains(needs.validate.outputs.command, 'check-msan') ||
        needs.validate.outputs.command == 'check-all-workflows')
     uses: ./.github/workflows/report-pr-check.yml
     with:
