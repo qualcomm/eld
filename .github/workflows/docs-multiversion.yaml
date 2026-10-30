@@ -2,12 +2,12 @@ name: Build multi-version docs
 # owner: partaror
 
 on:
- push:
-   branches: [main]
-   paths: ['docs/**', 'include/**']
- # pull_request:
- #   paths:
- #     - .github/workflows/docs-multiversion.yaml
+  push:
+    branches: [main]
+    paths: ['docs/**', 'include/**']
+  # pull_request:
+  #   paths:
+  #     - .github/workflows/docs-multiversion.yaml
   workflow_dispatch:
 
 permissions:
@@ -71,8 +71,8 @@ jobs:
           cmake -G Ninja -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DCLANG_ENABLE_CIR=OFF \
-            -DCMAKE_C_COMPILER=$(which clang) \
-            -DCMAKE_CXX_COMPILER=$(which clang++) \
+            -DCMAKE_C_COMPILER="$(which clang)" \
+            -DCMAKE_CXX_COMPILER="$(which clang++)" \
             -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon" \
             -DLLVM_ENABLE_SPHINX=ON \
             llvm-project/llvm
@@ -102,7 +102,7 @@ jobs:
           git config user.email 'github-actions@github.com'
           git checkout --orphan documentation-update
           git rm -rf .
-          cp -r ${SITE_DIR}/. .
+          cp -r "$SITE_DIR"/. .
           git add .
           git commit -m "Update multi-version documentation"
           git push -f origin HEAD:refs/heads/documentation
