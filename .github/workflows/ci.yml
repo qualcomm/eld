@@ -2,6 +2,11 @@ name: CI
 run-name: "CI PR #${{ github.event.pull_request.number }} @${{ github.event.pull_request.head.sha }}"
 
 on:
+  push: # trigger CI on push to main and release branches
+    branches:
+      - main
+      - release/21.x
+  workflow_dispatch: # allows manual trigger from github UI
   pull_request:
     types: [opened, synchronize, reopened]
     # Keep CI changes covered while avoiding CI runs for changes to the other
