@@ -1,0 +1,43 @@
+#---ReplayFailedInput.test----------------------------- Executable ------------#
+#BEGIN_COMMENT
+# Verify that --reproduce captures inputs after an earlier input failure and
+# preserves the original unresolved namespec failure during replay.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t.A %t.repro.tar %t.repro
+RUN: %mkdir %t.A
+RUN: %echo "INPUT(/lib1.so)" > %t.A/script.t
+RUN: %echo "{ foo; }" > %t.copy-farcalls
+RUN: %echo "{ foo; }" > %t.no-reuse-trampolines
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: %link %linkopts --no-default-plugins -shared -soname foo %t.1.o -o %t.A/lib1.so
+RUN: %not %link %linkopts --no-default-plugins %t.1.o -l1 %t.2.o \
+RUN:   -T %t.A/script.t -R %t.2.o \
+RUN:   --version-script=%p/Inputs/versionscript \
+RUN:   --dynamic-list=%p/Inputs/list1 --extern-list=%p/Inputs/externlist \
+RUN:   --copy-farcalls-from-file=%t.copy-farcalls \
+RUN:   --no-reuse-trampolines-file=%t.no-reuse-trampolines \
+RUN:   -o %t.out --sysroot %t.A --reproduce %t.repro.tar 2>&1 | %filecheck %s --check-prefix=ERROR
+RUN: %mkdir %t.repro
+RUN: cd %t.repro && %tar -xf %t.repro.tar --strip-components=1
+RUN: %filecheck %s --check-prefix=MAPPING < %t.repro/mapping.ini
+RUN: %filecheck %s --check-prefix=RESPONSE < %t.repro/response.txt
+RUN: cd %t.repro && %not %link @response.txt 2>&1 | %filecheck %s --check-prefix=ERROR
+
+ERROR: Fatal: cannot recognize namespec -l1
+MAPPING-DAG: [Linker Scripts]
+MAPPING-DAG: {{.*}}script.t=LinkerScript/
+MAPPING-DAG: [Dynamic List]
+MAPPING-DAG: {{.*}}list1=DynamicList/
+MAPPING-DAG: [Extern List]
+MAPPING-DAG: {{.*}}externlist=ExternList/
+MAPPING-DAG: [Object Files]
+MAPPING-DAG: {{.*}}2.o=Object/
+MAPPING-DAG: [Version Script]
+MAPPING-DAG: {{.*}}versionscript=VersionScript/
+MAPPING-DAG: [Other Files]
+MAPPING-DAG: {{.*}}copy-farcalls=Other/
+MAPPING-DAG: {{.*}}no-reuse-trampolines=Other/
+RESPONSE: {{.*}}-l1{{.*}}Object{{.*}}2.o{{.*}}LinkerScript/script.t{{.*}}VersionScript/versionscript{{.*}}DynamicList/list1{{.*}}ExternList/externlist{{.*}}Other/ReplayFailedInput.test.tmp.copy-farcalls{{.*}}Other/ReplayFailedInput.test.tmp.no-reuse-trampolines
+#END_TEST
