@@ -1723,6 +1723,12 @@ bool GnuLdDriver::processReproduceOption(
   size_t lastScriptId = -1;
   size_t lastJustSymbolsId = -1;
 
+  auto getRewrittenRemappedPath = [&](llvm::StringRef path) -> std::string {
+    if (auto replacement = Config.options().findRemapInput(path))
+      return outputTar->rewritePath(*replacement);
+    return outputTar->rewritePath(path);
+  };
+
   auto getRewrittenActionInputPath =
       [&](eld::InputAction::InputActionKind kind, size_t &lastActionId,
           llvm::StringRef fallback) -> std::optional<std::string> {
@@ -1735,19 +1741,41 @@ bool GnuLdDriver::processReproduceOption(
       if (!ipt)
         return std::nullopt;
       std::string key = fallback.str();
-      if (ipt->getInputFile() && ipt->getInputFile()->hasMappedPath())
+      bool HasMappedPath = false;
+      if (ipt->getInputFile() && ipt->getInputFile()->hasMappedPath()) {
         key = ipt->getInputFile()->getMappedPath();
-      else if (!ipt->getName().empty())
+        HasMappedPath = true;
+      } else if (!ipt->getName().empty()) {
         key = ipt->getName();
-      return outputTar->rewritePath(key);
+      }
+      return HasMappedPath ? outputTar->rewritePath(key)
+                           : getRewrittenRemappedPath(key);
     }
-    return outputTar->rewritePath(fallback);
+    return getRewrittenRemappedPath(fallback);
   };
 
-  auto getRewrittenRemappedPath = [&](llvm::StringRef path) -> std::string {
-    if (auto replacement = Config.options().findRemapInput(path))
-      return outputTar->rewritePath(*replacement);
-    return outputTar->rewritePath(path);
+  // Capture an input that may not reach normal input processing when an
+  // earlier action fails. Avoid replacing entries already registered there.
+  // For linker scripts, searchScriptDirs also checks the configured -L paths;
+  // other inputs are resolved directly from their command-line path.
+  auto captureInput = [&](llvm::StringRef path, MappingFile::Kind kind,
+                          bool searchScriptDirs) {
+    std::string CapturePath = path.str();
+    if (auto Replacement = Config.options().findRemapInput(CapturePath))
+      CapturePath = *Replacement;
+
+    std::string ResolvedPath = Input::expandSysrootMarkers(
+        CapturePath, Config.directories(), *Config.getDiagEngine());
+    if (!llvm::sys::fs::exists(ResolvedPath) && searchScriptDirs) {
+      if (const eld::sys::fs::Path *Resolved = Config.directories().find(
+              CapturePath, eld::SearchDirs::SearchInputType::Script))
+        ResolvedPath = Resolved->native();
+    }
+    if (llvm::sys::fs::exists(ResolvedPath) &&
+        !outputTar->hasInput(CapturePath)) {
+      outputTar->createAndAddFile(CapturePath, ResolvedPath, kind,
+                                  /*isLTOObject=*/false);
+    }
   };
 
   const bool IsWindows = utility::isHostWindows();
@@ -1765,13 +1793,20 @@ bool GnuLdDriver::processReproduceOption(
       break;
     case T::l:
     case T::namespec: {
+      bool foundAction = false;
       for (size_t i = lastNamespecId + 1; i < actions.size(); ++i) {
         auto action = actions[i];
         if (action->getInputActionKind() == eld::InputAction::Namespec) {
+          foundAction = true;
           lastNamespecId = i;
           auto ipt = action->getInput();
-          if (!ipt)
-            return false;
+          // Input activation may have failed before this action was fully
+          // resolved. Preserve the original namespec so replay reports the
+          // same failure instead of silently dropping the input.
+          if (!ipt || !ipt->getInputFile()) {
+            os << arg->getSpelling() << arg->getValue() << ' ';
+            break;
+          }
           // Use the mapped path as the rewrite key. For a namespec input
           // e.g. "-l2", use "2" instead of "lib2.so". This will match the
           // form in the mapping file "2=SharedLibrary/2.<hash>".
@@ -1782,9 +1817,13 @@ bool GnuLdDriver::processReproduceOption(
           break;
         }
       }
+      if (!foundAction)
+        os << arg->getSpelling() << arg->getValue() << ' ';
       break;
     }
     case T::INPUT: {
+      captureInput(arg->getValue(), MappingFile::Kind::ObjectFile,
+                   /*searchScriptDirs=*/false);
       auto path = getRewrittenActionInputPath(eld::InputAction::InputFile,
                                               lastInputFileId, arg->getValue());
       if (!path)
@@ -1807,14 +1846,33 @@ bool GnuLdDriver::processReproduceOption(
          << ' ';
       break;
     case T::dynamic_list:
+      captureInput(arg->getValue(), MappingFile::Kind::DynamicList,
+                   /*searchScriptDirs=*/true);
+      os << arg->getSpelling() << ' '
+         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+      break;
     case T::extern_list:
+      captureInput(arg->getValue(), MappingFile::Kind::ExternList,
+                   /*searchScriptDirs=*/true);
+      os << arg->getSpelling() << ' '
+         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+      break;
     case T::version_script:
+      captureInput(arg->getValue(), MappingFile::Kind::VersionScript,
+                   /*searchScriptDirs=*/true);
+      os << arg->getSpelling() << ' '
+         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+      break;
     case T::copy_farcalls_from_file:
     case T::no_reuse_trampolines_file:
+      captureInput(arg->getValue(), MappingFile::Kind::Other,
+                   /*searchScriptDirs=*/false);
       os << arg->getSpelling() << ' '
          << getRewrittenRemappedPath(arg->getValue()) << ' ';
       break;
     case T::T: {
+      captureInput(arg->getValue(), MappingFile::Kind::LinkerScript,
+                   /*searchScriptDirs=*/true);
       auto path = getRewrittenActionInputPath(eld::InputAction::Script,
                                               lastScriptId, arg->getValue());
       if (!path)
@@ -1823,6 +1881,8 @@ bool GnuLdDriver::processReproduceOption(
       break;
     }
     case T::R: {
+      captureInput(arg->getValue(), MappingFile::Kind::ObjectFile,
+                   /*searchScriptDirs=*/false);
       auto path = getRewrittenActionInputPath(
           eld::InputAction::JustSymbols, lastJustSymbolsId, arg->getValue());
       if (!path)
