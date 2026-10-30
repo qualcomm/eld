@@ -2,12 +2,12 @@ name: Generate and Deploy Docs
 # owner: quic-shaksuma
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'docs/**'
-      - 'include/**'
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'docs/**'
+  #     - 'include/**'
   workflow_dispatch:     # Allows manual triggering
 
 permissions:

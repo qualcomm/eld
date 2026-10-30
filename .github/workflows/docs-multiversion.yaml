@@ -1,10 +1,10 @@
-name: Bulid multi-version docs
+name: Build multi-version docs
 # owner: partaror
 
 on:
- # push:
- #   branches: [main]
- #   paths: ['docs/**', 'include/**']
+ push:
+   branches: [main]
+   paths: ['docs/**', 'include/**']
  # pull_request:
  #   paths:
  #     - .github/workflows/docs-multiversion.yaml
