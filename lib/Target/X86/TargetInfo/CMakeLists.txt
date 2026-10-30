@@ -1,2 +1,2 @@
-llvm_add_library(ELDx86_64TargetInfo STATIC x86_64TargetInfo.cpp)
-target_link_libraries(ELDx86_64TargetInfo PRIVATE LLVMX86AsmParser LLVMX86CodeGen)
+llvm_add_library(ELDx86_64TargetInfo STATIC x86_64TargetInfo.cpp
+                 LINK_COMPONENTS X86AsmParser X86CodeGen)

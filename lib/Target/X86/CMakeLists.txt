@@ -7,10 +7,12 @@ llvm_add_library(
   x86_64Relocator.cpp
   x86_64RelocationCompute.cpp
   x86_64PLT.cpp
-  x86_64GOT.cpp)
+  x86_64GOT.cpp
+  LINK_COMPONENTS
+  X86CodeGen)
 
 add_subdirectory(TargetInfo)
 
 target_link_libraries(
   ELDX86LDBackend PRIVATE ELDx86_64TargetInfo ELDCore ELDFragment ELDObject
-                             ELDTarget LLVMX86CodeGen)
+                             ELDTarget)

@@ -11,10 +11,12 @@ llvm_add_library(
   RISCVRelocationCompute.cpp
   RISCVRelocationInfo.cpp
   RISCVRelocator.cpp
-  RISCVRelaxationStats.cpp)
+  RISCVRelaxationStats.cpp
+  LINK_COMPONENTS
+  RISCVCodeGen)
 
 add_subdirectory(TargetInfo)
 
 target_link_libraries(
   ELDRISCVLDBackend PRIVATE ELDRISCVTargetInfo ELDCore ELDFragment ELDObject
-                            ELDTarget LLVMRISCVCodeGen)
+                            ELDTarget)

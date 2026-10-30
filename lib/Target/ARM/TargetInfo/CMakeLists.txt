@@ -1,2 +1,2 @@
-llvm_add_library(ELDARMTargetInfo STATIC ARMTargetInfo.cpp)
-target_link_libraries(ELDARMTargetInfo PRIVATE LLVMARMAsmParser LLVMARMCodeGen)
+llvm_add_library(ELDARMTargetInfo STATIC ARMTargetInfo.cpp
+                 LINK_COMPONENTS ARMAsmParser ARMCodeGen)
