@@ -12,7 +12,9 @@ llvm_add_library(
   HexagonPLT.cpp
   HexagonRelocator.cpp
   HexagonTLSStub.cpp
-  HexagonInfo.cpp)
+  HexagonInfo.cpp
+  LINK_COMPONENTS
+  HexagonCodeGen)
 
 if(HEXAGON_EXPERIMENTAL)
   add_definitions("-DHEXAGON_EXPERIMENTAL")
@@ -20,4 +22,4 @@ endif()
 
 target_link_libraries(
   ELDHexagonLDBackend PRIVATE ELDHexagonTargetInfo ELDCore ELDFragment
-                              ELDObject ELDTarget LLVMHexagonCodeGen)
+                              ELDObject ELDTarget)
