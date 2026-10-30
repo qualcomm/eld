@@ -1720,7 +1720,6 @@ bool GnuLdDriver::processReproduceOption(
   llvm::raw_svector_ostream os(responseData);
   size_t lastNamespecId = -1;
   size_t lastInputFileId = -1;
-  size_t lastScriptId = -1;
   size_t lastJustSymbolsId = -1;
 
   auto getRewrittenActionInputPath =
@@ -1742,12 +1741,6 @@ bool GnuLdDriver::processReproduceOption(
       return outputTar->rewritePath(key);
     }
     return outputTar->rewritePath(fallback);
-  };
-
-  auto getRewrittenRemappedPath = [&](llvm::StringRef path) -> std::string {
-    if (auto replacement = Config.options().findRemapInput(path))
-      return outputTar->rewritePath(*replacement);
-    return outputTar->rewritePath(path);
   };
 
   const bool IsWindows = utility::isHostWindows();
@@ -1806,22 +1799,15 @@ bool GnuLdDriver::processReproduceOption(
       os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
          << ' ';
       break;
+    case T::T:
     case T::dynamic_list:
     case T::extern_list:
     case T::version_script:
     case T::copy_farcalls_from_file:
     case T::no_reuse_trampolines_file:
-      os << arg->getSpelling() << ' '
-         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+      os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
+         << ' ';
       break;
-    case T::T: {
-      auto path = getRewrittenActionInputPath(eld::InputAction::Script,
-                                              lastScriptId, arg->getValue());
-      if (!path)
-        return false;
-      os << arg->getSpelling() << ' ' << *path << ' ';
-      break;
-    }
     case T::R: {
       auto path = getRewrittenActionInputPath(
           eld::InputAction::JustSymbols, lastJustSymbolsId, arg->getValue());

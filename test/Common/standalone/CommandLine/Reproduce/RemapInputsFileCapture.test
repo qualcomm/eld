@@ -1,9 +1,8 @@
 #---RemapInputsFileCapture.test---------------- Executable --------------------#
 #BEGIN_COMMENT
 # Confirms --reproduce correctly captures --remap-inputs-file. The response
-# uses the captured replacement object when a remap rule substitutes a
-# positional input, and uses the captured replacement file when remap rules
-# substitute option-backed inputs such as version scripts and symbol lists.
+# uses the original linker-visible names for inputs substituted by remap rules,
+# while archiving the contents of the replacement files.
 # It also records the remap file's categorized/hashed tar path
 # (Config/remap.txt.<hash>) instead of a bare basename, mapping.ini lists the
 # remap file under [Config Files], and the extracted reproduce tarball can be
@@ -28,14 +27,12 @@ RUN: %link @%t1.extract/response.txt -o %t1.extract/rep.out
 RUN: %diff %t1.extract/rep.out %t1.out
 
 RESPONSE: --thread-count
-RESPONSE-NOT: original
-RESPONSE: Object{{[^ ]*}}replacement.o{{[^ ]*}}
-RESPONSE: --version-script {{.*}}VersionScript{{.*}}versionscript{{[^ ]*}}
-RESPONSE: --dynamic-list {{.*}}DynamicList{{.*}}list1{{[^ ]*}}
-RESPONSE: --extern-list {{.*}}ExternList{{.*}}externlist{{[^ ]*}}
-RESPONSE-NOT: original
+RESPONSE-NOT: replacement
+RESPONSE: Object{{[^ ]*}}original.o{{[^ ]*}}
+RESPONSE: --version-script {{.*}}VersionScript{{.*}}original.version{{[^ ]*}}
+RESPONSE: --dynamic-list {{.*}}DynamicList{{.*}}original.dynamic{{[^ ]*}}
+RESPONSE: --extern-list {{.*}}ExternList{{.*}}original.extern{{[^ ]*}}
 RESPONSE: --remap-inputs-file {{.*}}Config{{.*}}remap.txt{{.*}}
-RESPONSE-NOT: original
 MAPPING: [Config Files]
 MAPPING-NEXT: {{.*}}remap.txt{{.*}}=Config{{.*}}remap.txt{{.*}}
 #END_TEST
