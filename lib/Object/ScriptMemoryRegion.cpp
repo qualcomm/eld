@@ -42,8 +42,22 @@ void ScriptMemoryRegion::addOutputSection(const OutputSectionEntry *O) {
     FirstOutputSectionExceededLimit = O;
   }
 }
+void ScriptMemoryRegion::verifyMemoryUsage(LinkerConfig &Config,
+                                           const SectionMap &SectMap) {
+  // Sections with an explicit address outside this region are not added to
+  // MOutputSections, so look them up in the section map.
+  for (auto *out : SectMap) {
+    if (!out->epilog().hasRegion() || &out->epilog().region() != this)
+      continue;
+    if (!out->prolog().hasVMA())
+      continue;
+    uint64_t vma = out->prolog().vma().result();
+    if (!containsVMA(vma) && Config.showLinkerScriptWarnings())
+      Config.raise(Diag::warn_section_not_in_region)
+          << out->name() << getName() << utility::toHex(vma)
+          << out->prolog().vma().getContext();
+  }
 
-void ScriptMemoryRegion::verifyMemoryUsage(LinkerConfig &Config) {
   auto ExpLen = getLength();
   if (ExpLen && !ExpLen.value() && Config.showLinkerScriptWarnings()) {
     MemorySpec *Spec = MMemoryDesc->getMemorySpec();

@@ -33,7 +33,7 @@ public:
 
   void addOutputSectionLMA(const OutputSectionEntry *O);
 
-  void verifyMemoryUsage(LinkerConfig &Config);
+  void verifyMemoryUsage(LinkerConfig &Config, const SectionMap &SectMap);
 
   eld::Expected<uint64_t> getOrigin() const;
 
