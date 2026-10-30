@@ -200,15 +200,20 @@ else()
   info("Setting up build of ELD for Windows")
 endif()
 
+# Record the directories of linked libraries (such as an external LLVM) in
+# the install RPATH by default. Distributions that ship LLVM in the default
+# library search path can pass -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=OFF.
+if(NOT DEFINED CMAKE_INSTALL_RPATH_USE_LINK_PATH)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif()
+
 # $ORIGIN is ELF-specific; Mach-O uses @loader_path / @rpath.
 if(APPLE)
   set(CMAKE_MACOSX_RPATH ON)
   set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
   set(CMAKE_INSTALL_RPATH "@loader_path/../lib")
 elseif(UNIX)
   set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
   set(CMAKE_INSTALL_RPATH "\$ORIGIN/../lib")
 endif()
 
