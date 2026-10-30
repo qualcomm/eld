@@ -121,14 +121,13 @@ jobs:
       - name: Build compiler-rt builtins
         run: |
           # The nightly toolchain (clang/clang++) is already on PATH via
-          # FetchNightlyToolset; derive its install root from the clang binary.
-          TOOLCHAIN_INSTALL="$(dirname "$(dirname "$(command -v clang)")")"
+          # FetchNightlyToolset.
           cmake -G Ninja \
-            -DCMAKE_C_COMPILER:STRING=`which clang` \
-            -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+            -DCMAKE_C_COMPILER:STRING="$(command -v clang)" \
+            -DCMAKE_CXX_COMPILER:STRING="$(command -v clang++)" \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
-            -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
+            -DCMAKE_INSTALL_PREFIX:PATH="$(clang -print-resource-dir)" \
             -DCOMPILER_RT_BAREMETAL_BUILD=ON \
             -DCOMPILER_RT_BUILD_BUILTINS=ON \
             -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
@@ -155,8 +154,8 @@ jobs:
           cd meson
           ./packaging/create_zipapp.py --outfile meson.pyz --interpreter '/usr/bin/env python3' .
           mkdir -p bin
-          ln -s $(realpath meson.pyz) bin/meson
-          echo "PATH=$PWD/bin:$PATH" >> $GITHUB_ENV
+          ln -s "$(realpath meson.pyz)" bin/meson
+          echo "PATH=$PWD/bin:$PATH" >> "$GITHUB_ENV"
 
       - name: Checkout Picolibc
         run: |
@@ -168,7 +167,8 @@ jobs:
             git remote add quic-k https://github.com/quic-k/picolibc.git
             git fetch quic-k arm_riscv_ci
             # use a temporary patches for riscv
-            git cherry-pick $(git rev-list -n 2 quic-k/arm_riscv_ci)
+            mapfile -t riscv_patches < <(git rev-list -n 2 quic-k/arm_riscv_ci)
+            git cherry-pick "${riscv_patches[@]}"
           fi
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, default-config
@@ -218,20 +218,20 @@ jobs:
 
       - name: Get QEMU
         run: |
-          if [ ${{ matrix.arch.name }} = "hexagon" ]; then
+          if [[ "${{ matrix.arch.name }}" == "hexagon" ]]; then
             # git clone --branch hex-next --single-branch --depth 1 https://github.com/quic/qemu.git ${{ github.workspace }}/qemu-system-hexagon
-            git clone --depth 1 --branch hexagon-sysemu-23-apr-2026 https://github.com/qualcomm/qemu.git ${{ github.workspace }}/qemu-system-hexagon
-            QEMU_INSTALL=${{ github.workspace }}/install-qemu-system-hexagon/
-            cd ${{ github.workspace }}/qemu-system-hexagon
+            git clone --depth 1 --branch hexagon-sysemu-23-apr-2026 https://github.com/qualcomm/qemu.git "${{ github.workspace }}/qemu-system-hexagon"
+            QEMU_INSTALL="${{ github.workspace }}/install-qemu-system-hexagon/"
+            cd "${{ github.workspace }}/qemu-system-hexagon"
             ./configure --cc=clang --cxx=clang++ \
               --target-list=hexagon-softmmu \
-              --prefix=$QEMU_INSTALL \
+              --prefix="$QEMU_INSTALL" \
               --extra-cflags="-Wno-misleading-indentation -Wno-unused-but-set-variable"
             cd build
             ninja install
-            echo "PATH=$QEMU_INSTALL/bin/:$PATH" >> $GITHUB_ENV
+            echo "PATH=$QEMU_INSTALL/bin/:$PATH" >> "$GITHUB_ENV"
           else
-            sudo apt install -y ${{ matrix.arch.qemu-package }}
+            sudo apt install -y "${{ matrix.arch.qemu-package }}"
           fi
 
       - name: Run Picolibc tests for ${{ matrix.arch.name }}, default-config

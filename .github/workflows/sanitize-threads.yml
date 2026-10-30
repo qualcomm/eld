@@ -46,8 +46,8 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y clang-22 lld-22 ninja-build libc++-22-dev libc++abi-22-dev ccache libclang-rt-22-dev libunwind-22-dev
-          echo "PATH=/usr/lib/llvm-22/bin:$PATH" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=/usr/lib/llvm-22/lib:$PATH" >> $GITHUB_ENV
+          printf 'PATH=/usr/lib/llvm-22/bin:%s\nLD_LIBRARY_PATH=/usr/lib/llvm-22/lib:%s\n' \
+            "$PATH" "$PATH" >> "$GITHUB_ENV"
 
       - name: Build and Test with Clang and show versions
         run: |
@@ -112,11 +112,11 @@ jobs:
             -DCLANG_ENABLE_CIR=OFF \
             -DLLVM_USE_SANITIZER="Thread" \
             -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
-            -DCMAKE_C_COMPILER:STRING=`which clang` \
-            -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+            -DCMAKE_C_COMPILER:STRING="$(command -v clang)" \
+            -DCMAKE_CXX_COMPILER:STRING="$(command -v clang++)" \
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
             -DLLVM_CCACHE_BUILD:BOOL=ON \
-            -DLLVM_CCACHE_DIR:STRING=$PWD/ccache/ \
+            -DLLVM_CCACHE_DIR:STRING="$PWD/ccache/" \
             -DLLVM_OPTIMIZED_TABLEGEN:BOOL=ON \
             -DLLVM_ENABLE_SPHINX=OFF \
             -DUSE_LLVM_UTILS_FROM_INSTALL:BOOL=ON \

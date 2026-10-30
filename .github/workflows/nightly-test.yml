@@ -33,8 +33,8 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y clang-22 lld-22 ninja-build libc++-22-dev libc++abi-22-dev ccache libclang-rt-22-dev libunwind-22-dev
-          echo "PATH=/usr/lib/llvm-22/bin:$PATH" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=/usr/lib/llvm-22/lib:$PATH" >> $GITHUB_ENV
+          printf 'PATH=/usr/lib/llvm-22/bin:%s\nLD_LIBRARY_PATH=/usr/lib/llvm-22/lib:%s\n' \
+            "$PATH" "$PATH" >> "$GITHUB_ENV"
 
       - name: Build and Test with Clang and show versions
         run: |
@@ -160,15 +160,15 @@ jobs:
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra;lld" \
             -DCLANG_ENABLE_CIR=OFF \
             -DLLVM_ENABLE_RUNTIMES="compiler-rt;libcxx;libcxxabi;libunwind" \
-            -DCMAKE_C_COMPILER:STRING=`which clang` \
-            -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+            -DCMAKE_C_COMPILER:STRING="$(command -v clang)" \
+            -DCMAKE_CXX_COMPILER:STRING="$(command -v clang++)" \
             -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
-            -DCMAKE_INSTALL_RPATH:STRING='$ORIGIN/../lib/' \
+            -DCMAKE_INSTALL_RPATH:STRING="\$ORIGIN/../lib/" \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=ON \
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
             -DLLVM_CCACHE_BUILD:BOOL=ON \
-            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install-nightly-toolchain \
-            -DLLVM_CCACHE_DIR:STRING=$PWD/ccache/ \
+            -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install-nightly-toolchain" \
+            -DLLVM_CCACHE_DIR:STRING="$PWD/ccache/" \
             -DLLVM_ENABLE_SPHINX=OFF \
             -DELD_ENABLE_SYMBOL_VERSIONING=ON \
             -DLLVM_INSTALL_UTILS=On \
