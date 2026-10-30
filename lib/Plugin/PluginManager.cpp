@@ -98,7 +98,9 @@ bool PluginManager::callActBeforeRuleMatchingHook() {
 
 bool PluginManager::callVisitSymbolHook(LDSymbol *Sym, llvm::StringRef SymName,
                                         const SymbolInfo &SymInfo) {
-  RegisterTimer T("VisitSymbol", "Plugins", ShouldPrintTimingStats);
+  // This timer is explicitly disabled because of high overhead due to
+  // large number of symbols.
+  // RegisterTimer T("VisitSymbol", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
     if (SymbolVisitors.count(P)) {
       P->callVisitSymbolHook(Sym, SymName, SymInfo);

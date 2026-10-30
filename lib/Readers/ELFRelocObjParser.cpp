@@ -63,12 +63,15 @@ eld::Expected<bool> ELFRelocObjParser::parseFile(InputFile &inputFile,
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadSections);
   if (!expReadSections.value())
     return false;
-
-  eld::Expected<bool> expReadSymbols = ELFReader->readSymbols();
-  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadSymbols)
-  if (!expReadSymbols.value())
-    return false;
-
+  {
+    LinkerConfig &config = m_Module.getConfig();
+    eld::RegisterTimer T("Read symbols from object files", "Symbol Resolution",
+                         config.options().printTimingStats());
+    eld::Expected<bool> expReadSymbols = ELFReader->readSymbols();
+    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadSymbols)
+    if (!expReadSymbols.value())
+      return false;
+  }
   if (isPostLTOPhase)
     ELFReader->setPostLTOCommonSymbolsOrigin();
 
