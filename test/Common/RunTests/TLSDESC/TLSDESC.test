@@ -1,0 +1,25 @@
+REQUIRES: run_test, aarch64
+#---TLSDESC.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Runtime test: verify TLSDESC TLS works correctly after the fix to
+# avoid unnecessary .got.plt section creation.
+# On AArch64, createGOT(GOT::TLS_DESC) places the descriptor in .got.plt, so
+# GOTPLT0 must be created ahead of it and DT_PLTGOT must still point at the
+# start of the section.
+#END_COMMENT
+#START_TEST
+
+# Build shared library with TLS variable (forces TLSDESC)
+RUN: %run_cc %clangopts -fPIC -c %p/Inputs/tls.c -o %t.tls.o
+RUN: %run_cc %clangopts -shared -o %t.tls.so %t.tls.o
+
+# Build executable linking against shared library
+RUN: %run_cc %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %run_cc %clangopts -o %t.out %t.main.o %t.tls.so -Wl,-dy
+
+# Verify TLS value is correct
+RUN: %run %t.out | %filecheck %s
+
+#END_TEST
+
+CHECK: 42
