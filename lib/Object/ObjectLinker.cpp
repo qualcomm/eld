@@ -290,7 +290,7 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
     // is a group node
     if ((*Begin)->kind() == Node::GroupStart) {
       eld::RegisterTimer T("Read Start Group and End Group",
-                           "Read all Input files",
+                           "Input Group Processing (supplemental)",
                            ThisConfig.options().printTimingStats());
       getGroupReader()->readGroup(Begin,
                                   ThisModule->getIRBuilder()->getInputBuilder(),
@@ -299,7 +299,8 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
     }
 
     if ((*Begin)->kind() == Node::LibStart) {
-      eld::RegisterTimer T("Read Start Lib and End Lib", "Read all Input files",
+      eld::RegisterTimer T("Read Start Lib and End Lib",
+                           "Input Group Processing (supplemental)",
                            ThisConfig.options().printTimingStats());
       getLibReader()->readLib(Begin,
                               ThisModule->getIRBuilder()->getInputBuilder(),
@@ -4028,7 +4029,8 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
 #endif
     ThisModule->getDynLibraryList().push_back(CurInput);
   } else if (CurInput->getKind() == InputFile::GNUArchiveFileKind) {
-    eld::RegisterTimer T("Read Archive Files", "Read all Input files",
+    eld::RegisterTimer T("Read Archive Files",
+                         "Archive Processing (supplemental)",
                          ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(CurInput->getKind());
@@ -4110,7 +4112,7 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
     return false;
 
   eld::RegisterTimer T("Read Mixed ELF/Bitcode Object Files",
-                       "Read all Input files",
+                       "Mixed ELF/Bitcode Processing (supplemental)",
                        ThisConfig.options().printTimingStats());
 
   ELFObjectFile *EObj = llvm::dyn_cast<eld::ELFObjectFile>(CurInputFile);
