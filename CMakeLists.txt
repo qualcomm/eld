@@ -93,7 +93,7 @@ include(CMakeRequiredVariablesCheck REQUIRED)
 include(VersionFromLinkerGit)
 include(ELDColorMsg)
 
-set(LINKER_PLUGIN_API_MAJOR_VERSION "5")
+set(LINKER_PLUGIN_API_MAJOR_VERSION "6")
 set(LINKER_PLUGIN_API_MINOR_VERSION "0")
 
 # Compute the ELD version from the LLVM version.

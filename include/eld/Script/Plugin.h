@@ -210,6 +210,9 @@ public:
       const std::string &Option, const std::optional<std::string> &Val,
       const CommandLineOptionSpec::OptionHandlerType &OptionHandler);
 
+  /// Calls VisitInput hook handler for input file IF.
+  void callVisitInputHook(InputFile &IF);
+
   /// Calls VisitSections hook handler for input file IF.
   void callVisitSectionsHook(InputFile &IF);
 

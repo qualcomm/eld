@@ -37,6 +37,10 @@ eld::Expected<bool> ELFDynObjParser::parseFile(InputFile &inputFile) {
   if (!expCompatibility.value())
     return false;
 
+  PluginManager &PM = m_Module.getPluginManager();
+  if (!PM.callVisitInputHook(inputFile))
+    return false;
+
   eld::Expected<bool> expCheckFlags = ELFReader->checkFlags();
 
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expCheckFlags);

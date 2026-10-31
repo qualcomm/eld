@@ -1,0 +1,15 @@
+#---VisitInputZeroSize.test-------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Test that zero-sized inputs emit note, call VisitInput, and do not crash.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.main.o %p/Inputs/1.c -c
+RUN: touch %t.zero.bin
+RUN: %link %linkopts -o %t.out %t.main.o \
+RUN:   --format=binary %t.zero.bin --format=default \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: Input file {{.*}}zero.bin has no contents
+CHECK-DAG: VisitInput: {{.*}}zero.bin isNonBitcodeObject=1 isDynamic=0 isBinary=1
+CHECK-DAG: VisitInput: {{.*}}main.o isNonBitcodeObject=1
