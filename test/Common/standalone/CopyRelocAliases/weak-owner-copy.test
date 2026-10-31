@@ -1,0 +1,67 @@
+REQUIRES: x86_64, linux
+#UNSUPPORTED: windows, darwin
+#---weak-owner-copy.test-------COPY Relocation Bindings---------------#
+#BEGIN_COMMENT
+# Preserve WEAK bindings for COPY relocation storage owners.
+# Test a single WEAK symbol, two WEAK aliases, and a larger WEAK
+# alias sharing storage with a smaller GLOBAL symbol.
+#END_COMMENT
+#START_TEST
+
+# Single WEAK symbol.
+RUN: %clang %clangopts -c -fPIC %p/Inputs/weak-owner-single-lib.c -o %t.single.o
+RUN: %link %linkopts -shared %t.single.o -o %t.single.so
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/weak-owner-single-main.c -o %t.single-main.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.single-main.o %t.single.so -o %t.single.out
+RUN: %readelf -W --dyn-syms %t.single.out | %filecheck %s --check-prefix=SINGLE
+RUN: %readelf -Wr %t.single.out | grep -c 'R_X86_64_COPY' | %filecheck %s --check-prefix=ONECOPY
+RUN: %run_and_print_exit %t.single.out | %filecheck %s --check-prefix=EXEC
+
+# Two WEAK aliases, both reference orders.
+RUN: %clang %clangopts -c -fPIC %p/Inputs/weak-owner-two-lib.s -o %t.two.o
+RUN: %link %linkopts -shared %t.two.o -o %t.two.so
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/weak-owner-ref-a.c -o %t.a.o
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/weak-owner-ref-b.c -o %t.b.o
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/weak-owner-two-main.c -o %t.two-main.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.two-main.o %t.a.o %t.b.o %t.two.so -o %t.ab.out
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.two-main.o %t.b.o %t.a.o %t.two.so -o %t.ba.out
+RUN: %readelf -W --dyn-syms %t.ab.out | %filecheck %s --check-prefix=TWO
+RUN: %readelf -W --dyn-syms %t.ba.out | %filecheck %s --check-prefix=TWO
+RUN: %readelf -Wr %t.ab.out | grep -c 'R_X86_64_COPY' | %filecheck %s --check-prefix=ONECOPY
+RUN: %readelf -Wr %t.ba.out | grep -c 'R_X86_64_COPY' | %filecheck %s --check-prefix=ONECOPY
+RUN: %run_and_print_exit %t.ab.out | %filecheck %s --check-prefix=EXEC
+RUN: %run_and_print_exit %t.ba.out | %filecheck %s --check-prefix=EXEC
+
+# Larger WEAK owner, smaller GLOBAL alias, both orders.
+RUN: %clang %clangopts -c -fPIC %p/Inputs/weak-owner-mixed-lib.s -o %t.mixed.o
+RUN: %link %linkopts -shared %t.mixed.o -o %t.mixed.so
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/weak-owner-small.c -o %t.small.o
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/weak-owner-big.c -o %t.big.o
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/weak-owner-mixed-main.c -o %t.mixed-main.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.mixed-main.o %t.small.o %t.big.o %t.mixed.so -o %t.sb.out
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.mixed-main.o %t.big.o %t.small.o %t.mixed.so -o %t.bs.out
+RUN: %readelf -W --dyn-syms %t.sb.out | %filecheck %s --check-prefix=MIXED
+RUN: %readelf -W --dyn-syms %t.bs.out | %filecheck %s --check-prefix=MIXED
+RUN: %readelf -Wr %t.sb.out | %filecheck %s --check-prefix=BIGCOPY
+RUN: %readelf -Wr %t.bs.out | %filecheck %s --check-prefix=BIGCOPY
+RUN: %readelf -Wr %t.sb.out | grep -c 'R_X86_64_COPY' | %filecheck %s --check-prefix=ONECOPY
+RUN: %readelf -Wr %t.bs.out | grep -c 'R_X86_64_COPY' | %filecheck %s --check-prefix=ONECOPY
+RUN: %run_and_print_exit %t.sb.out | %filecheck %s --check-prefix=EXEC
+RUN: %run_and_print_exit %t.bs.out | %filecheck %s --check-prefix=EXEC
+
+#END_TEST
+
+SINGLE: {{ 4 OBJECT +WEAK +DEFAULT +[0-9]+ weak_obj$}}
+
+TWO-DAG: {{ 8 OBJECT +WEAK +DEFAULT +[0-9]+ weak_a$}}
+TWO-DAG: {{ 8 OBJECT +WEAK +DEFAULT +[0-9]+ weak_b$}}
+
+MIXED-DAG: {{ 4 OBJECT +GLOBAL +DEFAULT +[0-9]+ strong_small$}}
+MIXED-DAG: {{ 8 OBJECT +WEAK +DEFAULT +[0-9]+ weak_big$}}
+
+BIGCOPY: R_X86_64_COPY {{.*}} weak_big
+BIGCOPY-NOT: R_X86_64_COPY
+
+ONECOPY: {{^1$}}
+
+EXEC: {{^0$}}

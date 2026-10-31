@@ -75,6 +75,7 @@
 #include "eld/Target/Relocator.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/ScopeExit.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -2258,31 +2259,141 @@ void addCopyReloc(GNULDBackend &LDBackend, ResolveInfo &Sym,
   R.setSymInfo(&Sym);
 }
 
+/// Returns the copy group of \p Sym: the .dynsym entries of Sym's shared
+/// library that share its storage (same section and address, OBJECT type, and
+/// still resolved to that library). Each entry is keyed by its .dynsym index
+/// and mapped to the one symbol that represents it in the executable, so no
+/// entry is defined twice. The first member is always Sym itself.
+llvm::MapVector<uint32_t, ResolveInfo *>
+getCopyRelocGroup(ResolveInfo &Sym,
+                  [[maybe_unused]] const GNULDBackend &Backend) {
+  llvm::MapVector<uint32_t, ResolveInfo *> Group;
+  LDSymbol *SymInput = Sym.outSymbol();
+  auto *DynObj = llvm::dyn_cast<ELFDynObjectFile>(Sym.resolvedOrigin());
+  const uint32_t SymIdx = SymInput->getSymbolIndex();
+  Group.insert({SymIdx, &Sym});
+  if (!DynObj || Sym.type() != ResolveInfo::Object)
+    return Group;
+
+  // Non-default ("hidden") versions are copied on their own, as lld does.
+  auto IsHiddenVersion = [&]([[maybe_unused]] const ResolveInfo *RI,
+                             [[maybe_unused]] uint32_t Idx) {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    return RI->hasVersionInName() && (!DynObj->hasSymbolVersioningInfo() ||
+                                      !DynObj->isDefaultVersionedSymbol(Idx));
+#else
+    return false;
+#endif
+  };
+  if (IsHiddenVersion(&Sym, SymIdx))
+    return Group;
+
+  // Only an entry defined in a real section of the library has storage that
+  // aliases can share. Members must match Shndx below, so this also keeps
+  // SHN_UNDEF, SHN_ABS and SHN_COMMON entries out of the group.
+  const uint32_t Shndx = SymInput->sectionIndex();
+  if (Shndx == llvm::ELF::SHN_UNDEF || Shndx == llvm::ELF::SHN_ABS ||
+      Shndx == llvm::ELF::SHN_COMMON)
+    return Group;
+  const uint64_t Value = Sym.value();
+  llvm::SmallPtrSet<const ResolveInfo *, 8> Seen;
+  Seen.insert(&Sym);
+  auto Consider = [&](LDSymbol *Input) {
+    ResolveInfo *RI = Input->resolveInfo();
+    uint32_t Idx = Input->getSymbolIndex();
+    if (!RI || Idx == SymIdx || !RI->isDyn() ||
+        RI->resolvedOrigin() != DynObj || RI->type() != ResolveInfo::Object ||
+        (RI->binding() != ResolveInfo::Global &&
+         RI->binding() != ResolveInfo::Weak) ||
+        Input->sectionIndex() != Shndx || RI->value() != Value ||
+        IsHiddenVersion(RI, Idx))
+      return;
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    // normalizeSymbols() already folded this name into its canonical half.
+    if (Backend.isNonCanonicalVersionedSym(RI))
+      return;
+#endif
+    if (!Seen.insert(RI).second)
+      return;
+    // A default-versioned entry has two names: name@V, seen first, and name.
+    // Represent it by the unversioned name only if relocations refer to it.
+    auto Inserted = Group.insert({Idx, RI});
+    if (!Inserted.second && RI->outSymbol())
+      Inserted.first->second = RI;
+  };
+  for (LDSymbol *Input : DynObj->getSymbols())
+    Consider(Input);
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  for (LDSymbol *Input : DynObj->getNonCanonicalSymbols())
+    Consider(Input);
+#endif
+  return Group;
+}
+
 } // namespace
 
 void ObjectLinker::createCopyRelocation(ResolveInfo &Sym,
                                         Relocation::Type Type) {
-  // If there are multiple relocation for one symbol, the copy relocation is
-  // created only for the first one. The symbol will be resolved to a local
-  // symbol and all subsequent relocation will be for this local symbol.
+  // A copied symbol becomes an executable definition, so later requests for
+  // it, or for any alias copied with it, are no-ops.
   if (!Sym.isDyn())
     return;
 
-  ResolveInfo *AliasSym = Sym.alias();
+  // Aliases of Sym in its shared library must share the copy, or the library
+  // and the executable would see different objects (#2145).
+  llvm::MapVector<uint32_t, ResolveInfo *> Group =
+      getCopyRelocGroup(Sym, getTargetBackend());
 
-  // If the symbol thats externally used is the alias symbol and not the
-  // original symbol, the linker needs to export the original symbol and
-  // make the alias symbl point to the original symbol.
-  if (AliasSym && !AliasSym->outSymbol()) {
-    LDSymbol &GlobalSymbol = getTargetBackend().defineSymbolforCopyReloc(
-        *ThisModule->getIRBuilder(), AliasSym, &Sym);
-    GlobalSymbol.resolveInfo()->setResolvedOrigin(Sym.resolvedOrigin());
-    addCopyReloc(getTargetBackend(), *GlobalSymbol.resolveInfo(), Type);
+  // ELF aliases can share a section and address while having different
+  // st_size values (e.g. .size 1 and .size 16). Choose the largest so the
+  // COPY relocation copies all bytes even if the smaller alias is referenced.
+  // For equal sizes, prefer GLOBAL, then the lowest .dynsym index, making
+  // the selection independent of reference and input processing order.
+  auto IsBetter = [](const std::pair<uint32_t, ResolveInfo *> &A,
+                     const std::pair<uint32_t, ResolveInfo *> &B) {
+    if (A.second->size() != B.second->size())
+      return A.second->size() > B.second->size();
+    bool AGlobal = A.second->binding() == ResolveInfo::Global;
+    bool BGlobal = B.second->binding() == ResolveInfo::Global;
+    if (AGlobal != BGlobal)
+      return AGlobal;
+    return A.first < B.first;
+  };
+  const std::pair<uint32_t, ResolveInfo *> *Storage = &Group.front();
+  for (const auto &Member : Group)
+    if (IsBetter(Member, *Storage))
+      Storage = &Member;
+
+  IRBuilder &Builder = *ThisModule->getIRBuilder();
+  LDSymbol &Copy = getTargetBackend().defineSymbolforCopyReloc(
+      Builder, Storage->second, &Sym);
+
+  // Define every member on the copy and export it, so references from the
+  // library through any alias reach the same storage. Both the storage owner
+  // and secondary aliases preserve their original GLOBAL/WEAK bindings.
+  for (const auto &Member : Group) {
+    ResolveInfo *RI = Member.second;
+    LDSymbol *Def = &Copy;
+    if (RI != Storage->second) {
+      Def = Builder.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+          RI->resolvedOrigin(), RI->getName().str(),
+          static_cast<ResolveInfo::Type>(RI->type()), ResolveInfo::Define,
+          static_cast<ResolveInfo::Binding>(RI->binding()), RI->size(),
+          /*Value=*/0, Copy.fragRef(),
+          static_cast<ResolveInfo::Visibility>(RI->other()));
+      // Symbol resolution has already reported an error. Do not emit a
+      // COPY relocation for an incomplete alias group.
+      if (!Def)
+        return;
+      Def->setShouldIgnore(false);
+    }
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    // The .dynsym index selects the version that the exported name carries.
+    Def->setSymbolIndex(Member.first);
+#endif
+    Def->resolveInfo()->setExportToDyn();
   }
-  LDSymbol &CopySym = getTargetBackend().defineSymbolforCopyReloc(
-      *ThisModule->getIRBuilder(), &Sym, &Sym);
-  if (!AliasSym)
-    addCopyReloc(getTargetBackend(), *CopySym.resolveInfo(), Type);
+  addCopyReloc(getTargetBackend(), *Copy.resolveInfo(), Type);
 }
 
 void ObjectLinker::scanRelocationsHelper(InputFile *Input, size_t InputIndex,

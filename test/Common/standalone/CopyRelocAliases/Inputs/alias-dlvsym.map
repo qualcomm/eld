@@ -1,0 +1,4 @@
+V1 {
+  global: alias_a; alias_b; address_b; read_b;
+  local: *;
+};
