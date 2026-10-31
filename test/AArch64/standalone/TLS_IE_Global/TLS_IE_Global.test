@@ -1,0 +1,25 @@
+#---TLS_IE_Global.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# IE->LE TLS relaxation for a global symbol in a static executable.
+# By default (--no-relax) the GOT load is kept. With --relax it is
+# relaxed to movz/movk.
+#END_COMMENT
+#START_TEST
+RUN: %clangas %clangasopts -filetype obj -target-cpu generic -target-feature +neon -mrelax-all %p/Inputs/ie.s -o %t.o
+
+## Default: keep the GOT load (adrp + ldr).
+RUN: %link %linkopts -march aarch64 -static -z max-page-size=0x1000 %t.o -o %t.norelax.out
+RUN: %objdump -d %t.norelax.out | %filecheck %s --check-prefix=NORELAX
+
+## --relax: relax to movz + movk.
+RUN: %link %linkopts --relax -march aarch64 -static -z max-page-size=0x1000 %t.o -o %t.relax.out
+RUN: %objdump -d %t.relax.out | %filecheck %s --check-prefix=RELAX
+#END_TEST
+
+NORELAX: _test_tls_ie_global
+NORELAX: adrp
+NORELAX: ldr
+
+RELAX: _test_tls_ie_global
+RELAX: d2a00000       movz
+RELAX: f2800200       movk
