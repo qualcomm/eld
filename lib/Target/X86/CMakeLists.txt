@@ -13,12 +13,10 @@ llvm_add_library(
   X86_32Emulation.cpp
   X86_32GOT.cpp
   X86_32LDBackend.cpp
-  X86_32Relocator.cpp
-  LINK_COMPONENTS
-  X86CodeGen)
+  X86_32Relocator.cpp)
 
 add_subdirectory(TargetInfo)
 
 target_link_libraries(
   ELDX86LDBackend PRIVATE ELDX86TargetInfo ELDCore ELDFragment ELDObject
-                             ELDTarget)
+                             ELDTarget LLVMX86CodeGen)

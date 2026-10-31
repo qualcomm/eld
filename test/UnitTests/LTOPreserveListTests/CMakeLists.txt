@@ -1,7 +1,7 @@
 add_eld_unittest(LTOPreserveListTests LTOPreserveListTest.cpp)
 
 set(_lto_lib)
-if(NOT APPLE AND NOT LLVM_LINK_LLVM_DYLIB)
+if(NOT APPLE)
   set(_lto_lib LLVMLTO)
 endif()
 target_link_libraries(
