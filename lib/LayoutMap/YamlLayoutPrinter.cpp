@@ -222,6 +222,23 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
   Result.OutputFile = Module.getConfig().options().outputFileName();
   Result.CommandLine = CommandLine;
   Result.EntryAddress = getEntryAddress(Module, Backend);
+  auto AddAssignment = [&](const Assignment *A) {
+    eld::LDYAML::Assignment Assignment;
+    Assignment.Name = A->name();
+    Assignment.Value = A->value();
+    {
+      raw_string_ostream Stream(Assignment.Text);
+      A->getExpression()->dump(Stream);
+      Stream.flush();
+    }
+    Result.OutputSections.emplace_back(
+        std::make_shared<eld::LDYAML::Assignment>(std::move(Assignment)));
+  };
+  for (const auto *Command : Module.getScript().getScriptCommands()) {
+    if (const auto *A = llvm::dyn_cast<Assignment>(Command))
+      if (A->level() == Assignment::Level::BeforeSections)
+        AddAssignment(A);
+  }
   for (auto *I : Module.getScript().sectionMap()) {
     auto *Section = I->getSection();
     if (!(ThisLayoutInfo->showHeaderDetails() &&
@@ -394,18 +411,7 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
     }
     Result.OutputSections.emplace_back(
         std::make_shared<eld::LDYAML::OutputSection>(std::move(Value)));
-    I->forEachPostOutputSectionAssignment([&](Assignment *A) {
-      eld::LDYAML::Assignment Assignment;
-      Assignment.Name = A->name();
-      Assignment.Value = A->value();
-      {
-        raw_string_ostream Stream(Assignment.Text);
-        A->getExpression()->dump(Stream);
-        Stream.flush();
-      }
-      Result.OutputSections.emplace_back(
-          std::make_shared<eld::LDYAML::Assignment>(std::move(Assignment)));
-    });
+    I->forEachPostOutputSectionAssignment(AddAssignment);
   }
   Module::const_obj_iterator Obj, ObjEnd = Module.objEnd();
   for (Obj = Module.objBegin(); Obj != ObjEnd; ++Obj) {
