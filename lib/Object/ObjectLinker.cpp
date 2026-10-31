@@ -2306,13 +2306,15 @@ getCopyRelocGroup(ResolveInfo &Sym,
         (RI->binding() != ResolveInfo::Global &&
          RI->binding() != ResolveInfo::Weak) ||
         Input->sectionIndex() != Shndx || RI->value() != Value ||
-        IsHiddenVersion(RI, Idx) || !Seen.insert(RI).second)
+        IsHiddenVersion(RI, Idx))
       return;
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
     // normalizeSymbols() already folded this name into its canonical half.
     if (Backend.isNonCanonicalVersionedSym(RI))
       return;
 #endif
+    if (!Seen.insert(RI).second)
+      return;
     // A default-versioned entry has two names: name@V, seen first, and name.
     // Represent it by the unversioned name only if relocations refer to it.
     auto Inserted = Group.insert({Idx, RI});
@@ -2379,8 +2381,10 @@ void ObjectLinker::createCopyRelocation(ResolveInfo &Sym,
           static_cast<ResolveInfo::Binding>(RI->binding()), RI->size(),
           /*Value=*/0, Copy.fragRef(),
           static_cast<ResolveInfo::Visibility>(RI->other()));
+      // Symbol resolution has already reported an error. Do not emit a
+      // COPY relocation for an incomplete alias group.
       if (!Def)
-        continue;
+        return;
       Def->setShouldIgnore(false);
     }
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
