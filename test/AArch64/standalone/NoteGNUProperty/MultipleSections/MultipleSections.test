@@ -1,0 +1,34 @@
+# Accumulate features across distinct .note.gnu.property sections in one input,
+# regardless of section order. The BTI and PAC masks are 1 and 2, respectively.
+RUN: %clang %clangopts -x assembler-with-cpp -DFIRST=1 -DSECOND=2 -c "%p/Inputs/properties.s" -o "%t.bti-pac.o"
+RUN: %readelf -S -W "%t.bti-pac.o" | %filecheck "%s" --check-prefix=SECTIONS
+RUN: %link %linkopts "%t.bti-pac.o" -o "%t.bti-pac.out"
+RUN: %readelf -n "%t.bti-pac.out" | %filecheck "%s" --check-prefix=BOTH
+
+RUN: %clang %clangopts -x assembler-with-cpp -DFIRST=2 -DSECOND=1 -c "%p/Inputs/properties.s" -o "%t.pac-bti.o"
+RUN: %link %linkopts "%t.pac-bti.o" -o "%t.pac-bti.out"
+RUN: %readelf -n "%t.pac-bti.out" | %filecheck "%s" --check-prefix=BOTH
+
+# A section with no feature bits must not erase features from another section.
+RUN: %clang %clangopts -x assembler-with-cpp -DFIRST=3 -DSECOND=0 -c "%p/Inputs/properties.s" -o "%t.both-zero.o"
+RUN: %link %linkopts "%t.both-zero.o" -o "%t.both-zero.out"
+RUN: %readelf -n "%t.both-zero.out" | %filecheck "%s" --check-prefix=BOTH
+RUN: %clang %clangopts -x assembler-with-cpp -DFIRST=0 -DSECOND=3 -c "%p/Inputs/properties.s" -o "%t.zero-both.o"
+RUN: %link %linkopts "%t.zero-both.o" -o "%t.zero-both.out"
+RUN: %readelf -n "%t.zero-both.out" | %filecheck "%s" --check-prefix=BOTH
+
+# Across different input files, retain only the features present in every file.
+RUN: %clang %clangopts -x assembler-with-cpp -DFIRST=1 -DSECOND=0 -c "%p/Inputs/properties.s" -o "%t.bti.o"
+RUN: %link %linkopts "%t.bti-pac.o" "%t.bti.o" -o "%t.common.out"
+RUN: %readelf -n "%t.common.out" | %filecheck "%s" --check-prefix=BTI
+RUN: %link %linkopts "%t.bti.o" "%t.bti-pac.o" -o "%t.common-reverse.out"
+RUN: %readelf -n "%t.common-reverse.out" | %filecheck "%s" --check-prefix=BTI
+
+# Forcing features already recorded in the input must not warn about them.
+RUN: %link %linkopts --fatal-warnings -z force-bti -z pac-plt "%t.bti-pac.o" -o "%t.forced.out"
+RUN: %readelf -n "%t.forced.out" | %filecheck "%s" --check-prefix=BOTH
+
+SECTIONS-COUNT-2: .note.gnu.property NOTE
+SECTIONS-NOT: .note.gnu.property
+BOTH: Properties: aarch64 feature: BTI, PAC{{$}}
+BTI: Properties: aarch64 feature: BTI{{$}}
