@@ -43,6 +43,10 @@ eld::Expected<bool> ELFRelocObjParser::parseFile(InputFile &inputFile,
   if (!expCompatibility.value())
     return false;
 
+  PluginManager &PM = m_Module.getPluginManager();
+  if (!PM.callVisitInputHook(inputFile))
+    return false;
+
   ELFReader->recordInputActions();
 
   bool isPostLTOPhase = m_Module.isPostLTOPhase();

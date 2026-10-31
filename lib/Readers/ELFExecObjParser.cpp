@@ -37,6 +37,10 @@ eld::Expected<bool> ELFExecObjParser::parseFile(InputFile &inputFile) {
   if (!expCompatibility.value())
     return false;
 
+  PluginManager &PM = m_Module.getPluginManager();
+  if (!PM.callVisitInputHook(inputFile))
+    return false;
+
   ELFReader->recordInputActions();
 
   eld::Expected<bool> expReadSectHeaders = ELFReader->readSectionHeaders();
