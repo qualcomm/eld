@@ -31,14 +31,18 @@ RUN: %readelf -r %t.21.out | %filecheck %s --check-prefix=PAIR
 RUN: %readelf --dyn-syms %t.ws.out | %filecheck %s --check-prefix=BIND
 RUN: %readelf --dyn-syms %t.sw.out | %filecheck %s --check-prefix=BIND
 # Check each alias is exported exactly once in both input orders.
-RUN: %nm -D --defined-only %t.ws.out | %python -c "import sys; rows=[s.split() for s in sys.stdin if s.split()]; print(*[sum(row[-1]==name for row in rows) for name in ('w_obj', 's_obj')])" | %filecheck %s --check-prefix=NUMWEAK
-RUN: %nm -D --defined-only %t.sw.out | %python -c "import sys; rows=[s.split() for s in sys.stdin if s.split()]; print(*[sum(row[-1]==name for row in rows) for name in ('w_obj', 's_obj')])" | %filecheck %s --check-prefix=NUMWEAK
-RUN: %nm -D --defined-only %t.12.out | %python -c "import sys; rows=[s.split() for s in sys.stdin if s.split()]; print(*[sum(row[-1]==name for row in rows) for name in ('foo_v1', 'foo_v2')])" | %filecheck %s --check-prefix=NUMPAIR
-RUN: %nm -D --defined-only %t.21.out | %python -c "import sys; rows=[s.split() for s in sys.stdin if s.split()]; print(*[sum(row[-1]==name for row in rows) for name in ('foo_v1', 'foo_v2')])" | %filecheck %s --check-prefix=NUMPAIR
-RUN: %readelf -r %t.ws.out | %python -c "import re,sys; print(sum(bool(re.search(r'R_[A-Za-z0-9_]+_COPY\b',line)) for line in sys.stdin))" | %filecheck %s --check-prefix=NUMCOPY
-RUN: %readelf -r %t.sw.out | %python -c "import re,sys; print(sum(bool(re.search(r'R_[A-Za-z0-9_]+_COPY\b',line)) for line in sys.stdin))" | %filecheck %s --check-prefix=NUMCOPY
-RUN: %readelf -r %t.12.out | %python -c "import re,sys; print(sum(bool(re.search(r'R_[A-Za-z0-9_]+_COPY\b',line)) for line in sys.stdin))" | %filecheck %s --check-prefix=NUMCOPY
-RUN: %readelf -r %t.21.out | %python -c "import re,sys; print(sum(bool(re.search(r'R_[A-Za-z0-9_]+_COPY\b',line)) for line in sys.stdin))" | %filecheck %s --check-prefix=NUMCOPY
+RUN: %nm -D --defined-only %t.ws.out | grep -Ec '[[:space:]]w_obj$' | %filecheck %s --check-prefix=ONE
+RUN: %nm -D --defined-only %t.ws.out | grep -Ec '[[:space:]]s_obj$' | %filecheck %s --check-prefix=ONE
+RUN: %nm -D --defined-only %t.sw.out | grep -Ec '[[:space:]]w_obj$' | %filecheck %s --check-prefix=ONE
+RUN: %nm -D --defined-only %t.sw.out | grep -Ec '[[:space:]]s_obj$' | %filecheck %s --check-prefix=ONE
+RUN: %nm -D --defined-only %t.12.out | grep -Ec '[[:space:]]foo_v1$' | %filecheck %s --check-prefix=ONE
+RUN: %nm -D --defined-only %t.12.out | grep -Ec '[[:space:]]foo_v2$' | %filecheck %s --check-prefix=ONE
+RUN: %nm -D --defined-only %t.21.out | grep -Ec '[[:space:]]foo_v1$' | %filecheck %s --check-prefix=ONE
+RUN: %nm -D --defined-only %t.21.out | grep -Ec '[[:space:]]foo_v2$' | %filecheck %s --check-prefix=ONE
+RUN: %readelf -r %t.ws.out | grep -Ec 'R_X86_64_COPY([[:space:]]|$)' | %filecheck %s --check-prefix=ONE
+RUN: %readelf -r %t.sw.out | grep -Ec 'R_X86_64_COPY([[:space:]]|$)' | %filecheck %s --check-prefix=ONE
+RUN: %readelf -r %t.12.out | grep -Ec 'R_X86_64_COPY([[:space:]]|$)' | %filecheck %s --check-prefix=ONE
+RUN: %readelf -r %t.21.out | grep -Ec 'R_X86_64_COPY([[:space:]]|$)' | %filecheck %s --check-prefix=ONE
 RUN: %run_and_print_exit %t.ws.out | %filecheck %s --check-prefix=EXEC
 RUN: %run_and_print_exit %t.sw.out | %filecheck %s --check-prefix=EXEC
 RUN: %run_and_print_exit %t.12.out | %filecheck %s --check-prefix=EXEC
@@ -57,8 +61,4 @@ EXEC-NOT: FAIL:
 EXEC: PASSED
 EXEC-NEXT: {{^}}0
 
-NUMCOPY: {{^1$}}
-
-NUMWEAK: {{^1 1$}}
-
-NUMPAIR: {{^1 1$}}
+ONE: {{^1$}}
