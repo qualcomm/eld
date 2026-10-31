@@ -85,6 +85,12 @@ public:
   /// apply - general apply function
   virtual Result applyRelocation(Relocation &pRelocation) = 0;
 
+  /// Prepare size-preserving relocation/instruction rewrites after AfterLayout
+  /// plugins have run, before any relocation in Section is emitted or applied.
+  /// Called within the per-object relocation worker; implementations must not
+  /// modify other objects or retain unsynchronized per-section state.
+  virtual bool prepareRelocations(ELFSection &Section) { return true; }
+
   /// Parallel relocation scanning runs in two phases:
   ///
   /// Phase 1 (scanRelocationParallel) may run concurrently over input files.

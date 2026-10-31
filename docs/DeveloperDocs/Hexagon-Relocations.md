@@ -56,7 +56,106 @@ Relocations with the `_X` suffix are the upper-bits half of such a pair. The low
 
 ---
 
+## Absolute Address Materialization
+
+### Motivation: preserve symbol identity and load the assigned value
+
+`LinkerWrapper::setSymbolAddress(S, Addr)` detaches `S` from its original
+section and makes its output symbol absolute (`SHN_ABS`). For example, a
+plugin can assign an ID to a local debug string in a `(DSECT)` output section:
+callers should pass that ID, not the string's original storage address. Making
+the symbol absolute alone does not guarantee that every caller uses that value.
+There are two separate issues to address:
+
+1. **The relocation must still name the symbol.** An assembler can replace a
+   reference to a local symbol with its enclosing section symbol plus an
+   offset, such as `.dedup + offset`. Reassigning the local symbol does not
+   change that section symbol or addend. The relocation therefore continues to
+   refer to the original storage, bypassing the assigned absolute value. On
+   Hexagon, compile with `-Wa,--reloc-section-sym=none` to preserve references
+   to the local symbol itself. This is relevant to both PIC and non-PIC code;
+   `-ffunction-sections` and `-fdata-sections` do not replace this requirement.
+
+2. **The instruction must compute an absolute value.** Even a direct symbol
+   reference can use an `immext; Rd = add(pc, ...)` sequence with PC-relative
+   relocations. Changing the symbol to absolute does not itself change that
+   instruction. In a shared library or PIE, a displacement resolved at link
+   time can produce the assigned value plus the image's load bias when the
+   image moves. ELD's narrow rewrite instead loads the absolute value directly,
+   without depending on the runtime PC or requiring a loader fixup for that
+   address-materialization pair.
+
+The assembler option addresses symbol identity; the ELD rewrite addresses the
+instruction and relocation calculation. The rewrite does **not** recover a
+local symbol from an enclosing-section relocation. Already-absolute direct
+relocations use normal relocation handling to observe `setSymbolAddress`.
+
+### Scope and eligibility
+
+This optimization is **not restricted to `-fPIC`, `-fpic`, or shared libraries**.
+ELD applies it automatically during final linking to any pair matching the
+criteria below, regardless of whether the input came from PIC, PIE, non-PIC,
+or hand-written assembly. It applies to static executables, dynamically linked
+executables, shared libraries, and PIEs. A partial link (`-r`) preserves the
+original relocation pair for the final link. No plugin is required if the
+referenced symbol is already absolute.
+
+An eligible pair must:
+
+- Be in retained, allocated executable code, with relocations not already
+  consumed by relaxation.
+- Have adjacent `immext` and `add(pc)` instructions and matching
+  `R_HEX_B32_PCREL_X` / `R_HEX_6_PCREL_X` relocations to the same defined,
+  non-preemptible absolute symbol, not a section, TLS, IFUNC, or dynamic symbol.
+- Have a valid instruction packet, consistent packet-adjusted addends, and no
+  overlapping or conflicting fixups.
+
+Normal non-PIC code often already uses an absolute immediate and needs no
+rewrite. Ordinary section-relative addresses, extended branches, and
+preemptible symbols retain their existing handling. Malformed candidate pairs
+are diagnosed before any rewrite is committed to their section.
+
+Dynamic relocation scanning runs before AfterLayout plugins. After static
+relocation application, Hexagon removes obsolete `R_HEX_RELATIVE`,
+`R_HEX_GLOB_DAT`, and `R_HEX_32` runtime fixups for defined, non-preemptible
+absolute data symbols. Pointer initializers retain `S + A`; regular GOT slots
+are emitted with `S`, without adding the image's load bias. TLS and PLT
+references are excluded, and preemptible symbols keep their runtime fixups.
+This also applies when a symbol was already absolute without a plugin.
+
+The surviving dynamic relocations are packed into the original reservation.
+Section sizes, `DT_RELASZ`, and `DT_RELACOUNT` describe only the surviving
+records. Laid-out section addresses and offsets remain unchanged; unused
+trailing space becomes padding rather than no-op relocations processed at
+runtime. Script expressions evaluated before compaction, such as
+`SIZEOF(.rela.dyn)`, still reflect the original reservation.
+
+Removing runtime fixups requires file-backed pointer storage. A `NOLOAD`/NOBITS
+output section, or a regular GOT slot with a nonzero dynamic relocation addend,
+is diagnosed instead of emitting an incorrect absolute pointer.
+When symbol-less TLS records could precede relative records, `DT_RELACOUNT` is
+zero and the loader dispatches the surviving relocations by their types.
+
+### Conversion and guarantees
+
+After `AfterLayout` plugins run, ELD replaces the eligible two-word sequence
+`immext; Rd = add(pc, ...)` with `immext; Rd = ...`. It changes
+`R_HEX_B32_PCREL_X` / `R_HEX_6_PCREL_X` to `R_HEX_32_6_X` / `R_HEX_16_X`,
+removing each relocation site's packet offset from its addend while preserving
+genuine offsets from the referenced symbol. The final value is `S + A`,
+independent of the image's load address or load bias.
+
+The rewrite preserves register selection, packet markers, instruction count,
+and code size: it is an address-materialization correction, not a code-size
+reduction. Preparation happens before relocation application and before
+copying any `--emit-relocs` records, so retained records describe the rewritten
+instructions and relocation types.
+
+---
+
 ## PC-Relative Branch Relocations
+
+### PC-relative calculation
 
 Expression: `S + A - P`
 

@@ -1,0 +1,41 @@
+# REQUIRES: hexagon
+# Dynamic relocation reservations precede AfterLayout reassignment. Stored
+# pointers and GOT slots must keep the absolute value even at nonzero load bias.
+RUN: %llvm-mc -triple=hexagon -filetype=obj %p/Inputs/dynamic.s -o %t.o
+RUN: %link --shared --threads --thread-count 4 -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.o -o %t.shared
+RUN: %python %p/Inputs/check_dynamic.py --readelf %readelf --image %t.shared
+RUN: %link --shared --no-threads -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.o -o %t.serial
+RUN: cmp %t.shared %t.serial
+RUN: %link --shared -z nocombreloc -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.o -o %t.unsorted
+RUN: %python %p/Inputs/check_dynamic.py --readelf %readelf --image %t.unsorted --no-combreloc
+RUN: %link --pie -e entry -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.o -o %t.pie
+RUN: %python %p/Inputs/check_dynamic.py --readelf %readelf --image %t.pie
+RUN: %link --static -e entry --emit-relocs -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.o -o %t.static
+RUN: %python %p/Inputs/check_dynamic.py --readelf %readelf --image %t.static
+
+# Without reassignment all original dynamic fixups must survive.
+RUN: %link --shared %t.o -o %t.ordinary
+RUN: %python %p/Inputs/check_dynamic.py --readelf %readelf --image %t.ordinary --ordinary
+RUN: %python %p/Inputs/check_dynamic.py --readelf %readelf --image %t.shared --layout-reference %t.ordinary
+
+# Existing absolute symbols use the same rules without needing a plugin.
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=ABSOLUTE=1 %p/Inputs/dynamic.s -o %t.abs.o
+RUN: %link --shared %t.abs.o -o %t.abs
+RUN: %python %p/Inputs/check_dynamic.py --readelf %readelf --image %t.abs
+
+# If the last runtime fixup is removed, the table and its tags must be empty,
+# while the formerly following sections retain their laid-out addresses.
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=ONLY_ABSOLUTE=1 %p/Inputs/dynamic.s -o %t.only.o
+RUN: %link --shared -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.only.o -o %t.only
+RUN: %python %p/Inputs/check_dynamic.py --readelf %readelf --image %t.only --only-absolute
+
+# Reassignment preserves binding/visibility: interposable absolute symbols
+# still need symbol-based runtime fixups and must not be silently localized.
+RUN: %llvm-mc -triple=hexagon -filetype=obj --defsym=PREEMPTIBLE=1 %p/Inputs/dynamic.s -o %t.preemptible.o
+RUN: %link --shared -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.preemptible.o -o %t.preemptible
+RUN: %python %p/Inputs/check_dynamic.py --readelf %readelf --image %t.preemptible --preemptible
+
+# Partial linking must leave the final-link decision and symbol identity intact.
+RUN: %link -r %t.o -o %t.partial.o
+RUN: %link --shared -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml %t.partial.o -o %t.partial
+RUN: %python %p/Inputs/check_dynamic.py --readelf %readelf --image %t.partial

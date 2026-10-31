@@ -6,13 +6,18 @@
 
 #include "HexagonRelocationFunctions.h"
 #include "eld/Config/GeneralOptions.h"
+#include "eld/Fragment/FragUtils.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/Resolver.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/DataTypes.h"
+#include "llvm/Support/Endian.h"
+#include <optional>
 
 namespace eld {
 class DiagnosticEngine;
@@ -217,6 +222,159 @@ Relocator::Result HexagonRelocator::applyRelocation(Relocation &pRelocation) {
 
   // apply the relocation
   return RelocDesc[type].func(pRelocation, *this, RelocDesc[type]);
+}
+
+namespace {
+llvm::StringRef instructionBytes(const Fragment *F) {
+  if (F->getKind() != Fragment::Region &&
+      F->getKind() != Fragment::RegionFragmentEx)
+    return {};
+  return getRegionFromFragment(F);
+}
+
+bool isPacketEnd(uint32_t Word) {
+  return (Word & MASK_END_PACKET) == END_OF_PACKET ||
+         (Word & MASK_END_PACKET) == END_OF_DUPLEX;
+}
+
+bool isAddPC(uint32_t Word) {
+  // C4_addipc: exclude immediate, destination register and packet parse bits.
+  return (Word & 0xffff2060) == 0x6a490000 &&
+         (Word & MASK_END_PACKET) != END_OF_DUPLEX;
+}
+
+std::optional<uint32_t> readInstruction(llvm::StringRef Bytes,
+                                        uint64_t Offset) {
+  if (Offset % 4 || Offset > Bytes.size() || Bytes.size() - Offset < 4)
+    return std::nullopt;
+  return llvm::support::endian::read32le(Bytes.data() + Offset);
+}
+
+// Check both ends of the packet before using getAddend()/getPacketOffset().
+// Malformed inputs must not cause an unbounded scan or an out-of-bounds read.
+std::optional<uint64_t> findPacketStart(llvm::StringRef Bytes,
+                                        uint64_t Offset) {
+  if (!readInstruction(Bytes, Offset))
+    return std::nullopt;
+  uint64_t Start = Offset;
+  unsigned Words = 1;
+  while (Start && !isPacketEnd(*readInstruction(Bytes, Start - 4))) {
+    if (++Words > 4)
+      return std::nullopt;
+    Start -= 4;
+  }
+  for (unsigned I = 0; I != 4; ++I) {
+    auto Word = readInstruction(Bytes, Start + 4 * I);
+    if (!Word)
+      return std::nullopt;
+    if (isPacketEnd(*Word))
+      return Start;
+  }
+  return std::nullopt;
+}
+} // namespace
+
+bool HexagonRelocator::prepareRelocations(ELFSection &Section) {
+  if (!Section.isAlloc() || !(Section.getFlags() & llvm::ELF::SHF_EXECINSTR) ||
+      Section.isIgnore() || Section.isDiscard())
+    return true;
+
+  auto IsCandidate = [&](Relocation *R) {
+    if ((R->type() != llvm::ELF::R_HEX_6_PCREL_X &&
+         R->type() != llvm::ELF::R_HEX_B32_PCREL_X) ||
+        m_Target.isRelocationRelaxed(R) || !R->symInfo() ||
+        !m_Target.isNonPreemptibleAbsolute(*R->symInfo()))
+      return false;
+    if (R->type() == llvm::ELF::R_HEX_6_PCREL_X)
+      return true;
+    // B32_PCREL_X also extends branches. Only consider an add(pc) consumer.
+    llvm::StringRef Bytes = instructionBytes(R->targetRef()->frag());
+    auto Next = readInstruction(Bytes, R->targetRef()->offset() + 4);
+    return Next && isAddPC(*Next) && !isPacketEnd(R->target());
+  };
+
+  if (!llvm::any_of(Section.getRelocations(), IsCandidate))
+    return true;
+
+  // Relocations need not be sorted. Index just this section, including other
+  // relocation types so overlapping fixups cannot silently escape validation.
+  using Location = std::pair<const Fragment *, uint64_t>;
+  llvm::SmallDenseMap<Location, Relocation *, 16> At;
+  for (Relocation *R : Section.getRelocations()) {
+    if (m_Target.isRelocationRelaxed(R))
+      continue;
+    auto Insert = At.try_emplace(
+        Location(R->targetRef()->frag(), R->targetRef()->offset()), R);
+    if (!Insert.second)
+      Insert.first->second = nullptr;
+  }
+
+  struct Rewrite {
+    Relocation *High;
+    Relocation *Low;
+    uint32_t Addend;
+    uint32_t Instruction;
+  };
+  llvm::SmallVector<Rewrite, 4> Rewrites;
+  auto Fail = [&](Relocation *R, const char *Reason) {
+    config().raise(Diag::error_hexagon_absolute_address)
+        << R->getSourcePath(config().options()) << R->symInfo()->name()
+        << llvm::utohexstr(R->targetRef()->offset()) << Reason;
+    return false;
+  };
+
+  for (Relocation *R : Section.getRelocations()) {
+    if (!IsCandidate(R))
+      continue;
+    const Fragment *F = R->targetRef()->frag();
+    uint64_t Offset = R->targetRef()->offset();
+    if (R->type() == llvm::ELF::R_HEX_B32_PCREL_X) {
+      Relocation *Low = At.lookup({F, Offset + 4});
+      if (!Low || Low->type() != llvm::ELF::R_HEX_6_PCREL_X ||
+          Low->symInfo() != R->symInfo())
+        return Fail(R, "missing or conflicting add(pc) relocation");
+      // The low relocation validates and records the complete pair.
+      continue;
+    }
+
+    Relocation *High = Offset >= 4 ? At.lookup({F, Offset - 4}) : nullptr;
+    if (At.lookup({F, Offset}) != R || !High ||
+        High->type() != llvm::ELF::R_HEX_B32_PCREL_X ||
+        High->symInfo() != R->symInfo())
+      return Fail(R, "missing or conflicting immediate-extender relocation");
+
+    uint32_t Word = R->target();
+    uint32_t Extender = High->target();
+    if (!isAddPC(Word) || (Extender & 0xf0000000) != 0 || isPacketEnd(Extender))
+      return Fail(R, "expected an immediate extender followed by add(pc)");
+
+    llvm::StringRef Bytes = instructionBytes(F);
+    auto Start = findPacketStart(Bytes, Offset);
+    if (!Start || Offset - 4 < *Start)
+      return Fail(R, "invalid or truncated instruction packet");
+
+    uint32_t Addend = getAddend(R);
+    if (Addend != getAddend(High))
+      return Fail(R, "inconsistent packet-adjusted addends");
+
+    // A2_tfrsi is legal in every slot supported by C4_addipc. Both produce
+    // the same destination/new value. Retain the extender, packet parse bits
+    // (including loop-end markers) and register; clear the old immediate.
+    Rewrites.push_back(
+        {High, R, Addend, 0x78000000 | (Word & (MASK_END_PACKET | 0x1f))});
+  }
+
+  // Commit only after all candidate pairs have been validated. Updating the
+  // actual relocations also keeps --emit-relocs consistent and makes repeated
+  // preparation harmless. No instruction or section changes size.
+  for (const Rewrite &W : Rewrites) {
+    W.High->setType(llvm::ELF::R_HEX_32_6_X);
+    W.High->setAddend(W.Addend);
+    W.Low->setType(llvm::ELF::R_HEX_16_X);
+    W.Low->setAddend(W.Addend);
+    W.Low->setTargetData(W.Instruction);
+  }
+  return true;
 }
 
 const char *HexagonRelocator::getName(Relocation::Type pType) const {

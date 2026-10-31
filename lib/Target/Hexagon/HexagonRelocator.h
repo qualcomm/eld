@@ -32,6 +32,8 @@ public:
 
   Result applyRelocation(Relocation &pRelocation) override;
 
+  bool prepareRelocations(ELFSection &Section) override;
+
   uint32_t getAddend(const Relocation *R) const override {
     return R->addend() - m_Target.getPacketOffset(*R);
   }
