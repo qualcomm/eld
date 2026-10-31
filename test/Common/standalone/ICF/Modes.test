@@ -1,0 +1,13 @@
+# Verify the public ICF modes on portable, relocation-free C functions.
+
+# RUN: split-file %s %t
+# RUN: %clang -O2 -ffunction-sections -fno-stack-protector -c %t/input.c -o %t/input.o
+# RUN: %link %linkopts --entry=foo --icf=none --print-icf-sections %t/input.o -o %t/none 2>&1 | %filecheck %s --check-prefix=NONE --allow-empty
+# RUN: %link %linkopts --entry=foo --icf=safe --print-icf-sections %t/input.o -o %t/safe 2>&1 | %filecheck %s --check-prefix=SAFE
+
+# NONE-NOT: ICF folding
+# SAFE: ICF folding {{.*}}:(.text.bar) into {{.*}}:(.text.foo)
+
+#--- input.c
+int foo(void) { return 42; }
+int bar(void) { return 42; }

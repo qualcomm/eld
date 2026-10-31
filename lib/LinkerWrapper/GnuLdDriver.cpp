@@ -1038,6 +1038,24 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.addCommandLine(Table->getOptionName(T::gc_sections), enableGC);
     // --print-gc-sections
     Config.options().setPrintGCSections(Args.hasArg(T::print_gc_sections));
+
+    if (llvm::opt::Arg *Arg = Args.getLastArg(T::icf)) {
+      llvm::StringRef Mode = Arg->getValue();
+      GeneralOptions::ICFMode ICFMode;
+      if (Mode == "all")
+        ICFMode = GeneralOptions::ICFMode::All;
+      else if (Mode == "safe")
+        ICFMode = GeneralOptions::ICFMode::Safe;
+      else if (Mode == "none")
+        ICFMode = GeneralOptions::ICFMode::None;
+      else {
+        Config.raise(Diag::invalid_value_for_option) << "--icf" << Mode;
+        ICFMode = GeneralOptions::ICFMode::None;
+      }
+      Config.options().setICFMode(ICFMode);
+      Config.addCommandLine(Table->getOptionName(T::icf), Arg->getValue());
+    }
+    Config.options().setPrintICFSections(Args.hasArg(T::print_icf_sections));
   }
 
   // Disable emit relocs if -shared/-pie/relocatable

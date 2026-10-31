@@ -1,0 +1,23 @@
+#
+# The initial ICF pass folds only relocation-free executable sections. Verify
+# that equal sections share an address and unequal bytes remain distinct.
+
+# RUN: split-file %s %t
+# RUN: %clang -O2 -ffunction-sections -fno-stack-protector -c %t/equal.c -o %t/equal.o
+# RUN: %link %linkopts --entry=foo --icf=all --print-icf-sections %t/equal.o -o %t/equal 2>&1 | %filecheck %s --check-prefix=FOLD
+# RUN: %readelf -sW %t/equal | %filecheck %s --check-prefix=SYMS
+# RUN: %clang -O2 -ffunction-sections -fno-stack-protector -c %t/different.c -o %t/different.o
+# RUN: %link %linkopts --entry=foo --icf=all --print-icf-sections %t/different.o -o %t/different 2>&1 | %filecheck %s --check-prefix=NOFOLD --allow-empty
+
+# FOLD: ICF folding {{.*}}:(.text.bar) into {{.*}}:(.text.foo)
+# SYMS: {{ *}}[[ADDR:[0-9a-f]+]] {{[0-9]+}} FUNC {{.*}} foo
+# SYMS: {{ *}}[[ADDR]] {{[0-9]+}} FUNC {{.*}} bar
+# NOFOLD-NOT: ICF folding
+
+#--- equal.c
+int foo(void) { return 42; }
+int bar(void) { return 42; }
+
+#--- different.c
+int foo(void) { return 42; }
+int bar(void) { return 43; }

@@ -1,0 +1,39 @@
+# ICF must reject relocation-bearing candidates and candidates assigned to
+# different output sections.
+
+# RUN: split-file %s %t
+# RUN: %clang -O0 -ffunction-sections -fno-stack-protector -c %t/relocs.c -o %t/relocs.o
+# RUN: %link %linkopts --entry=foo --icf=all --print-icf-sections %t/relocs.o -o %t/relocs 2>&1 | %filecheck %s --check-prefix=RELOCS --allow-empty
+# RUN: %clang -O2 -ffunction-sections -fno-stack-protector -c %t/sections.c -o %t/sections.o
+# RUN: %link %linkopts --entry=foo -T %t/sections.ld --icf=all --print-icf-sections %t/sections.o -o %t/sections 2>&1 | %filecheck %s --check-prefix=SECTIONS --allow-empty
+# RUN: %clang -O2 -ffunction-sections -fno-stack-protector -c %t/alignment.c -o %t/alignment.o
+# RUN: %link %linkopts --entry=foo --icf=all --print-icf-sections %t/alignment.o -o %t/alignment 2>&1 | %filecheck %s --check-prefix=ALIGNMENT
+# RUN: %readelf -SW %t/alignment | %filecheck %s --check-prefix=ALIGNMENT-SECTION
+
+# RELOCS-NOT: ICF folding
+# SECTIONS-NOT: ICF folding
+# ALIGNMENT: ICF folding {{.*}}:(.text.bar) into {{.*}}:(.text.foo)
+# ALIGNMENT-SECTION: .text {{.*}} 32
+
+#--- relocs.c
+__attribute__((noinline)) int target(void) { return 7; }
+int foo(void) { return target(); }
+int bar(void) { return target(); }
+
+#--- sections.c
+int foo(void) __attribute__((section(".text.foo")));
+int bar(void) __attribute__((section(".text.bar")));
+int foo(void) { return 42; }
+int bar(void) { return 42; }
+
+#--- sections.ld
+SECTIONS {
+  .text.foo : { *(.text.foo) }
+  .text.bar : { *(.text.bar) }
+}
+
+#--- alignment.c
+int foo(void) __attribute__((aligned(16)));
+int bar(void) __attribute__((aligned(32)));
+int foo(void) { return 42; }
+int bar(void) { return 42; }

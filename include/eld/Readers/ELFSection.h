@@ -272,6 +272,9 @@ public:
     return m_OutputSection ? m_OutputSection->getSection() : nullptr;
   }
 
+  void setFolded() { IsFolded = true; }
+  bool isFolded() const { return IsFolded; }
+
   //  LTO Tracking support
   bool hasOldInputFile() const override {
     auto *ObjFile = llvm::dyn_cast_or_null<ELFObjectFile>(getInputFile());
@@ -404,6 +407,7 @@ protected:
 
   llvm::SmallVector<Fragment *, 0> Fragments;
   llvm::SmallVector<Relocation *, 0> Relocations;
+  bool IsFolded = false;
 };
 
 } // namespace eld
