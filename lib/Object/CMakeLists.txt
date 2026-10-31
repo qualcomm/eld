@@ -11,11 +11,7 @@ llvm_add_library(
   SectionMap.cpp
   ArchiveMemberReport.cpp
   DEPENDS
-  intrinsics_gen
-  LINK_COMPONENTS
-  BitWriter
-  LTO
-  Support)
+  intrinsics_gen)
 
 target_link_libraries(
   ELDObject
@@ -24,4 +20,7 @@ target_link_libraries(
           ELDReaders
           ELDScript
           ELDSupport
-          ELDTarget)
+          ELDTarget
+          LLVMSupport
+          LLVMBitWriter
+          LLVMLTO)

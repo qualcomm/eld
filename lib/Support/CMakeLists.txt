@@ -16,9 +16,7 @@ llvm_add_library(
   StringRefUtils.cpp
   Target.cpp
   TargetRegistry.cpp
-  Utils.cpp
-  LINK_COMPONENTS
-  Demangle
-  Support)
+  Utils.cpp)
 
-target_link_libraries(ELDSupport PRIVATE ELDConfig ELDDiagnostics)
+target_link_libraries(ELDSupport PRIVATE ELDConfig ELDDiagnostics LLVMDemangle
+                                         LLVMSupport)
