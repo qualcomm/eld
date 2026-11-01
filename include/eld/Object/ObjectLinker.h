@@ -429,7 +429,8 @@ private:
 
   /// writeRelocationResult - helper function of syncRelocationResult, write
   /// relocation target data to output
-  void writeRelocationResult(Relocation &PReloc, uint8_t *POutput);
+  void writeRelocationResult(Relocation &PReloc, uint8_t *POutput,
+                             bool SyncUnmodified = true);
 
   /// writeRelocationData - another helper to write relocation data into the
   /// output

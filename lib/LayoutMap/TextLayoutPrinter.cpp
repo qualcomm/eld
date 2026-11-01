@@ -741,8 +741,7 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
       };
 
   std::optional<uint64_t> AddressOrOffset;
-  bool HasFragInfo =
-      (M.getState() >= LinkState::ActBeforePerformingLayout);
+  bool HasFragInfo = (M.getState() >= LinkState::ActBeforePerformingLayout);
   if (llvm::isa<MergeStringFragment>(Frag) && !M.isLinkStateBeforeLayout()) {
     auto *Strings = llvm::cast<MergeStringFragment>(Frag);
     for (MergeableString &S : Strings->getStrings()) {

@@ -477,6 +477,14 @@ link state. Here, it performs section rule matching, garbage collection,
 updates input sections with attributes (such as KEEP) present in the
 linker script, and updates the linker cache-file, among other things.
 
+### ActBeforeRelocationScan
+
+After serial relocation callbacks, the linker temporarily enters
+`ActBeforeRelocationScan` to invoke the corresponding `LinkerPlugin` hook.
+This is the only hook where `claimUse()` is allowed. All claims and worker
+tasks must finish before the hook returns. The linker restores the previous
+state before target scanning. Partial links invoke the hook but reject claims.
+
 ### CreatingSections
 
 After the *BeforeLayout* state, the linker enters the *CreatingSections*
@@ -489,8 +497,10 @@ rule-matching in *CreatingSections* state or any subsequent state.
 
 ### AfterLayout
 
-After the *BeforeLayout* state, the linker enters *Afterlayout* link state.
-Here, it finalizes the relocations and writes the output object file.
+After layout, the linker enters *AfterLayout* and applies normal relocations.
+Replacement data may still be supplied in `LinkerPlugin::ActBeforeWritingOutput()`;
+all calls and worker tasks must finish before their originating callback returns.
+The linker validates surviving claims after the output hooks return.
 
 In this link state, a plugin can compute output image layout checksum using
 {code}`eld::plugin::LinkerWrapper::getImageLayoutChecksum`. A plugin cannot perform

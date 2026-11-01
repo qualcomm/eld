@@ -773,7 +773,8 @@ bool Linker::emit() {
     LinkerProgress->incrementAndDisplayProgress("Write sections");
     eld::RegisterTimer T("Write All Sections", "Emit Output File",
                          ThisConfig->options().printTimingStats());
-    ObjLinker->emitOutput(*OutputOrError.get());
+    if (!ObjLinker->emitOutput(*OutputOrError.get()))
+      return false;
   }
 
   LinkerProgress->incrementAndDisplayProgress("Post-process output");

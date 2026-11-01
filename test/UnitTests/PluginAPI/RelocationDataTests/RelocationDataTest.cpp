@@ -13,6 +13,7 @@
 #include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/PluginAPI/LinkerWrapper.h"
 #include "eld/Readers/Relocation.h"
+#include "eld/Script/Plugin.h"
 #include "gtest/gtest.h"
 #include <atomic>
 #include <thread>
@@ -22,13 +23,31 @@ namespace {
 
 class RelocationDataTest : public ::testing::Test {
 protected:
+  void SetUp() override {
+    ASSERT_TRUE(Module.setLinkState(eld::LinkState::ActBeforeRuleMatching));
+  }
+
   eld::DiagnosticEngine Diag{false};
   eld::LinkerConfig Config{&Diag};
   eld::LinkerScript Script{&Diag};
   eld::LayoutInfo Info{Config};
   eld::Module Module{Script, Config, &Info};
-  eld::plugin::LinkerWrapper Writer{nullptr, Module};
-  eld::plugin::LinkerWrapper OtherWriter{nullptr, Module};
+  eld::Plugin WriterPlugin{eld::plugin::Plugin::LinkerPlugin,
+                           "Writer",
+                           "Writer",
+                           "",
+                           false,
+                           false,
+                           Module};
+  eld::plugin::LinkerWrapper Writer{&WriterPlugin, Module};
+  eld::Plugin OtherWriterPlugin{eld::plugin::Plugin::LinkerPlugin,
+                                "OtherWriter",
+                                "OtherWriter",
+                                "",
+                                false,
+                                false,
+                                Module};
+  eld::plugin::LinkerWrapper OtherWriter{&OtherWriterPlugin, Module};
   eld::FillFragment Fragment{Module, 0, 4096 * sizeof(uint64_t)};
 };
 
@@ -58,6 +77,9 @@ TEST_F(RelocationDataTest, NullUseIsRejectedWithoutLogging) {
 }
 
 TEST_F(RelocationDataTest, ConcurrentWritersRetainAllDataAndMapOperations) {
+  ASSERT_TRUE(Module.setLinkState(eld::LinkState::ActBeforeWritingOutput));
+  WriterPlugin.setRunning(true);
+  OtherWriterPlugin.setRunning(true);
   constexpr size_t Count = 4096;
   constexpr size_t NumWorkers = 8;
   std::vector<eld::FragmentRef> Refs;

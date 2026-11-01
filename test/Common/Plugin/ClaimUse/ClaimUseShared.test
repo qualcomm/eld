@@ -1,0 +1,17 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# Public pointer initializers normally require dynamic relocations. A claimed
+# initializer must be patched without reserving or emitting a dynamic use.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/pointer.c -o %t.o
+RUN: %link %linkopts --shared %t.o -o %t.original.so
+RUN: %readelf -r %t.original.so | %filecheck %s --check-prefix=ORIGINAL
+RUN: %link %linkopts --shared %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.claimed.so
+RUN: %readelf -r %t.claimed.so | %filecheck %s --check-prefix=CLAIMED --implicit-check-not=" data "
+RUN: %readelf -x .data %t.claimed.so | %filecheck %s --check-prefix=DATA
+# Check ownership at the public API boundary with two real plugin instances.
+RUN: %not %link %linkopts --shared %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/ForeignWriter.yaml -o %t.foreign.so 2>&1 | %filecheck %s --check-prefix=FOREIGN
+ORIGINAL: Relocation section '{{\.rel(a)?\.dyn}}'
+ORIGINAL: data
+ORIGINAL: data
+CLAIMED: {{There are no relocations|Relocation section}}
+DATA: 78563412
+FOREIGN: replacement supplied by a different plugin

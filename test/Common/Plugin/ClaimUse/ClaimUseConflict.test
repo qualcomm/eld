@@ -1,0 +1,39 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# An unclaimed replacement belongs to its first writer. A second plugin must
+# fail both API calls, and discarding the errors must still fail the link.
+# Exercise this ignored-error path in executables, shared libraries, and PIEs.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/pointer.c -o %t.o
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/ConflictingWriter.yaml -o %t.out 2>&1 | %filecheck %s --check-prefixes=CALLS,DIAGS --implicit-check-not=": success" --implicit-check-not="retained: no"
+RUN: %not %link %linkopts --shared %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/ConflictingWriter.yaml -o %t.so 2>&1 | %filecheck %s --check-prefixes=CALLS,DIAGS --implicit-check-not=": success" --implicit-check-not="retained: no"
+RUN: %not %link %linkopts -pie %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/ConflictingWriter.yaml -o %t.pie 2>&1 | %filecheck %s --check-prefixes=CALLS,DIAGS --implicit-check-not=": success" --implicit-check-not="retained: no"
+# An existing claim must give the same protections.
+RUN: sed 's/Options: unclaimed-data/Options: claimed-data/' %p/Inputs/ConflictingWriter.yaml > %t.claimed.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.claimed.yaml -o %t.claimed.out 2>&1 | %filecheck %s --check-prefixes=CALLS,DIAGS --implicit-check-not=": success" --implicit-check-not="retained: no"
+# Even an identical value from a different writer is a conflict.
+RUN: sed 's/Options: ignore-errors/Options: same-data/' %p/Inputs/ConflictingWriter.yaml > %t.same.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.same.yaml -o %t.same.out 2>&1 | %filecheck %s --check-prefixes=CALLS,DIAGS --implicit-check-not=": success" --implicit-check-not="retained: no"
+# A second plugin's direct setter must also fail without attempting a claim.
+RUN: sed 's/Options: ignore-errors/Options: write-only/' %p/Inputs/ConflictingWriter.yaml > %t.write.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.write.yaml -o %t.write.out 2>&1 | %filecheck %s --check-prefix=WRITE --implicit-check-not=": success" --implicit-check-not="retained: no"
+# Repeated writes by the owning plugin update the value, whether or not that
+# plugin claims the use. Check claimed updates in executables, shared links,
+# and PIEs.
+RUN: sed 's/Options: valid/Options: unclaimed-data/' %p/Inputs/PluginConfig.yaml > %t.first.yaml
+RUN: %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.first.yaml -o %t.first.out
+RUN: %readelf -x .data %t.first.out | %filecheck %s --check-prefix=DATA
+RUN: sed 's/Options: valid/Options: claimed-data/' %p/Inputs/PluginConfig.yaml > %t.owner.yaml
+RUN: %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.owner.yaml -o %t.owner.out
+RUN: %readelf -x .data %t.owner.out | %filecheck %s --check-prefix=DATA
+RUN: %link %linkopts --shared %t.o -L%libsdir -L%libsdir/test --plugin-config %t.owner.yaml -o %t.owner.so
+RUN: %readelf -x .data %t.owner.so | %filecheck %s --check-prefix=DATA
+RUN: %link %linkopts -pie %t.o -L%libsdir -L%libsdir/test --plugin-config %t.owner.yaml -o %t.owner.pie
+RUN: %readelf -x .data %t.owner.pie | %filecheck %s --check-prefix=DATA
+CALLS-DAG: claimUse: failure
+CALLS-DAG: setTargetDataForUse: failure
+CALLS-DAG: owner replacement retained: yes
+DIAGS-DAG: Cannot claim plugin relocation: relocation already owned or overridden by a plugin
+DIAGS-DAG: replacement supplied by a different plugin
+WRITE-DAG: setTargetDataForUse: failure
+WRITE-DAG: owner replacement retained: yes
+WRITE-DAG: replacement supplied by a different plugin
+DATA: 21436587

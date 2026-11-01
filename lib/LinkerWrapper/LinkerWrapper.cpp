@@ -287,12 +287,16 @@ LinkerWrapper::getFunction(void *LibraryHandle,
 
 eld::Expected<void> LinkerWrapper::applyRelocations(uint8_t *Buf) {
   CHECK_LINK_STATE(*this, "CreatingSegments", "AfterLayout");
+  if (!m_Module.validatePluginRelocationConsumption())
+    return std::make_unique<DiagnosticEntry>(Diag::error_relocations_plugin);
   m_Module.getLinker()->getObjectLinker()->syncRelocations(Buf);
   return {};
 }
 
 eld::Expected<void> LinkerWrapper::doRelocation() {
   CHECK_LINK_STATE(*this, "CreatingSegments");
+  if (!m_Module.validatePluginRelocationConsumption())
+    return std::make_unique<DiagnosticEntry>(Diag::error_relocations_plugin);
   /// FIXME: we can report better errors if ObjectLinker::relocation() returned
   /// eld::Expected
   if (!m_Module.getLinker()->getObjectLinker()->relocation(false))
@@ -871,12 +875,54 @@ eld::Expected<Use> LinkerWrapper::createAndAddUse(Chunk C, off_t Offset,
                                                   uint32_t RelocationType,
                                                   plugin::Symbol S,
                                                   int64_t Addend) {
+  // Relocation construction reads the field and takes an unsigned offset.
+  if (Offset < 0)
+    return std::make_unique<DiagnosticEntry>(Diag::error_invalid_use);
   Use ChunkUse(nullptr);
   eld::Relocation *relocation = m_Module.getIRBuilder()->createRelocation(
       m_Module.getBackend().getRelocator(), *C.getFragment(), RelocationType,
       *S.getSymbol()->outSymbol(), Offset, Addend);
   C.getFragment()->getOwningSection()->addRelocation(relocation);
   return Use(relocation);
+}
+
+eld::Expected<void> LinkerWrapper::claimUse(Use U) {
+  auto *R = U.getRelocation();
+  auto Fail = [](const char *Reason) -> eld::Expected<void> {
+    return std::make_unique<DiagnosticEntry>(Diag::error_plugin_owned_use,
+                                             std::vector<std::string>{Reason});
+  };
+  if (!R)
+    return Fail("invalid use");
+  if (m_Module.getConfig().isLinkPartial())
+    return Fail("partial links are not supported");
+  auto Claim = [&]() -> eld::Expected<void> {
+    CHECK_LINK_STATE(*this, "ActBeforeRelocationScan");
+    if (!m_Plugin || m_Plugin->getType() != plugin::Plugin::LinkerPlugin ||
+        !m_Plugin->isRunning())
+      return Fail("claims must be completed before ActBeforeRelocationScan "
+                  "returns");
+    // R_*_NONE has no storage, even when a backend reports a word-sized field.
+    if (R->type() == 0)
+      return Fail("source has no writable relocation-sized data");
+    auto Source = U.getSourceChunk();
+    auto Offset = U.getOffsetInChunk();
+    auto Size = R->size(*m_Module.getBackend().getRelocator()) / 8;
+    if (!Source || !Source.isProgBits() || !Size || Size > sizeof(uint64_t) ||
+        Offset < 0 || uint64_t(Offset) > Source.getSize() ||
+        Size > Source.getSize() - uint64_t(Offset))
+      return Fail("source has no writable relocation-sized data");
+    return m_Module.claimRelocation(R, this);
+  };
+  auto Result = Claim();
+  if (!Result)
+    m_Module.getConfig().raiseDiagEntry(
+        std::make_unique<DiagnosticEntry>(*Result.error()));
+  return Result;
+}
+
+bool LinkerWrapper::isSymbolPreemptible(Symbol S) const {
+  return !S || m_Module.getBackend().isSymbolPreemptible(*S.getSymbol());
 }
 
 /// Return the value of the relocation target
@@ -897,8 +943,28 @@ eld::Expected<void> LinkerWrapper::setTargetDataForUse(Use &U, uint64_t Data) {
   if (!R)
     return std::make_unique<DiagnosticEntry>(
         DiagnosticEntry(Diag::error_invalid_use));
-  m_Module.setRelocationData(R, Data, this);
-  return {};
+  auto SetData = [&]() -> eld::Expected<void> {
+    CHECK_LINK_STATE(*this, "ActBeforeRuleMatching", "BeforeLayout",
+                     "ActBeforeRelocationScan", "ActBeforeSectionMerging",
+                     "CreatingSections", "ActBeforePerformingLayout",
+                     "CreatingSegments", "AfterLayout",
+                     "ActBeforeWritingOutput");
+    if (isLinkStateActBeforeWritingOutput() &&
+        (!m_Plugin || m_Plugin->getType() != plugin::Plugin::LinkerPlugin ||
+         !m_Plugin->isRunning()))
+      return std::make_unique<DiagnosticEntry>(
+          Diag::error_plugin_owned_use,
+          std::vector<std::string>{"replacement data must be supplied before "
+                                   "ActBeforeWritingOutput returns"});
+    return m_Module.setRelocationData(R, Data, this);
+  };
+  auto Result = SetData();
+  if (!Result) {
+    // A rejected write must fail the link even if the plugin ignores its error.
+    m_Module.getConfig().raiseDiagEntry(
+        std::make_unique<DiagnosticEntry>(*Result.error()));
+  }
+  return Result;
 }
 
 eld::Expected<uint32_t> LinkerWrapper::getImageLayoutChecksum() const {
@@ -1021,12 +1087,13 @@ bool LinkerWrapper::isChunkMovableFromOutputSection(const Chunk &C) const {
 std::string_view LinkerWrapper::getCurrentLinkStateAsStr() const {
   switch (getLinkState()) {
 #define ADD_CASE(linkerState)                                                  \
-  case LinkState::linkerState:                                         \
+  case LinkState::linkerState:                                                 \
     return #linkerState;
     ADD_CASE(Unknown);
     ADD_CASE(Initializing);
     ADD_CASE(ActBeforeRuleMatching);
     ADD_CASE(BeforeLayout);
+    ADD_CASE(ActBeforeRelocationScan);
     ADD_CASE(ActBeforeSectionMerging);
     ADD_CASE(CreatingSections);
     ADD_CASE(ActBeforePerformingLayout);
@@ -1047,9 +1114,9 @@ bool LinkerWrapper::isTraced() const { return m_Plugin->isTraced(); }
 eld::Expected<std::vector<plugin::OutputSection>>
 LinkerWrapper::getAllOutputSections() const {
   CHECK_LINK_STATE(*this, "ActBeforeRuleMatching", "BeforeLayout",
-                   "ActBeforeSectionMerging", "CreatingSections",
-                   "ActBeforePerformingLayout", "CreatingSegments",
-                   "ActBeforeWritingOutput", "AfterLayout");
+                   "ActBeforeRelocationScan", "ActBeforeSectionMerging",
+                   "CreatingSections", "ActBeforePerformingLayout",
+                   "CreatingSegments", "ActBeforeWritingOutput", "AfterLayout");
 
   SectionMap sectMap = m_Module.getScript().sectionMap();
   std::vector<plugin::OutputSection> outputSects;
@@ -1248,6 +1315,10 @@ bool LinkerWrapper::isLinkStateActBeforeRuleMatching() const {
 
 bool LinkerWrapper::isLinkStateBeforeLayout() const {
   return m_Module.getState() == LinkState::BeforeLayout;
+}
+
+bool LinkerWrapper::isLinkStateActBeforeRelocationScan() const {
+  return m_Module.getState() == LinkState::ActBeforeRelocationScan;
 }
 
 bool LinkerWrapper::isLinkStateActBeforeSectionMerging() const {
