@@ -116,7 +116,7 @@ Relocator::findFragmentForMergeStr(const ELFSection *RelocationSection,
 
 bool Relocator::doMergeStrings(ELFSection *S) {
   auto DoMergeStrReloc = [&](Relocation *R) -> void {
-    if (!R->isMergeKind() || !R->symInfo()->isSection() ||
+    if (R->isPluginOwned() || !R->isMergeKind() || !R->symInfo()->isSection() ||
         getTarget().maySkipRelocProcessing(R))
       return;
     FragmentRef *OldTarget = R->targetFragRef()

@@ -487,6 +487,8 @@ bool HexagonLDBackend::haslinkerRelaxed(
   bool isFinished = true;
   for (auto &F : FragsForRelaxation) {
     for (auto &reloc : F->getOwningSection()->getRelocations()) {
+      if (reloc->isPluginOwned())
+        continue;
       // Addend needs to be 0.
       if (reloc->addend() != 0)
         continue;
@@ -565,6 +567,8 @@ void HexagonLDBackend::mayBeRelax(int, bool &pFinished) {
                          m_Module.getConfig().options().printTimingStats());
     for (auto &F : Frags) {
       for (auto &reloc : F->getOwningSection()->getRelocations()) {
+        if (reloc->isPluginOwned())
+          continue;
         switch (reloc->type()) {
         case llvm::ELF::R_HEX_B22_PCREL:
         case llvm::ELF::R_HEX_PLT_B22_PCREL:
