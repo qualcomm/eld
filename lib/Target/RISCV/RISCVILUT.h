@@ -10,6 +10,7 @@
 #include "eld/Fragment/TargetFragment.h"
 #include "llvm/ADT/DenseMap.h"
 #include <map>
+#include <set>
 #include <vector>
 
 namespace eld {
@@ -17,19 +18,26 @@ namespace eld {
 class ELFSection;
 class Fragment;
 class RegionFragmentEx;
+class Relocation;
 class RISCVLDBackend;
 
 // Materializes the Xqccmi instruction lookup table and records the source
 // instruction ranges that can be replaced by qc.cm.ilut.
 class RISCVILUTFragment final : public TargetFragment {
 public:
+  using RelocationIndex =
+      llvm::DenseMap<const Fragment *,
+                     std::map<uint64_t, std::vector<const Relocation *>>>;
+
   RISCVILUTFragment(RISCVLDBackend &B, ELFSection *O);
 
   size_t size() const override;
   eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
   void dump(llvm::raw_ostream &OS) override;
 
-  void scanCodeSection(ELFSection &Sec);
+  void collectBranchTargets(ELFSection &Sec,
+                            const RelocationIndex &Relocations);
+  void scanCodeSection(ELFSection &Sec, const RelocationIndex &Relocations);
   void finalizeContents();
 
   bool hasEntries() const { return !Entries.empty(); }
@@ -72,6 +80,7 @@ private:
 
   std::vector<Entry> Entries;
   std::map<std::pair<const Fragment *, uint64_t>, Use> Uses;
+  std::map<const Fragment *, std::set<uint64_t>> BranchTargets;
   unsigned DEC = 0;
   size_t ThisSize = 0;
   bool Applied = false;

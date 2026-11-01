@@ -13,6 +13,7 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/Relocation.h"
 #include "eld/SymbolResolver/LDSymbol.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/MathExtras.h"
@@ -133,7 +134,8 @@ static const Relocation *getRelocationAt(ELFSection &Sec, const Fragment *F,
                                          uint64_t Offset, unsigned Size) {
   for (const Relocation *R : Sec.getRelocations()) {
     if (R->type() == llvm::ELF::R_RISCV_RELAX ||
-        R->type() == llvm::ELF::R_RISCV_NONE)
+        R->type() == llvm::ELF::R_RISCV_NONE ||
+        R->type() == llvm::ELF::R_RISCV_VENDOR)
       continue;
     if (R->targetRef()->frag() != F)
       continue;
@@ -144,9 +146,31 @@ static const Relocation *getRelocationAt(ELFSection &Sec, const Fragment *F,
   return nullptr;
 }
 
-static bool hasRelocationAt(ELFSection &Sec, const Fragment *F, uint64_t Offset,
-                            unsigned Size) {
-  return getRelocationAt(Sec, F, Offset, Size) != nullptr;
+static const Relocation *
+getRelocationAt(const RISCVILUTFragment::RelocationIndex &Relocations,
+                const Fragment *F, uint64_t Offset, unsigned Size) {
+  auto FragmentIt = Relocations.find(F);
+  if (FragmentIt == Relocations.end())
+    return nullptr;
+
+  const auto &ByOffset = FragmentIt->second;
+  for (auto It = ByOffset.lower_bound(Offset);
+       It != ByOffset.end() && It->first < Offset + Size; ++It) {
+    for (const Relocation *R : It->second) {
+      if (R->type() == llvm::ELF::R_RISCV_RELAX ||
+          R->type() == llvm::ELF::R_RISCV_NONE ||
+          R->type() == llvm::ELF::R_RISCV_VENDOR)
+        continue;
+      return R;
+    }
+  }
+  return nullptr;
+}
+
+static bool
+hasRelocationAt(const RISCVILUTFragment::RelocationIndex &Relocations,
+                const Fragment *F, uint64_t Offset, unsigned Size) {
+  return getRelocationAt(Relocations, F, Offset, Size) != nullptr;
 }
 
 enum class DirectPCRelativeKind {
@@ -687,7 +711,8 @@ eld::Expected<void> RISCVILUTFragment::emit(MemoryRegion &Mr, Module &M) {
   return {};
 }
 
-void RISCVILUTFragment::scanCodeSection(ELFSection &Sec) {
+void RISCVILUTFragment::collectBranchTargets(
+    ELFSection &Sec, const RelocationIndex &Relocations) {
   if (!Sec.isCode())
     return;
 
@@ -696,38 +721,67 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec) {
     if (!Region)
       continue;
     llvm::StringRef Data = Region->getRegion();
-    // A two-instruction ILUT payload has one architectural entry point: the
-    // qc.cm.ilut instruction.  A branch into the second source instruction
-    // cannot be redirected to that entry point without also executing the
-    // first payload instruction.  Such an occurrence must therefore remain
-    // in line.  This is common in compiler-generated epilogues where a jump
-    // skips a value-initialization instruction and enters the following move.
-    std::set<uint64_t> DirectBranchTargets;
     for (uint64_t Offset = 0; Offset < Data.size();) {
       unsigned Length = getInstructionLength(Data.substr(Offset));
       if (!Length || Offset + Length > Data.size())
         break;
 
       uint64_t Instruction = readInstruction(Data, Offset, Length);
-
       DirectPCRelativeKind Kind;
       int64_t Immediate = 0;
       if (decodeDirectPCRelative(Instruction, Length, Kind, Immediate)) {
-        int64_t Target = static_cast<int64_t>(Offset) + Immediate;
-        if (const Relocation *Reloc = getRelocationAt(
-                *Region->getOwningSection(), F, Offset, Length)) {
-          FragmentRef *TargetRef = Reloc->targetFragRef();
-          if (!TargetRef && Reloc->symInfo() && Reloc->symInfo()->outSymbol())
-            TargetRef = Reloc->symInfo()->outSymbol()->fragRef();
-          if (TargetRef && TargetRef->frag() == Region)
-            Target =
-                static_cast<int64_t>(TargetRef->offset()) + Reloc->addend();
+        FragmentRef *TargetRef = nullptr;
+        const Relocation *TargetReloc = nullptr;
+        auto FragmentIt = Relocations.find(F);
+        if (FragmentIt != Relocations.end()) {
+          const auto &ByOffset = FragmentIt->second;
+          for (auto It = ByOffset.lower_bound(Offset);
+               It != ByOffset.end() && It->first < Offset + Length; ++It) {
+            for (const Relocation *R : It->second) {
+              if (R->type() == llvm::ELF::R_RISCV_RELAX ||
+                  R->type() == llvm::ELF::R_RISCV_NONE ||
+                  R->type() == llvm::ELF::R_RISCV_VENDOR)
+                continue;
+              FragmentRef *Candidate = R->targetFragRef();
+              if (!Candidate && R->symInfo() && R->symInfo()->outSymbol())
+                Candidate = R->symInfo()->outSymbol()->fragRef();
+              if (!Candidate)
+                continue;
+              TargetRef = Candidate;
+              TargetReloc = R;
+              break;
+            }
+            if (TargetRef)
+              break;
+          }
         }
-        if (Target >= 0 && Target < static_cast<int64_t>(Data.size()))
-          DirectBranchTargets.insert(static_cast<uint64_t>(Target));
+
+        if (TargetRef) {
+          int64_t TargetOffset =
+              static_cast<int64_t>(TargetRef->offset()) + TargetReloc->addend();
+          if (TargetOffset >= 0)
+            BranchTargets[TargetRef->frag()].insert(TargetOffset);
+        } else {
+          int64_t Target = static_cast<int64_t>(Offset) + Immediate;
+          if (Target >= 0 && Target < static_cast<int64_t>(Data.size()))
+            BranchTargets[Region].insert(static_cast<uint64_t>(Target));
+        }
       }
       Offset += Length;
     }
+  }
+}
+
+void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
+                                        const RelocationIndex &Relocations) {
+  if (!Sec.isCode())
+    return;
+
+  for (Fragment *F : Sec.getFragmentList()) {
+    auto *Region = llvm::dyn_cast<eld::RegionFragmentEx>(F);
+    if (!Region)
+      continue;
+    llvm::StringRef Data = Region->getRegion();
 
     std::vector<Instruction> Instructions;
     for (uint64_t Offset = 0; Offset < Data.size();) {
@@ -745,7 +799,7 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec) {
         Valid = false;
       if (Length != 2 && Length != 4 && Length != 6)
         Valid = false;
-      if (hasRelocationAt(*Region->getOwningSection(), F, Offset, Length))
+      if (hasRelocationAt(Relocations, F, Offset, Length))
         Valid = false;
       if (Valid)
         Instructions.push_back({F, Offset, Length, std::move(Bytes)});
@@ -809,11 +863,11 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec) {
           const uint64_t InternalBegin = I.Offset + I.Length;
           const uint64_t InternalEnd = I.Offset + P->SourceSize;
           bool HasInternalTarget = false;
-          for (uint64_t Target : DirectBranchTargets) {
-            if (Target >= InternalBegin && Target < InternalEnd) {
-              HasInternalTarget = true;
-              break;
-            }
+          auto Targets = BranchTargets.find(I.F);
+          if (Targets != BranchTargets.end()) {
+            auto Target = Targets->second.lower_bound(InternalBegin);
+            HasInternalTarget =
+                Target != Targets->second.end() && *Target < InternalEnd;
           }
           if (HasInternalTarget)
             continue;

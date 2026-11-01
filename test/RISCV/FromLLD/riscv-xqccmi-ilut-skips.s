@@ -9,13 +9,14 @@
 # RUN: %objdump -d --section=.text -M no-aliases --mattr=+experimental-xqccmi --no-show-raw-insn %t \
 # RUN:   | %filecheck --check-prefix=DISASM %s
 #
-## The only repeated payloads are rejected: one is not profitable, one is
+## The only repeated payloads rejected are: one is not profitable, one is
 ## PC-relative, one contains a relocation, one is already qc.cm.ilut.
-# SECTIONS-NOT: .riscv.ilut
+# SECTIONS: .riscv.ilut PROGBITS {{.*}} 000008
 # DISASM-COUNT-2: addi a0, a0, 0x1
 # DISASM-COUNT-5: jal zero,
 # DISASM-COUNT-5: lui a1,
 # DISASM-COUNT-5: qc.cm.ilut 0x7
+# DISASM-COUNT-2: qc.cm.ilut 0x0
 
 .global _start
 _start:
@@ -88,7 +89,7 @@ _start:
   .endr
 
 
-  ## System/trap instructions use the current PC and must not be moved.
+  ## System/trap instructions are valid ILUT payloads and are moved.
   .rept 4
   ecall
   .endr

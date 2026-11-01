@@ -28,6 +28,7 @@
 #include "eld/Object/OutputSectionEntry.h"
 #include "eld/Object/RuleContainer.h"
 #include "eld/Readers/ELFSection.h"
+#include "eld/Readers/Relocation.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MemoryArea.h"
 #include "eld/Support/MsgHandling.h"
@@ -226,15 +227,29 @@ void RISCVLDBackend::initILUT() {
   }
 
   llvm::DenseSet<const ELFSection *> Visited;
+  llvm::DenseSet<const Relocation *> SeenRelocations;
+  std::vector<ELFSection *> CodeSections;
+  std::vector<const Relocation *> CodeRelocations;
   auto ScanOutput = [&](OutputSectionEntry *O) {
     if (!O || !O->getSection() || !O->getSection()->isCode())
       return;
     for (RuleContainer *R : *O) {
       ELFSection *Code = R->getSection();
       if (!Code || Code == m_pRISCVILUTSection || !Code->isCode() ||
-          Code->isIgnore() || Code->isDiscard() || !Visited.insert(Code).second)
+          Code->isIgnore() || Code->isDiscard())
         continue;
-      ILUTFragment->scanCodeSection(*Code);
+      for (const Relocation *Reloc : Code->getRelocations())
+        if (SeenRelocations.insert(Reloc).second)
+          CodeRelocations.push_back(Reloc);
+      for (ELFSection *InputCode : R->getMatchedInputSections()) {
+        if (!InputCode || !InputCode->isCode())
+          continue;
+        for (const Relocation *Reloc : InputCode->getRelocations())
+          if (SeenRelocations.insert(Reloc).second)
+            CodeRelocations.push_back(Reloc);
+      }
+      if (Visited.insert(Code).second)
+        CodeSections.push_back(Code);
     }
   };
 
@@ -243,6 +258,20 @@ void RISCVLDBackend::initILUT() {
       ScanOutput(S->getOutputSection());
   for (OutputSectionEntry *O : m_Module.getScript().sectionMap())
     ScanOutput(O);
+  // Relocations can target a different RegionFragmentEx or input section.
+  // Collect every direct target before selecting any paired payloads so a
+  // branch into the second instruction prevents that occurrence being packed.
+  RISCVILUTFragment::RelocationIndex RelocationIndex;
+  for (const Relocation *Reloc : CodeRelocations) {
+    if (!Reloc || !Reloc->targetRef() || !Reloc->targetRef()->frag())
+      continue;
+    RelocationIndex[Reloc->targetRef()->frag()][Reloc->targetRef()->offset()]
+        .push_back(Reloc);
+  }
+  for (ELFSection *Code : CodeSections)
+    ILUTFragment->collectBranchTargets(*Code, RelocationIndex);
+  for (ELFSection *Code : CodeSections)
+    ILUTFragment->scanCodeSection(*Code, RelocationIndex);
   ILUTFragment->finalizeContents();
   if (m_pRISCVILUTSection)
     m_pRISCVILUTSection->setSize(ILUTFragment->size());
