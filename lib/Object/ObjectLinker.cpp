@@ -2290,6 +2290,8 @@ void ObjectLinker::scanRelocationsHelper(InputFile *Input, size_t InputIndex,
       // Skip unneeded relocations
       if (getTargetBackend().maySkipRelocProcessing(Relocation))
         continue;
+      if (Relocation->isPluginOwned())
+        continue;
       ELFSection *RelocSection = Rs;
       // scan relocation
       if (IsPartialLink) {
@@ -2350,6 +2352,8 @@ bool ObjectLinker::scanRelocations(bool IsPartialLink) {
       }
     }
   }
+
+  ThisModule->closePluginRelocationClaims();
 
   Relocator::CopyRelocs CopyRelocSet;
   if (!RunParallel) {
@@ -2658,7 +2662,7 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
       };
       for (auto &Relocation : Rs->getLink()->getRelocations()) {
         if (ProcessReloc(Relocation)) {
-          if (EmitRelocs)
+          if (EmitRelocs && !Relocation->isPluginOwned())
             EmitOneReloc(Relocation);
           Relocation->apply(*getTargetBackend().getRelocator());
         }
