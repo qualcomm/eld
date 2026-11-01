@@ -895,11 +895,7 @@ eld::Expected<void> LinkerWrapper::setTargetDataForUse(Use &U, uint64_t Data) {
   if (!R)
     return std::make_unique<DiagnosticEntry>(
         DiagnosticEntry(Diag::error_invalid_use));
-  m_Module.setRelocationData(R, Data);
-  if (LayoutInfo *printer = m_Module.getLayoutInfo()) {
-    auto *Op = eld::make<RelocationDataPluginOp>(this, R);
-    printer->recordRelocationData(this, Op);
-  }
+  m_Module.setRelocationData(R, Data, this);
   return {};
 }
 
