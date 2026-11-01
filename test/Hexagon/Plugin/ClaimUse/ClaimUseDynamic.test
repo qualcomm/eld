@@ -1,0 +1,18 @@
+# REQUIRES: hexagon
+# Claimed GOT/PLT operands must not reserve runtime slots. Unclaimed operands
+# in the same input still need their ordinary dynamic relocations.
+RUN: %clang %clangopts -c %p/Inputs/dynamic.s -o %t.o
+RUN: %link %linkopts --shared %t.o -o %t.original.so
+RUN: %readelf -r %t.original.so | %filecheck %s --check-prefix=ORIGINAL
+RUN: %link %linkopts --shared %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.claimed.so 2>&1 | %filecheck %s --check-prefix=COUNT
+RUN: %readelf -r %t.claimed.so | %filecheck %s --check-prefix=CLAIMED --implicit-check-not=" claimed_data " --implicit-check-not=" claimed_function "
+RUN: %objdump -d %t.claimed.so | %filecheck %s --check-prefix=CODE
+ORIGINAL-DAG: R_HEX_GLOB_DAT{{.*}}claimed_data
+ORIGINAL-DAG: R_HEX_JMP_SLOT{{.*}}claimed_function
+COUNT: claimed uses: 3
+CLAIMED-DAG: R_HEX_GLOB_DAT{{.*}}other_data
+CLAIMED-DAG: R_HEX_JMP_SLOT{{.*}}other_function
+CODE-LABEL: <_start>:
+CODE: nop
+CODE-NEXT: {{.*}}nop
+CODE-NEXT: {{.*}}nop
