@@ -32,6 +32,7 @@ enum LinkState : uint8_t {
   Initializing,
   ActBeforeRuleMatching,
   BeforeLayout,
+  ActBeforeRelocationScan,
   ActBeforeSectionMerging,
   CreatingSections,
   ActBeforePerformingLayout,
@@ -49,6 +50,7 @@ static inline llvm::StringRef getLinkStateStrRef(LinkState State) {
     ADD_CASE(Initializing)
     ADD_CASE(ActBeforeRuleMatching)
     ADD_CASE(BeforeLayout)
+    ADD_CASE(ActBeforeRelocationScan)
     ADD_CASE(ActBeforeSectionMerging)
     ADD_CASE(CreatingSections)
     ADD_CASE(ActBeforePerformingLayout)

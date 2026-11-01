@@ -921,6 +921,8 @@ void ARMGNULDBackend::mayBeRelax(int, bool &pFinished) {
       if (rs->isIgnore())
         continue;
       for (auto &reloc : rs->getLink()->getRelocations()) {
+        if (reloc->isPluginOwned())
+          continue;
         // Undef weak call is converted to NOP, no need for any stubs
         if (reloc->symInfo()->isWeak() && reloc->symInfo()->isUndef() &&
             !reloc->symInfo()->isDyn() &&

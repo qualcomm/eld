@@ -1,0 +1,20 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# A version script makes an otherwise interposable global definition local.
+# Exported definitions still follow normal interposition and -Bsymbolic rules.
+# An anonymous script also exercises this policy without requiring named GNU
+# symbol-version sections to be enabled in the build.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/symbols.c -o %t.o
+RUN: %link %linkopts --shared --version-script %p/Inputs/preemptibility.map %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.so 2>&1 | %filecheck %s --check-prefixes=COMMON,INTERPOSABLE
+RUN: %readelf --dyn-syms --wide %t.so | %filecheck %s --check-prefix=EXPORTS --implicit-check-not=preempt_global
+RUN: %link %linkopts --shared -Bsymbolic-functions --version-script %p/Inputs/preemptibility.map %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.functions.so 2>&1 | %filecheck %s --check-prefixes=COMMON,FUNCTIONS
+COMMON-DAG: null=1
+COMMON-DAG: preempt_local=0
+COMMON-DAG: preempt_hidden=0
+COMMON-DAG: preempt_protected=0
+COMMON-DAG: preempt_global=0
+COMMON-DAG: preempt_weak=1
+COMMON-DAG: preempt_undefined_weak=1
+INTERPOSABLE-DAG: preempt_function=1
+FUNCTIONS-DAG: preempt_function=0
+EXPORTS-DAG: preempt_weak
+EXPORTS-DAG: preempt_function

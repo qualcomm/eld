@@ -1,0 +1,21 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+RUN: %clang %clangopts -fPIC -c %p/Inputs/symbols.c -o %t.o
+RUN: %link %linkopts --static %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.static 2>&1 | %filecheck %s --check-prefixes=COMMON,LOCAL,STATIC
+RUN: %link %linkopts --shared %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.so 2>&1 | %filecheck %s --check-prefixes=COMMON,SHARED,INTERPOSABLE
+RUN: %link %linkopts --pie %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.pie 2>&1 | %filecheck %s --check-prefixes=COMMON,LOCAL,DYNAMIC
+RUN: %link %linkopts --shared -Bsymbolic %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.symbolic.so 2>&1 | %filecheck %s --check-prefixes=COMMON,LOCAL,DYNAMIC
+RUN: %link %linkopts --shared -Bsymbolic-functions %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.functions.so 2>&1 | %filecheck %s --check-prefixes=COMMON,SHARED,FUNCTIONS
+COMMON-DAG: null=1
+COMMON-DAG: preempt_local=0
+COMMON-DAG: preempt_hidden=0
+COMMON-DAG: preempt_protected=0
+LOCAL-DAG: preempt_global=0
+LOCAL-DAG: preempt_weak=0
+LOCAL-DAG: preempt_function=0
+STATIC-DAG: preempt_undefined_weak=0
+DYNAMIC-DAG: preempt_undefined_weak=1
+SHARED-DAG: preempt_global=1
+SHARED-DAG: preempt_weak=1
+SHARED-DAG: preempt_undefined_weak=1
+INTERPOSABLE-DAG: preempt_function=1
+FUNCTIONS-DAG: preempt_function=0

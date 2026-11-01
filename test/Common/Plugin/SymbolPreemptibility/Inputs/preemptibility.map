@@ -1,0 +1,4 @@
+{
+  global: preempt_weak; preempt_function;
+  local: preempt_global;
+};

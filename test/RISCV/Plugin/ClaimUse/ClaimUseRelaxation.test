@@ -1,0 +1,41 @@
+# REQUIRES: riscv32 || riscv64
+# Claimed CALLs retain both instructions; ordinary CALLs still relax to JAL.
+RUN: split-file %s %t
+RUN: %llvm-mc -filetype=obj -mattr=+relax %t/main.s -o %t.o
+RUN: %link %linkopts --relax --no-relax-c %t.o -o %t.original
+RUN: %objdump -d --no-show-raw-insn %t.original | %filecheck %s --check-prefix=ORIGINAL
+RUN: %link %linkopts --relax --no-relax-c %t.o -L%libsdir --plugin-config %t/plugin.yaml -o %t.claimed | %filecheck %s --check-prefix=COUNT
+RUN: %objdump -d --no-show-raw-insn %t.claimed | %filecheck %s --check-prefix=CLAIMED
+ORIGINAL-LABEL: <_start>:
+ORIGINAL-NEXT: {{.*}}jal
+COUNT: claimed uses: 1
+CLAIMED-LABEL: <_start>:
+CLAIMED-NEXT: {{.*}}nop
+CLAIMED-NEXT: {{.*}}jalr ra
+CLAIMED-LABEL: <other_call>:
+CLAIMED-NEXT: {{.*}}jal
+
+#--- main.s
+.option norvc
+.text
+.globl _start
+_start:
+  call claimed_target
+.globl other_call
+other_call:
+  call other_target
+  ret
+.globl claimed_target
+.hidden claimed_target
+claimed_target:
+  ret
+.globl other_target
+.hidden other_target
+other_target:
+  ret
+#--- plugin.yaml
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: BackendClaimUse
+    Library: BackendClaimUse
+    Options: riscv

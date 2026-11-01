@@ -1,0 +1,24 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# The scan hook runs for current plugins; only this hook may claim uses.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/pointer.c -o %t.o
+RUN: echo 'GlobalPlugins: [{Type: SectionIterator, Name: LegacySectionObserver, Library: LegacySectionObserver}, {Type: OutputSectionIterator, Name: LegacyClaimUse, Library: LegacyClaimUse}, {Type: LinkerPlugin, Name: HookStateObserver, Library: HookStateObserver}, {Type: LinkerPlugin, Name: EarlyClaimUse, Library: EarlyClaimUse, Options: early}]' > %t.yaml
+RUN: %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.out 2>&1 | %filecheck %s
+RUN: %link %linkopts --shared %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.so 2>&1 | %filecheck %s
+RUN: %link %linkopts -pie %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.pie 2>&1 | %filecheck %s
+# A serial relocation callback can collect uses but cannot claim them.
+RUN: echo 'GlobalPlugins: [{Type: OutputSectionIterator, Name: LegacyClaimUse, Library: LegacyClaimUse, Options: callback-claim}]' > %t.callback.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.callback.yaml -o %t.callback.out 2>&1 | %filecheck %s --check-prefix=REJECTED
+# An earlier linker hook cannot claim either.
+RUN: echo 'GlobalPlugins: [{Type: LinkerPlugin, Name: EarlyClaimUse, Library: EarlyClaimUse, Options: early-claim}]' > %t.early.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.early.yaml -o %t.early.out 2>&1 | %filecheck %s --check-prefix=EARLY
+CHECK: linker rule matching: ActBeforeRuleMatching
+CHECK: iterator callback: BeforeLayout before-layout=1
+CHECK: relocation callback: BeforeLayout before-layout=1
+CHECK: linker relocation scan: ActBeforeRelocationScan
+CHECK: scan hook: ActBeforeRelocationScan before-layout=0
+CHECK: linker section merging: ActBeforeSectionMerging
+CHECK: iterator callback: BeforeLayout before-layout=1
+CHECK: linker layout: ActBeforePerformingLayout
+CHECK: linker output: ActBeforeWritingOutput
+REJECTED: Link state 'BeforeLayout' is invalid for the API '{{.*}}claimUse{{.*}}'. Valid link states: [ActBeforeRelocationScan]
+EARLY: Link state 'ActBeforeRuleMatching' is invalid for the API '{{.*}}claimUse{{.*}}'. Valid link states: [ActBeforeRelocationScan]

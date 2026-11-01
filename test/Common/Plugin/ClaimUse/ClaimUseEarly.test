@@ -1,0 +1,67 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# Claims from the scan hook need no relocation callback or registration.
+# Joined worker tasks may claim uses; scanning itself can remain parallel.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/pointer.c -o %t.o
+RUN: echo 'GlobalPlugins: [{Type: LinkerPlugin, Name: EarlyClaimUse, Library: EarlyClaimUse, Options: early}]' > %t.yaml
+RUN: %link %linkopts --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml --plugin-activity-file=%t.states.json -o %t.out
+RUN: %filecheck %s --check-prefix=STATES < %t.states.json
+RUN: %readelf -x .data %t.out | %filecheck %s --check-prefix=DATA
+RUN: %readelf -r %t.out | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+RUN: %link %linkopts --shared --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.so
+RUN: %readelf -x .data %t.so | %filecheck %s --check-prefix=DATA
+RUN: %readelf -r %t.so | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+RUN: %link %linkopts -pie --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.pie
+RUN: %readelf -x .data %t.pie | %filecheck %s --check-prefix=DATA
+RUN: sed 's/Options: early/Options: worker/' %t.yaml > %t.worker.yaml
+RUN: %link %linkopts --threads --thread-count=8 --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.worker.yaml -o %t.worker.out
+RUN: %readelf -x .data %t.worker.out | %filecheck %s --check-prefix=DATA
+RUN: %readelf -r %t.worker.out | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+RUN: %link %linkopts --shared --threads --thread-count=8 %t.o -L%libsdir -L%libsdir/test --plugin-config %t.worker.yaml -o %t.worker.so
+RUN: %readelf -x .data %t.worker.so | %filecheck %s --check-prefix=DATA
+# The cutoff must also run when no plugin has registered relocation callbacks.
+RUN: sed 's/Options: early/Options: late-claim/' %t.yaml > %t.late.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.late.yaml -o %t.late.out 2>&1 | %filecheck %s --check-prefix=LATE
+RUN: sed 's/Options: early/Options: missing/' %t.yaml > %t.missing.yaml
+RUN: rm -f %t.missing.out
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.missing.yaml --plugin-activity-file=%t.missing.states.json -o %t.missing.out 2>&1 | %filecheck %s --check-prefix=MISSING
+RUN: %filecheck %s --check-prefix=STATES < %t.missing.states.json
+RUN: test ! -e %t.missing.out
+# Missing bytes are not an error if garbage collection discards the source.
+RUN: %link %linkopts --gc-sections -e main %t.o -L%libsdir -L%libsdir/test --plugin-config %t.missing.yaml -o %t.gc.out
+# Claimed replacements can be updated in the final output hook.
+RUN: sed 's/Options: early/Options: late-data/' %t.yaml > %t.data.yaml
+RUN: %link %linkopts --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.data.yaml -o %t.data.out
+RUN: %readelf -x .data %t.data.out | %filecheck %s --check-prefix=UPDATED
+RUN: %readelf -r %t.data.out | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+RUN: %link %linkopts --shared --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.data.yaml -o %t.data.so
+RUN: %readelf -x .data %t.data.so | %filecheck %s --check-prefix=UPDATED
+RUN: %readelf -r %t.data.so | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+RUN: %link %linkopts -pie %t.o -L%libsdir -L%libsdir/test --plugin-config %t.data.yaml -o %t.data.pie
+RUN: %readelf -x .data %t.data.pie | %filecheck %s --check-prefix=UPDATED
+# First claimed data has the same output-hook deadline as updates.
+RUN: sed 's/Options: early/Options: output-data/' %t.yaml > %t.output-data.yaml
+RUN: %link %linkopts --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.output-data.yaml -o %t.output-data.out
+RUN: %readelf -x .data %t.output-data.out | %filecheck %s --check-prefix=UPDATED
+RUN: %readelf -r %t.output-data.out | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+RUN: %link %linkopts --shared --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.output-data.yaml -o %t.output-data.so
+RUN: %readelf -x .data %t.output-data.so | %filecheck %s --check-prefix=UPDATED
+RUN: %readelf -r %t.output-data.so | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+RUN: %link %linkopts -pie --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.output-data.yaml -o %t.output-data.pie
+RUN: %readelf -x .data %t.output-data.pie | %filecheck %s --check-prefix=UPDATED
+RUN: %readelf -r %t.output-data.pie | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+# Destroy runs after the output hook and must not reopen replacement writes.
+RUN: sed 's/Options: early/Options: after-output/' %t.yaml > %t.after.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.after.yaml -o %t.after.out 2>&1 | %filecheck %s --check-prefix=OUTPUT
+RUN: sed 's/Options: early/Options: ignore-after-output/' %t.yaml > %t.ignore.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.ignore.yaml -o %t.ignore.out 2>&1 | %filecheck %s --check-prefix=OUTPUT
+DATA: 78563412
+UPDATED: 21436587
+RELOC: {{There are no relocations|Relocation section}}
+LATE: Link state 'ActBeforePerformingLayout' is invalid for the API '{{.*}}claimUse{{.*}}'. Valid link states: [ActBeforeRelocationScan]
+MISSING: Plugin-owned relocation {{.*}} has no replacement data
+OUTPUT: Cannot claim plugin relocation: replacement data must be supplied before ActBeforeWritingOutput returns
+STATES: "NewState": "ActBeforeRuleMatching"
+STATES: "NewState": "BeforeLayout"
+STATES: "NewState": "ActBeforeRelocationScan"
+STATES: "NewState": "BeforeLayout"
+STATES: "NewState": "ActBeforeWritingOutput"

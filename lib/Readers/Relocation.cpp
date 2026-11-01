@@ -279,6 +279,8 @@ bool Relocation::issueUnencodableImmediate(Relocator &R, int64_t Imm) const {
 }
 
 bool Relocation::apply(Relocator &pRelocator) {
+  if (isPluginOwned())
+    return true;
   // Issue undefined references for section magic symbols here
   pRelocator.issueUndefRefForMagicSymbol(*this);
 

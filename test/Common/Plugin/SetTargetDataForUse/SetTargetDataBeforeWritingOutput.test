@@ -1,0 +1,30 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# The final output hook can supply the first claimed or unclaimed replacement.
+# Eight joined workers replace 8192 fields, including map bookkeeping, before sync.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/pointers.c -o %t.o
+RUN: sed 's/Type: OutputSectionIterator/Type: LinkerPlugin/; s/Library: SetTargetDataForUse/Library: SetTargetDataBeforeWritingOutput/' %p/Inputs/PluginConfig.yaml > %t.yaml
+RUN: %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.out
+RUN: %elfcopy --dump-section .replacement_data=%t.bin %t.out
+RUN: %python %p/Inputs/check.py %t.bin
+RUN: %link %linkopts --threads --thread-count=8 %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -Map=%t.map -o %t.map.out
+RUN: %elfcopy --dump-section .replacement_data=%t.map.bin %t.map.out
+RUN: %python %p/Inputs/check.py %t.map.bin %t.map
+RUN: %link %linkopts --shared --threads --thread-count=8 %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -Map=%t.shared.map --plugin-activity-file=%t.states.json -o %t.so
+RUN: %elfcopy --dump-section .replacement_data=%t.shared.bin %t.so
+RUN: %python %p/Inputs/check.py %t.shared.bin %t.shared.map %t.states.json
+RUN: %filecheck %s --check-prefix=STATES < %t.states.json
+RUN: %link %linkopts -pie %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.pie
+RUN: %elfcopy --dump-section .replacement_data=%t.pie.bin %t.pie
+RUN: %python %p/Inputs/check.py %t.pie.bin
+RUN: %link %linkopts -r %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.partial
+RUN: %elfcopy --dump-section .replacement_data=%t.partial.bin %t.partial
+RUN: %python %p/Inputs/check.py %t.partial.bin
+# Claimed fields need no data until the same output hook; no dynamic/static
+# relocations should be reserved for them while data is still absent.
+RUN: echo 'GlobalPlugins: [{Type: LinkerPlugin, Name: SetTargetDataForUse, Library: SetTargetDataBeforeWritingOutput, Options: claimed}]' > %t.claimed.yaml
+RUN: %link %linkopts --shared --threads --thread-count=8 --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.claimed.yaml -Map=%t.claimed.map --plugin-activity-file=%t.claimed.states.json -o %t.claimed.so
+RUN: %elfcopy --dump-section .replacement_data=%t.claimed.bin %t.claimed.so
+RUN: %python %p/Inputs/check.py %t.claimed.bin %t.claimed.map %t.claimed.states.json
+RUN: %readelf -r %t.claimed.so | %filecheck %s --check-prefix=CLAIMED-RELOCS --implicit-check-not=replacement_target
+CLAIMED-RELOCS: {{There are no relocations|Relocation section}}
+STATES: "NewState": "ActBeforeWritingOutput"

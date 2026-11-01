@@ -1,0 +1,16 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# Claim section-symbol uses before merging; preserve their metadata and bytes.
+# Unclaimed references must still be retargeted, including interior offsets.
+RUN: %clang %clangopts -c %p/Inputs/merging.c -o %t.one.o
+RUN: %clang %clangopts -DSECOND -c %p/Inputs/merging.c -o %t.two.o
+RUN: %link %linkopts --emit-relocs --trace-merge-strings=all --trace=merge-constants %t.one.o %t.two.o -T %p/Inputs/merging.t -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/MergingConfig.yaml -o %t.out > %t.log 2>&1
+RUN: %filecheck %s --check-prefix=COUNT --input-file=%t.log
+RUN: %filecheck %s --check-prefix=TRACE --input-file=%t.log --implicit-check-not="Modified relocation{{.*}}.data.claimed"
+RUN: %python %p/Inputs/check_merging.py --readelf %readelf --image %t.out
+# Without merging, both original copies remain and the claims still work.
+RUN: %link %linkopts --emit-relocs --no-merge-strings --no-merge-constants %t.one.o %t.two.o -T %p/Inputs/merging.t -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/MergingConfig.yaml -o %t.no-merge.out > %t.no-merge.log 2>&1
+RUN: %filecheck %s --check-prefix=COUNT --input-file=%t.no-merge.log
+RUN: %python %p/Inputs/check_merging.py --readelf %readelf --image %t.no-merge.out --no-merge
+COUNT: claimed merge uses: 4
+TRACE-DAG: Modified relocation .rodata.claim.str{{.*}}.data.control
+TRACE-DAG: Modified relocation .rodata.claim.cst4{{.*}}.data.control

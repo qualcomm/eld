@@ -1,0 +1,54 @@
+# REQUIRES: aarch64
+# Erratum repair must not move a claimed store into a stub.
+RUN: split-file %s %t
+RUN: %llvm-mc -filetype=obj %t/main.s -o %t.o
+RUN: %link %linkopts -fix-cortex-a53-843419 %t.o -T %t/script.t -o %t.original
+RUN: %readelf -sW %t.original | %filecheck %s --check-prefix=ORIGINAL
+RUN: %link %linkopts -fix-cortex-a53-843419 %t.o -T %t/script.t -L%libsdir --plugin-config %t/plugin.yaml -o %t.claimed | %filecheck %s --check-prefix=COUNT
+RUN: %readelf -sW %t.claimed | %filecheck %s --check-prefix=CLAIMED --implicit-check-not=for_.claimed
+RUN: %objdump -d --no-show-raw-insn %t.claimed | %filecheck %s --check-prefix=CODE
+ORIGINAL: for_.claimed
+COUNT: claimed uses: 1
+CLAIMED: for_.other
+CODE-LABEL: <claimed_store>:
+CODE-NEXT: {{.*}}nop
+
+#--- main.s
+.section .text.claimed_erratum,"ax",@progbits
+.globl _start
+_start:
+  adrp x0, other_data
+  str x1, [x0]
+.globl claimed_store
+claimed_store:
+  str x2, [x0, :lo12:claimed_data]
+  ret
+.section .text.other_erratum,"ax",@progbits
+.globl other_store
+other_store:
+  adrp x0, other_data
+  str x1, [x0]
+  str x2, [x0, :lo12:other_data]
+  ret
+.data
+.p2align 3
+.globl claimed_data
+.hidden claimed_data
+claimed_data:
+  .quad 0
+.globl other_data
+.hidden other_data
+other_data:
+  .quad 0
+#--- script.t
+SECTIONS {
+  .claimed 0x100ff8 : { *(.text.claimed_erratum) }
+  .other 0x200ff8 : { *(.text.other_erratum) }
+  .data 0x300000 : { *(.data) }
+}
+#--- plugin.yaml
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: BackendClaimUse
+    Library: BackendClaimUse
+    Options: aarch64
