@@ -539,7 +539,8 @@ public:
   bool makeChunkWritable(eld::Fragment *F);
 
   // ------------------- Relocation data set by plugins ---------------------
-  void setRelocationData(const eld::Relocation *, uint64_t);
+  void setRelocationData(const eld::Relocation *, uint64_t,
+                         plugin::LinkerWrapper *);
   bool getRelocationData(const eld::Relocation *, uint64_t &);
   bool getRelocationDataForSync(const eld::Relocation *, uint64_t &);
 
