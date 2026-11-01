@@ -1,0 +1,14 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# ELD delivers relocation callbacks serially before starting scan workers.
+# All four claims and their replacement operations must be retained.
+RUN: %clang %clangopts -c %p/Inputs/pointer.c -o %t.main.o
+RUN: %clang %clangopts -DREFERENCE=reference1 -c %p/Inputs/reference.c -o %t.one.o
+RUN: %clang %clangopts -DREFERENCE=reference2 -c %p/Inputs/reference.c -o %t.two.o
+RUN: %link %linkopts --threads --thread-count=8 --emit-relocs %t.main.o %t.one.o %t.two.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -Map=%t.map -o %t.out
+RUN: %readelf -x .data %t.out | %filecheck %s --check-prefix=DATA
+RUN: %readelf -r %t.out | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+RUN: %filecheck %s --check-prefix=COUNT --input-file=%t.map
+DATA: 78563412
+RELOC: {{There are no relocations|Relocation section}}
+COUNT-COUNT-4: Updated: 0x12345678
+COUNT-NOT: Updated: 0x12345678

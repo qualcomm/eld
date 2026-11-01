@@ -634,6 +634,4 @@ void Plugin::callActBeforeWritingOutputHook() {
   P->ActBeforeWritingOutput();
 }
 
-void Plugin::clearResources() {
-  PluginCommandLineOptions.clear();
-}
+void Plugin::clearResources() { PluginCommandLineOptions.clear(); }

@@ -1,0 +1,12 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# Claimed pointers have no dynamic/static relocation; controls keep the normal
+# relative dynamic relocations and still point into the canonical merged data.
+# ELD does not merge constant pools.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/merging.c -o %t.one.o
+RUN: %clang %clangopts -fPIC -DSECOND -c %p/Inputs/merging.c -o %t.two.o
+RUN: %link %linkopts --shared --trace-merge-strings=all %t.one.o %t.two.o -T %p/Inputs/merging.t -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/MergingConfig.yaml -o %t.so > %t.log 2>&1
+RUN: %filecheck %s --check-prefix=COUNT --input-file=%t.log
+RUN: %filecheck %s --check-prefix=TRACE --input-file=%t.log --implicit-check-not="Modified relocation{{.*}}.data.claimed"
+RUN: %python %p/Inputs/check_merging.py --readelf %readelf --image %t.so --shared
+COUNT: claimed merge uses: 4
+TRACE-DAG: Modified relocation .rodata.claim.str{{.*}}.data.control
