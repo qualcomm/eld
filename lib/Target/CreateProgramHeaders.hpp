@@ -481,12 +481,11 @@ bool GNULDBackend::createProgramHdrs() {
       } else if (hasVMARegion || hasLMARegion) {
         ScriptMemoryRegion &R = (*out)->epilog().lmaRegion();
         pma = R.getPhysicalAddr(*out);
-        // If LMA region has been explicitly specified
-        // do not align LMA. A LMA region exists for the VMA
-        // region just for making it easy for us to handle assigning
-        // physical addresses
-        if (!(*out)->prolog().hasAlignWithInput() && !hasLMARegion)
-          alignAddress(pma, cur->getAddrAlign());
+        if (!(*out)->prolog().hasAlignWithInput()) {
+          bool explicitAlign = (*out)->prolog().hasAlign();
+          if (!hasLMARegion || explicitAlign)
+            alignAddress(pma, cur->getAddrAlign());
+        }
       } else if (!prev || !disconnect_lma_vma) {
         pma = vma;
         alignAddress(pma, cur->getAddrAlign());
@@ -582,8 +581,11 @@ bool GNULDBackend::createProgramHdrs() {
       } else if (hasVMARegion || hasLMARegion) {
         ScriptMemoryRegion &R = (*out)->epilog().lmaRegion();
         pma = R.getPhysicalAddr(*out);
-        if (!(*out)->prolog().hasAlignWithInput() && !hasLMARegion)
-          alignAddress(pma, cur->getAddrAlign());
+        if (!(*out)->prolog().hasAlignWithInput()) {
+          bool explicitAlign = (*out)->prolog().hasAlign();
+          if (!hasLMARegion || explicitAlign)
+            alignAddress(pma, cur->getAddrAlign());
+        }
       } else if (!prev || !disconnect_lma_vma) {
         pma = vma;
         alignAddress(pma, cur->getAddrAlign());
