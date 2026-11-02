@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---DontMove.test-------------------------------- Executable,LS ---------------------#
 #BEGIN_COMMENT
 # This tests that linker script DONTMOVE and KEEP_DONTMOVE are honored properly.

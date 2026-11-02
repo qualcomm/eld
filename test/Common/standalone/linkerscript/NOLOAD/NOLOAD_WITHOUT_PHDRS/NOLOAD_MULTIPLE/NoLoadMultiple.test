@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #--NoLoadMultiple.test--------------------- Executable ------------------#
 #BEGIN_COMMENT
 # Support NOLOAD without PHDRS's

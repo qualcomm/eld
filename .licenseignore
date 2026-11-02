@@ -6,3 +6,4 @@ test/**/*
 **/lit.local.cfg
 **/*.test
 **/*.sh
+Plugins/**/test

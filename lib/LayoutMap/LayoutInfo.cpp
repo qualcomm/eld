@@ -88,7 +88,7 @@ void LayoutInfo::recordThreadCount() {
 void LayoutInfo::recordSectionStat(const Section *Sect) {
   if (Sect->isBitcode() || Sect->size())
     return;
-  LinkStats.NumZeroSizedSection++;
+  LinkStats.Sections.NumZeroSizedSection++;
 }
 
 int64_t LayoutInfo::calculateSymbolValue(LDSymbol *Symbol, Module &M) {
@@ -218,28 +218,28 @@ std::string LayoutInfo::showSymbolName(llvm::StringRef Name) const {
 void LayoutInfo::recordInputKind(InputFile::InputFileKind K) {
   switch (K) {
   case InputFile::ELFObjFileKind:
-    LinkStats.NumElfObjectFiles++;
+    LinkStats.InputFiles.NumElfObjectFiles++;
     break;
   case InputFile::ELFExecutableFileKind:
-    LinkStats.NumElfExecutableFiles++;
+    LinkStats.InputFiles.NumElfExecutableFiles++;
     break;
   case InputFile::ELFDynObjFileKind:
-    LinkStats.NumSharedObjectFiles++;
+    LinkStats.InputFiles.NumSharedObjectFiles++;
     break;
   case InputFile::BitcodeFileKind:
-    LinkStats.NumBitCodeFiles++;
+    LinkStats.InputFiles.NumBitCodeFiles++;
     break;
   case InputFile::ELFSymDefFileKind:
-    LinkStats.NumSymDefFiles++;
+    LinkStats.InputFiles.NumSymDefFiles++;
     break;
   case InputFile::GNUArchiveFileKind:
-    LinkStats.NumArchiveFiles++;
+    LinkStats.InputFiles.NumArchiveFiles++;
     break;
   case InputFile::GNULinkerScriptKind:
-    LinkStats.NumLinkerScripts++;
+    LinkStats.InputFiles.NumLinkerScripts++;
     break;
   case InputFile::InputFileKind::BinaryFileKind:
-    LinkStats.NumBinaryFiles++;
+    LinkStats.InputFiles.NumBinaryFiles++;
     break;
   default:
     break;
@@ -376,7 +376,7 @@ void LayoutInfo::annotateInputAction(Input *Input, llvm::StringRef Annotation) {
   recordInputActions(LayoutInfo::Load, Input, "", Annotation.str());
 }
 
-void LayoutInfo::recordGroup() { LinkStats.NumGroupTraversal++; }
+void LayoutInfo::recordGroup() { LinkStats.InputFiles.NumGroupTraversal++; }
 
 void LayoutInfo::recordOutputSection() { LinkStats.NumOutputSections++; }
 
@@ -389,7 +389,7 @@ void LayoutInfo::recordGC(const ELFSection *Section) {
 void LayoutInfo::recordLinkerScript(std::string LinkerScriptFile, bool Found,
                                     llvm::StringRef RemappedFrom) {
   ScriptInputT Script;
-  LinkStats.NumLinkerScripts++;
+  LinkStats.InputFiles.NumLinkerScripts++;
   Script.Include = LinkerScriptFile;
   Script.RemappedFrom = RemappedFrom.str();
   Script.Depth = LinkerScriptStack.size();

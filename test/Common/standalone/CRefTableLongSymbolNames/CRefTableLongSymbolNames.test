@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---CRefTableLongSymbolNames.test--------------------- Executable--------------------#
 #BEGIN_COMMENT
 #This tests that the linker is able to handle long symbol names when printing

@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---WrapSymbolsDynamicLibrary.test------------------------------ Executable ---------------------#
 
 #BEGIN_COMMENT

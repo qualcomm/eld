@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #--ProvideEhdrStart.test--------------------------- Executable --------------------#
 #BEGIN_COMMENT
 #Allow targets to PROVIDE standard symbols on reference.

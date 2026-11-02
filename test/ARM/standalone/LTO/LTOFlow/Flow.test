@@ -4,7 +4,7 @@ RUN: %link %linkopts -march arm --trace=lto %t.o --save-temps --flto-options=cod
 
 CHECK: Inserting generated LTO object
 
-SAVE: -target-feature +neon
+SAVE: Setting Codegen options (triple {{.*}}): -mattr=+neon
 SAVE: Beginning LTO Phase 2
 SAVE-NEXT: out.llvm-lto.0.o
 

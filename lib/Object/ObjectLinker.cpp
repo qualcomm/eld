@@ -20,7 +20,6 @@
 #include "eld/Driver/GnuLdDriver.h"
 #include "eld/Fragment/MergeDataFragment.h"
 #include "eld/GarbageCollection/GarbageCollection.h"
-#include "eld/Input/ArchiveMemberInput.h"
 #include "eld/Input/BitcodeFile.h"
 #include "eld/Input/ELFDynObjectFile.h"
 #include "eld/Input/ELFObjectFile.h"
@@ -217,15 +216,11 @@ bool ObjectLinker::parseLinkerScript(InputFile *input) {
             ? llvm::StringRef(input->getInput()->getOriginalFileName())
             : llvm::StringRef());
 
-  // Archive members don't have a real filesystem path (decoratedPath()
-  // returns "archive.a(member)"), so mix in their already-loaded contents
-  // directly instead of trying to stat/re-read them from disk.
-  auto *AMI = llvm::dyn_cast<ArchiveMemberInput>(input->getInput());
-  if (AMI && AMI->getSize())
-    ThisModule->getScript().addToHash(AMI->decoratedPath(),
-                                      AMI->getFileContents());
-  else
-    ThisModule->getScript().addToHash(input->getInput()->decoratedPath());
+  // Hash the stable identity with the exact buffer consumed by the parser;
+  // reopening the path is incorrect when mapping or replay supplies contents
+  // from a different path.
+  ThisModule->getScript().addToHash(input->getInput()->decoratedPath(),
+                                    input->getContents());
 
   ScriptFile *scriptFile =
       make<ScriptFile>(ScriptFile::LDScript, *ThisModule, *LSFile,
@@ -295,7 +290,7 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
     // is a group node
     if ((*Begin)->kind() == Node::GroupStart) {
       eld::RegisterTimer T("Read Start Group and End Group",
-                           "Read all Input files",
+                           "Input Group Processing (supplemental)",
                            ThisConfig.options().printTimingStats());
       getGroupReader()->readGroup(Begin,
                                   ThisModule->getIRBuilder()->getInputBuilder(),
@@ -304,7 +299,8 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
     }
 
     if ((*Begin)->kind() == Node::LibStart) {
-      eld::RegisterTimer T("Read Start Lib and End Lib", "Read all Input files",
+      eld::RegisterTimer T("Read Start Lib and End Lib",
+                           "Input Group Processing (supplemental)",
                            ThisConfig.options().printTimingStats());
       getLibReader()->readLib(Begin,
                               ThisModule->getIRBuilder()->getInputBuilder(),
@@ -2002,7 +1998,7 @@ bool ObjectLinker::addScriptSymbols() {
       if (getTargetBackend().isSymInProvideMap(SymName)) {
         if (ThisConfig.showLinkerScriptWarnings())
           ThisConfig.raise(Diag::warn_provide_sym_redecl)
-              << AssignCmd->getContext() << SymName;
+              << AssignCmd->getContextWithLineNumber() << SymName;
         continue;
       }
       getTargetBackend().addProvideSymbol(SymName, AssignCmd);
@@ -4033,7 +4029,8 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
 #endif
     ThisModule->getDynLibraryList().push_back(CurInput);
   } else if (CurInput->getKind() == InputFile::GNUArchiveFileKind) {
-    eld::RegisterTimer T("Read Archive Files", "Read all Input files",
+    eld::RegisterTimer T("Read Archive Files",
+                         "Archive Processing (supplemental)",
                          ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(CurInput->getKind());
@@ -4115,7 +4112,7 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
     return false;
 
   eld::RegisterTimer T("Read Mixed ELF/Bitcode Object Files",
-                       "Read all Input files",
+                       "Mixed ELF/Bitcode Processing (supplemental)",
                        ThisConfig.options().printTimingStats());
 
   ELFObjectFile *EObj = llvm::dyn_cast<eld::ELFObjectFile>(CurInputFile);

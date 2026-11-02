@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---ArchiveReaderVersbose.test------------- Executable------------------#
 #BEGIN_COMMENT
 # This tests the verbose output from GNUArchiveReader.

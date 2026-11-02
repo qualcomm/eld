@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---WrapSymbolsBinding.test----------------------- Executable,LTO --------------------#
 #BEGIN_COMMENT
 # This tests that the linker is restoring bindings of wrapped symbols.

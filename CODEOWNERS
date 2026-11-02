@@ -2,12 +2,12 @@
 .github/pr-labeler.yml  @steven6798
 .github/release.yml  @steven6798
 .github/workflows/busybox.yml  @steven6798
-.github/workflows/ci-win.yml  @steven6798
 .github/workflows/linux-kernel.yml  @steven6798
 .github/workflows/pr-comment-router.yml  @steven6798
 .github/workflows/report-pr-check.yml  @steven6798
 .github/workflows/sanitize-threads.yml  @steven6798
 .github/workflows/sanitize-memory.yml  @steven6798
+.github/workflows/windows.yml  @steven6798
 .github/workflows/DeleteOldArtifacts/action.yaml  @steven6798
 .github/workflows/DownloadLatestBusybox/action.yaml  @steven6798
 include/eld/Support/OutputTarWriter.h  @steven6798

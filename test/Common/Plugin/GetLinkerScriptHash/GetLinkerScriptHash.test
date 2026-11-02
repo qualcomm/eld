@@ -13,7 +13,8 @@ RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t.same2.out --plugin-config
 RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t.same3.out --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache -Map %t.same3.map > %t.hash2 2>&1
 RUN: %diff %t.hash1 %t.hash2
 RUN: %filecheck %s --check-prefix=MAPHASH < %t.same2.map
-RUN: cat %t.same2.map %t.same3.map | %filecheck %s --check-prefix=MAPHASHSAME
+RUN: %python %test_utils cat %t.same.maps %t.same2.map %t.same3.map
+RUN: %filecheck %s --check-prefix=MAPHASHSAME --input-file=%t.same.maps
 
 ## Different contents at the same script path: different hashes, on stdout and
 ## in the map file.
@@ -22,7 +23,8 @@ RUN: %link %linkopts %t1.o -T %t.script -o %t.diff1.out --plugin-config %p/Input
 RUN: %cp %p/Inputs/script.Other.t %t.script
 RUN: %link %linkopts %t1.o -T %t.script -o %t.diff2.out --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache -Map %t.diff2.map > %t.hashB 2>&1
 RUN: %not %diff %t.hashA %t.hashB
-RUN: cat %t.diff1.map %t.diff2.map | %filecheck %s --check-prefix=MAPHASHDIFF
+RUN: %python %test_utils cat %t.diff.maps %t.diff1.map %t.diff2.map
+RUN: %filecheck %s --check-prefix=MAPHASHDIFF --input-file=%t.diff.maps
 
 ## INCLUDE file contents participate in the hash.
 RUN: %mkdir %t.incdir
@@ -32,10 +34,49 @@ RUN: %link %linkopts %t1.o -T %t.incdir/script.t -L %t.incdir -o %t.inc1.out --p
 RUN: %cp %p/Inputs/extra.Other.t %t.incdir/extra.t
 RUN: %link %linkopts %t1.o -T %t.incdir/script.t -L %t.incdir -o %t.inc2.out --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache > %t.hashInc2 2>&1
 RUN: %not %diff %t.hashInc1 %t.hashInc2
+
+## A mapping file must not make the hash read stale logical-path contents.
+RUN: %cp %p/Inputs/script.t %t.mapping.logical.t
+RUN: %cp %p/Inputs/script.t %t.mapping.effective.t
+RUN: %echo "[Hash]" > %t.mapping.ini
+RUN: %echo "%t.mapping.logical.t=%t.mapping.effective.t" >> %t.mapping.ini
+RUN: %link %linkopts %t1.o -T %t.mapping.logical.t -o %t.mapping1.out --mapping-file=%t.mapping.ini --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache -Map %t.mapping1.map > %t.mapping.hash1 2>&1
+RUN: %filecheck %s --check-prefix=MAPROOTFOO < %t.mapping1.map
+RUN: %cp %p/Inputs/script.Other.t %t.mapping.effective.t
+RUN: %link %linkopts %t1.o -T %t.mapping.logical.t -o %t.mapping2.out --mapping-file=%t.mapping.ini --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache -Map %t.mapping2.map > %t.mapping.hash2 2>&1
+RUN: %not %diff %t.mapping.hash1 %t.mapping.hash2
+RUN: %filecheck %s --check-prefix=MAPROOTBAR < %t.mapping2.map
+RUN: %python %test_utils cat %t.mapping.maps %t.mapping1.map %t.mapping2.map
+RUN: %filecheck %s --check-prefix=MAPROOTHASHDIFF --input-file=%t.mapping.maps
+
+## An included script must also be hashed from its mapped contents.
+RUN: %echo "INCLUDE %t.include.mapping.logical-extra.t" > %t.include.mapping.logical.t
+RUN: %cp %t.include.mapping.logical.t %t.include.mapping.effective.t
+RUN: %cp %p/Inputs/extra.t %t.include.mapping.intermediate-extra.t
+RUN: %cp %p/Inputs/extra.t %t.include.mapping.effective-extra.t
+RUN: %echo "[Hash]" > %t.include.mapping.ini
+RUN: %echo "%t.include.mapping.logical.t=%t.include.mapping.effective.t" >> %t.include.mapping.ini
+RUN: %echo "%t.include.mapping.logical-extra.t=%t.include.mapping.intermediate-extra.t" >> %t.include.mapping.ini
+RUN: %echo "%t.include.mapping.intermediate-extra.t=%t.include.mapping.effective-extra.t" >> %t.include.mapping.ini
+RUN: %link %linkopts %t1.o -T %t.include.mapping.logical.t -o %t.include.mapping1.out --mapping-file=%t.include.mapping.ini --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache > %t.include.mapping.hash1 2>&1
+RUN: %cp %p/Inputs/extra.Other.t %t.include.mapping.effective-extra.t
+RUN: %link %linkopts %t1.o -T %t.include.mapping.logical.t -o %t.include.mapping2.out --mapping-file=%t.include.mapping.ini --plugin-config %p/Inputs/plugin.config --flto-options=cache=%t.cache > %t.include.mapping.hash2 2>&1
+RUN: %not %diff %t.include.mapping.hash1 %t.include.mapping.hash2
+RUN: %python %test_utils cat %t.include.mapping.hashes %t.include.mapping.hash1 %t.include.mapping.hash2
+RUN: %filecheck %s --check-prefix=INCLUDEMAPPING --input-file=%t.include.mapping.hashes
+
 #HASH: linker script hash: {{([0-9A-F]{40})}}
 #MAPHASH: Linker script hash: {{([0-9A-F]{40})}}
 #MAPHASHSAME: Linker script hash: [[SIG:[0-9A-F]{40}]]
 #MAPHASHSAME: Linker script hash: [[SIG]]
 #MAPHASHDIFF: Linker script hash: [[SIG2:[0-9A-F]{40}]]
 #MAPHASHDIFF-NOT: Linker script hash: [[SIG2]]
+#MAPROOTFOO: {{^[[:space:]]*\.foo[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+# Offset:}}
+#MAPROOTFOO-NOT: {{^[[:space:]]*\.bar[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+# Offset:}}
+#MAPROOTBAR: {{^[[:space:]]*\.bar[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+# Offset:}}
+#MAPROOTBAR-NOT: {{^[[:space:]]*\.foo[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+# Offset:}}
+#MAPROOTHASHDIFF: Linker script hash: [[ROOTSIG:[0-9A-F]{40}]]
+#MAPROOTHASHDIFF-NOT: Linker script hash: [[ROOTSIG]]
+#INCLUDEMAPPING: linker script hash: [[INCSIG:[0-9A-F]{40}]]
+#INCLUDEMAPPING-NOT: linker script hash: [[INCSIG]]
 #END_TEST

@@ -147,15 +147,15 @@ std::string YamlLayoutPrinter::getSetAddressByStr(const ResolveInfo *R) const {
 
 void YamlLayoutPrinter::addStats(LayoutInfo::Stats &L,
                                  std::vector<eld::LDYAML::LinkStats> &S) {
-  S.push_back(addStat("ObjectFiles", L.NumElfObjectFiles));
-  S.push_back(addStat("LinkerScripts", L.NumLinkerScripts));
-  S.push_back(addStat("SharedObjects", L.NumSharedObjectFiles));
-  S.push_back(addStat("SymDefFiles", L.NumSymDefFiles));
+  S.push_back(addStat("ObjectFiles", L.InputFiles.NumElfObjectFiles));
+  S.push_back(addStat("LinkerScripts", L.InputFiles.NumLinkerScripts));
+  S.push_back(addStat("SharedObjects", L.InputFiles.NumSharedObjectFiles));
+  S.push_back(addStat("SymDefFiles", L.InputFiles.NumSymDefFiles));
   S.push_back(addStat("ThreadCount", L.NumThreads));
-  S.push_back(addStat("ArchiveFiles", L.NumArchiveFiles));
-  S.push_back(addStat("GroupTraversals", L.NumGroupTraversal));
-  S.push_back(addStat("BitcodeFiles", L.NumBitCodeFiles));
-  S.push_back(addStat("ZeroSizedSections", L.NumZeroSizedSection));
+  S.push_back(addStat("ArchiveFiles", L.InputFiles.NumArchiveFiles));
+  S.push_back(addStat("GroupTraversals", L.InputFiles.NumGroupTraversal));
+  S.push_back(addStat("BitcodeFiles", L.InputFiles.NumBitCodeFiles));
+  S.push_back(addStat("ZeroSizedSections", L.Sections.NumZeroSizedSection));
   S.push_back(
       addStat("SectionsGarbageCollected", L.NumSectionsGarbageCollected));
   S.push_back(addStat("ZeroSizedSectionsGarbageCollected",

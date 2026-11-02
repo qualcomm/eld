@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---LTOCommonSymbolsPreserve.test----------------- Executable,LTO ------------------#
 #BEGIN_COMMENT
 #Linker asserts because a symbol preserved is not bitcode. This is because when

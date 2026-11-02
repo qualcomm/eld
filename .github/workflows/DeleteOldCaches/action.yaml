@@ -1,0 +1,114 @@
+name: DeleteOldCaches
+description: Delete older GitHub Actions caches matching key prefixes and a cache ref
+
+inputs:
+  cache-key-prefixes:
+    description: Newline-separated cache key prefixes whose older entries should be deleted
+    required: true
+  cache-ref:
+    description: Cache ref to clean; defaults to the current workflow ref
+    required: false
+    default: ""
+  cache-refs:
+    description: Newline-separated cache refs to clean; overrides cache-ref
+    required: false
+    default: ""
+  keep-count:
+    description: Number of newest matching caches to retain for each prefix
+    required: false
+    default: "1"
+  delete-limit:
+    description: Maximum number of caches to delete for each prefix
+    required: false
+    default: "100"
+  dry-run:
+    description: Report caches that would be deleted without deleting them
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Delete older caches
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+      with:
+        github-token: ${{ github.token }}
+        script: |
+          // Cache keys are grouped by prefix, while refs keep cleanup limited
+          // to the branch or pull-request scope that created the cache.
+          const prefixes = process.env.CACHE_KEY_PREFIXES
+            .split(/\r?\n/)
+            .map(prefix => prefix.trim())
+            .filter(Boolean);
+          const cacheRefs = (process.env.CACHE_REFS || process.env.CACHE_REF || context.ref)
+            .split(/\r?\n/)
+            .map(ref => ref.trim())
+            .filter(Boolean);
+          const keepCount = Math.max(0, Number.parseInt(process.env.KEEP_COUNT, 10) || 0);
+          const deleteLimit = Math.max(0, Number.parseInt(process.env.DELETE_LIMIT, 10) || 0);
+          const dryRun = process.env.DRY_RUN === 'true';
+
+          // Process every requested ref and prefix independently so a cleanup
+          // for one branch cannot remove caches belonging to another branch.
+          for (const cacheRef of cacheRefs) {
+            for (const prefix of prefixes) {
+              const caches = [];
+              let page = 1;
+
+              // The cache API is paginated. Read all matching-ref entries before
+              // sorting so the newest caches are retained correctly.
+              while (true) {
+                const response = await github.rest.actions.getActionsCacheList({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: cacheRef,
+                  per_page: 100,
+                  page,
+                });
+                const pageCaches = response.data.actions_caches || [];
+                caches.push(...pageCaches);
+
+                if (pageCaches.length < 100) {
+                  break;
+                }
+                page += 1;
+              }
+
+              const matching = caches
+                .filter(cache => cache.key.startsWith(prefix))
+                .sort((left, right) => {
+                  const leftDate = Date.parse(left.created_at || left.last_accessed_at);
+                  const rightDate = Date.parse(right.created_at || right.last_accessed_at);
+                  return rightDate - leftDate;
+                });
+
+              // Keep the newest entries and cap deletion work per prefix.
+              const cachesToDelete = matching.slice(keepCount, keepCount + deleteLimit);
+              if (cachesToDelete.length === 0) {
+                core.info(`No caches to delete for prefix ${prefix} and ref ${cacheRef}.`);
+                continue;
+              }
+
+              for (const cache of cachesToDelete) {
+                const message = `${dryRun ? 'Would delete' : 'Deleting'} cache ` +
+                  `${cache.id} (${cache.key}) for prefix ${prefix} and ref ${cacheRef}.`;
+                core.info(message);
+                // Dry-run mode reports the exact deletion set without changing
+                // repository state.
+                if (!dryRun) {
+                  await github.rest.actions.deleteActionsCacheById({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    cache_id: cache.id,
+                  });
+                }
+              }
+            }
+          }
+      env:
+        CACHE_KEY_PREFIXES: ${{ inputs.cache-key-prefixes }}
+        CACHE_REF: ${{ inputs.cache-ref }}
+        CACHE_REFS: ${{ inputs.cache-refs }}
+        KEEP_COUNT: ${{ inputs.keep-count }}
+        DELETE_LIMIT: ${{ inputs.delete-limit }}
+        DRY_RUN: ${{ inputs.dry-run }}

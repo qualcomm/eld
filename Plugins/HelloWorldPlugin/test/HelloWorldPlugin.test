@@ -1,0 +1,20 @@
+#---HelloWorldPlugin.test----------------------- Executable,LS -----------------#
+#BEGIN_COMMENT
+# Example plugin-local test. This is intended to be a template for upstream
+# plugins: compile a small input, load the plugin through its YAML configuration,
+# and verify registration, initialization, execution, and cleanup through the
+# standard ELD lit substitutions.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c "%p/Inputs/hello.c" -o "%t.o"
+RUN: %link %linkopts "%t.o" -e main -o "%t.out" --plugin-config "%p/../HelloWorldPlugin.yaml" --trace=plugin 2>&1 | %filecheck "%s"
+#END_TEST
+
+CHECK: Note: Found plugin handler for plugin type HelloWorldPlugin in Library
+CHECK: Trace: Calling HelloWorldPlugin::Init plugin hook
+CHECK: Trace: Calling plugin hook handler HelloWorldPlugin::VisitSections
+CHECK: Trace: Calling plugin hook handler HelloWorldPlugin::ActBeforeRuleMatching
+CHECK: Trace: Calling plugin hook handler HelloWorldPlugin::ActBeforeSectionMerging
+CHECK: Trace: Calling plugin hook handler HelloWorldPlugin::ActBeforePerformingLayout
+CHECK: Trace: Calling plugin hook handler HelloWorldPlugin::ActBeforeWritingOutput
+CHECK: Trace: Calling HelloWorldPlugin::Destroy plugin hook
