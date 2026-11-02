@@ -72,6 +72,7 @@ class ArchiveParser;
 class ELFDynObjParser;
 class ELFRelocObjParser;
 class ELFExecObjParser;
+class GNUPropertyFragment;
 class Relocation;
 class ScriptMemoryRegion;
 class StubFactory;
@@ -155,8 +156,6 @@ public:
   };
 
   GNULDBackend(Module &pModule, TargetInfo *pInfo);
-
-  virtual ~GNULDBackend();
 
   // -----  output sections  ----- //
   /// initStdSections - initialize standard sections of the output file.
@@ -246,6 +245,16 @@ public:
 
   /// readSection - read a target dependent section
   virtual bool readSection(InputFile &pInput, ELFSection *S);
+
+  /// 0 means the target does not consume .note.gnu.property.
+  virtual uint32_t getGNUPropertyFeatureAndType() const { return 0; }
+
+  /// True if S is an input .note.gnu.property that must be redirected to the
+  /// synthesized output note.
+  bool isGNUPropertyMergeSection(const ELFSection *S) const;
+
+  /// The synthesized .note.gnu.property (nullptr if none was created).
+  ELFSection *getGNUPropertySection() const { return m_pNoteGNUProperty; }
 
   virtual void mayWarnSection(ELFSection *section) const;
 
@@ -803,9 +812,7 @@ public:
   virtual bool addSymbolToOutput(ResolveInfo *pInfo) { return true; }
 
   // --------------------Input file special processing -------------------
-  virtual bool processInputFiles(std::vector<InputFile *> &Inputs) {
-    return true;
-  }
+  virtual bool processInputFiles(std::vector<InputFile *> &Inputs);
 
   // ----------------provide standard symbol support ----------------
   bool isStandardSymbol(llvm::StringRef Symbol) const;
@@ -989,6 +996,11 @@ protected:
   /// 'commonSection'.
   std::string getCommonSymbolName(const CommonELFSection *commonSection) const;
 
+  virtual void adjustGNUPropertyFeatures(InputFile *, uint32_t &) {}
+
+  /// Create the synthesized output note
+  void createGNUPropertySection();
+
 private:
   uint32_t getOneEhdrSize() const;
 
@@ -1072,6 +1084,12 @@ private:
   void resolveTargetDefinedSymbols();
 
   bool verifySegments() const;
+
+  template <class ELFT>
+  bool readGNUProperty(InputFile &In, ELFSection *S, uint32_t &Features);
+  ELFSection *m_pNoteGNUProperty = nullptr;
+  GNUPropertyFragment *m_pGPF = nullptr;
+  std::unordered_map<InputFile *, uint32_t> NoteGNUPropertyMap;
 
 private:
   // Reserved segments.
