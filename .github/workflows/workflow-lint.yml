@@ -1,0 +1,41 @@
+name: Workflow Lint
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git revision containing the workflow files to lint
+        required: true
+        type: string
+      workflow_files:
+        description: JSON array of changed top-level workflow file paths
+        required: true
+        type: string
+
+jobs:
+  lint:
+    name: Lint GitHub Actions workflows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out requested revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Install actionlint
+        run: |
+          curl --fail --location --silent --show-error \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            --output actionlint.tar.gz
+          echo '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  actionlint.tar.gz' \
+            | sha256sum --check
+          tar -xzf actionlint.tar.gz actionlint
+
+      - name: Lint workflow definitions
+        env:
+          WORKFLOW_FILES: ${{ inputs.workflow_files }}
+        run: |
+          mapfile -d '' -t workflow_files < <(jq -j '.[] + "\u0000"' <<< "$WORKFLOW_FILES")
+          ./actionlint -color "${workflow_files[@]}"

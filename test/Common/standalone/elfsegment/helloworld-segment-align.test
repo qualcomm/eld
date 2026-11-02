@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 RUN: %clang %clangopts -c %p/Inputs/hello.c -o %t.o
 RUN: %link %linkopts --rosegment --no-align-segments %t.o -o %t.out --noinhibit-exec
 RUN: %readelf -l -W %t.out | %filecheck %s

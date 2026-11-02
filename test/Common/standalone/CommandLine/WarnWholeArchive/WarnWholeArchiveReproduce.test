@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---WarnWholeArchiveReproduce.test--------------------------- Executable --------------------#
 #BEGIN_COMMENT
 # This checks for -Wwhole-archive option to warn when whole-archive is enabled

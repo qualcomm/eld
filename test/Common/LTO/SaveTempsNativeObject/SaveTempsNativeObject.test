@@ -1,0 +1,36 @@
+# Saving temporary files must preserve native object emission. Trace output
+# must not show an external assembler invocation for either full or ThinLTO.
+RUN: %clang %clangopts -flto -c "%p/Inputs/start.c" -o "%t.full.bc"
+RUN: %clang %clangopts -flto=thin -c "%p/Inputs/start.c" -o "%t.thin.bc"
+
+RUN: %link %linkopts --trace=lto --save-temps -e _start "%t.full.bc" -o "%t.full" > "%t.full.log" 2>&1
+RUN: %filecheck "%s" --check-prefix=NATIVE --implicit-check-not=-cc1as < "%t.full.log"
+RUN: %readelf -h "%t.full.llvm-lto.0.o" | %filecheck "%s" --check-prefix=OBJECT
+RUN: %llvm-dis "%t.full.llvm-lto.0.0.preopt.bc" -o - | %filecheck "%s" --check-prefix=BITCODE
+RUN: %nm "%t.full" | %filecheck "%s" --check-prefix=SYMBOL
+
+RUN: %mkdir -p "%t.saved"
+RUN: %link %linkopts --trace=lto "--save-temps=%t.saved" -e _start "%t.full.bc" -o "%t.full-dir" > "%t.full-dir.log" 2>&1
+RUN: %filecheck "%s" --check-prefix=NATIVE --implicit-check-not=-cc1as < "%t.full-dir.log"
+RUN: %readelf -h "%t.saved/%basename_t.tmp.full-dir.llvm-lto.0.o" | %filecheck "%s" --check-prefix=OBJECT
+
+RUN: %link %linkopts --trace=lto --save-temps -e _start "%t.thin.bc" -o "%t.thin" > "%t.thin.log" 2>&1
+RUN: %filecheck "%s" --check-prefix=NATIVE --implicit-check-not=-cc1as < "%t.thin.log"
+RUN: %readelf -h "%t.thin.llvm-lto."*.o | %filecheck "%s" --check-prefix=OBJECT
+RUN: %nm "%t.thin" | %filecheck "%s" --check-prefix=SYMBOL
+RUN: %link %linkopts --trace=lto "--save-temps=%t.saved" -e _start "%t.thin.bc" -o "%t.thin-dir" > "%t.thin-dir.log" 2>&1
+RUN: %filecheck "%s" --check-prefix=NATIVE --implicit-check-not=-cc1as < "%t.thin-dir.log"
+RUN: %readelf -h "%t.saved/%basename_t.tmp.thin-dir.llvm-lto."*.o | %filecheck "%s" --check-prefix=OBJECT
+
+# An explicit request for assembly must still emit assembly, with or without
+# --save-temps.
+RUN: %link %linkopts --lto-emit-asm -e _start "%t.full.bc" -o "%t.asm"
+RUN: %filecheck "%s" --check-prefix=ASSEMBLY < "%t.asm.llvm-lto.0.s"
+RUN: %link %linkopts --lto-emit-asm --save-temps -e _start "%t.full.bc" -o "%t.saved-asm"
+RUN: %filecheck "%s" --check-prefix=ASSEMBLY < "%t.saved-asm.llvm-lto.0.s"
+
+NATIVE: Note: LTO generated native object:
+OBJECT: Type: REL (Relocatable file)
+BITCODE: define {{.*}}void @_start(
+SYMBOL: T _start
+ASSEMBLY: _start:

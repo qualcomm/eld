@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---UndefinedSymbolReportFromSharedLibrary.test--------------------------- Executable -----------------#
 #BEGIN_COMMENT
 #This checks that undefined symbols are reported by the linker by default, but

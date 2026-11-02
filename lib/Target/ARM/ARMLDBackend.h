@@ -111,7 +111,6 @@ public:
   int numReservedSegments() const override;
 
   /// LTO Flow Setup
-  bool ltoNeedAssembler() override;
   bool ltoCallExternalAssembler(const std::string &Input,
                                 std::string RelocModel,
                                 const std::string &Output) override;

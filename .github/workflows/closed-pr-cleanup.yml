@@ -1,0 +1,32 @@
+name: Closed PR cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout workflow actions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Delete pull request caches
+        uses: ./.github/workflows/DeleteOldCaches
+        with:
+          cache-key-prefixes: |
+            macos-ccache-
+            sanitize-address-undefined-ccache-
+            sanitize-threads-ccache-
+            sanitize-memory-ccache-
+            linux-kernel-ccache-
+            zephyr-ccache-
+          cache-refs: |
+            refs/pull/${{ github.event.pull_request.number }}/merge
+            refs/heads/${{ github.event.pull_request.head.ref }}
+          keep-count: 0

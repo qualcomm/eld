@@ -4,12 +4,13 @@ name: Linux Kernel Boot with ELD
 # Builds a Linux kernel for each supported architecture with ELD, packages
 # BusyBox into an initramfs, and boots it in qemu-system-* to confirm ELD can
 # correctly link and run something as structurally complex as a kernel + real
-# userspace. PR callers pass a SHA-specific toolset artifact; scheduled runs
+# userspace. PR callers pass a SHA-specific toolset artifact; nightly runs
 # use the nightly toolchain base.
 
 on:
-  schedule:
-    - cron: "0 12 * * *"
+  workflow_run:
+    workflows: [Nightly check]
+    types: [completed]
   workflow_dispatch:
   workflow_call:
     inputs:
@@ -43,11 +44,6 @@ on:
         required: false
         type: string
         default: ""
-      stable_llvm:
-        description: "Use a stable release version of LLVM"
-        required: false
-        type: boolean
-        default: true
 
 env:
   KERNEL_TAG: v7.1
@@ -55,7 +51,13 @@ env:
 jobs:
   kernel-boot:
     runs-on: ubuntu-latest
-    if: github.repository == 'qualcomm/eld' || github.event_name == 'workflow_dispatch'
+    if: |
+      github.repository == 'qualcomm/eld' &&
+       ((github.event_name == 'workflow_run' &&
+         github.event.workflow_run.conclusion == 'success') ||
+        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'workflow_call' ||
+        inputs.pr_sha != '')
     strategy:
       fail-fast: false
       matrix:
@@ -126,14 +128,15 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.ref_name }}
+          path: llvm-project/llvm/tools/eld
 
       - name: Configure workflow environment variables
         if: matrix.enabled == 1
-        uses: ./.github/workflows/ConfigureBuildWorkflowENV
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
 
       - name: Record pre-build entry
-        if: github.event_name == 'schedule' && matrix.enabled == 1
-        uses: ./.github/workflows/BuildStatusDataRecorder
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && matrix.enabled == 1
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
           project: "llvm-project/llvm/tools/eld"
@@ -147,11 +150,11 @@ jobs:
 
       - name: Fetch nightly toolchain base
         if: matrix.enabled == 1
-        uses: ./.github/workflows/FetchNightlyToolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
       - name: Overlay ELD toolset
         if: matrix.enabled == 1 && inputs.toolset_run_id != ''
-        uses: ./.github/workflows/FetchEldToolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchEldToolset
         with:
           run-id: ${{ inputs.toolset_run_id }}
           artifact-name: ${{ inputs.toolset_artifact }}
@@ -167,27 +170,27 @@ jobs:
             qemu-system-misc qemu-system-x86 qemu-system-arm opensbi cpio ccache
 
       - name: Use stable Clang
-        if: matrix.enabled == 1 && (inputs.stable_llvm || github.event_name != 'workflow_call')
+        if: matrix.enabled == 1
         uses: egor-tensin/setup-clang@23bc15cd4207e45f1566447deb48f4ff3ef932cb #v2.3
         with:
           version: "23"
           platform: x64
 
       - name: Configure stable Clang
-        if: matrix.enabled == 1 && (inputs.stable_llvm || github.event_name != 'workflow_call')
+        if: matrix.enabled == 1
         run: |
           echo "/usr/lib/llvm-23/bin" >> "$GITHUB_PATH"
 
       - name: Download latest BusyBox binary
         if: matrix.enabled == 1
-        uses: ./.github/workflows/DownloadLatestBusybox
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DownloadLatestBusybox
         with:
           arch: ${{ matrix.arch }}
           path: busybox-dl
 
       - name: Download clang-cross toolchain
         if: matrix.enabled == 1
-        uses: ./.github/workflows/DownloadClangCrossToolchain
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DownloadClangCrossToolchain
         with:
           workspace: ${{ github.workspace }}
           assets: ${{ matrix.target_triple }}.tar.xz
@@ -239,11 +242,12 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/ccache-linux
-          key: kernel-boot-linux-ccache-${{ matrix.arch }}-${{ runner.os }}-${{ github.run_id }}
+          key: linux-kernel-ccache-${{ matrix.arch }}-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
-            kernel-boot-linux-ccache-${{ matrix.arch }}-${{ runner.os }}-
+            linux-kernel-ccache-${{ matrix.arch }}-${{ runner.os }}-
 
       - name: Build kernel with ELD
+        id: build_kernel
         if: matrix.enabled == 1
         shell: bash
         env:
@@ -272,17 +276,23 @@ jobs:
           ccache -s
 
       - name: Prune ccache before save
-        if: matrix.enabled == 1 && always() && steps.install_dependencies.outcome == 'success'
+        if: always() && matrix.enabled == 1 && steps.build_kernel.outcome == 'success'
         env:
           CCACHE_DIR: ${{ github.workspace }}/ccache-linux
         run: ccache --evict-older-than 7200s
 
       - name: Save ccache
-        if: matrix.enabled == 1 && always() && steps.install_dependencies.outcome == 'success'
+        if: always() && matrix.enabled == 1 && steps.build_kernel.outcome == 'success'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/ccache-linux
-          key: kernel-boot-linux-ccache-${{ matrix.arch }}-${{ runner.os }}-${{ github.run_id }}
+          key: linux-kernel-ccache-${{ matrix.arch }}-${{ runner.os }}-${{ github.run_id }}
+
+      - name: Delete old ccache entries
+        if: always() && matrix.enabled == 1 && steps.build_kernel.outcome == 'success'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldCaches
+        with:
+          cache-key-prefixes: linux-kernel-ccache-${{ matrix.arch }}-${{ runner.os }}-
 
       - name: Upload vmlinux and linker map
         if: matrix.enabled == 1 && always()
@@ -392,13 +402,13 @@ jobs:
         if: matrix.enabled == 1
         shell: bash
         env:
-          TEST_FAILURES: ${{ github.workspace }}/test/LinuxKernel/${{ matrix.arch }}/test-failures.txt
+          TEST_FAILURES: ${{ github.workspace }}/llvm-project/llvm/tools/eld/test/LinuxKernel/${{ matrix.arch }}/test-failures.txt
         run: |
           FileCheck --input-file=/tmp/kernel-boot-output.txt "${TEST_FAILURES}"
 
       - name: Update build entry
-        if: matrix.enabled == 1 && success() && github.event_name == 'schedule'
-        uses: ./.github/workflows/BuildStatusDataRecorder
+        if: matrix.enabled == 1 && success() && github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
           project: "llvm-project/llvm/tools/eld"
@@ -413,7 +423,7 @@ jobs:
       - name: Delete older kernel artifacts
         if: matrix.enabled == 1 && success()
         continue-on-error: true
-        uses: ./.github/workflows/DeleteOldArtifacts
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts
         with:
           artifact-names: |
             kernel-boot-${{ matrix.arch }}-vmlinux

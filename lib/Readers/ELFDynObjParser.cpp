@@ -9,6 +9,7 @@
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/Readers/ELFReader.h"
 #include "eld/Readers/ELFReaderBase.h"
+#include "eld/Support/RegisterTimer.h"
 
 using namespace eld;
 
@@ -81,6 +82,9 @@ ELFDynObjParser::readSectionHeaders(ELFReaderBase &ELFReader) {
 
 eld::Expected<bool> ELFDynObjParser::readSymbols(ELFReaderBase &ELFReader) {
   LinkerConfig &config = m_Module.getConfig();
+  eld::RegisterTimer T("Read symbols from shared libraries",
+                       "Symbol Resolution",
+                       config.options().printTimingStats());
   InputFile *inputFile = ELFReader.getInputFile();
   if (m_Module.getPrinter()->traceFiles())
     config.raise(Diag::trace_file) << inputFile->getInput()->decoratedPath();

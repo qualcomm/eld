@@ -1,4 +1,3 @@
-UNSUPPORTED: x86
 #---ZDefsNoUndefinedSharedLibrary.test--------------------------- SharedLibrary -----------------#
 #BEGIN_COMMENT
 # Looks like --no-undefined is broken when building shared libraries.

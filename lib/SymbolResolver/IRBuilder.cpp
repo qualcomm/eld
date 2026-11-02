@@ -142,14 +142,9 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
     ObjectFile *ObjFile = llvm::dyn_cast<eld::ObjectFile>(&Input);
 
     LDSymbol *InputSym = nullptr;
-    {
-      eld::RegisterTimer T("Add symbols from object files", "Symbol Resolution",
-                           ThisConfig.options().printTimingStats());
-
-      InputSym =
-          addSymbolFromObject(Input, Name, Type, Desc, Binding, Size, Value,
-                              FragRef, Vis, Shndx, IsPostLtoPhase, Idx);
-    }
+    InputSym =
+        addSymbolFromObject(Input, Name, Type, Desc, Binding, Size, Value,
+                            FragRef, Vis, Shndx, IsPostLtoPhase, Idx);
     // Symbols from non allocatable sections should not participate in garbage
     // collection
     if (IsPostLtoPhase && CurSection && !CurSection->isAlloc()) {
@@ -177,18 +172,12 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
     return InputSym;
   }
   case InputFile::ELFDynObjFileKind: {
-    {
-      eld::RegisterTimer T("Add symbols from dynamic object files",
-                           "Symbol Resolution",
-                           ThisConfig.options().printTimingStats());
-
-      LDSymbol *InputSym =
-          addSymbolFromDynObj(Input, Name, Type, Desc, Binding, Size, Value,
-                              Vis, Shndx, IsPostLtoPhase, Idx);
-      if (InputSym)
-        llvm::cast<ELFDynObjectFile>(&Input)->addSymbol(InputSym);
-      return InputSym;
-    }
+    LDSymbol *InputSym =
+        addSymbolFromDynObj(Input, Name, Type, Desc, Binding, Size, Value, Vis,
+                            Shndx, IsPostLtoPhase, Idx);
+    if (InputSym)
+      llvm::cast<ELFDynObjectFile>(&Input)->addSymbol(InputSym);
+    return InputSym;
   }
   default:
     break;
@@ -204,8 +193,6 @@ LDSymbol *IRBuilder::addSymbolFromObject(
     uint32_t Shndx, bool IsPostLtoPhase, uint32_t Idx) {
   // Step 1. calculate a Resolver::Result
   // ResolvedResult is a triple <resolved_info, existent, override>
-  eld::RegisterTimer T("Create && Resolve symbols", "Symbol Resolution",
-                       ThisConfig.options().printTimingStats());
   NamePool &NP = ThisModule.getNamePool();
 
   // Insert one ResolveInfo into the NamePool.
@@ -361,8 +348,6 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
       Visibility == ResolveInfo::Hidden)
     return nullptr;
 
-  eld::RegisterTimer T("Create && Resolve dynamic symbols", "Symbol Resolution",
-                       ThisConfig.options().printTimingStats());
   NamePool &NP = ThisModule.getNamePool();
 
   // Get the old symbol before resolution to check if it's from an object file

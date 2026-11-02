@@ -31,10 +31,37 @@ function(add_external_eld_lit TARGET_NAME ARCH OPTION OPTIONNAME)
       ${CMAKE_CURRENT_BINARY_DIR}/llvm-lit-${ARCH_LOWER}-${OPTIONNAME})
   set(JSON_OUTPUT
       "${CMAKE_CURRENT_BINARY_DIR}/${ARCH}-${OPTIONNAME}-config/results.json")
+
+  get_property(ELD_PLUGIN_TEST_DIRS GLOBAL PROPERTY ELD_PLUGIN_TEST_DIRS)
+  set(ELD_PLUGIN_LIT_PARAMS
+      "eld_src_root=${ELD_SOURCE_DIR}"
+      "eld_obj_root=${ELD_BINARY_DIR}"
+      "llvm_src_root=${LLVM_SOURCE_DIR}"
+      "llvm_obj_root=${LLVM_BINARY_DIR}"
+      "llvm_tools_dir=${LLVM_TOOLS_BINARY_DIR}"
+      "llvm_libs_dir=${LLVM_BINARY_DIR}/lib"
+      "eld_targets_to_build=${ARCH}_${OPTIONNAME}"
+      "targets_to_build=${ARCH}_${OPTIONNAME}"
+      "eld_test_target=${ARCH}"
+      "target_triple="
+      "python_executable=${Python3_EXECUTABLE}"
+      "emulator=${ELD_EMULATOR}"
+      "emulator64=${ELD_EMULATOR64}"
+      "eld_option=${OPTION}"
+      "eld_option_name=${OPTIONNAME}"
+      "has_sanitize=${ELD_SANITIZE}"
+      "has_tsan=${ELD_THREAD_SANITIZE}"
+      "has_symbol_versioning=${ELD_ENABLE_SYMBOL_VERSIONING_TESTS}"
+      "cpp_compiler=${CMAKE_CXX_COMPILER}"
+      "cmake_executable=${CMAKE_COMMAND}"
+      "enable_run_tests=${ELD_ENABLE_RUN_TESTS}"
+      "has_zlib=${LLVM_ENABLE_ZLIB}")
   add_lit_testsuite(
     ${TARGET_NAME}-test-${ARCH_LOWER}-${OPTIONNAME}
     "Running the Linker regression tests ${ADDITIONAL_TESTMSG} for option: ${OPTION} arch: ${ARCH}"
     ${CMAKE_CURRENT_BINARY_DIR}/${ARCH}-${OPTIONNAME}-config
+    ${ELD_PLUGIN_TEST_DIRS}
+    PARAMS ${ELD_PLUGIN_LIT_PARAMS}
     DEPENDS
     ${TEST_DEPENDS}
     ARGS --output ${JSON_OUTPUT})

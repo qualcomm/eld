@@ -1035,12 +1035,6 @@ void ARMGNULDBackend::addTargetSpecificSegments() {
   doCreateProgramHdrs();
 }
 
-bool ARMGNULDBackend::ltoNeedAssembler() {
-  if (!config().options().getSaveTemps())
-    return false;
-  return true;
-}
-
 uint64_t ARMGNULDBackend::getSectLink(const ELFSection *S) const {
   if (S->isEXIDX() && S->getLink())
     return S->getLink()->getIndex();

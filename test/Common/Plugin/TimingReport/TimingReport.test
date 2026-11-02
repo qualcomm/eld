@@ -20,7 +20,6 @@ CHECK-DAG: ActBeforeWritingOutput
 CHECK-DAG: PluginCommandLineOptions
 CHECK-DAG: Destroy
 CHECK-DAG: ActBeforeRuleMatching
-CHECK-DAG: VisitSymbol
 CHECK: Total
 
 

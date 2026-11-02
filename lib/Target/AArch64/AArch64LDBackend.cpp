@@ -583,12 +583,6 @@ void AArch64LDBackend::setOptions() {
   return;
 }
 
-bool AArch64LDBackend::ltoNeedAssembler() {
-  if (!config().options().getSaveTemps())
-    return false;
-  return true;
-}
-
 bool AArch64LDBackend::ltoCallExternalAssembler(
     const std::string &Input, std::string RelocModel,
     const std::string &Output) {

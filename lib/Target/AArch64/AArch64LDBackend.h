@@ -186,7 +186,6 @@ private:
   size_t getRelaEntrySize() override { return 24; }
 
   /// LTO Flow Setup
-  bool ltoNeedAssembler() override;
   bool ltoCallExternalAssembler(const std::string &Input,
                                 std::string RelocModel,
                                 const std::string &Output) override;
