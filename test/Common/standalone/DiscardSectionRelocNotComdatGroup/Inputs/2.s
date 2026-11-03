@@ -1,5 +1,5 @@
 .section .text
-.word foo
+.long foo
 .section .foo, "awG", %progbits, foo
 foo:
-.word 0
+.long 0
