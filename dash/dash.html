@@ -29,6 +29,7 @@
 <script type="text/javascript" src="windows_status_data.py"></script>
 <script type="text/javascript" src="macos_status_data.py"></script>
 <script type="text/javascript" src="thread-sanitizer_status_data.py"></script>
+<script type="text/javascript" src="memory-with-origins-sanitizer_status_data.py"></script>
 <script type="text/javascript" src="reverse_iterator_status_data.py"></script>
 <script type="text/javascript" src="release_status_data.py"></script>
 </head>
@@ -64,6 +65,14 @@
         <div class="pie-chart"><canvas id="sanitizerPie"></canvas></div>
         <br>
         &nbsp;&nbsp;&nbsp;&nbsp;<span title="Address and Undefined Behavior Sanitizer">AUB Sanitizer</span> <sub><span id="sanitizer_green" class="status status-pass"></span><span id="sanitizer_red" class="status status-fail"></span></sub><label for="select_sanitizer" style="position: relative; left: 180px;">Filter: </label><input type="checkbox" id="select_sanitizer" name="select_sanitizer" checked style="position: relative; left: 180px;">
+      </div>
+      <div class="Build13 flex-child" id="thread_sanitizerPie-div" style="max-width: 400px;border:2px solid skyblue;border-style:inset hidden hidden inset;border-radius: 18px;">
+        <div class="pie-chart"><canvas id="threadSanitizerPie"></canvas></div><br>
+        &nbsp;&nbsp;Thread Sanitizer <sub><span id="thread_sanitizer_green" class="status status-pass"></span><span id="thread_sanitizer_red" class="status status-fail"></span></sub><label for="select_thread_sanitizer" style="position: relative; left: 135px;">Filter: </label><input type="checkbox" id="select_thread_sanitizer" name="select_thread_sanitizer" checked style="position: relative; left: 135px;">
+      </div>
+      <div class="Build14 flex-child" id="memory_with_origins_sanitizerPie-div" style="max-width: 400px;border:2px solid skyblue;border-style:inset hidden hidden inset;border-radius: 18px;">
+        <div class="pie-chart"><canvas id="memoryWithOriginsSanitizerPie"></canvas></div><br>
+        &nbsp;&nbsp;<span title="Memory With Origins Sanitizer">MWO Sanitizer</span> <sub><span id="memory_with_origins_sanitizer_green" class="status status-pass"></span><span id="memory_with_origins_sanitizer_red" class="status status-fail"></span></sub><label for="select_memory_with_origins_sanitizer" style="position: relative; left: 135px;">Filter: </label><input type="checkbox" id="select_memory_with_origins_sanitizer" name="select_memory_with_origins_sanitizer" checked style="position: relative; left: 135px;">
       </div>
       <div class="Build4 flex-child" id="nightlyPie-div" style="max-width: 400px;border:2px solid skyblue;border-style:inset hidden hidden inset;border-radius: 18px;">
         <div class="pie-chart"><canvas id="nightlyPie"></canvas></div>
@@ -105,10 +114,6 @@
         <div class="pie-chart"><canvas id="macosPie"></canvas></div><br>
         &nbsp;&nbsp;macOS <sub><span id="macos_green" class="status status-pass"></span><span id="macos_red" class="status status-fail"></span></sub><label for="select_macos" style="position: relative; left: 190px;">Filter: </label><input type="checkbox" id="select_macos" name="select_macos" checked style="position: relative; left: 190px;">
       </div>
-      <div class="Build13 flex-child" id="thread_sanitizerPie-div" style="max-width: 400px;border:2px solid skyblue;border-style:inset hidden hidden inset;border-radius: 18px;">
-        <div class="pie-chart"><canvas id="threadSanitizerPie"></canvas></div><br>
-        &nbsp;&nbsp;Thread Sanitizer <sub><span id="thread_sanitizer_green" class="status status-pass"></span><span id="thread_sanitizer_red" class="status status-fail"></span></sub><label for="select_thread_sanitizer" style="position: relative; left: 135px;">Filter: </label><input type="checkbox" id="select_thread_sanitizer" name="select_thread_sanitizer" checked style="position: relative; left: 135px;">
-      </div>
     </div>
     <br><br><br>
   </div>
@@ -126,6 +131,7 @@
       'windows_build_states',
       'macos_build_states',
       'thread_sanitizer_build_states',
+      'memory_with_origins_sanitizer_build_states',
       'reverse_iterator_build_states',
       'release_build_states'
     ].forEach(function(buildStatesName) {
@@ -637,6 +643,46 @@
   </script>
 
   <script>
+  const memoryWithOriginsSanitizer = document.getElementById("memoryWithOriginsSanitizerPie");
+  updateStatusIndicators(memory_with_origins_sanitizer_build_states, "#memory_with_origins_sanitizer_green", "#memory_with_origins_sanitizer_red");
+  let memory_with_origins_sanitizer_passes = 0;
+  let memory_with_origins_sanitizer_fails = 0;
+  memory_with_origins_sanitizer_build_states.forEach(function(value, key) {
+    if(value.state == 'pass')
+      memory_with_origins_sanitizer_passes += 1;
+    else if (value.state == 'fail')
+      memory_with_origins_sanitizer_fails += 1;
+  });
+  const memory_with_origins_sanitizer_pie = memoryWithOriginsSanitizer && new Chart(memoryWithOriginsSanitizer, {
+    type: 'pie',
+    data: {
+      labels: ['Pass', 'Fail'],
+      datasets: [{
+        label: '#Builds',
+        data: [memory_with_origins_sanitizer_passes, memory_with_origins_sanitizer_fails],
+        borderWidth: 2,
+        backgroundColor: [
+        '#59BA49',
+        '#EF342F'
+      ],
+      hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      title: {
+        display: true,
+        text: 'Memory With Origins Sanitizer Builds'
+      },
+        onClick: (e) => {
+            window.open("memoryWithOriginsSanitizerBuilds.html", "_blank");
+        }
+    }
+  });
+  </script>
+
+  <script>
   const reverseIterator = document.getElementById("reverseIteratorPie");
   updateStatusIndicators(reverse_iterator_build_states, "#reverse_iterator_green", "#reverse_iterator_red");
   let reverse_iterator_passes = 0;
@@ -754,6 +800,7 @@
       { selector: '#select_windows',          states: windows_build_states,          chart: windows_pie,          label: 'Windows' },
       { selector: '#select_macos',            states: macos_build_states,            chart: macos_pie,            label: 'macOS' },
       { selector: '#select_thread_sanitizer', states: thread_sanitizer_build_states, chart: thread_sanitizer_pie, label: 'Thread Sanitizer' },
+      { selector: '#select_memory_with_origins_sanitizer', states: memory_with_origins_sanitizer_build_states, chart: memory_with_origins_sanitizer_pie, label: 'MWO Sanitizer' },
       { selector: '#select_reverse_iterator', states: reverse_iterator_build_states, chart: reverse_iterator_pie, label: 'Reverse Iterator' },
       { selector: '#select_release',          states: release_build_states,          chart: release_pie,          label: 'Release' }
     ];
