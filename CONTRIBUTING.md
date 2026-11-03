@@ -63,6 +63,7 @@ following checks by commenting the command on the pull request:
 | --- | --- |
 | `check-llvm-test-suite` | LLVM test suite |
 | `check-linux-kernel` | Linux kernel boot with ELD |
+| `check-busybox` | BusyBox with ELD |
 | `check-zephyr` | Zephyr with ELD |
 | `check-tsan` | Thread sanitizer |
 | `check-asan-ubsan` | Address and undefined behavior sanitizers |
@@ -73,7 +74,9 @@ following checks by commenting the command on the pull request:
 
 Requests are accepted from users with GitHub `COLLABORATOR`, `MEMBER`, or
 `OWNER` association. The command must be the complete comment, with no
-additional text.
+additional text. Multiple checks can be requested together by separating
+commands with spaces, for example `check-busybox check-macos`. Use
+`check-all-workflows` by itself to request every check.
 
 The router uses the exact pull request head SHA when running a check. If a
 matching ELD toolset artifact already exists, it is reused; otherwise the CI
@@ -82,7 +85,8 @@ request the check again to test the new SHA.
 
 Maintainers can also run the **PR comment router** through GitHub Actions using
 the manual dispatch inputs. Provide the pull request number, its current head
-SHA, and one of the commands above.
+SHA, and one or more commands above separated by spaces. Use
+`check-all-workflows` by itself.
 
 Here are a few things you can do that will increase the likelihood of your pull request to be accepted:
 
