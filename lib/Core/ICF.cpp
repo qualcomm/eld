@@ -32,13 +32,38 @@ using namespace eld;
 
 namespace {
 
+// Returns true if section S is subject to ICF.
 bool isEligibleForICF(const ELFSection &Section) {
-  // This implementation is deliberately narrow - only simple,
-  // relocation-free executable input sections can be folded.
-  if (!Section.isAlloc() || !Section.isCode() || !Section.isProgBits() ||
-      Section.isWritable() || Section.isTLS() || Section.isMergeKind() ||
-      Section.isLinkOrder() || Section.isInGroup() || Section.isFixedAddr() ||
-      Section.hasRelocData() || Section.isFolded())
+  // Garbage collection marks dead sections as Ignore. Explicitly discarded
+  // sections must not be candidates either.
+  if (Section.isIgnore() || Section.isDiscard())
+    return false;
+
+  // Only allocated sections contribute code to the output image.
+  if (!Section.isAlloc())
+    return false;
+
+  // This initial pass folds only read-only executable PROGBITS sections.
+  if (!Section.isCode() || !Section.isProgBits() || Section.isWritable() ||
+      Section.isTLS() || Section.isMergeKind())
+    return false;
+
+  // Link-order and group sections have relationships that this pass does not
+  // model.
+  if (Section.isLinkOrder() || Section.isInGroup())
+    return false;
+
+  // Fixed-address sections must retain their original placement.
+  if (Section.isFixedAddr())
+    return false;
+
+  // Relocation-aware equivalence is not implemented yet.
+  if (Section.hasRelocData() || Section.isFolded())
+    return false;
+
+  // .init and .fini are concatenated instruction streams, not independent
+  // functions, so their contents must not be folded.
+  if (Section.name() == ".init" || Section.name() == ".fini")
     return false;
 
   // A single fragment preserves every symbol's section-relative offset.
@@ -119,8 +144,16 @@ void ICF::run() {
       if (Folded->isFolded() || !haveSameIdentity(*Canonical, *Folded))
         continue;
       retargetSymbols(References, *Folded, *Canonical);
-      Canonical->setAddrAlign(
-          std::max(Canonical->getAddrAlign(), Folded->getAddrAlign()));
+      Fragment *CanonicalFragment = Canonical->getFrontFragment();
+      Fragment *FoldedFragment = Folded->getFrontFragment();
+      uint32_t Alignment = std::max(
+          std::max(Canonical->getAddrAlign(), Folded->getAddrAlign()),
+          static_cast<uint32_t>(std::max(CanonicalFragment->alignment(),
+                                         FoldedFragment->alignment())));
+      // Layout uses the fragment alignment, so preserve the folded section's
+      // stronger requirement on the canonical fragment for retargeted symbols.
+      Canonical->setAddrAlign(Alignment);
+      CanonicalFragment->setAlignment(Alignment);
       Folded->setFolded();
       Folded->setKind(LinkerSectionKind::Discard);
       if (ThisConfig.options().printICFSections())

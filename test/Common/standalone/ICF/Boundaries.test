@@ -9,11 +9,26 @@
 # RUN: %clang -O2 -ffunction-sections -fno-stack-protector -c %t/alignment.c -o %t/alignment.o
 # RUN: %link %linkopts --entry=foo --icf=all --print-icf-sections %t/alignment.o -o %t/alignment 2>&1 | %filecheck %s --check-prefix=ALIGNMENT
 # RUN: %readelf -SW %t/alignment | %filecheck %s --check-prefix=ALIGNMENT-SECTION
+# The linker script places .text.foo at offset 16 modulo 32. Folding
+# .text.bar must carry its stronger alignment to the canonical fragment,
+# keeping both symbols aligned.
+# RUN: %clang -O2 -fno-stack-protector -c %t/align-icf.c -o %t/align-icf.o
+# RUN: %link %linkopts -T %t/align-icf.ld --entry=foo --icf=all --print-icf-sections %t/align-icf.o -o %t/align-icf 2>&1 | %filecheck %s --check-prefix=ALIGN-ICF
+# RUN: %readelf -sW %t/align-icf | %filecheck %s --check-prefix=ALIGN-C-SYMS
+# RUN: %clang -O2 -fno-stack-protector -c %t/init-a.c -o %t/init-a.o
+# RUN: %clang -O2 -fno-stack-protector -c %t/init-b.c -o %t/init-b.o
+# .init and .fini are concatenated instruction streams, so identical
+# sections must not be folded as if they were independent functions.
+# RUN: %link %linkopts --entry=init_a --icf=all --print-icf-sections %t/init-a.o %t/init-b.o -o %t/init-icf 2>&1 | %filecheck %s --check-prefix=INIT-ICF --allow-empty
 
 # RELOCS-NOT: ICF folding
 # SECTIONS-NOT: ICF folding
 # ALIGNMENT: ICF folding {{.*}}:(.text.bar) into {{.*}}:(.text.foo)
 # ALIGNMENT-SECTION: .text {{.*}} 32
+# ALIGN-ICF: ICF folding {{.*}}:(.text.bar) into {{.*}}:(.text.foo)
+# ALIGN-C-SYMS: [[ALIGNED:[0-9a-f]*[02468ace]0]] {{[0-9]+}} FUNC {{.*}} foo
+# ALIGN-C-SYMS: [[ALIGNED]] {{[0-9]+}} FUNC {{.*}} bar
+# INIT-ICF-NOT: ICF folding
 
 #--- relocs.c
 __attribute__((noinline)) int target(void) { return 7; }
@@ -37,3 +52,28 @@ int foo(void) __attribute__((aligned(16)));
 int bar(void) __attribute__((aligned(32)));
 int foo(void) { return 42; }
 int bar(void) { return 42; }
+
+#--- align-icf.c
+__attribute__((aligned(16), section(".text.foo"))) int foo(void) {
+  return 42;
+}
+__attribute__((aligned(32), section(".text.bar"))) int bar(void) {
+  return 42;
+}
+
+#--- align-icf.ld
+SECTIONS {
+  .text : {
+    . = ALIGN(32) + 16;
+    *(.text.foo)
+    *(.text.bar)
+  }
+}
+
+#--- init-a.c
+__attribute__((section(".init"), noinline, used)) void init_a(void) {}
+__attribute__((section(".fini"), noinline, used)) void fini_a(void) {}
+
+#--- init-b.c
+__attribute__((section(".init"), noinline, used)) void init_b(void) {}
+__attribute__((section(".fini"), noinline, used)) void fini_b(void) {}
