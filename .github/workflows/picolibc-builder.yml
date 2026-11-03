@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/picolibc-builder.yml'
+      - '.github/workflows/scripts/BuildHexagonPicolibcBuiltins.sh'
 
   workflow_run:
     # Runs after the nightly toolchain build ("Nightly check" =
@@ -31,14 +32,14 @@ jobs:
             configure-script: do-clang-hexagon-configure
             triple: hexagon-unknown-none-elf
             llvm-target: Hexagon
-            picolibc-default-config: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf"
-            picolibc-no-tls: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf -Dthread-local-storage=false "
-            picolibc-tls-ie: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf -Dtls-model=initial-exec"
+            picolibc-default-config: ""
+            picolibc-no-tls: "-Dthread-local-storage=false"
+            picolibc-tls-ie: "-Dtls-model=initial-exec"
           - name: aarch64
             configure-script: do-clang-aarch64-configure
             triple: aarch64-none-elf
             llvm-target: AArch64
-            qemu-package: qemu-system-aarch64
+            qemu-package: qemu-system-arm
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
             picolibc-tls-ie: "-Dtls-model=initial-exec"
@@ -46,7 +47,7 @@ jobs:
             configure-script: do-clang-riscv-configure
             triple: riscv64-unknown-unknown-elf
             llvm-target: RISCV
-            qemu-package: qemu-system-riscv64
+            qemu-package: qemu-system-riscv
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
             picolibc-tls-ie: "-Dtls-model=initial-exec"
@@ -54,7 +55,7 @@ jobs:
             configure-script: do-clang-rv32imafdc-configure
             triple: riscv32-unknown-unknown-elf
             llvm-target: RISCV
-            qemu-package: qemu-system-riscv32
+            qemu-package: qemu-system-riscv
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
             picolibc-tls-ie: "-Dtls-model=initial-exec"
@@ -119,6 +120,7 @@ jobs:
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
       - name: Build compiler-rt builtins
+        if: matrix.arch.name != 'hexagon'
         run: |
           # The nightly toolchain (clang/clang++) is already on PATH via
           # FetchNightlyToolset; derive its install root from the clang binary.
@@ -145,9 +147,20 @@ jobs:
             -DCMAKE_CROSSCOMPILING=ON \
             -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
             -DCMAKE_SYSTEM_NAME="Generic" \
+            -DCMAKE_DISABLE_FIND_PACKAGE_LLVM=ON \
             -B build-${{ matrix.arch.triple }}-builtins/ \
             -S ${{ github.workspace }}/llvm-project/compiler-rt/
           cmake --build ${{ github.workspace }}/build-${{ matrix.arch.triple }}-builtins/ -- install-builtins
+
+      # Hexagon picolibc resolves -lclang_rt.builtins through the driver's
+      # target/picolibc/<triple>/lib/<cpu>[-G0][-pic] search path, so the
+      # variants are installed there (no -L in the picolibc configs).
+      - name: Build Hexagon picolibc builtins
+        if: matrix.arch.name == 'hexagon'
+        run: |
+          bash ${{ github.workspace }}/llvm-project/llvm/tools/eld/.github/workflows/scripts/BuildHexagonPicolibcBuiltins.sh \
+            "$(dirname "$(dirname "$(command -v clang)")")" \
+            ${{ github.workspace }}/llvm-project
 
       - name: Install Meson
         run: |
@@ -230,6 +243,8 @@ jobs:
             cd build
             ninja install
             echo "PATH=$QEMU_INSTALL/bin/:$PATH" >> $GITHUB_ENV
+            # run-hexagon (the meson exe_wrapper for tests) lives in picolibc/scripts
+            echo "${{ github.workspace }}/picolibc/scripts" >> $GITHUB_PATH
           else
             sudo apt install -y ${{ matrix.arch.qemu-package }}
           fi
@@ -237,17 +252,17 @@ jobs:
       - name: Run Picolibc tests for ${{ matrix.arch.name }}, default-config
         run: |
           cd ${{ github.workspace }}/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-default-config
-          ninja test
+          meson test -t 20
 
       - name: Run Picolibc tests for ${{ matrix.arch.name }}, no-tls
         run: |
           cd ${{ github.workspace }}/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-no-tls
-          ninja test
+          meson test -t 20
 
       - name: Run Picolibc tests for ${{ matrix.arch.name }}, tls-ie
         run: |
           cd ${{ github.workspace }}/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-tls-ie
-          ninja test
+          meson test -t 20
 
       - name: Upload test logs
         if: always()
