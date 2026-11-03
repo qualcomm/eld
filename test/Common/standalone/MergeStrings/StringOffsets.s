@@ -1,4 +1,3 @@
-// UNSUPPORTED: riscv32, riscv64, x86
 //---StringOffsets.test----------------------- Executable -----------------#
 
 // BEGIN_COMMENT
@@ -18,6 +17,7 @@
 // RUN: %filecheck %s < %t.map
 // END_TEST
 
-// CHECK: .rodata.str2.1	0x4	0x4
-// CHECK: .rodata.str2.1	0x8	0x4
-// CHECK: .rodata.str2.1	0xc	0x4
+// CHECK: .rodata.str1.1	0x[[#%x,BASE:]]	0x4
+// CHECK: .rodata.str2.1	0x[[#%x,BASE+4]]	0x4
+// CHECK: .rodata.str2.1	0x[[#%x,BASE+8]]	0x4
+// CHECK: .rodata.str2.1	0x[[#%x,BASE+12]]	0x4
