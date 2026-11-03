@@ -8,8 +8,10 @@ name: Linux Kernel Boot with ELD
 # use the nightly toolchain base.
 
 on:
+  # BusyBox runs after Nightly check and publishes the binary used by the
+  # kernel boot test, so wait for it to finish before starting this workflow.
   workflow_run:
-    workflows: [Nightly check]
+    workflows: ["BusyBox with ELD"]
     types: [completed]
   workflow_dispatch:
   workflow_call:
