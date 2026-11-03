@@ -172,10 +172,12 @@ jobs:
             echo "Could not find clang in PATH after FetchNightlyToolset" >&2
             exit 1
           fi
-          echo "CROSS_TOOLCHAIN_ROOT=${cross_root}" >> "${GITHUB_ENV}"
-          echo "ELD_BIN=${eld_bin}" >> "${GITHUB_ENV}"
-          echo "HOST_CC=${host_cc}" >> "${GITHUB_ENV}"
-          echo "${cross_root}/bin" >> "${GITHUB_PATH}"
+          {
+            printf 'CROSS_TOOLCHAIN_ROOT=%s\n' "${cross_root}"
+            printf 'ELD_BIN=%s\n' "${eld_bin}"
+            printf 'HOST_CC=%s\n' "${host_cc}"
+          } >> "${GITHUB_ENV}"
+          printf '%s\n' "${cross_root}/bin" >> "${GITHUB_PATH}"
           echo "Using cross toolchain root: ${cross_root}"
           echo "Using ld.eld: ${eld_bin}"
           echo "Using host clang: ${host_cc}"
