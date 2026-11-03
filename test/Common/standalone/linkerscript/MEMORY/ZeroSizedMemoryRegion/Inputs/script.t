@@ -20,5 +20,5 @@ SECTIONS {
             *(.text.nothing)
   } > b2
 
-  /DISCARD/ : { *(.ARM*) }
+  /DISCARD/ : { *(.ARM*) *(.eh_frame) }
 }
