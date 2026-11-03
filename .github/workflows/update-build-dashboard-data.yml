@@ -25,20 +25,20 @@ jobs:
         run: |
             cd llvm-project/llvm/tools/eld
             DASH_DIR="$(mktemp -d)"
-            cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
+            cp .github/workflows/scripts/record_builds.py "$DASH_DIR/"
             git config user.name 'github-actions'
             git config user.email 'github-actions@github.com'
             git fetch --all
             git checkout dashboard
-            cp -r dash ${DASH_DIR}/
-            cp build-status.db ${DASH_DIR}/dash/
-            cp ${DASH_DIR}/record_builds.py ${DASH_DIR}/dash/
+            cp -r dash "$DASH_DIR/"
+            cp build-status.db "$DASH_DIR/dash/"
+            cp "$DASH_DIR/record_builds.py" "$DASH_DIR/dash/"
             git checkout documentation
-            cp -r ${DASH_DIR}/dash .
+            cp -r "$DASH_DIR/dash" .
             cd dash
             python3 record_builds.py --emit-all
             rm -f record_builds.py build-status.db
-            rm -rf ${DASH_DIR}
+            rm -rf "$DASH_DIR"
             cd ..
             git add .
             git commit -m "Update build status data for dashboard"
@@ -59,14 +59,14 @@ jobs:
         run: |
             sleep 20
             DASH_DIR="$(mktemp -d)"
-            google-chrome --headless --password-store=basic --disable-features=DbusSecretPortal --screenshot=${DASH_DIR}/dashboard.png --window-size=1240,1240 --virtual-time-budget=2000 https://qualcomm.github.io/eld/dash/dash.html && mogrify -gravity North -chop 0x150 -gravity South -chop 0x85 ${DASH_DIR}/dashboard.png
-            ls -l ${DASH_DIR}/
+            google-chrome --headless --password-store=basic --disable-features=DbusSecretPortal --screenshot="$DASH_DIR/dashboard.png" --window-size=1240,1240 --virtual-time-budget=2000 https://qualcomm.github.io/eld/dash/dash.html && mogrify -gravity North -chop 0x150 -gravity South -chop 0x85 "$DASH_DIR/dashboard.png"
+            ls -l "$DASH_DIR/"
             cd llvm-project/llvm/tools/eld
             git fetch --all
             git checkout documentation
             cd dash
-            cp -f ${DASH_DIR}/dashboard.png .
-            rm -rf ${DASH_DIR}
+            cp -f "$DASH_DIR/dashboard.png" .
+            rm -rf "$DASH_DIR"
             cd ..
             git add .
             git commit -m "Update Build Dashboard Screenshot"

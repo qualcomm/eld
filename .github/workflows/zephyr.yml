@@ -137,25 +137,27 @@ jobs:
         if: (matrix.target.toolchain || 'cpullvm') == 'cpullvm'
         run: |
           # Download cpullvm release
-          wget -q --tries=3 --retry-on-http-error=429,500,502,503,504 --waitretry=5 https://github.com/qualcomm/cpullvm-toolchain/releases/download/cpullvm-${CPULLVM_VERSION}/cpullvm-${CPULLVM_VERSION}-Linux-x86_64-Ubuntu24.tar.xz
-          tar -xf cpullvm-${CPULLVM_VERSION}-Linux-x86_64-Ubuntu24.tar.xz
-          mv cpullvm-${CPULLVM_VERSION}-Linux-x86_64-Ubuntu24 ${CPULLVM_DIR}
-          rm cpullvm-${CPULLVM_VERSION}-Linux-x86_64-Ubuntu24.tar.xz
+          cpullvm_package="cpullvm-${CPULLVM_VERSION}-Linux-x86_64-Ubuntu24"
+          wget -q --tries=3 --retry-on-http-error=429,500,502,503,504 --waitretry=5 \
+            "https://github.com/qualcomm/cpullvm-toolchain/releases/download/cpullvm-${CPULLVM_VERSION}/${cpullvm_package}.tar.xz"
+          tar -xf "${cpullvm_package}.tar.xz"
+          mv "${cpullvm_package}" "${CPULLVM_DIR}"
+          rm "${cpullvm_package}.tar.xz"
 
           # Splice ELD (nightly or PR build) into cpullvm
-          cp inst/bin/ld.eld ${CPULLVM_DIR}/bin/ld.eld
-          cp inst/lib/libLW.so.5 ${CPULLVM_DIR}/lib/libLW.so.5
-          ln -sf libLW.so.5 ${CPULLVM_DIR}/lib/libLW.so
+          cp inst/bin/ld.eld "${CPULLVM_DIR}/bin/ld.eld"
+          cp inst/lib/libLW.so.5 "${CPULLVM_DIR}/lib/libLW.so.5"
+          ln -sf libLW.so.5 "${CPULLVM_DIR}/lib/libLW.so"
 
           # ld.eld/libLW.so.5 link against the build's libc++; cpullvm/lib has
           # none, so bundle the matching libc++/libc++abi.
-          cp -P inst/lib/libc++.so.1*    ${CPULLVM_DIR}/lib/
-          cp -P inst/lib/libc++abi.so.1* ${CPULLVM_DIR}/lib/
+          cp -P inst/lib/libc++.so.1* "${CPULLVM_DIR}/lib/"
+          cp -P inst/lib/libc++abi.so.1* "${CPULLVM_DIR}/lib/"
 
           echo "ELD version:"
-          ${CPULLVM_DIR}/bin/ld.eld --version
+          "${CPULLVM_DIR}/bin/ld.eld" --version
           echo "cpullvm clang version:"
-          ${CPULLVM_DIR}/bin/clang --version | head -1
+          "${CPULLVM_DIR}/bin/clang" --version | head -1
 
           {
             echo "TOOLCHAIN_VARIANT=host/llvm"
@@ -222,11 +224,17 @@ jobs:
           cd zephyr
           source zephyr-env.sh
           export ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/
-          export ZEPHYR_TOOLCHAIN_VARIANT=${TOOLCHAIN_VARIANT}
-          export LLVM_TOOLCHAIN_PATH=${CPULLVM_DIR}
+          export ZEPHYR_TOOLCHAIN_VARIANT="${TOOLCHAIN_VARIANT}"
+          export LLVM_TOOLCHAIN_PATH="${CPULLVM_DIR}"
+          eld_select_args=()
+          read -r -a eld_select_args <<< "${ELD_SELECT_ARGS:-}"
+          build_extra_args=()
+          if [[ -n "${EXTRA_ARGS:-}" ]]; then
+            build_extra_args+=("-D${EXTRA_ARGS}")
+          fi
           west build -p always -b "$BOARD" samples/hello_world -- \
-            $ELD_SELECT_ARGS \
-            ${EXTRA_ARGS:+-D"$EXTRA_ARGS"}
+            "${eld_select_args[@]}" \
+            "${build_extra_args[@]}"
 
       - name: Run hello_world on QEMU
         shell: bash
@@ -256,7 +264,13 @@ jobs:
           cd zephyr
           source zephyr-env.sh
           export ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/
-          export LLVM_TOOLCHAIN_PATH=${CPULLVM_DIR}
+          export LLVM_TOOLCHAIN_PATH="${CPULLVM_DIR}"
+          eld_twister_args=()
+          read -r -a eld_twister_args <<< "${ELD_SELECT_TWISTER_ARGS:-}"
+          twister_extra_args=()
+          if [[ -n "${EXTRA_ARGS:-}" ]]; then
+            twister_extra_args+=("-x=${EXTRA_ARGS}")
+          fi
           west twister -W -p "$BOARD" \
             -T "$TEST_SCOPE" \
             --quarantine-list "$GITHUB_WORKSPACE/llvm-project/llvm/tools/eld/.github/zephyr-quarantine.yml" \
@@ -267,9 +281,9 @@ jobs:
             -v \
             --retry-failed 2 \
             --retry-interval 10 \
-            -x=ZEPHYR_TOOLCHAIN_VARIANT=${TOOLCHAIN_VARIANT} \
-            $ELD_SELECT_TWISTER_ARGS \
-            ${EXTRA_ARGS:+-x="$EXTRA_ARGS"}
+            "-x=ZEPHYR_TOOLCHAIN_VARIANT=${TOOLCHAIN_VARIANT}" \
+            "${eld_twister_args[@]}" \
+            "${twister_extra_args[@]}"
 
       - name: Upload twister results
         if: always()
