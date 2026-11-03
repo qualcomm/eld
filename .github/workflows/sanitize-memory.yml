@@ -2,9 +2,9 @@ name: Memory with origins sanitizer
 # owner: Steven6798
 
 on:
-  # workflow_run:
-  #   workflows: [Nightly check]
-  #   types: [completed]
+  workflow_run:
+    workflows: [Nightly check]
+    types: [completed]
   workflow_dispatch:
   workflow_call:
     inputs:
@@ -129,7 +129,9 @@ jobs:
           ninja -C ./msan-libcxx-build cxxabi cxx
           ninja -C ./msan-libcxx-build install-cxxabi install-cxx
           echo "MSAN_LIBCXX=${{ github.workspace }}/msan-libcxx" >> "$GITHUB_ENV"
-          echo "LD_LIBRARY_PATH=${{ github.workspace }}/msan-libcxx/lib:/usr/lib/llvm-23/lib:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
+          # Keep the non-instrumented Clang runtime ahead of the MSan libc++abi.
+          # Instrumented test binaries have an explicit RPATH to MSAN_LIBCXX.
+          echo "LD_LIBRARY_PATH=/usr/lib/llvm-23/lib:${{ github.workspace }}/msan-libcxx/lib:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
 
       - name: Run CMake
         run: |
