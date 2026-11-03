@@ -536,7 +536,10 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
       return;
-
+    // With --relax, global IE TLS symbols in static executables are relaxed
+    // to movz/movk in the apply phase, so no GOT entry is needed.
+    if (config().isCodeStatic() && config().options().getRelax())
+      return;
     // set up the got and the corresponding rel entry
     AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
     if (config().isCodeStatic() || (config().isBuildingExecutable() &&
