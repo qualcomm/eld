@@ -7,6 +7,6 @@ SECTIONS {
     *(.text.baz)
     . = . + 40;
     *(.text.bar)
-   . = ALIGN(64);
+   . = . + 1;
   } = 0xa
 }
