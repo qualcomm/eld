@@ -6,5 +6,5 @@ SECTIONS {
   .text : { *(.text*) } :A
   .rodata : { *(.rodata*) } :A
   .data : { *(.data*) } :A
-  /DISCARD/ : { *(.ARM.exidx*) }
+  /DISCARD/ : { *(.ARM.exidx*) *(.eh_frame) }
 }
