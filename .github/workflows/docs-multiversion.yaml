@@ -18,7 +18,7 @@ env:
 
 jobs:
   build-docs-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     concurrency:
       group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
       cancel-in-progress: true
