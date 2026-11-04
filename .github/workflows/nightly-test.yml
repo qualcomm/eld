@@ -179,6 +179,7 @@ jobs:
             ../llvm-project/llvm
 
       - name: Build and install toolchain
+        id: build_toolchain
         run: |
           cd obj
           ninja -j11 install-distribution
@@ -229,17 +230,24 @@ jobs:
           done
 
       - name: Prune ccache before save
-        if: always() && steps.install_dependencies.outcome == 'success'
+        if: always() && steps.build_toolchain.outcome == 'success'
         env:
           CCACHE_DIR: ${{ github.workspace }}/obj/ccache
         run: ccache --evict-older-than 7200s
 
       - name: Save ccache
-        if: always() && steps.install_dependencies.outcome == 'success'
+        id: save_ccache
+        if: always() && steps.build_toolchain.outcome == 'success'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
           key: nightly-ccache-${{ runner.os }}-${{ github.run_id }}
+
+      - name: Delete old nightly ccache entries
+        if: always() && steps.save_ccache.outcome == 'success'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldCaches
+        with:
+          cache-key-prefixes: nightly-ccache-${{ runner.os }}-
 
       - name: Install ELD-only binaries
         run: |
