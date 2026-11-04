@@ -21,7 +21,6 @@
 namespace eld {
 
 class ELFSegment;
-class ELFSection;
 
 /** \class ELFSegmentFactory
  *  \brief provide the interface to create and delete an ELFSegment
@@ -30,12 +29,8 @@ class ELFSegmentFactory {
 public:
   typedef std::vector<ELFSegment *> Segments;
   using SegmentRange = llvm::iterator_range<Segments::iterator>;
-  using SegmentConstRange = llvm::iterator_range<Segments::const_iterator>;
 
   SegmentRange segmentsRange() {
-    return llvm::make_range(m_Segments.begin(), m_Segments.end());
-  }
-  SegmentConstRange segmentsRange() const {
     return llvm::make_range(m_Segments.begin(), m_Segments.end());
   }
 
@@ -55,10 +50,6 @@ public:
   ELFSegment *find(uint32_t pType, uint32_t pFlagSet, uint32_t pFlagClear);
 
   ELFSegment *findr(uint32_t pType, uint32_t pFlagSet, uint32_t pFlagClear);
-
-  Segments::iterator find(uint32_t pType, const ELFSection *pSection);
-
-  void erase(Segments::iterator pSegment);
 
   void push_back(ELFSegment *seg) { m_Segments.push_back(seg); }
 

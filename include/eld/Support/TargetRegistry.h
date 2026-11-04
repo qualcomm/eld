@@ -28,14 +28,8 @@ private:
 public:
   using TargetRange =
       llvm::iterator_range<std::vector<eld::Target *>::iterator>;
-  using TargetConstRange =
-      llvm::iterator_range<std::vector<eld::Target *>::const_iterator>;
 
   static TargetRange targets() {
-    return llvm::make_range(TargetList.begin(), TargetList.end());
-  }
-
-  static TargetConstRange targetsConst() {
     return llvm::make_range(TargetList.begin(), TargetList.end());
   }
 

@@ -195,25 +195,12 @@ public:
   };
   typedef std::vector<ScriptInputT> ScriptVectorT;
   using FeatureRange = llvm::iterator_range<std::vector<std::string>::iterator>;
-  using FeatureConstRange =
-      llvm::iterator_range<std::vector<std::string>::const_iterator>;
   using ArchiveRecordRange =
       llvm::iterator_range<std::vector<ArchiveReferenceRecordT>::iterator>;
-  using ArchiveRecordConstRange = llvm::iterator_range<
-      std::vector<ArchiveReferenceRecordT>::const_iterator>;
   using LinkerScriptRange = llvm::iterator_range<ScriptVectorT::iterator>;
-  using LinkerScriptConstRange =
-      llvm::iterator_range<ScriptVectorT::const_iterator>;
   using VersionScriptRange =
       llvm::iterator_range<std::vector<std::string>::iterator>;
-  using VersionScriptConstRange =
-      llvm::iterator_range<std::vector<std::string>::const_iterator>;
   using InputActionRange = llvm::iterator_range<InputSequenceVectorT::iterator>;
-  using InputActionConstRange =
-      llvm::iterator_range<InputSequenceVectorT::const_iterator>;
-  using CommentRange = llvm::iterator_range<std::vector<std::string>::iterator>;
-  using CommentConstRange =
-      llvm::iterator_range<std::vector<std::string>::const_iterator>;
 
   // -------------------End Typedefs ---------------------------------
 
@@ -422,17 +409,11 @@ public:
   FeatureRange features() {
     return llvm::make_range(Features.begin(), Features.end());
   }
-  FeatureConstRange features() const {
-    return llvm::make_range(Features.begin(), Features.end());
-  }
   std::vector<std::string> &getFeatures() { return Features; }
 
   Stats &getLinkStats() { return LinkStats; }
 
   ArchiveRecordRange archiveRecords() {
-    return llvm::make_range(ArchiveRecords.begin(), ArchiveRecords.end());
-  }
-  ArchiveRecordConstRange archiveRecords() const {
     return llvm::make_range(ArchiveRecords.begin(), ArchiveRecords.end());
   }
   std::vector<ArchiveReferenceRecordT> &getArchiveRecords() {
@@ -442,15 +423,9 @@ public:
   LinkerScriptRange linkerScripts() {
     return llvm::make_range(LinkerScripts.begin(), LinkerScripts.end());
   }
-  LinkerScriptConstRange linkerScripts() const {
-    return llvm::make_range(LinkerScripts.begin(), LinkerScripts.end());
-  }
   ScriptVectorT &getLinkerScripts() { return LinkerScripts; }
 
   VersionScriptRange versionScripts() {
-    return llvm::make_range(VersionScripts.begin(), VersionScripts.end());
-  }
-  VersionScriptConstRange versionScripts() const {
     return llvm::make_range(VersionScripts.begin(), VersionScripts.end());
   }
   std::vector<std::string> &getVersionScripts() { return VersionScripts; }
@@ -458,17 +433,8 @@ public:
   InputActionRange inputActions() {
     return llvm::make_range(InputActions.begin(), InputActions.end());
   }
-  InputActionConstRange inputActions() const {
-    return llvm::make_range(InputActions.begin(), InputActions.end());
-  }
   InputSequenceVectorT &getInputActions() { return InputActions; }
 
-  CommentRange comments() {
-    return llvm::make_range(Comments.begin(), Comments.end());
-  }
-  CommentConstRange comments() const {
-    return llvm::make_range(Comments.begin(), Comments.end());
-  }
   std::vector<std::string> &getComments() { return Comments; }
 
   void buildMergedMaps(Module &M);

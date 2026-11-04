@@ -35,8 +35,6 @@ public:
   typedef std::vector<Assignment *> SymbolAssignments;
   using SymbolAssignmentsRange =
       llvm::iterator_range<SymbolAssignments::iterator>;
-  using SymbolAssignmentsConstRange =
-      llvm::iterator_range<SymbolAssignments::const_iterator>;
 
   RuleContainer(
       SectionMap *, std::string PName, InputSectDesc::Policy PPolicy,
@@ -72,10 +70,6 @@ public:
   void init(ELFSection *);
 
   SymbolAssignmentsRange symAssignmentsRange() {
-    return llvm::make_range(MSymbolAssignments.begin(),
-                            MSymbolAssignments.end());
-  }
-  SymbolAssignmentsConstRange symAssignmentsRange() const {
     return llvm::make_range(MSymbolAssignments.begin(),
                             MSymbolAssignments.end());
   }

@@ -42,16 +42,10 @@ public:
   typedef InputList::reference reference;
 
   typedef std::vector<Assignment *> SymbolAssignments;
-  using InputRange = llvm::iterator_range<InputList::iterator>;
-  using InputConstRange = llvm::iterator_range<InputList::const_iterator>;
   using PostOutputSectionAssignmentsRange =
       llvm::iterator_range<SymbolAssignments::iterator>;
-  using PostOutputSectionAssignmentsConstRange =
-      llvm::iterator_range<SymbolAssignments::const_iterator>;
   using BranchIslandsRange =
       llvm::iterator_range<std::vector<BranchIsland *>::iterator>;
-  using BranchIslandsConstRange =
-      llvm::iterator_range<std::vector<BranchIsland *>::const_iterator>;
 
   OutputSectionEntry(SectionMap *, std::string PName);
   OutputSectionEntry(SectionMap *, ELFSection *);
@@ -88,10 +82,6 @@ public:
     computeHash();
   }
   void computeHash();
-  InputRange inputs() { return llvm::make_range(Inputs.begin(), Inputs.end()); }
-  InputConstRange inputs() const {
-    return llvm::make_range(Inputs.begin(), Inputs.end());
-  }
   iterator begin() { return Inputs.begin(); }
   iterator end() { return Inputs.end(); }
 
@@ -121,10 +111,6 @@ public:
   }
 
   PostOutputSectionAssignmentsRange postOutputSectionSymbols() {
-    return llvm::make_range(postOutputSectionAssignments.begin(),
-                            postOutputSectionAssignments.end());
-  }
-  PostOutputSectionAssignmentsConstRange postOutputSectionSymbols() const {
     return llvm::make_range(postOutputSectionAssignments.begin(),
                             postOutputSectionAssignments.end());
   }
@@ -160,9 +146,6 @@ public:
 
   // ------------------Branch island support ------------------------
   BranchIslandsRange branchIslands() {
-    return llvm::make_range(BranchIslands.begin(), BranchIslands.end());
-  }
-  BranchIslandsConstRange branchIslands() const {
     return llvm::make_range(BranchIslands.begin(), BranchIslands.end());
   }
 
