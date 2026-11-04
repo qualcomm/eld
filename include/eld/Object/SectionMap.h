@@ -42,8 +42,6 @@ public:
   typedef std::vector<OutputSectionEntry *> OutputSectionEntryDescList;
   using OutputSectionRange =
       llvm::iterator_range<OutputSectionEntryDescList::iterator>;
-  using OutputSectionConstRange =
-      llvm::iterator_range<OutputSectionEntryDescList::const_iterator>;
 
 public:
   SectionMap(LinkerScript &L, const LinkerConfig &Config,
@@ -103,10 +101,6 @@ public:
   OutputSectionEntry *back() { return MOutputSectionEntryDescList.back(); }
 
   OutputSectionRange outputSections() {
-    return llvm::make_range(MOutputSectionEntryDescList.begin(),
-                            MOutputSectionEntryDescList.end());
-  }
-  OutputSectionConstRange outputSections() const {
     return llvm::make_range(MOutputSectionEntryDescList.begin(),
                             MOutputSectionEntryDescList.end());
   }

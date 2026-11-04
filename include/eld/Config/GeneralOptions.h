@@ -110,16 +110,9 @@ public:
 
   typedef std::vector<std::string> PreserveList;
   using RpathRange = llvm::iterator_range<RpathListType::iterator>;
-  using RpathConstRange = llvm::iterator_range<RpathListType::const_iterator>;
-  using ScriptRange = llvm::iterator_range<ScriptListType::iterator>;
-  using ScriptConstRange = llvm::iterator_range<ScriptListType::const_iterator>;
   using UndefSymRange = llvm::iterator_range<UndefSymListType::iterator>;
-  using UndefSymConstRange =
-      llvm::iterator_range<UndefSymListType::const_iterator>;
   using DynListRange = llvm::iterator_range<DynListType::iterator>;
-  using DynListConstRange = llvm::iterator_range<DynListType::const_iterator>;
   using ExtListRange = llvm::iterator_range<ExtList::iterator>;
-  using ExtListConstRange = llvm::iterator_range<ExtList::const_iterator>;
   using StringListConstRange =
       llvm::iterator_range<std::vector<std::string>::const_iterator>;
 
@@ -599,19 +592,10 @@ public:
   RpathRange rpaths() {
     return llvm::make_range(RpathList.begin(), RpathList.end());
   }
-  RpathConstRange rpaths() const {
-    return llvm::make_range(RpathList.begin(), RpathList.end());
-  }
 
   // -----  link-in script  ----- //
   const ScriptListType &getScriptList() const { return ScriptList; }
   ScriptListType &getScriptList() { return ScriptList; }
-  ScriptRange scripts() {
-    return llvm::make_range(ScriptList.begin(), ScriptList.end());
-  }
-  ScriptConstRange scripts() const {
-    return llvm::make_range(ScriptList.begin(), ScriptList.end());
-  }
 
   // ----  forced undefined symbols ---- //
   const UndefSymListType &getUndefSymList() const { return UndefSymList; }
@@ -623,9 +607,6 @@ public:
   }
   UndefSymListType &getExportDynSymList() { return ExportDynSymList; }
   UndefSymRange undefinedSymbols() {
-    return llvm::make_range(UndefSymList.begin(), UndefSymList.end());
-  }
-  UndefSymConstRange undefinedSymbols() const {
     return llvm::make_range(UndefSymList.begin(), UndefSymList.end());
   }
 
@@ -650,14 +631,8 @@ public:
   ExtListRange externSymbols() {
     return llvm::make_range(ExternList.begin(), ExternList.end());
   }
-  ExtListConstRange externSymbols() const {
-    return llvm::make_range(ExternList.begin(), ExternList.end());
-  }
 
   DynListRange dynamicSymbols() {
-    return llvm::make_range(DynList.begin(), DynList.end());
-  }
-  DynListConstRange dynamicSymbols() const {
     return llvm::make_range(DynList.begin(), DynList.end());
   }
 

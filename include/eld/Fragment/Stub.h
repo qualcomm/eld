@@ -56,10 +56,8 @@ public:
 
 public:
   typedef std::vector<Fixup *> FixupListType;
-  typedef FixupListType::iterator fixup_iterator;
   typedef FixupListType::const_iterator const_fixup_iterator;
   using FixupRange = llvm::iterator_range<FixupListType::iterator>;
-  using FixupConstRange = llvm::iterator_range<FixupListType::const_iterator>;
 
 public:
   Stub();
@@ -113,9 +111,6 @@ public:
 
   ///  -----  Fixup  -----  ///
   FixupRange fixups() {
-    return llvm::make_range(FixupList.begin(), FixupList.end());
-  }
-  FixupConstRange fixups() const {
     return llvm::make_range(FixupList.begin(), FixupList.end());
   }
 

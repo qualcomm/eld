@@ -62,26 +62,6 @@ ELFSegment *ELFSegmentFactory::findr(uint32_t pType, uint32_t pFlagSet,
   return nullptr;
 }
 
-ELFSegmentFactory::Segments::iterator
-ELFSegmentFactory::find(uint32_t pType, const ELFSection *pSection) {
-  for (auto segment = m_Segments.begin(), segEnd = m_Segments.end();
-       segment != segEnd; ++segment) {
-    ELFSegment *Seg = *segment;
-    if (Seg->type() == pType) {
-      for (auto sect = Seg->begin(), sectEnd = Seg->end(); sect != sectEnd;
-           ++sect) {
-        if ((*sect)->getSection() == pSection)
-          return segment;
-      } // for each section
-    }
-  } // for each segment
-  return m_Segments.end();
-}
-
-void ELFSegmentFactory::erase(Segments::iterator pSegment) {
-  m_Segments.erase(pSegment);
-}
-
 uint32_t ELFSegmentFactory::size() const { return m_Segments.size(); }
 
 void ELFSegmentFactory::sortSegments() {
