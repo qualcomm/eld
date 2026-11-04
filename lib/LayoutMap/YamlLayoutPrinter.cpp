@@ -235,10 +235,9 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
     Result.OutputSections.emplace_back(
         std::make_shared<eld::LDYAML::Assignment>(std::move(Assignment)));
   };
-  for (const auto *Command : Module.getScript().getScriptCommands()) {
-    if (const auto *A = llvm::dyn_cast<Assignment>(Command))
-      if (A->level() == Assignment::Level::BeforeSections)
-        AddAssignment(A);
+  for (const Assignment *A : Module.getScript().assignments()) {
+    if (A->level() == Assignment::Level::BeforeSections)
+      AddAssignment(A);
   }
   for (auto *I : Module.getScript().sectionMap().outputSections()) {
     auto *Section = I->getSection();
