@@ -1,0 +1,18 @@
+#---PluginConfigPathSpecialCharacters.test---------- Executable ---------------#
+#BEGIN_COMMENT
+# Verify a plugin config path with spaces and a quote survives replay.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.input.o
+RUN: %echo "GlobalPlugins: []" > "%t.plugin @config's.yaml"
+RUN: %link %linkopts %t.input.o --plugin-config "%t.plugin @config's.yaml" -o %t.original.out --reproduce %t.tar
+RUN: %mkdir %t.replay
+RUN: cd %t.replay
+RUN: %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: %filecheck %s --check-prefix=RESPONSE < response.txt
+RUN: %link @response.txt -o replay.out
+RUN: %readelf -s replay.out | %filecheck %s
+
+CHECK: foo
+RESPONSE: --plugin-config "{{.*}}plugin @config's.yaml{{.*}}"
+#END_TEST
