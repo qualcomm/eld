@@ -1,0 +1,7 @@
+.{{binding}} target_func
+{{visibility}}
+
+.text
+target_func:
+  mov $7, %eax
+  ret
