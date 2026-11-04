@@ -8,8 +8,10 @@ name: Linux Kernel Boot with ELD
 # use the nightly toolchain base.
 
 on:
+  # BusyBox runs after Nightly check and publishes the binary used by the
+  # kernel boot test, so wait for it to finish before starting this workflow.
   workflow_run:
-    workflows: [Nightly check]
+    workflows: ["BusyBox with ELD"]
     types: [completed]
   workflow_dispatch:
   workflow_call:
@@ -160,6 +162,17 @@ jobs:
           artifact-name: ${{ inputs.toolset_artifact }}
           tarball: ${{ inputs.toolset_tarball }}
 
+      - name: Configure LLVM 23 apt repository
+        if: matrix.enabled == 1
+        run: |
+          sudo install -d -m 0755 /usr/share/keyrings
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | gpg --dearmor \
+            | sudo tee /usr/share/keyrings/llvm-archive-keyring.gpg >/dev/null
+          UBUNTU_CODENAME="$(. /etc/os-release && echo "${VERSION_CODENAME}")"
+          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] https://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-23 main" \
+            | sudo tee /etc/apt/sources.list.d/llvm-23.list >/dev/null
+
       - name: Install kernel build dependencies
         id: install_dependencies
         if: matrix.enabled == 1
@@ -167,14 +180,9 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y bison flex libssl-dev libelf-dev bc \
-            qemu-system-misc qemu-system-x86 qemu-system-arm opensbi cpio ccache
-
-      - name: Use stable Clang
-        if: matrix.enabled == 1
-        uses: egor-tensin/setup-clang@23bc15cd4207e45f1566447deb48f4ff3ef932cb #v2.3
-        with:
-          version: "23"
-          platform: x64
+            qemu-system-misc qemu-system-riscv qemu-system-x86 qemu-system-arm \
+            opensbi cpio ccache \
+            clang-23 llvm-23 lld-23 libclang-rt-23-dev
 
       - name: Configure stable Clang
         if: matrix.enabled == 1

@@ -71,6 +71,7 @@ jobs:
             const supported = new Set([
               'check-llvm-test-suite',
               'check-linux-kernel',
+              'check-busybox',
               'check-zephyr',
               'check-tsan',
               'check-asan-ubsan',
@@ -115,6 +116,7 @@ jobs:
             const checkDefinitions = new Map([
               ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
               ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
+              ['check-busybox', { name: 'BusyBox', context: 'PR BusyBox', usesToolset: true }],
               ['check-zephyr', { name: 'Zephyr', context: 'PR Zephyr', usesToolset: true }],
               ['check-tsan', { name: 'Thread sanitizer', context: 'PR Thread Sanitizer', usesToolset: false }],
               ['check-asan-ubsan', { name: 'Address and undefined behavior sanitizer', context: 'PR Address and Undefined Behavior Sanitizer', usesToolset: false }],
@@ -201,6 +203,7 @@ jobs:
             const checkDefinitions = new Map([
               ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
               ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
+              ['check-busybox', { name: 'BusyBox', context: 'PR BusyBox', usesToolset: true }],
               ['check-zephyr', { name: 'Zephyr', context: 'PR Zephyr', usesToolset: true }],
               ['check-tsan', { name: 'Thread sanitizer', context: 'PR Thread Sanitizer', usesToolset: false }],
               ['check-asan-ubsan', { name: 'Address and undefined behavior sanitizer', context: 'PR Address and Undefined Behavior Sanitizer', usesToolset: false }],
@@ -304,6 +307,27 @@ jobs:
        needs.validate.outputs.command == 'check-all-workflows') &&
       (needs.build.result == 'success' || needs.build.result == 'skipped')
     uses: ./.github/workflows/linux-kernel.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      toolset_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
+      toolset_artifact: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
+      toolset_tarball: install-pr-toolset.tar.xz
+    permissions:
+      contents: write
+      actions: write
+
+  busybox_test:
+    needs: [validate, build]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate.result == 'success' &&
+      needs.validate.outputs.pr_sha != '' &&
+      (contains(needs.validate.outputs.command, 'check-busybox') ||
+       needs.validate.outputs.command == 'check-all-workflows') &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    uses: ./.github/workflows/busybox.yml
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
@@ -465,6 +489,29 @@ jobs:
       pull-requests: write
       statuses: write
 
+  report_busybox:
+    needs: [validate, build, busybox_test]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (contains(needs.validate.outputs.command, 'check-busybox') ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: BusyBox
+      status_context: PR BusyBox
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: ${{ needs.build.result }}
+      test_result: ${{ needs.busybox_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
   report_zephyr:
     needs: [validate, build, zephyr_test]
     if: |
@@ -604,7 +651,7 @@ jobs:
       statuses: write
 
   report_all:
-    needs: [validate, build, llvm_test, linux_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, memory_sanitizer_test, windows_test, macos_test]
+    needs: [validate, build, llvm_test, linux_test, busybox_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, memory_sanitizer_test, windows_test, macos_test]
     if: |
       always() &&
       !cancelled() &&
@@ -624,6 +671,7 @@ jobs:
           BUILD_RESULT: ${{ needs.build.result }}
           LLVM_RESULT: ${{ needs.llvm_test.result }}
           LINUX_RESULT: ${{ needs.linux_test.result }}
+          BUSYBOX_RESULT: ${{ needs.busybox_test.result }}
           ZEPHYR_RESULT: ${{ needs.zephyr_test.result }}
           THREAD_RESULT: ${{ needs.thread_sanitizer_test.result }}
           ASAN_RESULT: ${{ needs.asan_ubsan_test.result }}
@@ -637,6 +685,7 @@ jobs:
             const checks = [
               ['LLVM test suite', process.env.LLVM_RESULT],
               ['Linux kernel boot', process.env.LINUX_RESULT],
+              ['BusyBox', process.env.BUSYBOX_RESULT],
               ['Zephyr', process.env.ZEPHYR_RESULT],
               ['Thread sanitizer', process.env.THREAD_RESULT],
               ['Address and undefined behavior sanitizer', process.env.ASAN_RESULT],

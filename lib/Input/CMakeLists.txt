@@ -18,7 +18,8 @@ llvm_add_library(
   ELDDirectory.cpp
   ObjectFile.cpp
   SearchDirs.cpp
-  SymDefFile.cpp)
+  SymDefFile.cpp
+  LINK_COMPONENTS
+  DebugInfoDWARF)
 
-target_link_libraries(ELDInput PRIVATE ELDSupport ELDFragment
-                                       LLVMDebugInfoDWARF)
+target_link_libraries(ELDInput PRIVATE ELDSupport ELDFragment)

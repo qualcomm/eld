@@ -131,7 +131,7 @@ jobs:
 
       - name: Configure test suite
         run: |
-          ELD_BIN=$(which ld.eld)
+          ELD_BIN="$(command -v ld.eld)"
           LIB_DIR="$(dirname "$ELD_BIN")/../lib"
           RT_LIB_DIR="$LIB_DIR/x86_64-unknown-linux-gnu"
           # TEST_SUITE_SUBDIRS is left unset, so llvm-test-suite/CMakeLists.txt
@@ -165,20 +165,20 @@ jobs:
           cmake -G Ninja \
             -S llvm-test-suite \
             -B build-llvm-test-suite \
-            -DCMAKE_C_COMPILER=$(which clang) \
-            -DCMAKE_CXX_COMPILER=$(which clang++) \
+            -DCMAKE_C_COMPILER="$(command -v clang)" \
+            -DCMAKE_CXX_COMPILER="$(command -v clang++)" \
             -DCMAKE_C_FLAGS="--ld-path=$ELD_BIN" \
             -DCMAKE_CXX_FLAGS="--ld-path=$ELD_BIN -stdlib=libc++" \
             -DCMAKE_EXE_LINKER_FLAGS="--ld-path=$ELD_BIN -stdlib=libc++ -Wl,-rpath,$LIB_DIR -Wl,-rpath,$RT_LIB_DIR" \
             -DTEST_SUITE_RUN_TYPE=nightly
 
       - name: Build test suite
-        run: ninja -C build-llvm-test-suite -j$(nproc) -k 0
+        run: ninja -C build-llvm-test-suite -j"$(nproc)" -k 0
 
       - name: Run tests
         run: |
           set -o pipefail
-          lit -j$(nproc) build-llvm-test-suite 2>&1 | tee test-output.txt
+          lit -j"$(nproc)" build-llvm-test-suite 2>&1 | tee test-output.txt
 
       - name: Upload test output
         if: always()

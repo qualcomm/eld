@@ -3,18 +3,24 @@ description: Install dependencies and build eld
 runs:
   using: "composite"
   steps:
+    - name: Configure LLVM 23 apt repository
+      shell: bash
+      run: |
+        sudo install -d -m 0755 /usr/share/keyrings
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+          | gpg --dearmor \
+          | sudo tee /usr/share/keyrings/llvm-archive-keyring.gpg >/dev/null
+        UBUNTU_CODENAME="$(. /etc/os-release && echo "${VERSION_CODENAME}")"
+        echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] https://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-23 main" \
+          | sudo tee /etc/apt/sources.list.d/llvm-23.list >/dev/null
+
     - name: Install dependencies
       shell: bash
       run: |
         sudo apt update
-        sudo apt install -y libc++-dev libc++abi-dev ccache \
-          libclang-rt-20-dev cmake ninja-build make qemu-user
-
-    - name: Set up Clang 20
-      uses: egor-tensin/setup-clang@23bc15cd4207e45f1566447deb48f4ff3ef932cb #v2.3
-      with:
-        version: "20"
-        platform: x64
+        sudo apt install -y libc++-23-dev libc++abi-23-dev ccache \
+          libclang-rt-23-dev cmake ninja-build make qemu-user
+        echo "/usr/lib/llvm-23/bin" >> "$GITHUB_PATH"
 
     - name: Verify clang installation
       shell: bash
