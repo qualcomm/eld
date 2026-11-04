@@ -1,1 +1,2 @@
 add_subdirectory(HelloWorldPlugin)
+add_subdirectory(AdvancedLTO)

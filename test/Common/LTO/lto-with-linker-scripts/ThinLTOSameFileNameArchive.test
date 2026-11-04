@@ -1,0 +1,58 @@
+# RUN: rm -rf %t && split-file %s %t
+# RUN: mkdir -p %t/1/tmp
+# RUN: mkdir -p %t/2/tmp
+# RUN: %opt -mtriple=%triple -module-hash -module-summary %t/a/1.ll -o %t/1/tmp/1.o
+# RUN: %opt -mtriple=%triple -module-hash -module-summary %t/b/1.ll -o %t/2/tmp/1.o
+# RUN: %ar cr %t/2.a %t/1/tmp/1.o %t/2/tmp/1.o
+# RUN: %llvm-mc -filetype=obj -triple=%triple %t/3.s -o %t/1.3.o
+# RUN: %link %linkopts --lto-linker-scripts --gc-sections -plugin-opt=-function-sections \
+# RUN:   -plugin-opt=-data-sections -e main -T %t/script.t %t/1.3.o %t/2.a -o %t/1.out
+# RUN: %readelf -S -W %t/1.out | %filecheck --check-prefix=SECTIONS %s
+# RUN: %readelf -s -W %t/1.out | %filecheck %s
+
+# SECTIONS: .alltext
+# SECTIONS-NOT: .text
+
+# CHECK-NOT: FUNC
+# CHECK-DAG: FUNC GLOBAL DEFAULT {{[0-9]+}} main
+# CHECK-DAG: FUNC GLOBAL DEFAULT {{[0-9]+}} myfun
+# CHECK-NOT: FUNC
+
+#--- a/1.ll
+
+declare i32 @otherfun()
+declare i32 @otherfun2()
+
+define i32 @myfun() nounwind section ".text.myfun" {
+  %a = call i32 @otherfun()
+  %b = call i32 @otherfun2()
+  %c = add i32 %a, %b
+  ret i32 %c
+}
+
+#--- b/1.ll
+
+define i32 @otherfun() nounwind section ".text.otherfun" {
+  ret i32 23
+}
+
+define i32 @otherfun2() nounwind section ".text.otherfun2" {
+  ret i32 42
+}
+
+#--- 3.s
+.text
+.section .text.main,"ax",%progbits
+.globl main
+.type main,%function
+main:
+  .long myfun
+  .byte 0
+.size main, .-main
+
+#--- script.t
+SECTIONS {
+  .special : { *(.text.otherfun2) }
+  .alltext : { *(.text.*) }
+  .ARM.exidx : { *(.ARM.exidx*) }
+}

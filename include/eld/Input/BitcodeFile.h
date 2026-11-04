@@ -47,7 +47,8 @@ public:
     return (I->getKind() == InputFile::BitcodeFileKind);
   }
 
-  bool createLTOInputFile(const std::string &ModuleID);
+  bool createLTOInputFile(const std::string &ModuleID,
+                          bool IncludeLocalSymbols = false);
 
   llvm::lto::InputFile &getInputFile() const { return *LTOInputFile; }
 
@@ -77,6 +78,10 @@ public:
 
   Section *getInputSectionForSymbol(const ResolveInfo &) const;
 
+  void setResolveInfoForLTOSymbol(unsigned Index, ResolveInfo &Info);
+
+  ResolveInfo *getResolveInfoForLTOSymbol(unsigned Index) const;
+
 private:
   void inferObjectInfo();
 
@@ -93,6 +98,7 @@ private:
   // Marked by comdat index in Module if accepted: (true if not rejected)
   llvm::DenseMap<int, bool> BCComdats;
   std::unordered_map<const ResolveInfo *, Section *> InputSectionForSymbol;
+  std::vector<ResolveInfo *> ResolveInfoForLTOSymbol;
   plugin::LTOModule *PluginModule;
 };
 
