@@ -64,6 +64,7 @@ following checks by commenting the command on the pull request:
 | `check-llvm-test-suite` | LLVM test suite |
 | `check-linux-kernel` | Linux kernel boot with ELD |
 | `check-busybox` | BusyBox with ELD |
+| `check-reviter` | Reverse iterator build and tests |
 | `check-zephyr` | Zephyr with ELD |
 | `check-tsan` | Thread sanitizer |
 | `check-asan-ubsan` | Address and undefined behavior sanitizers |

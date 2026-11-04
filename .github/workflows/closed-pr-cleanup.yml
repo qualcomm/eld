@@ -26,6 +26,8 @@ jobs:
             sanitize-memory-ccache-
             linux-kernel-ccache-
             zephyr-ccache-
+            reviter-ccache-
+            busybox-ccache-
           cache-refs: |
             refs/pull/${{ github.event.pull_request.number }}/merge
             refs/heads/${{ github.event.pull_request.head.ref }}
