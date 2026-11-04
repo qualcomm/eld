@@ -1,19 +1,42 @@
 name: Nightly check using reverse iterators
+run-name: "Reverse iterators ${{ inputs.pr_number && format('PR #{0} @{1}', inputs.pr_number, inputs.pr_sha) || 'nightly' }}"
 # owner: quic-seaswara
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
   schedule:
-    - cron: '0 8 * * *'  # Runs daily at 2:00 AM CST
-  workflow_dispatch:     # Allows manual triggering
-
+    - cron: '0 8 * * *' # Runs daily at 2:00 AM CST
+  workflow_call:
+    inputs:
+      pr_number:
+        description: "Pull request number"
+        required: false
+        type: string
+        default: ""
+      pr_sha:
+        description: "Exact pull request head SHA"
+        required: false
+        type: string
+        default: ""
+  workflow_dispatch:
 
 permissions:
+  actions: write
   contents: write
+
 jobs:
-  build-and-runtest-with-reverse-iterators:
+  reverse-iterators:
     runs-on: ubuntu-latest
-    if: github.repository == 'qualcomm/eld'
+    if: |
+      github.repository == 'qualcomm/eld' &&
+       (github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'workflow_call' ||
+        inputs.pr_sha != '')
+    concurrency:
+      group: ${{ inputs.pr_sha && format('reviter-pr-{0}-{1}', inputs.pr_number, inputs.pr_sha) || 'reviter-nightly' }}
+      cancel-in-progress: true
+    env:
+      ELD_REF: ${{ inputs.pr_sha || github.ref_name }}
 
     steps:
       - name: Configure LLVM 23 apt repository
@@ -38,7 +61,7 @@ jobs:
           clang --version
           echo "clang++ version"
           clang++ -stdlib=libc++ --version
-          dpkg -L clang
+          dpkg -L clang-23
           echo '#include <iostream>' > test.cpp
           echo 'int main() { std::cout << "Hello, Clang on Ubuntu!" << std::endl; return 0; }' >> test.cpp
           clang++ -std=c++17 -stdlib=libc++ test.cpp -o test_clang
@@ -61,8 +84,10 @@ jobs:
       - name: Checkout eld
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          repository: qualcomm/eld
           path: llvm-project/llvm/tools/eld
-          ref: main
+          ref: ${{ env.ELD_REF }}
+          fetch-depth: 1
 
       - name: Configure workflow environment variables
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
@@ -77,13 +102,21 @@ jobs:
           workflow-name: "reverse_iterator"
           record-mode: "record"
           status: "fail"
-          run-id: ${{github.run_id}}
+          run-id: ${{ github.run_id }}
           arch-name: "all"
-          branch-name: "${{env.BUILD_BRANCH}}"
+          branch-name: "${{ env.BUILD_BRANCH }}"
+
+      - name: Restore ccache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: ${{ github.workspace }}/obj/ccache
+          key: reviter-ccache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            reviter-ccache-${{ runner.os }}-
 
       - name: Run CMake
         run: |
-          mkdir obj
+          mkdir -p obj
           cd obj
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
@@ -101,14 +134,30 @@ jobs:
             ../llvm-project/llvm
 
       - name: Build Project
-        run: |
-          cd obj
-          ninja -j8
+        id: build_project
+        run: ninja -C obj -j8
+
+      - name: Prune ccache before save
+        if: always() && steps.build_project.outcome == 'success'
+        env:
+          CCACHE_DIR: ${{ github.workspace }}/obj/ccache
+        run: ccache --evict-older-than 7200s
+
+      - name: Save ccache
+        if: always() && steps.build_project.outcome == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: ${{ github.workspace }}/obj/ccache
+          key: reviter-ccache-${{ runner.os }}-${{ github.run_id }}
+
+      - name: Delete old ccache entries
+        if: always() && steps.build_project.outcome == 'success'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldCaches
+        with:
+          cache-key-prefixes: reviter-ccache-${{ runner.os }}-
 
       - name: Run tests
-        run: |
-          cd obj
-          ninja -j8 check-eld
+        run: ninja -C obj -j8 check-eld
 
       - name: Update build entry
         if: github.event_name == 'schedule'
@@ -120,6 +169,6 @@ jobs:
           workflow-name: "reverse_iterator"
           record-mode: "update"
           status: "pass"
-          run-id: ${{github.run_id}}
+          run-id: ${{ github.run_id }}
           arch-name: "all"
-          branch-name: "${{env.BUILD_BRANCH}}"
+          branch-name: "${{ env.BUILD_BRANCH }}"
