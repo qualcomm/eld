@@ -7,7 +7,7 @@ inputs:
     description: "Workflow run id to download the artifact from"
     required: true
   artifact-name:
-    description: "Artifact name to download (e.g. pr-eld-toolset)"
+    description: "Artifact name to download (e.g. pr-eld-toolset-123-<sha>)"
     required: true
   tarball:
     description: "Tar filename inside the artifact to extract (e.g. install-pr-toolset.tar.xz)"

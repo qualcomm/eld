@@ -1,4 +1,5 @@
 name: Thread sanitizer
+run-name: "Thread sanitizer ${{ inputs.pr_number && format('PR #{0} @{1}', inputs.pr_number, inputs.pr_sha) || 'nightly' }}"
 # owner: Steven6798
 
 on:
@@ -31,7 +32,6 @@ jobs:
        ((github.event_name == 'workflow_run' &&
          github.event.workflow_run.conclusion == 'success') ||
         github.event_name == 'workflow_dispatch' ||
-        github.event_name == 'workflow_call' ||
         inputs.pr_sha != '')
 
     steps:
@@ -69,6 +69,7 @@ jobs:
       - name: Checkout llvm-project
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: ${{ inputs.pr_sha == '' }}
           repository: llvm/llvm-project
           path: ./llvm-project/
           ref: main
@@ -76,6 +77,7 @@ jobs:
       - name: Checkout eld
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: ${{ inputs.pr_sha == '' }}
           repository: qualcomm/eld
           path: ./llvm-project/llvm/tools/eld
           ref: ${{ inputs.pr_sha || github.ref_name }}
@@ -140,14 +142,15 @@ jobs:
         run: ccache --evict-older-than 7200s
 
       - name: Save ccache
-        if: always() && steps.build_eld.outcome == 'success'
+        if: always() && steps.build_eld.outcome == 'success' && inputs.pr_sha == ''
+        id: save_ccache
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
           key: sanitize-threads-ccache-${{ runner.os }}-${{ github.run_id }}
 
       - name: Delete old ccache entries
-        if: always() && steps.build_eld.outcome == 'success'
+        if: always() && steps.save_ccache.outcome == 'success'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldCaches
         with:
           cache-key-prefixes: sanitize-threads-ccache-${{ runner.os }}-
@@ -180,15 +183,3 @@ jobs:
           run-id: ${{github.run_id}}
           arch-name: "all"
           branch-name: "${{env.BUILD_BRANCH}}"
-
-      - name: Clean up toolset
-        if: always()
-        run: |
-          rm -rf ${{ github.workspace }}/inst
-          rm -f ${{ github.workspace }}/install-nightly-toolchain.tar.xz
-          if [ -d "${{ github.workspace }}/inst" ] || \
-             [ -f "${{ github.workspace }}/install-nightly-toolchain.tar.xz" ]; then
-            echo "Warning: Failed to clean up nightly toolset"
-          else
-            echo "Successfully cleaned up nightly toolset"
-          fi
