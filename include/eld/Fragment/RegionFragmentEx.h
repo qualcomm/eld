@@ -78,6 +78,11 @@ public:
 
   RelaxEdit *pendingEdit(const Relocation *Reloc) { return Plan.find(Reloc); }
 
+  // Returns pending edits in increasing original-buffer offset order. Target
+  // backends can use this immediately before commit to perform any
+  // target-specific fixups that depend on the complete deletion set.
+  llvm::ArrayRef<RelaxEdit> pendingRelaxEdits() { return Plan.edits(); }
+
   // True if [DeleteOffset, DeleteOffset + DeleteBytes) overlaps an
   // already-recorded pending deletion (e.g. two relocations reserving the
   // same NOP-padding bytes).
