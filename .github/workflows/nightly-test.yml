@@ -115,7 +115,7 @@ jobs:
           mkdir -p obj
           cd obj
           cat > distribution-components.cmake <<'EOF'
-          set(LLVM_INSTALL_TOOLCHAIN_ONLY ON CACHE BOOL "")
+          set(LLVM_INSTALL_TOOLCHAIN_ONLY OFF CACHE BOOL "")
           set(LLVM_TOOLCHAIN_TOOLS
             llvm-ar
             llvm-cov
@@ -147,6 +147,9 @@ jobs:
             clang
             lld
             LTO
+            llvm-libraries
+            llvm-headers
+            cmake-exports
             clang-resource-headers
             clang-format
             clang-tidy
