@@ -14,7 +14,7 @@ permissions:
 jobs:
   build-and-runtest-nightly:
     if: github.repository == 'qualcomm/eld'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     env:
       BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
       ELD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
@@ -22,19 +22,23 @@ jobs:
       SCRIPTS_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld/.github/workflows/scripts
 
     steps:
-      - name: Set up Clang 22
-        uses: egor-tensin/setup-clang@23bc15cd4207e45f1566447deb48f4ff3ef932cb #v2.3
-        with:
-          version: "22"
-          platform: x64
+      - name: Configure LLVM 23 apt repository
+        run: |
+          sudo install -d -m 0755 /usr/share/keyrings
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | gpg --dearmor \
+            | sudo tee /usr/share/keyrings/llvm-archive-keyring.gpg >/dev/null
+          UBUNTU_CODENAME="$(. /etc/os-release && echo "${VERSION_CODENAME}")"
+          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] https://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-23 main" \
+            | sudo tee /etc/apt/sources.list.d/llvm-23.list >/dev/null
 
       - name: Install libc++ and libc++abi
         id: install_dependencies
         run: |
           sudo apt update
-          sudo apt install -y clang-22 lld-22 ninja-build libc++-22-dev libc++abi-22-dev ccache libclang-rt-22-dev libunwind-22-dev
-          echo "PATH=/usr/lib/llvm-22/bin:$PATH" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=/usr/lib/llvm-22/lib:$PATH" >> $GITHUB_ENV
+          sudo apt install -y clang-23 lld-23 ninja-build libc++-23-dev libc++abi-23-dev ccache libclang-rt-23-dev libunwind-23-dev
+          printf 'PATH=/usr/lib/llvm-23/bin:%s\nLD_LIBRARY_PATH=/usr/lib/llvm-23/lib:%s\n' \
+            "$PATH" "$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
 
       - name: Build and Test with Clang and show versions
         run: |
@@ -45,7 +49,7 @@ jobs:
           echo "ld.lld version"
           ld.lld --version
           echo '#include <iostream>' > test.cpp
-          echo 'int main() { std::cout << "Hello, Clang on Ubuntu 24.04!" << std::endl; return 0; }' >> test.cpp
+          echo 'int main() { std::cout << "Hello, Clang on Ubuntu latest!" << std::endl; return 0; }' >> test.cpp
           clang++ -std=c++17 -stdlib=libc++ test.cpp -o test_clang
           ./test_clang
 
@@ -160,21 +164,22 @@ jobs:
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra;lld" \
             -DCLANG_ENABLE_CIR=OFF \
             -DLLVM_ENABLE_RUNTIMES="compiler-rt;libcxx;libcxxabi;libunwind" \
-            -DCMAKE_C_COMPILER:STRING=`which clang` \
-            -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+            -DCMAKE_C_COMPILER:STRING="$(command -v clang)" \
+            -DCMAKE_CXX_COMPILER:STRING="$(command -v clang++)" \
             -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
-            -DCMAKE_INSTALL_RPATH:STRING='$ORIGIN/../lib/' \
+            -DCMAKE_INSTALL_RPATH:STRING="\$ORIGIN/../lib/" \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=ON \
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
             -DLLVM_CCACHE_BUILD:BOOL=ON \
-            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install-nightly-toolchain \
-            -DLLVM_CCACHE_DIR:STRING=$PWD/ccache/ \
+            -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install-nightly-toolchain" \
+            -DLLVM_CCACHE_DIR:STRING="$PWD/ccache/" \
             -DLLVM_ENABLE_SPHINX=OFF \
             -DELD_ENABLE_SYMBOL_VERSIONING=ON \
             -DLLVM_INSTALL_UTILS=On \
             ../llvm-project/llvm
 
       - name: Build and install toolchain
+        id: build_toolchain
         run: |
           cd obj
           ninja -j11 install-distribution
@@ -225,17 +230,24 @@ jobs:
           done
 
       - name: Prune ccache before save
-        if: always() && steps.install_dependencies.outcome == 'success'
+        if: always() && steps.build_toolchain.outcome == 'success'
         env:
           CCACHE_DIR: ${{ github.workspace }}/obj/ccache
         run: ccache --evict-older-than 7200s
 
       - name: Save ccache
-        if: always() && steps.install_dependencies.outcome == 'success'
+        id: save_ccache
+        if: always() && steps.build_toolchain.outcome == 'success'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
           key: nightly-ccache-${{ runner.os }}-${{ github.run_id }}
+
+      - name: Delete old nightly ccache entries
+        if: always() && steps.save_ccache.outcome == 'success'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldCaches
+        with:
+          cache-key-prefixes: nightly-ccache-${{ runner.os }}-
 
       - name: Install ELD-only binaries
         run: |

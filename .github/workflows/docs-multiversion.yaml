@@ -18,7 +18,7 @@ env:
 
 jobs:
   build-docs-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     concurrency:
       group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
       cancel-in-progress: true
@@ -71,8 +71,8 @@ jobs:
           cmake -G Ninja -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DCLANG_ENABLE_CIR=OFF \
-            -DCMAKE_C_COMPILER="$(which clang)" \
-            -DCMAKE_CXX_COMPILER="$(which clang++)" \
+            -DCMAKE_C_COMPILER="$(command -v clang)" \
+            -DCMAKE_CXX_COMPILER="$(command -v clang++)" \
             -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon" \
             -DLLVM_ENABLE_SPHINX=ON \
             llvm-project/llvm
@@ -96,13 +96,13 @@ jobs:
 
       - name: Deploy to documentation branch
         run: |
-          SITE_DIR=$(pwd)/build/tools/eld/docs/multiversion/site
+          SITE_DIR="$(pwd)/build/tools/eld/docs/multiversion/site"
           cd llvm-project/llvm/tools/eld
           git config user.name 'github-actions'
           git config user.email 'github-actions@github.com'
           git checkout --orphan documentation-update
           git rm -rf .
-          cp -r "$SITE_DIR"/. .
+          cp -r "${SITE_DIR}/." .
           git add .
           git commit -m "Update multi-version documentation"
           git push -f origin HEAD:refs/heads/documentation

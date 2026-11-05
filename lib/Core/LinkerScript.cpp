@@ -50,13 +50,15 @@ ELFSection *LinkerScript::getNextAllocatedOutputSectionForScriptEval() const {
     return nullptr;
 
   auto &Map = sectionMap();
-  auto It = std::find_if(Map.begin(), Map.end(), [&](OutputSectionEntry *Out) {
-    return Out && Out->getSection() == CurrentOutputSectionForScriptEval;
-  });
-  if (It == Map.end())
+  auto Sections = Map.outputSections();
+  auto It = std::find_if(
+      Sections.begin(), Sections.end(), [&](OutputSectionEntry *Out) {
+        return Out && Out->getSection() == CurrentOutputSectionForScriptEval;
+      });
+  if (It == Sections.end())
     return nullptr;
 
-  for (++It; It != Map.end(); ++It) {
+  for (++It; It != Sections.end(); ++It) {
     OutputSectionEntry *Out = *It;
     if (!Out)
       continue;

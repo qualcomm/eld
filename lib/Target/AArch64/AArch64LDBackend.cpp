@@ -359,8 +359,9 @@ bool AArch64LDBackend::isErratum843419Sequence(uint32_t insn1,
 
 bool AArch64LDBackend::scanErrata843419() {
   LinkerScript &script = m_Module.getScript();
-  SectionMap::iterator out, outBegin = script.sectionMap().begin(),
-                            outEnd = script.sectionMap().end();
+  SectionMap::OutputSectionEntryDescList::iterator out,
+      outBegin = script.sectionMap().outputSections().begin(),
+      outEnd = script.sectionMap().outputSections().end();
   out = outBegin;
   bool updated = false;
   for (; out != outEnd; ++out) {
@@ -434,7 +435,9 @@ bool AArch64LDBackend::scanErrata843419() {
                 // Now since a new fragment has been inserted, the fragment
                 // needs to be reset.
                 ie = section->getFragmentList().end();
-                it = frag->getIterator();
+                auto SectionFragments = section->getFragmentList();
+                it = std::find(SectionFragments.begin(), SectionFragments.end(),
+                               frag);
                 updated = true;
               }
             }

@@ -21,6 +21,7 @@
 #include "eld/Target/GNULDBackend.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 #include <stack>
@@ -178,18 +179,11 @@ public:
       FragmentInfoMapT;
   typedef llvm::DenseMap<ELFSection *, InputFile *> SectionInfoMapT;
 
-  typedef FragmentInfoMapT::iterator FragmentInfoMapIterT;
   typedef std::vector<LayoutFragmentInfo *> FragmentInfoVectorT;
-  typedef FragmentInfoVectorT::iterator FragmentInfoVectorTIter;
   typedef std::vector<LDSymbol *> SymVectorT;
-  typedef SymVectorT::iterator SymVectorTIterT;
   typedef std::vector<ResolveInfo *> ResolveInfoVectorT;
-  typedef ResolveInfoVectorT::iterator ResolveInfoIterT;
-  typedef std::vector<ArchiveReferenceRecordT>::iterator
-      ArchiveReferenceRecordIteratorT;
   typedef std::vector<InputSequenceT> InputSequenceVectorT;
   typedef std::vector<std::string> StringVectorT;
-  typedef StringVectorT::iterator StringVectorIteratorT;
 
   // Linker Script support
   struct ScriptInputT {
@@ -200,6 +194,13 @@ public:
     uint32_t Depth = 0;
   };
   typedef std::vector<ScriptInputT> ScriptVectorT;
+  using FeatureRange = llvm::iterator_range<std::vector<std::string>::iterator>;
+  using ArchiveRecordRange =
+      llvm::iterator_range<std::vector<ArchiveReferenceRecordT>::iterator>;
+  using LinkerScriptRange = llvm::iterator_range<ScriptVectorT::iterator>;
+  using VersionScriptRange =
+      llvm::iterator_range<std::vector<std::string>::iterator>;
+  using InputActionRange = llvm::iterator_range<InputSequenceVectorT::iterator>;
 
   // -------------------End Typedefs ---------------------------------
 
@@ -405,18 +406,33 @@ public:
 
   ResolveInfoVectorT getCommonsGarbageCollected(Module &Module);
 
+  FeatureRange features() {
+    return llvm::make_range(Features.begin(), Features.end());
+  }
   std::vector<std::string> &getFeatures() { return Features; }
 
   Stats &getLinkStats() { return LinkStats; }
 
+  ArchiveRecordRange archiveRecords() {
+    return llvm::make_range(ArchiveRecords.begin(), ArchiveRecords.end());
+  }
   std::vector<ArchiveReferenceRecordT> &getArchiveRecords() {
     return ArchiveRecords;
   }
 
+  LinkerScriptRange linkerScripts() {
+    return llvm::make_range(LinkerScripts.begin(), LinkerScripts.end());
+  }
   ScriptVectorT &getLinkerScripts() { return LinkerScripts; }
 
+  VersionScriptRange versionScripts() {
+    return llvm::make_range(VersionScripts.begin(), VersionScripts.end());
+  }
   std::vector<std::string> &getVersionScripts() { return VersionScripts; }
 
+  InputActionRange inputActions() {
+    return llvm::make_range(InputActions.begin(), InputActions.end());
+  }
   InputSequenceVectorT &getInputActions() { return InputActions; }
 
   std::vector<std::string> &getComments() { return Comments; }

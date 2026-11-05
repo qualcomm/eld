@@ -27,14 +27,14 @@ SectionsCmd::SectionsCmd() : ScriptCommand(ScriptCommand::SECTIONS) {}
 void SectionsCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "SECTIONS\n{\n";
 
-  for (const auto &Elem : *this) {
-    switch ((Elem)->getKind()) {
+  for (auto *Elem : commands()) {
+    switch (Elem->getKind()) {
     case ScriptCommand::ENTRY:
     case ScriptCommand::ASSIGNMENT:
     case ScriptCommand::OUTPUT_SECT_DESC:
     case ScriptCommand::ASSERT:
       Outs << "\t";
-      (Elem)->dump(Outs);
+      Elem->dump(Outs);
       break;
     case ScriptCommand::INCLUDE:
     case ScriptCommand::ENTER_SCOPE:
@@ -74,16 +74,16 @@ eld::Expected<void> SectionsCmd::activate(Module &CurModule) {
   // Assignment between output sections
   SectionCommands Assignments;
 
-  for (const_iterator It = begin(), Ie = end(); It != Ie; ++It) {
-    switch ((*It)->getKind()) {
+  for (auto *Cmd : commands()) {
+    switch (Cmd->getKind()) {
     case ScriptCommand::ENTRY:
-      ELDEXP_RETURN_DIAGENTRY_IF_ERROR((*It)->activateOnce(CurModule));
+      ELDEXP_RETURN_DIAGENTRY_IF_ERROR(Cmd->activateOnce(CurModule));
       break;
     case ScriptCommand::ASSIGNMENT:
-      Assignments.push_back(*It);
+      Assignments.push_back(Cmd);
       break;
     case ScriptCommand::ASSERT:
-      ELDEXP_RETURN_DIAGENTRY_IF_ERROR((*It)->activateOnce(CurModule));
+      ELDEXP_RETURN_DIAGENTRY_IF_ERROR(Cmd->activateOnce(CurModule));
       break;
     case ScriptCommand::OUTPUT_SECT_DESC: {
       if (!Assignments.empty()) {
@@ -91,7 +91,7 @@ eld::Expected<void> SectionsCmd::activate(Module &CurModule) {
           ELDEXP_RETURN_DIAGENTRY_IF_ERROR(Assign->activateOnce(CurModule));
         Assignments.clear();
       }
-      eld::Expected<void> E = (*It)->activateOnce(CurModule);
+      eld::Expected<void> E = Cmd->activateOnce(CurModule);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
       break;
     }

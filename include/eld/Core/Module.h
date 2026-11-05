@@ -125,8 +125,6 @@ public:
   typedef SectionTable::const_iterator const_iterator;
 
   typedef std::vector<StrToken *> ListSyms;
-  typedef ListSyms::iterator ListSyms_iterator;
-  typedef ListSyms::const_iterator const_ListSyms_iterator;
 
   typedef std::array<InputFile *, MAX> InternalInputArray;
 

@@ -24,6 +24,7 @@ jobs:
       skip_build: ${{ steps.file-check.outputs.skip_build }}
       workflow_changed: ${{ steps.file-check.outputs.workflow_changed }}
       workflow_files: ${{ steps.file-check.outputs.workflow_files }}
+      skip_workflow_lint_check: ${{ steps.file-check.outputs.skip_workflow_lint_check }}
     steps:
       - name: Classify changed files
         id: file-check
@@ -39,6 +40,14 @@ jobs:
                 pull_number: context.payload.pull_request.number,
                 per_page: 100,
               }
+            );
+            const pullRequest = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+            const skipWorkflowLintCheck = pullRequest.data.labels.some(
+              ({ name }) => name === 'skip-workflow-lint-check'
             );
             const onlyDocs = files.length > 0 && files.every(({ filename }) =>
               filename.startsWith('docs/') || filename.endsWith('.md')
@@ -61,11 +70,15 @@ jobs:
             core.setOutput('skip_build', String(onlyDocs || onlyWorkflows));
             core.setOutput('workflow_changed', String(workflowFiles.length > 0));
             core.setOutput('workflow_files', JSON.stringify(workflowFiles));
+            core.setOutput('skip_workflow_lint_check', String(skipWorkflowLintCheck));
+            core.info(`Skip workflow lint check label present: ${skipWorkflowLintCheck}`);
 
   workflow-lint:
     name: Lint GitHub Actions workflows
     needs: changes
-    if: needs.changes.outputs.workflow_changed == 'true'
+    if: >
+      needs.changes.outputs.workflow_changed == 'true' &&
+      needs.changes.outputs.skip_workflow_lint_check != 'true'
     uses: ./.github/workflows/workflow-lint.yml
     with:
       ref: ${{ github.event.pull_request.head.sha }}

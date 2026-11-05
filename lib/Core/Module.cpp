@@ -498,7 +498,7 @@ bool Module::updateOutputSectionsWithPlugins() {
     return true;
 
   llvm::StringMap<OutputSectionEntry *> OutputSections;
-  for (auto &OutputSect : getScript().sectionMap())
+  for (auto *OutputSect : getScript().sectionMap().outputSections())
     OutputSections.insert(std::make_pair(OutputSect->name(), OutputSect));
 
   for (auto &Plugin : getScript().getPluginOutputSection()) {

@@ -130,8 +130,8 @@ size_t ARMToTHMStub::alignment() const { return 4u; }
 
 Stub *ARMToTHMStub::clone(InputFile *F, Relocation *, eld::IRBuilder *pBuilder,
                           DiagnosticEngine *) {
-  Stub *S = make<ARMToTHMStub>(m_pData, ThisSize, fixupBegin(), fixupEnd(),
-                               Alignment, m_NumStub++);
+  Stub *S = make<ARMToTHMStub>(m_pData, ThisSize, fixups().begin(),
+                               fixups().end(), Alignment, m_NumStub++);
   pBuilder->addLinkerInternalLocalSymbol(F,
                                          "$a.a2t." + std::to_string(m_NumStub),
                                          eld::make<FragmentRef>(*S, 0), 0);

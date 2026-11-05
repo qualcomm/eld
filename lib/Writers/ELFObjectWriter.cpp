@@ -212,14 +212,11 @@ ELFObjectWriter::writeObject(llvm::FileOutputBuffer &CurOutput) {
 
   if (IsBinary) {
     // Iterate over the loadable segments and write the corresponding sections
-    ELFSegmentFactory::iterator Seg,
-        SegEnd = ThisModule.getBackend().elfSegmentTable().end();
-
-    for (Seg = ThisModule.getBackend().elfSegmentTable().begin(); Seg != SegEnd;
-         ++Seg) {
-      if (llvm::ELF::PT_LOAD == (*Seg)->type()) {
-        ELFSegment::iterator Sect, SectEnd = (*Seg)->end();
-        for (Sect = (*Seg)->begin(); Sect != SectEnd; ++Sect) {
+    for (auto *Seg :
+         ThisModule.getBackend().elfSegmentTable().segmentsRange()) {
+      if (llvm::ELF::PT_LOAD == Seg->type()) {
+        for (auto Sect = Seg->begin(), SectEnd = Seg->end(); Sect != SectEnd;
+             ++Sect) {
           eld::Expected<void> ExpWrite =
               writeSection(CurOutput, (*Sect)->getSection());
           if (!ExpWrite) {
@@ -449,17 +446,15 @@ void ELFObjectWriter::emitProgramHeader(
 
   // Iterate the elf segment table in GNULDBackend
   size_t Index = 0;
-  auto Seg = ThisModule.getBackend().elfSegmentTable().begin(),
-       SegEnd = ThisModule.getBackend().elfSegmentTable().end();
-  for (; Seg != SegEnd; ++Seg) {
-    Phdr[Index].p_type = (*Seg)->type();
-    Phdr[Index].p_flags = (*Seg)->flag();
-    Phdr[Index].p_offset = (*Seg)->offset();
-    Phdr[Index].p_vaddr = (*Seg)->vaddr();
-    Phdr[Index].p_paddr = (*Seg)->paddr();
-    Phdr[Index].p_filesz = (*Seg)->filesz();
-    Phdr[Index].p_memsz = (*Seg)->memsz();
-    Phdr[Index].p_align = (*Seg)->align();
+  for (auto *Seg : ThisModule.getBackend().elfSegmentTable().segmentsRange()) {
+    Phdr[Index].p_type = Seg->type();
+    Phdr[Index].p_flags = Seg->flag();
+    Phdr[Index].p_offset = Seg->offset();
+    Phdr[Index].p_vaddr = Seg->vaddr();
+    Phdr[Index].p_paddr = Seg->paddr();
+    Phdr[Index].p_filesz = Seg->filesz();
+    Phdr[Index].p_memsz = Seg->memsz();
+    Phdr[Index].p_align = Seg->align();
     ++Index;
   }
 }

@@ -19,6 +19,7 @@
 #include "eld/Script/OutputSectDesc.h"
 #include "eld/Script/WildcardPattern.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/iterator_range.h"
 #include <unordered_map>
 #include <vector>
 
@@ -39,12 +40,8 @@ class SectionMap {
 public:
   typedef std::pair<OutputSectionEntry *, RuleContainer *> mapping;
   typedef std::vector<OutputSectionEntry *> OutputSectionEntryDescList;
-  typedef OutputSectionEntryDescList::const_iterator const_iterator;
-  typedef OutputSectionEntryDescList::iterator iterator;
-  typedef OutputSectionEntryDescList::const_reference const_reference;
-  typedef OutputSectionEntryDescList::reference reference;
-
-  typedef OutputSectionEntryDescList::reverse_iterator reverse_iterator;
+  using OutputSectionRange =
+      llvm::iterator_range<OutputSectionEntryDescList::iterator>;
 
 public:
   SectionMap(LinkerScript &L, const LinkerConfig &Config,
@@ -55,22 +52,22 @@ public:
   void assignOutputSectionEntrySections(std::vector<eld::Input *> &Inputs,
                                         bool IsPartialLink);
 
-  mapping findOnlyIn(iterator Output, std::string PInputFile,
-                     const ELFSection &CurInputSection, bool IsArchive,
-                     std::string Name, uint64_t InputSectionHash,
-                     uint64_t InputFileHash, uint64_t NameHash,
-                     bool GNUCompatible);
+  mapping findOnlyIn(OutputSectionEntryDescList::iterator Output,
+                     std::string PInputFile, const ELFSection &CurInputSection,
+                     bool IsArchive, std::string Name,
+                     uint64_t InputSectionHash, uint64_t InputFileHash,
+                     uint64_t NameHash, bool GNUCompatible);
 
-  mapping findIn(iterator Output, std::string PInputFile,
-                 const ELFSection &CurInputSection, bool IsArchive,
-                 std::string Name, uint64_t InputSectionHash,
+  mapping findIn(OutputSectionEntryDescList::iterator Output,
+                 std::string PInputFile, const ELFSection &CurInputSection,
+                 bool IsArchive, std::string Name, uint64_t InputSectionHash,
                  uint64_t InputFileHash, uint64_t NameHash, bool GNUCompatible);
 
   ELFSection *find(std::string EntrySection);
 
   ELFSection *find(uint32_t SectionType);
 
-  iterator findIter(std::string EntrySection);
+  OutputSectionEntryDescList::iterator findIter(std::string EntrySection);
 
   std::pair<mapping, bool>
   insert(std::string CurInputSection, std::string EntrySection,
@@ -82,21 +79,37 @@ public:
   bool empty() const { return MOutputSectionEntryDescList.empty(); }
   size_t size() const { return MOutputSectionEntryDescList.size(); }
 
-  iterator begin() { return MOutputSectionEntryDescList.begin(); }
-  const_iterator begin() const { return MOutputSectionEntryDescList.begin(); }
-  iterator end() { return MOutputSectionEntryDescList.end(); }
-  const_iterator end() const { return MOutputSectionEntryDescList.end(); }
+  OutputSectionEntryDescList::iterator begin() {
+    return MOutputSectionEntryDescList.begin();
+  }
+  OutputSectionEntryDescList::const_iterator begin() const {
+    return MOutputSectionEntryDescList.begin();
+  }
+  OutputSectionEntryDescList::iterator end() {
+    return MOutputSectionEntryDescList.end();
+  }
+  OutputSectionEntryDescList::const_iterator end() const {
+    return MOutputSectionEntryDescList.end();
+  }
+  const OutputSectionEntry *front() const {
+    return MOutputSectionEntryDescList.front();
+  }
+  OutputSectionEntry *front() { return MOutputSectionEntryDescList.front(); }
+  const OutputSectionEntry *back() const {
+    return MOutputSectionEntryDescList.back();
+  }
+  OutputSectionEntry *back() { return MOutputSectionEntryDescList.back(); }
 
-  const_reference front() const { return MOutputSectionEntryDescList.front(); }
-  reference front() { return MOutputSectionEntryDescList.front(); }
-  const_reference back() const { return MOutputSectionEntryDescList.back(); }
-  reference back() { return MOutputSectionEntryDescList.back(); }
+  OutputSectionRange outputSections() {
+    return llvm::make_range(MOutputSectionEntryDescList.begin(),
+                            MOutputSectionEntryDescList.end());
+  }
 
-  reverse_iterator rbegin() { return MOutputSectionEntryDescList.rbegin(); }
-  reverse_iterator rend() { return MOutputSectionEntryDescList.rend(); }
-
-  iterator insert(iterator PPosition, ELFSection *PSection);
-  iterator insert(iterator PPosition, OutputSectionEntry *Output);
+  OutputSectionEntryDescList::iterator
+  insert(OutputSectionEntryDescList::iterator PPosition, ELFSection *PSection);
+  OutputSectionEntryDescList::iterator
+  insert(OutputSectionEntryDescList::iterator PPosition,
+         OutputSectionEntry *Output);
 
   ELFSection *createOutputSectionEntry(std::string Section,
                                        LinkerSectionKind Kind, uint32_t Type,

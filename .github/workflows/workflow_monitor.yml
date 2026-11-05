@@ -6,6 +6,7 @@ on:
   # checking out or executing code from the monitored workflow.
   workflow_run:
     workflows:
+      - Build multi-version docs
       - BusyBox with ELD
       - Windows Arm64/x86_64 CI/Nightly
       - Linux Kernel Boot with ELD
@@ -31,8 +32,11 @@ concurrency:
 
 jobs:
   log-trigger-details:
-    # only inspect its scheduled nightly runs here.
-    if: github.event.workflow_run.event == 'schedule'
+    # Inspect scheduled runs and automatic multi-version documentation builds.
+    if: >-
+      github.event.workflow_run.event == 'schedule' ||
+      (github.event.workflow_run.name == 'Build multi-version docs' &&
+       github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     steps:
       - name: Log triggering workflow details
@@ -101,10 +105,10 @@ jobs:
                 ["Started", (.run_started_at // "")],
                 ["Updated", (.updated_at // "")],
                 ["URL", (.html_url // "")]
-              ][] | "| \(.[0]) | \(.[1]) |"
+              ][] | ["|", .[0], "|", .[1], "|"] | join(" ")
             '
             echo
-            echo '### Full `workflow_run` payload'
+            echo "### Full \`workflow_run\` payload"
             echo
             echo '```json'
             printf '%s\n' "$WORKFLOW_RUN_JSON" | jq --sort-keys .
@@ -112,12 +116,14 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   report-failure:
-    # Only scheduled failures on the main eld repo are relevant. Manual,
+    # Only scheduled and documentation push failures on the main eld repo are relevant. Manual,
     # pull-request, cancelled, and skipped runs do not create issues, and
     # forks should not create issues in their own copy of this workflow.
     if: >-
       github.repository == 'qualcomm/eld' &&
-      github.event.workflow_run.event == 'schedule' &&
+      (github.event.workflow_run.event == 'schedule' ||
+       (github.event.workflow_run.name == 'Build multi-version docs' &&
+        github.event.workflow_run.event == 'push')) &&
       github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
     permissions:
@@ -131,6 +137,7 @@ jobs:
           github-token: ${{ github.token }}
           script: |
             const run = context.payload.workflow_run;
+            const runType = run.event === 'schedule' ? 'scheduled' : run.event;
 
             core.info('=== Triggering workflow details ===');
             core.info(JSON.stringify({
@@ -182,18 +189,18 @@ jobs:
             }
 
             // GitHub returns runs newest first. Find the newest *earlier*
-            // completed scheduled run whose conclusion changes the alert
+            // completed run of the same event type whose conclusion changes the alert
             // state. A success re-arms alerts; a failure keeps the current
             // failure streak active. Cancelled, skipped, neutral, stale, and
             // timed-out runs neither re-arm nor start a failure streak.
             // Attempts of the same run are ignored because they do not
-            // represent a new schedule.
+            // represent a new run.
             const workflowRuns = await github.paginate(
               github.rest.actions.listWorkflowRuns,
               {
                 ...context.repo,
                 workflow_id: run.workflow_id,
-                event: 'schedule',
+                event: run.event,
                 status: 'completed',
                 per_page: 100,
               }
@@ -227,13 +234,13 @@ jobs:
                 return second.run_number - first.run_number;
               })[0];
 
-            // A failure starts a new streak only after a successful scheduled
+            // A failure starts a new streak only after a successful matching
             // run. If no earlier success or failure exists, report the first
             // failure. A prior failure means no successful recovery has
             // occurred, so no new issue is warranted.
             if (previousDecisiveRun && previousDecisiveRun.conclusion === 'failure') {
               core.info(
-                `Skipping issue: no successful scheduled run occurred after ` +
+                `Skipping issue: no successful ${runType} run occurred after ` +
                 `failure #${previousDecisiveRun.run_number}.`
               );
               return;
@@ -265,16 +272,16 @@ jobs:
 
             const previousRunSummary = previousDecisiveRun
               ? `[Run #${previousDecisiveRun.run_number}](${previousDecisiveRun.html_url}) passed.`
-              : 'No earlier successful or failed scheduled run was found.';
+              : `No earlier successful or failed ${runType} run was found.`;
 
             const issue = await github.rest.issues.create({
               ...context.repo,
-              title: `${run.name} scheduled run #${run.run_number} failed`,
+              title: `${run.name} ${runType} run #${run.run_number} failed`,
               body: [
-                `The scheduled **${run.name}** workflow has a new failure.`,
+                `The ${runType} **${run.name}** workflow has a new failure.`,
                 '',
                 `- Failed run: [#${run.run_number} (attempt ${run.run_attempt})](${run.html_url})`,
-                `- Previous scheduled run: ${previousRunSummary}`,
+                `- Previous ${runType} run: ${previousRunSummary}`,
                 `- Commit: \`${run.head_sha}\``,
                 '',
                 issueMarker,

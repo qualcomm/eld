@@ -215,13 +215,11 @@ BranchIslandFactory::createBranchIsland(Relocation &PReloc, Stub *S,
     // Set the branch target of this cloned stub.
     {
       std::lock_guard<std::mutex> Guard(Mutex);
-      for (Stub::fixup_iterator It = Clone->fixupBegin(),
-                                Ie = Clone->fixupEnd();
-           It != Ie; ++It) {
+      for (auto *Fixup : Clone->fixups()) {
         Relocation *Reloc = Relocation::Create(
-            (*It)->type(), PRelocator->getSize((*It)->type()),
-            make<FragmentRef>(*Clone, (*It)->offset()),
-            (*It)->addend() + RelocAddend);
+            Fixup->type(), PRelocator->getSize(Fixup->type()),
+            make<FragmentRef>(*Clone, Fixup->offset()),
+            Fixup->addend() + RelocAddend);
         Reloc->setSymInfo(PReloc.symInfo());
         Island->addRelocation(*Reloc);
       }
@@ -233,8 +231,10 @@ BranchIslandFactory::createBranchIsland(Relocation &PReloc, Stub *S,
     MatchedRule = CurNode->getOwningSection()->getMatchedLinkerScriptRule();
     MatchedSection = MatchedRule->getSection();
 
-    CurNodeIter = CurNode->getIterator();
-    Iter EndNodeIter = MatchedSection->getFragmentList().end();
+    auto MatchedFragments = MatchedSection->getFragmentList();
+    CurNodeIter =
+        std::find(MatchedFragments.begin(), MatchedFragments.end(), CurNode);
+    Iter EndNodeIter = MatchedFragments.end();
 
     // Set the owning section.
     {

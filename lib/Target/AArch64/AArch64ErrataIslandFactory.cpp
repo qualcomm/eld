@@ -86,15 +86,14 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
       pBuilder.getModule().getConfig().options().traceSymbol(returnName))
     DiagEngine->raise(Diag::target_specific_symbol) << returnName;
   // Set the branch target of this cloned stub.
-  for (Stub::fixup_iterator it = clone->fixupBegin(), ie = clone->fixupEnd();
-       it != ie; ++it) {
+  for (auto *Fixup : clone->fixups()) {
 
     Relocation *reloc = Relocation::Create(
-        (*it)->type(),
+        Fixup->type(),
         pBuilder.getModule().getBackend().getRelocator()->getSize(
-            (*it)->type()),
-        make<FragmentRef>(*clone, (*it)->offset()), 0);
-    if ((*it)->type() == llvm::ELF::R_AARCH64_JUMP26) {
+            Fixup->type()),
+        make<FragmentRef>(*clone, Fixup->offset()), 0);
+    if (Fixup->type() == llvm::ELF::R_AARCH64_JUMP26) {
       reloc->setSymInfo(returnSymbol->resolveInfo());
       reloc->target() = AArch64InsnHelpers::buildBranchInsn();
     } else
@@ -116,8 +115,10 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
       curNode->getOwningSection()->getMatchedLinkerScriptRule();
   ELFSection *MatchedSection = MatchedRule->getSection();
 
-  Iter curNodeIter = curNode->getIterator();
-  Iter endNodeIter = MatchedSection->getFragmentList().end();
+  auto MatchedFragments = MatchedSection->getFragmentList();
+  Iter curNodeIter =
+      std::find(MatchedFragments.begin(), MatchedFragments.end(), curNode);
+  Iter endNodeIter = MatchedFragments.end();
 
   int64_t fragAddr = 0;
   bool isLastFragInSection = false;
@@ -205,8 +206,9 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
     newOffset = previousFrag->getOffset(DiagEngine) + previousFrag->size();
   // Flag thats used to check if the linker already processed the clone.
   bool seenClone = false;
-  for (auto i = dirtyFrag->getIterator(),
-            n = MatchedSection->getFragmentList().end();
+  auto MatchedFrags = MatchedSection->getFragmentList();
+  for (auto i = std::find(MatchedFrags.begin(), MatchedFrags.end(), dirtyFrag),
+            n = MatchedFrags.end();
        i != n; ++i) {
     auto dirtyFrag = *i;
     // There is no need to reset the section size, if any of the fragment after

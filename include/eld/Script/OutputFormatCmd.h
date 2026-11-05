@@ -28,19 +28,11 @@ class Module;
 class OutputFormatCmd : public ScriptCommand {
 public:
   typedef std::vector<std::string> FormatList;
-  typedef FormatList::const_iterator const_iterator;
-  typedef FormatList::iterator iterator;
 
 public:
   OutputFormatCmd(const std::string &PFormat);
   OutputFormatCmd(const std::string &PDefault, const std::string &PBig,
                   const std::string &PLittle);
-
-
-  const_iterator begin() const { return OutputFormatList.begin(); }
-  iterator begin() { return OutputFormatList.begin(); }
-  const_iterator end() const { return OutputFormatList.end(); }
-  iterator end() { return OutputFormatList.end(); }
 
   void dump(llvm::raw_ostream &Outs) const override;
 

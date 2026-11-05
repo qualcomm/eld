@@ -751,7 +751,7 @@ eld::ScriptCommand *plugin::Script::Sections::getCommand() const {
 }
 
 void plugin::Script::Sections::getSectionCmdContents() {
-  for (auto &LSC : m_Sections->getSectionCommands()) {
+  for (auto &LSC : m_Sections->commands()) {
     plugin::Script::ScriptCommand *Cmd =
         plugin::Script::ScriptCommand::getScriptCommand(LSC);
     m_SectionCommands.push_back(Cmd);

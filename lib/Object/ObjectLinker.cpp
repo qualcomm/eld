@@ -757,12 +757,8 @@ void ObjectLinker::parseDynList() {
   if (!ThisConfig.options().hasDynamicList())
     return;
 
-  GeneralOptions::const_dyn_list_iterator It =
-      ThisConfig.options().dynListBegin();
-  GeneralOptions::const_dyn_list_iterator Ie =
-      ThisConfig.options().dynListEnd();
-  for (; It != Ie; It++) {
-    if (!parseListFile(*It, ScriptFile::DynamicList))
+  for (const auto &DynListEntry : ThisConfig.options().dynamicSymbols()) {
+    if (!parseListFile(DynListEntry, ScriptFile::DynamicList))
       return;
   }
 }
@@ -878,7 +874,7 @@ void ObjectLinker::mergeIdenticalStrings() const {
       continue;
     OutputSections.push_back(S->getOutputSection());
   }
-  for (OutputSectionEntry *O : ThisModule->getScript().sectionMap()) {
+  for (auto *O : ThisModule->getScript().sectionMap().outputSections()) {
     OutputSections.push_back(O);
   }
 
@@ -1300,7 +1296,7 @@ bool ObjectLinker::updateInputSectionMappingsForPlugin() {
   initializeMerge();
 
   // Clear the vector of sections collected by the rules.
-  for (auto &Out : ThisModule->getScript().sectionMap()) {
+  for (auto *Out : ThisModule->getScript().sectionMap().outputSections()) {
     for (auto &In : *Out)
       In->clearSections();
   }
@@ -1321,7 +1317,7 @@ bool ObjectLinker::updateInputSectionMappingsForPlugin() {
   }
 
   // Sort the rule.
-  for (auto &Out : ThisModule->getScript().sectionMap()) {
+  for (auto *Out : ThisModule->getScript().sectionMap().outputSections()) {
     for (auto &In : *Out)
       sortSections(In, true);
   }
@@ -1383,7 +1379,7 @@ bool ObjectLinker::runOutputSectionIteratorPlugin() {
 
     for (auto &P : PluginList) {
       plugin::PluginBase *L = P->getLinkerPlugin();
-      for (auto &Out : ThisModule->getScript().sectionMap())
+      for (auto *Out : ThisModule->getScript().sectionMap().outputSections())
         (llvm::dyn_cast<plugin::OutputSectionIteratorPlugin>(L))
             ->processOutputSection(plugin::OutputSection(Out));
     }
@@ -1467,9 +1463,7 @@ bool ObjectLinker::mergeSections() {
   }
 
   // Create output sections.
-  SectionMap::iterator Out, OutBegin, OutEnd;
-  OutBegin = ThisModule->getScript().sectionMap().begin();
-  OutEnd = ThisModule->getScript().sectionMap().end();
+  auto Sections = ThisModule->getScript().sectionMap().outputSections();
 
   ThisModule->setLinkState(LinkState::CreatingSections);
   if (!ThisConfig.getDiagEngine()->diagnose())
@@ -1493,7 +1487,8 @@ bool ObjectLinker::mergeSections() {
     // section serially to avoid races in parallel output creation.
     applySubAlign();
     std::vector<OutputSectionEntry *> OutSections;
-    for (Out = OutBegin; Out != OutEnd; ++Out) {
+    for (auto Out = Sections.begin(), OutEnd = Sections.end(); Out != OutEnd;
+         ++Out) {
       OutSections.push_back(*Out);
     }
     for (auto &S : *ThisModule) {
@@ -1528,7 +1523,7 @@ bool ObjectLinker::mergeSections() {
 }
 
 bool ObjectLinker::initializeOutputSectionsAndRunPlugin() {
-  for (auto &O : ThisModule->getScript().sectionMap()) {
+  for (auto *O : ThisModule->getScript().sectionMap().outputSections()) {
     for (auto &In : *O)
       sortSections(In, false);
   }
@@ -1538,7 +1533,7 @@ bool ObjectLinker::initializeOutputSectionsAndRunPlugin() {
 void ObjectLinker::applySubAlign() {
   std::unordered_set<ELFSection *> seen;
 
-  for (auto *O : ThisModule->getScript().sectionMap()) {
+  for (auto *O : ThisModule->getScript().sectionMap().outputSections()) {
     auto &prolog = O->prolog();
     if (!prolog.hasSubAlign())
       continue;
@@ -1700,13 +1695,8 @@ void ObjectLinker::addNoReuseOfTrampolines() {
 /// addUndefSymbols - add any symbols specified by the -u flag
 ///   @return true if symbols added
 bool ObjectLinker::addUndefSymbols() {
-  GeneralOptions::const_ext_list_iterator It =
-      ThisConfig.options().extListBegin();
-  GeneralOptions::const_ext_list_iterator Ie =
-      ThisConfig.options().extListEnd();
-
-  for (; It != Ie; It++) {
-    if (!parseListFile(*It, ScriptFile::ExternList))
+  for (const auto &ExternListEntry : ThisConfig.options().externSymbols()) {
+    if (!parseListFile(ExternListEntry, ScriptFile::ExternList))
       return false;
   }
 
@@ -1720,14 +1710,11 @@ bool ObjectLinker::addUndefSymbols() {
   }
 
   if (!ThisConfig.options().getUndefSymList().empty()) {
-    GeneralOptions::const_undef_sym_iterator UndefSym,
-        UndefSymEnd = ThisConfig.options().undefSymEnd();
-    for (UndefSym = ThisConfig.options().undefSymBegin();
-         UndefSym != UndefSymEnd; ++UndefSym) {
+    for (auto *UndefSym : ThisConfig.options().undefinedSymbols()) {
       InputFile *I = ThisModule->getInternalInput(
           eld::Module::InternalInputType::ExternList);
       ThisModule->getNamePool().insertSymbol(
-          I, (*UndefSym)->name(), false, eld::ResolveInfo::NoType,
+          I, UndefSym->name(), false, eld::ResolveInfo::NoType,
           eld::ResolveInfo::Undefined, eld::ResolveInfo::Global, 0, 0,
           eld::ResolveInfo::Default, nullptr, Result,
           false /* isPostLTOPhase */, false, 0, ThisModule->getPrinter());
@@ -1736,7 +1723,7 @@ bool ObjectLinker::addUndefSymbols() {
       Result.Info->setOutSymbol(OutputSym);
       // Initialize origin.
       Result.Info->setResolvedOrigin(I);
-      ThisModule->addNeededSymbol((*UndefSym)->name());
+      ThisModule->addNeededSymbol(UndefSym->name());
     }
   }
 
@@ -1869,7 +1856,7 @@ bool ObjectLinker::mayBeAddSectionSymbol(ELFSection *S) {
 
 bool ObjectLinker::addSectionSymbols() {
   // create and add section symbols for each output section
-  for (auto &S : ThisModule->getScript().sectionMap())
+  for (auto *S : ThisModule->getScript().sectionMap().outputSections())
     mayBeAddSectionSymbol(S->getSection());
   for (auto &S : *ThisModule)
     mayBeAddSectionSymbol(S);
@@ -2715,15 +2702,11 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     finalizeEmitRelocSectionSizes(RelocCount);
 
   // apply relocations created by relaxation
-  SectionMap::iterator Out, OutBegin, OutEnd;
-  typedef std::vector<BranchIsland *>::iterator branch_island_iter;
-  OutBegin = ThisModule->getScript().sectionMap().begin();
-  OutEnd = ThisModule->getScript().sectionMap().end();
-  for (Out = OutBegin; Out != OutEnd; ++Out) {
-    branch_island_iter Bi = (*Out)->islandsBegin();
-    branch_island_iter Be = (*Out)->islandsEnd();
-    for (; Bi != Be; ++Bi) {
-      for (auto *Reloc : (*Bi)->getRelocations())
+  auto Sections = ThisModule->getScript().sectionMap().outputSections();
+  for (auto Out = Sections.begin(), OutEnd = Sections.end(); Out != OutEnd;
+       ++Out) {
+    for (auto *BI : (*Out)->branchIslands()) {
+      for (auto *Reloc : BI->getRelocations())
         Reloc->apply(*getTargetBackend().getRelocator());
     }
   }
@@ -2773,11 +2756,8 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
   // must be written before the input relocation overwritten the same
   // location again.
   auto SyncBranchIslandsForOutputSection = [&](OutputSectionEntry *O) -> void {
-    typedef std::vector<BranchIsland *>::iterator branch_island_iter;
-    branch_island_iter Bi = O->islandsBegin();
-    branch_island_iter Be = O->islandsEnd();
-    for (; Bi != Be; ++Bi) {
-      for (auto *Reloc : (*Bi)->getRelocations())
+    for (auto *BI : O->branchIslands()) {
+      for (auto *Reloc : BI->getRelocations())
         writeRelocationResult(*Reloc, Buffer);
     }
   };
@@ -2786,7 +2766,7 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
       !ThisConfig.isSyncRelocationsMultiThreaded()) {
     if (ThisModule->getPrinter()->traceThreads())
       ThisConfig.raise(Diag::threads_disabled) << "SyncRelocations";
-    for (auto &Out : ThisModule->getScript().sectionMap())
+    for (auto *Out : ThisModule->getScript().sectionMap().outputSections())
       SyncBranchIslandsForOutputSection(Out);
     // sync linker created internal relocations
     for (auto *R : getTargetBackend().getInternalRelocs()) {
@@ -2807,7 +2787,7 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
     // of the input relocation to be overwritten by R_AARCH_COPY_INSN.
     // Therefore, a barrier is needed between writing branch island
     // relocations and input relocations.
-    for (auto &Out : ThisModule->getScript().sectionMap()) {
+    for (auto *Out : ThisModule->getScript().sectionMap().outputSections()) {
       Pool->run([&, Out] { SyncBranchIslandsForOutputSection(Out); });
     }
     Pool->wait();

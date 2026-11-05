@@ -84,7 +84,6 @@ public:
   typedef std::vector<Assignment *> Assignments;
   typedef std::vector<ChangeOutputSectionPluginOp *> OverrideSectionMatchT;
   typedef std::vector<Plugin *> PluginVectorT;
-  typedef PluginVectorT::iterator PluginVectorTIter;
   typedef llvm::StringMap<llvm::Timer *> Name2TimerMap;
 
   typedef std::vector<Phdrs *> PhdrSpecList;

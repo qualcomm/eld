@@ -96,7 +96,8 @@ Fragment *RuleContainer::getLastFrag() const {
 
 void RuleContainer::updateMatchedSections(const Module &Module) {
   // Clear the vector of sections collected by the rules.
-  for (OutputSectionEntry *OutSect : Module.getScript().sectionMap()) {
+  for (OutputSectionEntry *OutSect :
+       Module.getScript().sectionMap().outputSections()) {
     for (RuleContainer *Rule : *OutSect)
       Rule->clearSections();
   }
