@@ -1,0 +1,41 @@
+#---ImplicitLinkerScriptInStartLib.test------------- Executable --------------------#
+#BEGIN_COMMENT
+# An implicit linker script inside --start-lib/--end-lib must apply
+# section placement and symbol assignments without making ordinary
+# library members eager.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/unused.c -o %t.unused.o
+
+# Control: implicit script outside the library range.
+RUN: %link %linkopts %t.main.o %p/Inputs/script.t \
+RUN:   --start-lib %t.foo.o %t.unused.o --end-lib \
+RUN:   -o %t.outside.out
+RUN: %readelf -S -W %t.outside.out | %filecheck %s --check-prefix=SECT
+RUN: %readelf -s -W %t.outside.out | %filecheck %s --check-prefix=SYM
+RUN: %nm %t.outside.out | %filecheck %s --check-prefix=LAZY
+
+# Implicit script after an object inside the range.
+RUN: %link %linkopts %t.main.o \
+RUN:   --start-lib %t.foo.o %p/Inputs/script.t %t.unused.o --end-lib \
+RUN:   -o %t.inside.out
+RUN: %readelf -S -W %t.inside.out | %filecheck %s --check-prefix=SECT
+RUN: %readelf -s -W %t.inside.out | %filecheck %s --check-prefix=SYM
+RUN: %nm %t.inside.out | %filecheck %s --check-prefix=LAZY
+
+# Implicit script first inside the range.
+RUN: %link %linkopts %t.main.o \
+RUN:   --start-lib %p/Inputs/script.t %t.foo.o %t.unused.o --end-lib \
+RUN:   -o %t.first.out
+RUN: %readelf -S -W %t.first.out | %filecheck %s --check-prefix=SECT
+RUN: %readelf -s -W %t.first.out | %filecheck %s --check-prefix=SYM
+RUN: %nm %t.first.out | %filecheck %s --check-prefix=LAZY
+
+SECT: {{[[:space:]]\.foo_out[[:space:]]}}
+SYM: {{0*1234[[:space:]].*ABS[[:space:]]+script_marker$}}
+LAZY-NOT: unused_marker
+
+#END_TEST

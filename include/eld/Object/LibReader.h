@@ -39,6 +39,11 @@ public:
 private:
   Module &MModule;
   ObjectLinker *MObjLinker = nullptr;
+  struct ArchiveMemberList;
+
+  bool addArchiveMember(Input *MemberInput, bool IsThin,
+                        LinkerConfig &Config,
+                        ArchiveMemberList &Archive);
 };
 
 } // namespace eld

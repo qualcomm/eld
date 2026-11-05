@@ -302,9 +302,10 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
       eld::RegisterTimer T("Read Start Lib and End Lib",
                            "Input Group Processing (supplemental)",
                            ThisConfig.options().printTimingStats());
-      getLibReader()->readLib(Begin,
+      if (!getLibReader()->readLib(Begin,
                               ThisModule->getIRBuilder()->getInputBuilder(),
-                              ThisConfig, MPostLtoPhase);
+                              ThisConfig, MPostLtoPhase))
+          return false;
       continue;
     }
 
