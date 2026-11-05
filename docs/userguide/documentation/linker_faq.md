@@ -242,6 +242,20 @@ elsewhere. Use `--reproduce=default` to automatically name the tarball
 after the output file (`<output>.tar`, where `<output>` is the `-o`
 filename, or `a.out.tar` if `-o` is not given).
 
+To create a linker reproducer, add one of the following options to your existing Clang link command:
+
+Using `-Wl,` to pass comma-separated arguments to the linker:
+
+```bash
+clang ... -Wl,--reproduce,linker-reproducer.tar
+```
+
+Alternatively, use `-Xlinker` before each linker argument:
+
+```bash
+clang ... -Xlinker --reproduce -Xlinker linker-reproducer.tar
+```
+
 :::{note}
 If the tarball is big and you want the linker to compress the tarball
 automatically, you can use the switch --reproduce-compressed.
