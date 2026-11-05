@@ -1,0 +1,17 @@
+#---MemoryRegionVMACheck.test----------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test that ELD warns under -Wlinker-script when an output section has an
+# explicit address outside its assigned memory region. The explicit address
+# overrides the region, so the link succeeds. The warning must be emitted
+# exactly once, and only for the section with an explicit address (.bar is
+# placed inside the region by the linker).
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Wlinker-script 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t1.2.out %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s --check-prefix=NOWARN --allow-empty
+#END_TEST
+CHECK: Warning: address {{0x[0-9a-f]+}} of section '.foo' is not within region 'RAM'
+CHECK-NOT: of section '.foo' is not within region
+CHECK-NOT: of section '.bar' is not within region
+NOWARN-NOT: is not within region
