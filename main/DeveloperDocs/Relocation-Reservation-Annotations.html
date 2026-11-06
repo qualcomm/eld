@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>9. Relocation Allocation and Symbol Preemption &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="10. Symbol versioning" href="SymbolVersioning.html" />
+    <link rel="prev" title="8. Relaxation via Deferred Edits" href="RelaxationDeferredEdits.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="eld-version-selector" hidden>
+    <label for="eld-documentation-version">Documentation version</label>
+    <select id="eld-documentation-version" disabled></select>
+  </div>
+  <style>
+    .eld-version-selector {
+      margin-top: 0.75rem;
+      text-align: left;
+    }
+    .eld-version-selector label {
+      display: block;
+      margin-bottom: 0.25rem;
+      color: white;
+      font-size: 0.8rem;
+    }
+    .eld-version-selector select {
+      width: 100%;
+      color: #404040; /* dark gray */
+    }
+  </style>
+  <script>
+    (function () {
+      let selector = document.getElementById("eld-documentation-version");
+      let container = selector.parentElement;
+      let versionRoot = new URL(".", new URL("../index.html", window.location.href));
+      let siteRoot = new URL("../", versionRoot);
+
+      fetch(new URL("versions.json", siteRoot))
+        .then(function (response) {
+          if (!response.ok) throw new Error("Version manifest is unavailable");
+          return response.json();
+        })
+        .then(function (manifest) {
+          let current = decodeURIComponent(versionRoot.pathname.split("/").filter(Boolean).pop());
+          if (current === "stable") current = manifest.stable;
+
+          manifest.versions.forEach(function (version) {
+            let option = document.createElement("option");
+            let label = version.display_name;
+            let status = version.stable ? "stable" : version.dev ? "dev" : "";
+            if (status && label.toLowerCase().indexOf("(" + status + ")") === -1)
+              label += " (" + status + ")";
+            option.textContent = label;
+            option.value = new URL(version.path + "/", siteRoot);
+            option.selected = version.path === current;
+            selector.appendChild(option);
+          });
+
+          selector.disabled = false;
+          container.hidden = false;
+        })
+        .catch(function (error) {
+          // Keep the selector hidden when the version manifest is unavailable.
+          console.error("Failed to load documentation versions:", error);
+        });
+
+      selector.addEventListener("change", function () {
+        window.location.href = selector.value;
+      });
+    }());
+  </script>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_diagnostics.html">5. Linker Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/eld_debugging_guide.html">6. ELD (debugging guide)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html">7. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">8. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/image_structure_and_generation.html">9. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_image_size_optimizations.html">13. Linker Image Size Optimizations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/elf_tools.html">14. ELF TOOLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/lto_support.html">15. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/getting_image_details.html">16. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/options/options.html">17. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/target_specific_features.html">18. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/sframe_support.html">19. SFrame Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/editor_support.html">20. Editor Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/linker_faq.html">21. Linker support and frequently asked questions!!!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documentation/symbol_resolution_inspector.html">22. Symbol Resolution Inspector</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Developer Docs</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="AArch64-Relocations.html">1. AArch64 Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ARM-Relocations.html">2. ARM Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AddingABackend.html">3. Adding a New Backend to ELD</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EldCodeCoverage.html">4. ELD Code Coverage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Hexagon-Relocations.html">5. Hexagon Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="IFunc.html">6. GNU IFunc support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RISCV-Relocations.html">7. RISC-V Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RelaxationDeferredEdits.html">8. Relaxation via Deferred Edits</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">9. Relocation Allocation and Symbol Preemption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SymbolVersioning.html">10. Symbol versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="X86_32-Relocations.html">11. i386 (x86-32) Relocation Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="X86_64-Relocations.html">12. x86-64 Relocation Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">9. </span>Relocation Allocation and Symbol Preemption</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/DeveloperDocs/Relocation-Reservation-Annotations.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="relocation-allocation-and-symbol-preemption">
+<h1><span class="section-number">9. </span>Relocation Allocation and Symbol Preemption<a class="headerlink" href="#relocation-allocation-and-symbol-preemption" title="Permalink to this heading"></a></h1>
+<p>The architecture relocation references describe <strong>ELD’s implementation</strong>, not
+just the ABI’s relocation formulas. Their reservation columns describe what
+scanning a live relocation in an allocatable input section requests during a
+final link. A relocatable (<code class="docutils literal notranslate"><span class="pre">-r</span></code>) link does not perform these final-link
+reservations. Debug/non-allocatable references do not imply a GOT or PLT entry.</p>
+<div class="section" id="allocation-annotations">
+<h2><span class="section-number">9.1. </span>Allocation Annotations<a class="headerlink" href="#allocation-annotations" title="Permalink to this heading"></a></h2>
+<p>Each cell has one compact bullet per link mode: <code class="docutils literal notranslate"><span class="pre">S</span></code>, <code class="docutils literal notranslate"><span class="pre">D</span></code>, <code class="docutils literal notranslate"><span class="pre">P</span></code>, and <code class="docutils literal notranslate"><span class="pre">H</span></code>.
+All annotations are single letters; their case and position distinguish modes,
+resources, and conditions. They describe this relocation’s reservation, not whether another
+reference already allocated an entry.</p>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Position</p></th>
+<th class="head"><p>Annotation</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Mode prefix</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span></code>, <code class="docutils literal notranslate"><span class="pre">D</span></code>, <code class="docutils literal notranslate"><span class="pre">P</span></code>, <code class="docutils literal notranslate"><span class="pre">H</span></code></p></td>
+<td><p>Static executable, dynamic executable, PIE, shared library</p></td>
+</tr>
+<tr class="row-odd"><td><p>Mode override</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">I</span></code></p></td>
+<td><p>Static PIE; replaces the preceding PIE rule, not an additional mode</p></td>
+</tr>
+<tr class="row-even"><td><p>GOT resource</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">G</span></code></p></td>
+<td><p>Ordinary symbol-address GOT slot</p></td>
+</tr>
+<tr class="row-odd"><td><p>GOT resource</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">J</span></code></p></td>
+<td><p>PLT destination-address GOT slot; <strong>no independent ordinary GOT slot</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>GOT resource</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">B</span></code></p></td>
+<td><p>Shared GOT-base fragment, no per-symbol slot</p></td>
+</tr>
+<tr class="row-odd"><td><p>TLS resource</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">O</span></code></p></td>
+<td><p>One thread-pointer-offset GOT slot</p></td>
+</tr>
+<tr class="row-even"><td><p>TLS resource</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">N</span></code></p></td>
+<td><p>Shared module-ID GOT entry</p></td>
+</tr>
+<tr class="row-odd"><td><p>TLS resource</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Q</span></code></p></td>
+<td><p>Two GOT slots: module ID and module-relative offset</p></td>
+</tr>
+<tr class="row-even"><td><p>TLS resource</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">C</span></code></p></td>
+<td><p>TLS descriptor</p></td>
+</tr>
+<tr class="row-odd"><td><p>PLT resource</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">L</span></code></p></td>
+<td><p>Ordinary PLT entry</p></td>
+</tr>
+<tr class="row-even"><td><p>PLT resource</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">R</span></code></p></td>
+<td><p>IFUNC resolver PLT entry; static resolution uses <code class="docutils literal notranslate"><span class="pre">IRELATIVE</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Outcome</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td><p>No entry requested</p></td>
+</tr>
+<tr class="row-even"><td><p>Outcome</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">U</span></code></p></td>
+<td><p>Uses an existing runtime/internal/TLS-sequence allocation; no new entry</p></td>
+</tr>
+<tr class="row-odd"><td><p>Outcome</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">X</span></code></p></td>
+<td><p>Unsupported input relocation or output mode; no usable allocation</p></td>
+</tr>
+<tr class="row-even"><td><p>Outcome</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">E</span></code></p></td>
+<td><p>Link fails: static local-dynamic TLS relaxation is unimplemented</p></td>
+</tr>
+<tr class="row-odd"><td><p>Condition</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">p</span></code></p></td>
+<td><p>Preemptible=true, from the shared flowchart below</p></td>
+</tr>
+<tr class="row-even"><td><p>Symbol type</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">f</span></code>, <code class="docutils literal notranslate"><span class="pre">i</span></code>, <code class="docutils literal notranslate"><span class="pre">t</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">STT_FUNC</span></code>, <code class="docutils literal notranslate"><span class="pre">STT_GNU_IFUNC</span></code>, <code class="docutils literal notranslate"><span class="pre">STT_TLS</span></code> respectively</p></td>
+</tr>
+<tr class="row-odd"><td><p>Binding</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">g</span></code></p></td>
+<td><p>Global-bound (not local-bound) target</p></td>
+</tr>
+<tr class="row-even"><td><p>Visibility/binding</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">h</span></code></p></td>
+<td><p>Local-bound <strong>and</strong> hidden target; <code class="docutils literal notranslate"><span class="pre">!h</span></code> excludes only that combination</p></td>
+</tr>
+<tr class="row-odd"><td><p>Relaxation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">r</span></code></p></td>
+<td><p>GOT bypass: <code class="docutils literal notranslate"><span class="pre">--relax</span></code>, Preemptible=false, non-IFUNC, addend <code class="docutils literal notranslate"><span class="pre">-4</span></code>, supported load/call/jump opcode</p></td>
+</tr>
+<tr class="row-even"><td><p>Modifier</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{a}</span></code></p></td>
+<td><p>Mixed direct/GOT IFUNC references add a GOT slot holding the canonical PLT address</p></td>
+</tr>
+<tr class="row-odd"><td><p>Modifier</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{c}</span></code></p></td>
+<td><p>TLS-model conversion stub, not a range trampoline</p></td>
+</tr>
+<tr class="row-even"><td><p>Modifier</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{z}</span></code></p></td>
+<td><p>Entry belongs to the TLS resolver, not the referenced TLS symbol</p></td>
+</tr>
+<tr class="row-odd"><td><p>Modifier</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{w}</span></code></p></td>
+<td><p>Linker warns for this IFUNC relocation despite reservation</p></td>
+</tr>
+<tr class="row-even"><td><p>Modifier</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{e}</span></code></p></td>
+<td><p>Static GD-to-local-exec relaxation is unimplemented</p></td>
+</tr>
+<tr class="row-odd"><td><p>Modifier</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{n}</span></code></p></td>
+<td><p>Current handler is a no-op</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">Resource[condition]</span></code> allocates only when the condition holds; otherwise it
+requests nothing. <code class="docutils literal notranslate"><span class="pre">&amp;</span></code> means AND, <code class="docutils literal notranslate"><span class="pre">!</span></code> means NOT, <code class="docutils literal notranslate"><span class="pre">+</span></code> combines reservations,
+and parentheses group conditions. With no condition, visibility and symbol
+type do not restrict reservation. A <code class="docutils literal notranslate"><span class="pre">/</span></code> in the mode prefix groups modes.
+An <code class="docutils literal notranslate"><span class="pre">I:</span></code> clause overrides only static PIE; other PIE links keep the main rule.</p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">S/D/P/H:</span> <span class="pre">G</span></code>: all four modes reserve an ordinary GOT symbol slot.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">D/P/H:</span> <span class="pre">J[p&amp;f]</span></code>: these modes reserve a PLT destination GOT slot only
+for a preemptible function; <strong>not</strong> an ordinary symbol GOT slot.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">D/P/H:</span> <span class="pre">L[p]</span></code>: Preemptible=true creates a PLT under these link modes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">P:</span> <span class="pre">L[p];</span> <span class="pre">I:</span> <span class="pre">L[p]</span> <span class="pre">+</span> <span class="pre">R[g&amp;i]</span></code>: PIE uses the preemption rule; static PIE
+also handles global-bound IFUNC targets through a resolver PLT.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">S:</span> <span class="pre">J[i]{a}</span> <span class="pre">+</span> <span class="pre">G[!i]</span></code>: IFUNC uses the PLT destination slot (with the
+mixed-reference exception); other targets use an ordinary GOT slot.</p></li>
+</ul>
+</div>
+<div class="section" id="visibility-and-preemption">
+<h2><span class="section-number">9.2. </span>Visibility and Preemption<a class="headerlink" href="#visibility-and-preemption" title="Permalink to this heading"></a></h2>
+<p>The following shared flowchart determines <code class="docutils literal notranslate"><span class="pre">Preemptible=true</span></code> or
+<code class="docutils literal notranslate"><span class="pre">Preemptible=false</span></code>. Follow the branches in order: visibility and
+linker-provided-symbol exclusions precede weak-undefined handling, PIE
+precedes the static-link test for imported/undefined symbols, and IFUNC
+handling precedes the final version-script-scope test.</p>
+<p><span class="xref myst">D2 flowchart source</span>.
+The diagram uses ELD’s shared D2 styles and documentation renderer.</p>
+<p>The chart’s shared-object output branch is reached only after excluding PIE;
+the weak-undefined mode test also accepts a shared-object output kind when
+the link is static. Thus a static PIE and a static shared-object output can
+still yield <code class="docutils literal notranslate"><span class="pre">Preemptible=true</span></code> along their indicated paths.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Preemptible=true</span></code> alone does <strong>not</strong> allocate a PLT for every relocation.
+The cell’s mode and condition annotations specify when an entry is reserved.
+<code class="docutils literal notranslate"><span class="pre">L[p&amp;f]</span></code> requires a preemptible <code class="docutils literal notranslate"><span class="pre">STT_FUNC</span></code>; <code class="docutils literal notranslate"><span class="pre">L[p]</span></code> has no function-type test.
+<code class="docutils literal notranslate"><span class="pre">R[i]</span></code> is a separate IFUNC resolver path, not an ordinary preemption condition.</p>
+<p>An absolute data reference may create a dynamic or COPY relocation
+<strong>without</strong> allocating a GOT or PLT entry. Conversely, an ordinary GOT
+reference can allocate a slot for local/hidden symbols. Visibility and mode
+then determine whether that slot contains a link-time value or needs a
+runtime relocation. The TLS resource letters distinguish thread-pointer offsets,
+module IDs, and descriptors from ordinary symbol-address slots.</p>
+<p>On ARM, AArch64, and RISC-V, static IFUNC finalization may add a regular GOT
+slot when the same symbol has <strong>both direct and GOT references</strong>. That slot
+contains the canonical PLT address; GOT-only IFUNC references can use the
+GOTPLT slot. The per-reference columns describe the initial reservation
+paths, with the local/global binding exceptions in each architecture’s notes.</p>
+<p>Reservations are normally shared across references to a symbol. A relaxable
+reference that needs no slot does not remove a slot needed by another
+reference. For ARM, <code class="docutils literal notranslate"><span class="pre">T</span></code> <strong>inside an expression</strong> remains the Thumb-state bit;
+the allocation condition <code class="docutils literal notranslate"><span class="pre">t</span></code> instead means <code class="docutils literal notranslate"><span class="pre">STT_TLS</span></code>.
+Unsupported symbol/relocation combinations may warn or fail even when the
+scanner allocates a slot; a reservation does not establish that the target
+type is legal. ELF <code class="docutils literal notranslate"><span class="pre">STT_NOTYPE</span></code> is not equivalent to <code class="docutils literal notranslate"><span class="pre">STT_FUNC</span></code>: a condition
+requiring a function target does not reserve a PLT for a notype symbol just because
+it labels code.</p>
+</div>
+<div class="section" id="trampolines">
+<h2><span class="section-number">9.3. </span>Trampolines<a class="headerlink" href="#trampolines" title="Permalink to this heading"></a></h2>
+<p>The trampoline column describes branch-island range extension or ARM ISA
+interworking, not PLT allocation. A branch may need a trampoline to a local
+function or to an already-created PLT entry. Symbol type alone does not
+determine branch reach: displacement, addend, alignment, instruction encoding,
+and (on ARM) target ISA are relevant. A relocation with no trampoline retains
+its documented overflow policy; do not assume an overflowing field will be
+repaired. Hexagon TLS access stubs are noted separately because they are
+model-conversion/resolver stubs, not distance-triggered trampolines.</p>
+<p>The range-stub entries assume trampoline insertion is enabled;
+<code class="docutils literal notranslate"><span class="pre">--no-trampolines</span></code> suppresses the ARM, AArch64, and Hexagon insertion passes.
+Unresolved targets can also be skipped by those passes (see architecture
+notes). An AArch64 erratum-repair stub is separate from relocation-driven
+branch range extension and is not implied by an ADRP relocation alone.</p>
+</div>
+<div class="section" id="architecture-references">
+<h2><span class="section-number">9.4. </span>Architecture References<a class="headerlink" href="#architecture-references" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="AArch64-Relocations.html"><span class="doc std std-doc">AArch64</span></a></p></li>
+<li><p><a class="reference internal" href="ARM-Relocations.html"><span class="doc std std-doc">ARM</span></a></p></li>
+<li><p><a class="reference internal" href="Hexagon-Relocations.html"><span class="doc std std-doc">Hexagon</span></a></p></li>
+<li><p><a class="reference internal" href="RISCV-Relocations.html"><span class="doc std std-doc">RISC-V</span></a></p></li>
+<li><p><a class="reference internal" href="X86_32-Relocations.html"><span class="doc std std-doc">i386</span></a></p></li>
+<li><p><a class="reference internal" href="X86_64-Relocations.html"><span class="doc std std-doc">x86-64</span></a></p></li>
+</ul>
+</div>
+<div class="section" id="implementation-sources">
+<h2><span class="section-number">9.5. </span>Implementation Sources<a class="headerlink" href="#implementation-sources" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><span class="xref myst">Shared preemption and dynamic-relocation policy</span></p></li>
+<li><p><span class="xref myst">Reservation flags and generic scanning</span></p></li>
+<li><p><span class="xref myst">Branch-island selection, including PLT targets</span></p></li>
+</ul>
+<p>Each architecture reference links its scanner and range-extension implementation.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="RelaxationDeferredEdits.html" class="btn btn-neutral float-left" title="8. Relaxation via Deferred Edits" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="SymbolVersioning.html" class="btn btn-neutral float-right" title="10. Symbol versioning" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
