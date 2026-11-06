@@ -62,15 +62,15 @@ The table below lists the exact bounds for each relocation.
 | `R_X86_64_32S` | `EncTy_32` | yes | no | `X` truncated to 32 bits; sign-extended on load |
 | `R_X86_64_16` | `EncTy_16` | no | no | `X` truncated to 16 bits; overflow possible |
 | `R_X86_64_8` | `EncTy_8` | no | no | `X` truncated to 8 bits; overflow possible |
-| `R_X86_64_PC32` | `EncTy_32` | no | no | `X` truncated to 32 bits |
-| `R_X86_64_PC16` | `EncTy_16` | no | no | `X` truncated to 16 bits |
-| `R_X86_64_PC8` | `EncTy_8` | no | no | `X` truncated to 8 bits |
+| `R_X86_64_PC32` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
+| `R_X86_64_PC16` | `EncTy_16` | yes | **yes** | `−2^15 ≤ X ≤ 2^15 − 1` |
+| `R_X86_64_PC8` | `EncTy_8` | yes | **yes** | `−2^7 ≤ X ≤ 2^7 − 1` |
 | `R_X86_64_PC64` | `EncTy_64` | no | no | `X` truncated to 64 bits |
-| `R_X86_64_PLT32` | `EncTy_32` | yes | no | `X` truncated to 32 bits |
+| `R_X86_64_PLT32` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
 | `R_X86_64_GOT32` | `EncTy_32` | no | no | `X` truncated to 32 bits |
-| `R_X86_64_GOTPCREL` | `EncTy_32` | yes | no | `X` truncated to 32 bits |
-| `R_X86_64_GOTPCRELX` | `EncTy_32` | yes | no | `X` truncated to 32 bits |
-| `R_X86_64_REX_GOTPCRELX` | `EncTy_32` | yes | no | `X` truncated to 32 bits |
+| `R_X86_64_GOTPCREL` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
+| `R_X86_64_GOTPCRELX` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
+| `R_X86_64_REX_GOTPCRELX` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
 | `R_X86_64_TLSGD` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
 | `R_X86_64_TLSLD` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
 | `R_X86_64_DTPOFF32` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
@@ -79,14 +79,6 @@ The table below lists the exact bounds for each relocation.
 | `R_X86_64_DTPOFF64` | `EncTy_64` | yes | no | `X` truncated to 64 bits |
 | `R_X86_64_TPOFF64` | `EncTy_64` | yes | no | `X` truncated to 64 bits |
 | `R_X86_64_DTPMOD64` | `EncTy_64` | no | no | filled by dynamic linker |
-
-> **Why only TLS 32-bit relocations have `VerifyRange`:** These relocations
-> encode offsets within a TLS block or a PC-relative offset to a GOT entry,
-> both of which must fit in a sign-extended 32-bit immediate field in the
-> instruction encoding. A value outside `[−2^31, 2^31 − 1]` would silently
-> truncate and produce a wrong address at runtime. For general data and
-> PC-relative relocations the ABI permits truncation; for TLS it is always
-> an error.
 
 > **Implicit truncation for unsigned relocations:** `R_X86_64_32`,
 > `R_X86_64_16`, and `R_X86_64_8` silently truncate the result to the field
@@ -124,11 +116,11 @@ so the net effect is a direct reference to `S + A`.
 
 | Relocation | Type | Encoding | Operation | Signed | Range check |
 |------------|------|----------|-----------|--------|-------------|
-| `R_X86_64_PC32` | 2 | `EncTy_32` | `S + A - P` | no | truncated to 32 bits |
-| `R_X86_64_PC16` | 13 | `EncTy_16` | `S + A - P` | no | truncated to 16 bits |
-| `R_X86_64_PC8` | 15 | `EncTy_8` | `S + A - P` | no | truncated to 8 bits |
+| `R_X86_64_PC32` | 2 | `EncTy_32` | `S + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
+| `R_X86_64_PC16` | 13 | `EncTy_16` | `S + A - P` | **yes** | `−2^15 ≤ X ≤ 2^15 − 1` |
+| `R_X86_64_PC8` | 15 | `EncTy_8` | `S + A - P` | **yes** | `−2^7 ≤ X ≤ 2^7 − 1` |
 | `R_X86_64_PC64` | 24 | `EncTy_64` | `S + A - P` | no | truncated to 64 bits |
-| `R_X86_64_PLT32` | 4 | `EncTy_32` | `PLT(S) + A - P` | **yes** | truncated to 32 bits |
+| `R_X86_64_PLT32` | 4 | `EncTy_32` | `PLT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
 
 > **`R_X86_64_PLT32`:** Used for function calls (`call foo`). If `foo` is
 > non-preemptible the linker writes `S + A - P` directly. If `foo` is
@@ -143,9 +135,9 @@ the instruction loads the actual symbol address from the GOT.
 | Relocation | Type | Encoding | Operation | Signed | Range check |
 |------------|------|----------|-----------|--------|-------------|
 | `R_X86_64_GOT32` | 3 | `EncTy_32` | `GOT(S) + A` | no | truncated to 32 bits |
-| `R_X86_64_GOTPCREL` | 9 | `EncTy_32` | `GOT(S) + A - P` | **yes** | truncated to 32 bits |
-| `R_X86_64_GOTPCRELX` | 41 | `EncTy_32` | `GOT(S) + A - P` | **yes** | truncated to 32 bits |
-| `R_X86_64_REX_GOTPCRELX` | 42 | `EncTy_32` | `GOT(S) + A - P` | **yes** | truncated to 32 bits |
+| `R_X86_64_GOTPCREL` | 9 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
+| `R_X86_64_GOTPCRELX` | 41 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
+| `R_X86_64_REX_GOTPCRELX` | 42 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
 
 > **`GOTPCRELX` / `REX_GOTPCRELX`:** Relaxable variants of `GOTPCREL`.
 > `GOTPCRELX` is used without a REX prefix; `REX_GOTPCRELX` is used with
