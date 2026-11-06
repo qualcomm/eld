@@ -91,14 +91,17 @@ add  x0, x0, #:lo12:foo
 |------------|-------------|------------|--------------|-------|-----------|--------------|
 | `TSTBR14` | `tbz`, `tbnz` | `S+A-P` | `[15:2]` | `-2^15 <= X < 2^15` | `X` must be a multiple of 4 | error |
 | `CONDBR19` | `b.<cond>` | `S+A-P` | `[20:2]` | `-2^20 <= X < 2^20` | `X` must be a multiple of 4 | error |
-| `JUMP26` | `b` | `S+A-P` | `[27:2]` | `-2^27 <= X < 2^27` | `X` must be a multiple of 4 | trampoline |
-| `CALL26` | `bl` | `S+A-P` | `[27:2]` | `-2^27 <= X < 2^27` | `X` must be a multiple of 4 | trampoline |
+| `JUMP26` | `b` | `S+A-P` | `[27:2]` | `-2^27 <= X < 2^27` | `X` must be a multiple of 4 | trampoline; overflow error with `--no-trampolines` |
+| `CALL26` | `bl` | `S+A-P` | `[27:2]` | `-2^27 <= X < 2^27` | `X` must be a multiple of 4 | trampoline; overflow error with `--no-trampolines` |
 
 > **Alignment:** All four control-flow relocations encode `X >> 2` into their immediate field,
 > so `X` (`S+A-P`) must be divisible by 4. The linker emits an error if `X & 3 != 0`.
 >
 > **Out-of-range (`JUMP26`/`CALL26`):** When the branch target is beyond ±128 MB the linker
-> inserts a trampoline stub for range extension rather than reporting an overflow error.
+> inserts a trampoline stub for range extension, including when the destination is a PLT entry.
+> If trampolines are disabled with
+> `--no-trampolines`, the relocation instead reports an overflow error. The displacement is
+> required to be 4-byte aligned and fit in the signed 28-bit range.
 > `TSTBR14` and `CONDBR19` have no trampoline support; exceeding their range is a hard error.
 
 ---
