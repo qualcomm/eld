@@ -1,4 +1,5 @@
 REQUIRES: riscv64
+UNSUPPORTED: progress-bar
 #----------GOT_LOAD_RELAX_REL_RV64.test----------------- Executable------------------#
 #BEGIN_COMMENT
 # This tests checks GOT load relaxation behavior specific to handling relative symbols

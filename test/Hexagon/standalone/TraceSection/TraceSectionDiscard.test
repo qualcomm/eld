@@ -1,3 +1,4 @@
+UNSUPPORTED: progress-bar
 #---TraceSectionDiscard.test--------------------- Executable------------------#
 #BEGIN_COMMENT
 # Check tracing of input sections which are discarded.
