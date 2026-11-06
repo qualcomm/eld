@@ -1,0 +1,17 @@
+#---DynamicLinkerAtSignValue.test---------------- Executable -----------------#
+#BEGIN_COMMENT
+# Reproduction preserves the separate form of a --dynamic-linker value
+# beginning with '@'.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.input.o
+RUN: %link %linkopts %t.input.o --dynamic-linker @dynamic-linker-at-sign-value.rsp -o %t.original.out --reproduce %t.tar
+RUN: %rm %t.replay
+RUN: %mkdir %t.replay
+RUN: cd %t.replay
+RUN: %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: %link @response.txt -o replay.out
+RUN: %filecheck %s --check-prefix=RESPONSE < response.txt
+
+RESPONSE: --dynamic-linker @dynamic-linker-at-sign-value.rsp
+#END_TEST
