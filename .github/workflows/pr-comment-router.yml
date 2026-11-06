@@ -31,15 +31,18 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
   actions: read
-  statuses: write
 
 jobs:
   validate:
     if: github.repository == 'qualcomm/eld' && (github.event_name == 'workflow_dispatch' || github.event.issue.pull_request != null)
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
+      statuses: write
     outputs:
       pr_number: ${{ steps.request.outputs.pr_number }}
       pr_sha: ${{ steps.request.outputs.pr_sha }}
@@ -113,7 +116,7 @@ jobs:
             const requestId = isWorkflowDispatch
               ? process.env.INPUT_REQUEST_ID
               : `${context.issue.number}-${pullRequest.head.sha}-${context.payload.comment.id}`;
-            const artifactName = `pr-eld-toolset-${pullRequest.head.sha}`;
+            const artifactName = `pr-eld-toolset-${prNumber}-${pullRequest.head.sha}`;
             const checkDefinitions = new Map([
               ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
               ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
@@ -767,3 +770,53 @@ jobs:
               issue_number: Number(process.env.PR_NUMBER),
               body: `${message}\n\n${details}\n\n[View workflow run](${process.env.RUN_URL}).`,
             });
+
+  # Delete uploaded test outputs here so the PR code jobs can keep read-only tokens.
+  cleanup_pr_artifacts:
+    needs:
+      - validate
+      - build
+      - llvm_test
+      - linux_test
+      - busybox_test
+      - zephyr_test
+      - thread_sanitizer_test
+      - asan_ubsan_test
+      - windows_test
+      - macos_test
+      - memory_sanitizer_test
+      - reviter_test
+      - report_llvm
+      - report_linux
+      - report_busybox
+      - report_reviter
+      - report_zephyr
+      - report_thread_sanitizer
+      - report_asan_ubsan
+      - report_windows
+      - report_macos
+      - report_memory_sanitizer
+      - report_all
+    if: always() && needs.validate.outputs.pr_sha != ''
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout artifact cleanup action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.repository.default_branch }}
+          path: eld-workflows
+          persist-credentials: false
+
+      - name: Delete older PR artifacts
+        continue-on-error: true
+        uses: ./eld-workflows/.github/workflows/DeleteOldArtifacts
+        with:
+          artifact-name-prefixes: |
+            busybox-eld-pr-${{ needs.validate.outputs.pr_number }}-
+            kernel-boot-pr-${{ needs.validate.outputs.pr_number }}-
+            llvm-test-suite-results-pr-${{ needs.validate.outputs.pr_number }}-
+            zephyr-twister-results-pr-${{ needs.validate.outputs.pr_number }}-
