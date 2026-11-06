@@ -1,0 +1,134 @@
+#---NonArchiveFilePattern.test--------------------- PartialLink,LS ------------#
+#BEGIN_COMMENT
+# Verify that :file patterns select standalone inputs but not regular or thin
+# archive members. Cover exact names, wildcards, quoted patterns, KEEP, and
+# inside/outside EXCLUDE_FILE rules with both rule-matching algorithms and
+# thin-archive rule-matching compatibility. Contrast standalone-only :file
+# selectors with explicit *:file archive-member selectors.
+#END_COMMENT
+#START_TEST
+RUN: split-file %s %t
+RUN: mkdir -p %t/plain %t/regular %t/thin
+RUN: %clang %clangopts -c %t/input.c -DPREFIX=standalone -o %t/plain/file.o
+RUN: %clang %clangopts -c %t/input.c -DPREFIX=regular -o %t/regular/file.o
+RUN: %clang %clangopts -c %t/input.c -DPREFIX=thin -o %t/thin/file.o
+RUN: %ar cr %t/regular.a %t/regular/file.o
+RUN: %ar crT %t/thin.a %t/thin/file.o
+RUN: cd %t && %link %linkopts -r plain/file.o --whole-archive regular.a thin.a -T script.t -MapStyle txt -Map out.map -o out.o
+RUN: %filecheck %s < %t/out.map
+RUN: cd %t && %link %linkopts -r --use-old-rule-matching plain/file.o --whole-archive regular.a thin.a -T script.t -MapStyle txt -Map old.map -o old.o
+RUN: %filecheck %s < %t/old.map
+RUN: cd %t && %link %linkopts -r --thin-archive-rule-matching-compatibility plain/file.o --whole-archive regular.a thin.a -T script.t -MapStyle txt -Map compat.map -o compat.o
+RUN: %filecheck %s < %t/compat.map
+
+# CHECK: :missing.o(.exact)
+# CHECK-NEXT: :*missing.o(.exact)
+# CHECK-NOT: standalone_exact
+# CHECK-NOT: regular_exact
+# CHECK-NOT: thin_exact
+# CHECK: EXACT {{.*}} # Offset
+# CHECK-NEXT: :plain/file.o(.exact)
+# CHECK: standalone_exact
+# CHECK-NOT: regular_exact
+# CHECK-NOT: thin_exact
+# CHECK: ARCHIVE_EXACT {{.*}} # Offset
+# CHECK-NEXT: *:*file.o(.exact)
+# CHECK: regular_exact
+# CHECK: thin_exact
+
+# CHECK: WILDCARD {{.*}} # Offset
+# CHECK-NEXT: KEEP (:*file.o(.wildcard))
+# CHECK: standalone_wildcard
+# CHECK-NOT: regular_wildcard
+# CHECK-NOT: thin_wildcard
+# CHECK: ARCHIVE_WILDCARD {{.*}} # Offset
+# CHECK: regular_wildcard
+# CHECK: thin_wildcard
+
+# CHECK: ALL_FILES {{.*}} # Offset
+# CHECK-NEXT: :*(.all)
+# CHECK: standalone_all
+# CHECK-NOT: regular_all
+# CHECK-NOT: thin_all
+# CHECK: ARCHIVE_ALL {{.*}} # Offset
+# CHECK: regular_all
+# CHECK: thin_all
+
+# CHECK: QUOTED {{.*}} # Offset
+# CHECK-NEXT: ":plain/file.o"(.quoted)
+# CHECK: standalone_quoted
+# CHECK-NOT: regular_quoted
+# CHECK-NOT: thin_quoted
+# CHECK: ARCHIVE_QUOTED {{.*}} # Offset
+# CHECK: regular_quoted
+# CHECK: thin_quoted
+
+# CHECK: EXCLUDE {{.*}} # Offset
+# CHECK-NEXT: *( EXCLUDE_FILE ( :*file.o ).exclude)
+# CHECK-NOT: standalone_exclude
+# CHECK: regular_exclude
+# CHECK: thin_exclude
+# CHECK-NOT: standalone_exclude
+# CHECK: STANDALONE_EXCLUDE {{.*}} # Offset
+# CHECK: standalone_exclude
+
+# CHECK: OUTSIDE_EXCLUDE {{.*}} # Offset
+# CHECK-NEXT: EXCLUDE_FILE ( :plain/file.o ) *(.outside)
+# CHECK-NOT: standalone_outside
+# CHECK: regular_outside
+# CHECK: thin_outside
+# CHECK-NOT: standalone_outside
+# CHECK: STANDALONE_OUTSIDE {{.*}} # Offset
+# CHECK: standalone_outside
+
+# CHECK: QUOTED_EXCLUDE {{.*}} # Offset
+# CHECK-NEXT: *( EXCLUDE_FILE ( :*file.o ).quoted_exclude)
+# CHECK-NOT: standalone_quoted_exclude
+# CHECK: regular_quoted_exclude
+# CHECK: thin_quoted_exclude
+# CHECK-NOT: standalone_quoted_exclude
+# CHECK: STANDALONE_QUOTED_EXCLUDE {{.*}} # Offset
+# CHECK: standalone_quoted_exclude
+
+# CHECK: QUOTED_OUTSIDE_EXCLUDE {{.*}} # Offset
+# CHECK-NEXT: EXCLUDE_FILE ( :plain/file.o ) *(.quoted_outside)
+# CHECK-NOT: standalone_quoted_outside
+# CHECK: regular_quoted_outside
+# CHECK: thin_quoted_outside
+# CHECK-NOT: standalone_quoted_outside
+# CHECK: STANDALONE_QUOTED_OUTSIDE {{.*}} # Offset
+# CHECK: standalone_quoted_outside
+#END_TEST
+
+#--- input.c
+#define CONCAT_IMPL(Prefix, Suffix) Prefix##Suffix
+#define CONCAT(Prefix, Suffix) CONCAT_IMPL(Prefix, Suffix)
+int CONCAT(PREFIX, _exact) __attribute__((section(".exact"))) = 1;
+int CONCAT(PREFIX, _wildcard) __attribute__((section(".wildcard"))) = 2;
+int CONCAT(PREFIX, _all) __attribute__((section(".all"))) = 3;
+int CONCAT(PREFIX, _quoted) __attribute__((section(".quoted"))) = 6;
+int CONCAT(PREFIX, _exclude) __attribute__((section(".exclude"))) = 4;
+int CONCAT(PREFIX, _outside) __attribute__((section(".outside"))) = 5;
+int CONCAT(PREFIX, _quoted_exclude) __attribute__((section(".quoted_exclude"))) = 7;
+int CONCAT(PREFIX, _quoted_outside) __attribute__((section(".quoted_outside"))) = 8;
+
+#--- script.t
+SECTIONS {
+  UNMATCHED : { :missing.o(.exact) :*missing.o(.exact) }
+  EXACT : { :plain/file.o(.exact) }
+  ARCHIVE_EXACT : { *:*file.o(.exact) }
+  WILDCARD : { KEEP(:*file.o(.wildcard)) }
+  ARCHIVE_WILDCARD : { *(.wildcard) }
+  ALL_FILES : { :*(.all) }
+  ARCHIVE_ALL : { *(.all) }
+  QUOTED : { ":plain/file.o"(.quoted) }
+  ARCHIVE_QUOTED : { *(.quoted) }
+  EXCLUDE : { *(EXCLUDE_FILE(:*file.o) .exclude) }
+  STANDALONE_EXCLUDE : { *(.exclude) }
+  OUTSIDE_EXCLUDE : { EXCLUDE_FILE(:plain/file.o) *(.outside) }
+  STANDALONE_OUTSIDE : { *(.outside) }
+  QUOTED_EXCLUDE : { *(EXCLUDE_FILE(":*file.o") .quoted_exclude) }
+  STANDALONE_QUOTED_EXCLUDE : { *(.quoted_exclude) }
+  QUOTED_OUTSIDE_EXCLUDE : { EXCLUDE_FILE(":plain/file.o") *(.quoted_outside) }
+  STANDALONE_QUOTED_OUTSIDE : { *(.quoted_outside) }
+}

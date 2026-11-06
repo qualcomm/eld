@@ -46,6 +46,7 @@ RuleContainer::RuleContainer(SectionMap *Parent,
   MSpec.WildcardSectionPattern = PInputDesc.spec().WildcardSectionPattern;
   MSpec.InputArchiveMember = PInputDesc.spec().InputArchiveMember;
   MSpec.InputIsArchive = PInputDesc.spec().InputIsArchive;
+  MSpec.InputIsNonArchiveFile = PInputDesc.spec().InputIsNonArchiveFile;
   MSpec.ExcludeFilesRule = PInputDesc.spec().getExcludeFiles();
   MPSection =
       Parent->createELFSection("", LinkerSectionKind::Regular, /*Type=*/0,
