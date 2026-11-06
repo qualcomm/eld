@@ -1058,8 +1058,13 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setPrintICFSections(Args.hasArg(T::print_icf_sections));
   } else {
     // ICF is not supported for partial links.
-    if (Args.hasArg(T::icf))
-      Config.raise(Diag::warn_incompatible_option) << "-icf" << "relocatable";
+    if (llvm::opt::Arg *Arg = Args.getLastArg(T::icf)) {
+      llvm::StringRef Mode = Arg->getValue();
+      if (Mode != "all" && Mode != "safe" && Mode != "none")
+        Config.raise(Diag::invalid_value_for_option) << "--icf" << Mode;
+      else if (Mode != "none")
+        Config.raise(Diag::err_icf_relocatable);
+    }
     if (Args.hasArg(T::print_icf_sections))
       Config.raise(Diag::warn_incompatible_option)
           << "-print-icf-sections" << "relocatable";
