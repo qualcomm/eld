@@ -1,0 +1,30 @@
+/// Verifies that R_*_GOTTPOFF / R_*_TLSIE relocations against a static TLS
+/// symbol cause the linker to emit a TPREL/TPOFF dynamic relocation when the
+/// output is a shared object, and are statically resolved for PIE. Both a
+/// local and a non-preemptible global TLS symbol are tested.
+
+// RUN: %clang %clangopts -c -x c %s -fPIC -ftls-model=initial-exec -o %t.o
+// RUN: %link %linkopts -shared %t.o -o %t.so
+// RUN: %readelf -r -d %t.so | %filecheck %s --check-prefix=SHARED
+// RUN: %link %linkopts -pie %t.o -o %t.pie --defsym __libc_start_main=0
+// RUN: %readelf -r %t.pie | %filecheck %s --check-prefix=PIE
+
+/// Target relocation types:
+///   R_X86_64_TPOFF64
+///   R_AARCH64_TLS_TPREL64
+///   R_ARM_TLS_TPOFF32
+///   R_RISCV_TLS_TPREL64
+///   R_RISCV_TLS_TPREL32
+///   R_HEX_TPREL_32
+// SHARED: FLAGS
+// SHARED-SAME: STATIC_TLS
+/// Local symbol: dynamic reloc with no symbol name.
+// SHARED: R_{{.*}}TP{{(REL|OFF)_?[0-9]+}}
+/// Global symbol: dynamic reloc naming the symbol.
+// SHARED: R_{{.*}}TP{{(REL|OFF)_?[0-9]+}} {{.*}}global_tls
+// PIE: There are no relocations in this file.
+
+static __thread int local_tls = 10;
+__thread int global_tls = 20;
+int foo(void) { return local_tls + global_tls; }
+void *__aeabi_read_tp(void) { return 0; }
