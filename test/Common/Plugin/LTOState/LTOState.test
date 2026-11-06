@@ -1,0 +1,43 @@
+#---LTOState.test----------------------- Plugin ----------------#
+#BEGIN_COMMENT
+# Check explicit LTO requests, input-driven LTO, and the post-LTO transition.
+# Input discovery updates the state; it remains available after compilation.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.native.o -c %p/Inputs/bar.c
+RUN: %clang %clangopts -o %t1.full.o -c -flto %p/Inputs/bar.c
+RUN: %clang %clangopts -o %t1.thin.o -c -flto=thin %p/Inputs/bar.c
+RUN: %clang %clangopts -o %t1.fat.o -c -flto -ffat-lto-objects %p/Inputs/bar.c
+
+# Ordinary native link.
+RUN: %link %linkopts -o %t1.out %t1.native.o --plugin-config %p/Inputs/plugin.config 2>&1 | %filecheck %s --check-prefix=NATIVE
+
+# Explicit request without bitcode still transitions to post-LTO.
+RUN: %link %linkopts -o %t2.out %t1.native.o -flto --plugin-config %p/Inputs/plugin.config 2>&1 | %filecheck %s --check-prefix=REQUEST
+
+# Bitcode enables LTO without an explicit linker request.
+RUN: %link %linkopts -o %t3.out %t1.full.o --plugin-config %p/Inputs/plugin.config 2>&1 | %filecheck %s --check-prefix=INPUT
+RUN: %link %linkopts -o %t4.out %t1.thin.o --plugin-config %p/Inputs/plugin.config 2>&1 | %filecheck %s --check-prefix=INPUT
+RUN: %link %linkopts -o %t5.out %t1.fat.o --fat-lto-objects --plugin-config %p/Inputs/plugin.config 2>&1 | %filecheck %s --check-prefix=INPUT
+
+# Explicit request with bitcode.
+RUN: %link %linkopts -o %t6.out %t1.full.o -flto --plugin-config %p/Inputs/plugin.config 2>&1 | %filecheck %s --check-prefix=REQUEST-INPUT
+#END_TEST
+
+NATIVE: Init requested: 0 enabled: 0 inputs: 0 post: 0
+NATIVE: VisitInput requested: 0 enabled: 0 inputs: 0 post: 0
+NATIVE: ActBeforeSectionMerging requested: 0 enabled: 0 inputs: 0 post: 0
+
+REQUEST: Init requested: 1 enabled: 1 inputs: 0 post: 0
+REQUEST: VisitInput requested: 1 enabled: 1 inputs: 0 post: 0
+REQUEST: ActBeforeSectionMerging requested: 1 enabled: 1 inputs: 0 post: 1
+
+INPUT: Init requested: 0 enabled: 0 inputs: 0 post: 0
+INPUT: VisitInput requested: 0 enabled: 1 inputs: 1 post: 0
+INPUT: VisitInput requested: 0 enabled: 1 inputs: 1 post: 1
+INPUT: ActBeforeSectionMerging requested: 0 enabled: 1 inputs: 1 post: 1
+
+REQUEST-INPUT: Init requested: 1 enabled: 1 inputs: 0 post: 0
+REQUEST-INPUT: VisitInput requested: 1 enabled: 1 inputs: 1 post: 0
+REQUEST-INPUT: VisitInput requested: 1 enabled: 1 inputs: 1 post: 1
+REQUEST-INPUT: ActBeforeSectionMerging requested: 1 enabled: 1 inputs: 1 post: 1
