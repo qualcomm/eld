@@ -56,7 +56,8 @@ DIAG(warn_icf_disabled_plugins, DiagnosticEngine::Warning,
 DIAG(warn_incompatible_option, DiagnosticEngine::Warning,
      "Option `-%0' is disabled as it is incompatible with `-%1`")
 DIAG(err_icf_relocatable, DiagnosticEngine::Error,
-     "-r and --icf may not be used together")
+     "--icf=%0 cannot be used with -r (partial link); use --icf=none or omit "
+     "--icf")
 DIAG(symdef_incompatible_option, DiagnosticEngine::Fatal,
      "SymDef files are valid only when building executables")
 DIAG(warn_shared_textrel, DiagnosticEngine::Warning,

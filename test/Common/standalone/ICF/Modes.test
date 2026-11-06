@@ -5,11 +5,15 @@
 # RUN: %link %linkopts --entry=foo --icf=none --print-icf-sections %t/input.o -o %t/none 2>&1 | %filecheck %s --check-prefix=NONE --allow-empty
 # RUN: %link %linkopts --entry=foo --icf=safe --print-icf-sections %t/input.o -o %t/safe 2>&1 | %filecheck %s --check-prefix=SAFE
 # RUN: %not %link %linkopts -r --icf=all %t/input.o -o %t/partial.o 2>&1 | %filecheck %s --check-prefix=PARTIAL
-# RUN: %link %linkopts -r --icf=none %t/input.o -o %t/partial-none.o
+# RUN: %not %link %linkopts -r --icf=safe %t/input.o -o %t/partial-safe.o 2>&1 | %filecheck %s --check-prefix=PARTIAL
+# RUN: %not %link %linkopts -r --icf=invalid %t/input.o -o %t/partial-invalid.o 2>&1 | %filecheck %s --check-prefix=INVALID-ICF
+# RUN: %link %linkopts -r --icf=none --print-icf-sections %t/input.o -o %t/partial-none.o 2>&1 | %filecheck %s --check-prefix=PRINT
 
 # NONE-NOT: ICF folding
 # SAFE: ICF folding {{.*}}:(.text.bar) into {{.*}}:(.text.foo)
-# PARTIAL: -r and --icf may not be used together
+# PARTIAL: --icf={{(all|safe)}} cannot be used with -r (partial link); use --icf=none or omit --icf
+# INVALID-ICF: Invalid value for --icf: invalid
+# PRINT: Option `--print-icf-sections' is disabled
 # PARTIAL-NOT: ICF folding
 
 #--- input.c
