@@ -163,6 +163,8 @@ private:
 
   bool readPluginDirective(llvm::StringRef Tok);
 
+  inline void warnDeprecatedPluginKeyword(llvm::StringRef Tok);
+
   void readSearchDir();
 
   void readOutputArch();
