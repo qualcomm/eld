@@ -1,0 +1,66 @@
+#---InvalidNonArchiveFilePattern.test-------------- PartialLink,LS ------------#
+#BEGIN_COMMENT
+# Reject empty standalone-only file patterns and extra archive/member colons,
+# including quoted patterns and inside/outside EXCLUDE_FILE lists.
+# Each invocation must report only the intended error, with no cascading errors.
+#END_COMMENT
+#START_TEST
+RUN: split-file %s %t
+RUN: %clang %clangopts -c %t/input.c -o %t/input.o
+RUN: %not %link %linkopts -r %t/input.o -T %t/input-empty.t -o %t/out.o 2>&1 | %filecheck %s --check-prefix=INPUT-EMPTY --implicit-check-not=Error:
+RUN: %not %link %linkopts -r %t/input.o -T %t/input-quoted-empty.t -o %t/out.o 2>&1 | %filecheck %s --check-prefix=INPUT-EMPTY --implicit-check-not=Error:
+RUN: %not %link %linkopts -r %t/input.o -T %t/input-colon.t -o %t/out.o 2>&1 | %filecheck %s --check-prefix=INPUT-COLON --implicit-check-not=Error:
+RUN: %not %link %linkopts -r %t/input.o -T %t/input-quoted-colon.t -o %t/out.o 2>&1 | %filecheck %s --check-prefix=INPUT-COLON --implicit-check-not=Error:
+RUN: %not %link %linkopts -r %t/input.o -T %t/exclude-empty.t -o %t/out.o 2>&1 | %filecheck %s --check-prefix=EXCLUDE-EMPTY --implicit-check-not=Error:
+RUN: %not %link %linkopts -r %t/input.o -T %t/exclude-quoted-empty.t -o %t/out.o 2>&1 | %filecheck %s --check-prefix=EXCLUDE-EMPTY --implicit-check-not=Error:
+RUN: %not %link %linkopts -r %t/input.o -T %t/exclude-colon.t -o %t/out.o 2>&1 | %filecheck %s --check-prefix=EXCLUDE-COLON --implicit-check-not=Error:
+RUN: %not %link %linkopts -r %t/input.o -T %t/exclude-quoted-colon.t -o %t/out.o 2>&1 | %filecheck %s --check-prefix=EXCLUDE-COLON --implicit-check-not=Error:
+RUN: %not %link %linkopts -r %t/input.o -T %t/outside-empty.t -o %t/out.o 2>&1 | %filecheck %s --check-prefix=EXCLUDE-EMPTY --implicit-check-not=Error:
+RUN: %not %link %linkopts -r %t/input.o -T %t/outside-quoted-empty.t -o %t/out.o 2>&1 | %filecheck %s --check-prefix=EXCLUDE-EMPTY --implicit-check-not=Error:
+RUN: %not %link %linkopts -r %t/input.o -T %t/outside-colon.t -o %t/out.o 2>&1 | %filecheck %s --check-prefix=EXCLUDE-COLON --implicit-check-not=Error:
+RUN: %not %link %linkopts -r %t/input.o -T %t/outside-quoted-colon.t -o %t/out.o 2>&1 | %filecheck %s --check-prefix=EXCLUDE-COLON --implicit-check-not=Error:
+
+INPUT-EMPTY: Error: {{.*}}Missing file pattern after ':' in input section description
+INPUT-COLON: Error: {{.*}}Unexpected ':' in non-archive file pattern in input section description
+EXCLUDE-EMPTY: Error: {{.*}}Missing file pattern after ':' in EXCLUDE_FILE
+EXCLUDE-COLON: Error: {{.*}}Unexpected ':' in non-archive file pattern in EXCLUDE_FILE
+#END_TEST
+
+#--- input.c
+int value = 1;
+
+#--- input-empty.t
+SECTIONS { .data : { :(.data) } }
+
+#--- input-quoted-empty.t
+SECTIONS { .data : { ":"(.data) } }
+
+#--- input-colon.t
+SECTIONS { .data : { :lib.a:member(.data) } }
+
+#--- input-quoted-colon.t
+SECTIONS { .data : { ":lib.a:member"(.data) } }
+
+#--- exclude-empty.t
+SECTIONS { .data : { *(EXCLUDE_FILE(:) .data) } }
+
+#--- exclude-quoted-empty.t
+SECTIONS { .data : { *(EXCLUDE_FILE(":") .data) } }
+
+#--- exclude-colon.t
+SECTIONS { .data : { *(EXCLUDE_FILE(:lib.a:member) .data) } }
+
+#--- exclude-quoted-colon.t
+SECTIONS { .data : { *(EXCLUDE_FILE(":lib.a:member") .data) } }
+
+#--- outside-empty.t
+SECTIONS { .data : { EXCLUDE_FILE(:) *(.data) } }
+
+#--- outside-quoted-empty.t
+SECTIONS { .data : { EXCLUDE_FILE(":") *(.data) } }
+
+#--- outside-colon.t
+SECTIONS { .data : { EXCLUDE_FILE(:lib.a:member) *(.data) } }
+
+#--- outside-quoted-colon.t
+SECTIONS { .data : { EXCLUDE_FILE(":lib.a:member") *(.data) } }
