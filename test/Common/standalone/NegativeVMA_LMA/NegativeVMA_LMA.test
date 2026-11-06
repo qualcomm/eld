@@ -1,0 +1,11 @@
+#--NegativeVMA_LMA.test------------------ Executable----------------#
+#BEGIN_COMMENT
+# Verify that the linker errors out when the VMA/LMA
+# is negative.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2_vma.out 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script_1.t -o %t2_lma.out 2>&1 | %filecheck %s --check-prefix=LMA
+
+CHECK: VMA is negative
+LMA: LMA is negative
