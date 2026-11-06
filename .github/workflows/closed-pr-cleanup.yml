@@ -28,6 +28,7 @@ jobs:
             zephyr-ccache-
             reviter-ccache-
             busybox-ccache-
+            windows-ccache-
           cache-refs: |
             refs/pull/${{ github.event.pull_request.number }}/merge
             refs/heads/${{ github.event.pull_request.head.ref }}
