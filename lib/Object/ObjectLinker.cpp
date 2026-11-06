@@ -2373,7 +2373,7 @@ bool ObjectLinker::scanRelocations(bool IsPartialLink) {
   }
 
   if (RunParallel)
-    Reloc->replayScanRelocations(CopyRelocSet);
+    Reloc->scanDeferredRelocations(CopyRelocSet);
 
   // assume there is only one copy relocation type per target
   Relocation::Type CopyRelocType = getTargetBackend().getCopyRelType();
