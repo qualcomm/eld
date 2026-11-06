@@ -1,3 +1,4 @@
+UNSUPPORTED: progress-bar
 #---TraceDynamicLinking.test--------------------- Executable------------------#
 #BEGIN_COMMENT
 # Check --trace=dynamic-linking option

@@ -1,3 +1,4 @@
+UNSUPPORTED: progress-bar
 #---TraceSection.test--------------------- Executable------------------#
 #BEGIN_COMMENT
 # Check tracing of sections.
