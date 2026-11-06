@@ -1,11 +1,13 @@
-#---CommonSymbolValue.test----------------------- Executable --------------------#
+#---InitializeGOTPLT0Dynamic.test------------------------------------------#
 #BEGIN_COMMENT
-# This tests that the linker sets the first slot in GOTPLT0 to be _DYNAMIC.
+# Verify that a GOT reference to _DYNAMIC is placed in .got without
+# creating an unnecessary .got.plt section.
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.1.o %clangg0opts -fPIC
 RUN: %link %linkopts -march aarch64 -shared %t1.1.o -o %t1.lib1.so -z max-page-size=0x1000
-RUN: %readelf -x .got.plt %t1.lib1.so | %filecheck %s
+RUN: %readelf -SW %t1.lib1.so | %filecheck %s
 
-#CHECK: 001000
+#CHECK: .got              PROGBITS
+#CHECK-NOT: .got.plt
 #END_TEST
