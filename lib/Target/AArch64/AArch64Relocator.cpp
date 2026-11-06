@@ -17,6 +17,7 @@
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/ADT/bit.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include <map>
 
@@ -890,6 +891,11 @@ Relocator::Result call(Relocation &pReloc, AArch64Relocator &pParent) {
         << ("PC-relative offset 0x" + llvm::utohexstr(X));
     return Relocator::BadReloc;
   }
+
+  Relocator::Result R =
+      checkSignedRange(pReloc, pParent, llvm::bit_cast<int64_t>(X), 28);
+  if (R != Relocator::OK)
+    return R;
 
   pReloc.target() = helper_reencode_branch_offset_26(pReloc.target(), X >> 2);
 

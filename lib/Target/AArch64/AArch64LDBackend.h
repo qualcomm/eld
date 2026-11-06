@@ -148,6 +148,8 @@ public:
   Stub *getBranchIslandStub(Relocation *pReloc,
                             int64_t targetValue) const override;
 
+  int64_t getPLTAddr(ResolveInfo *info) const override;
+
   bool readSection(InputFile &pInput, ELFSection *S) override;
 
   bool DoesOverrideMerge(ELFSection *pSection) const override;

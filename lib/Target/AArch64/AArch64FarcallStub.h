@@ -50,6 +50,8 @@ public:
   bool isRelocInRange(const Relocation *pReloc, int64_t targetAddr,
                       int64_t &Offset, Module &M) const override;
 
+  bool shouldUsePLTAddrForRangeCheck() const override { return true; }
+
   uint32_t getRealAddend(const Relocation &reloc,
                          DiagnosticEngine *) const override {
     return 0;
