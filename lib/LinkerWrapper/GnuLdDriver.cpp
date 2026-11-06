@@ -1056,6 +1056,13 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
       Config.addCommandLine(Table->getOptionName(T::icf), Arg->getValue());
     }
     Config.options().setPrintICFSections(Args.hasArg(T::print_icf_sections));
+  } else {
+    // ICF is not supported for partial links.
+    if (Args.hasArg(T::icf))
+      Config.raise(Diag::warn_incompatible_option) << "-icf" << "relocatable";
+    if (Args.hasArg(T::print_icf_sections))
+      Config.raise(Diag::warn_incompatible_option)
+          << "-print-icf-sections" << "relocatable";
   }
 
   // Disable emit relocs if -shared/-pie/relocatable

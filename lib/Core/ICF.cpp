@@ -32,7 +32,6 @@ using namespace eld;
 
 namespace {
 
-// Returns true if section S is subject to ICF.
 bool isEligibleForICF(const ELFSection &Section) {
   // Garbage collection marks dead sections as Ignore. Explicitly discarded
   // sections must not be candidates either.
@@ -75,10 +74,11 @@ bool haveSameIdentity(const ELFSection &A, const ELFSection &B) {
          A.getFlags() == B.getFlags() && A.getContents() == B.getContents();
 }
 
-using SectionReferences =
+using SectionSymbolDefinitions =
     llvm::DenseMap<ELFSection *, llvm::SmallVector<FragmentRef *, 0>>;
 
-void collectSymbolReference(SectionReferences &References, LDSymbol *Symbol) {
+void collectSymbolDefinition(SectionSymbolDefinitions &Definitions,
+                             LDSymbol *Symbol) {
   if (!Symbol || !Symbol->hasFragRef())
     return;
   FragmentRef *Ref = Symbol->fragRef();
@@ -86,29 +86,29 @@ void collectSymbolReference(SectionReferences &References, LDSymbol *Symbol) {
     return;
   auto *Section = llvm::dyn_cast<ELFSection>(Ref->frag()->getOwningSection());
   if (Section)
-    References[Section].push_back(Ref);
+    Definitions[Section].push_back(Ref);
 }
 
-// Index symbol references once so folding a section visits only its references.
-SectionReferences collectSectionReferences(Module &Module) {
-  SectionReferences References;
+// Index symbol definitions once so folding a section visits only its symbols.
+SectionSymbolDefinitions collectSectionSymbolDefinitions(Module &Module) {
+  SectionSymbolDefinitions Definitions;
   for (InputFile *Input : Module.getObjectList()) {
     auto *Object = llvm::dyn_cast<ObjectFile>(Input);
     if (!Object)
       continue;
     for (LDSymbol *Symbol : Object->getSymbols())
-      collectSymbolReference(References, Symbol);
+      collectSymbolDefinition(Definitions, Symbol);
     for (LDSymbol *Symbol : Object->getLocalSymbols())
-      collectSymbolReference(References, Symbol);
+      collectSymbolDefinition(Definitions, Symbol);
   }
-  return References;
+  return Definitions;
 }
 
-// Bind every symbol referring to the Folded section to the Canonical section.
-void retargetSymbols(SectionReferences &References, ELFSection &Folded,
+// Bind every symbol defined in the Folded section to the Canonical section.
+void retargetSymbols(SectionSymbolDefinitions &Definitions, ELFSection &Folded,
                      ELFSection &Canonical) {
-  auto It = References.find(&Folded);
-  if (It == References.end())
+  auto It = Definitions.find(&Folded);
+  if (It == Definitions.end())
     return;
   Fragment *To = Canonical.getFrontFragment();
   for (FragmentRef *Ref : It->second)
@@ -122,7 +122,17 @@ void ICF::run() {
   if (!ThisConfig.options().icfEnabled())
     return;
 
-  SectionReferences References = collectSectionReferences(ThisModule);
+  // Plugins can replace symbol contents after ICF and folding could make a
+  // plugin update affect multiple functions through the shared fragment.
+  // TODO: Return only for plugins that may replace symbol content instead of
+  // doing it for all plugins.
+  if (!ThisModule.getScript().getPlugins().empty()) {
+    ThisConfig.raise(Diag::warn_icf_disabled_plugins);
+    return;
+  }
+
+  SectionSymbolDefinitions Definitions =
+      collectSectionSymbolDefinitions(ThisModule);
   llvm::SmallVector<ELFSection *, 0> Candidates;
   for (InputFile *Input : ThisModule.getObjectList()) {
     auto *Object = llvm::dyn_cast<ObjectFile>(Input);
@@ -135,6 +145,8 @@ void ICF::run() {
     }
   }
 
+  // TODO: Sort section hashes and compare groups within the same hash similar
+  // to what LLD does.
   for (size_t I = 0; I < Candidates.size(); ++I) {
     ELFSection *Canonical = Candidates[I];
     if (Canonical->isFolded())
@@ -143,7 +155,7 @@ void ICF::run() {
       ELFSection *Folded = Candidates[J];
       if (Folded->isFolded() || !haveSameIdentity(*Canonical, *Folded))
         continue;
-      retargetSymbols(References, *Folded, *Canonical);
+      retargetSymbols(Definitions, *Folded, *Canonical);
       Fragment *CanonicalFragment = Canonical->getFrontFragment();
       Fragment *FoldedFragment = Folded->getFrontFragment();
       uint32_t Alignment = std::max(

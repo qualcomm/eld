@@ -50,6 +50,9 @@ DIAG(fatal_unwritable_output, DiagnosticEngine::Fatal,
      "unable to write output file %0 because of %1")
 DIAG(warn_unsupported_option, DiagnosticEngine::Warning,
      "Unrecognized option `%0'")
+DIAG(warn_icf_disabled_plugins, DiagnosticEngine::Warning,
+     "--icf is disabled when plugins are loaded because plugins may replace "
+     "symbol contents")
 DIAG(warn_incompatible_option, DiagnosticEngine::Warning,
      "Option `-%0' is disabled as it is incompatible with `-%1`")
 DIAG(symdef_incompatible_option, DiagnosticEngine::Fatal,
