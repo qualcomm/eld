@@ -59,6 +59,10 @@ public:
   /// finalizeTargetSymbols - finalize the symbol value
   bool finalizeTargetSymbols() override;
 
+  bool finalizeScanRelocations() override;
+
+  void defineGOTSymbol(Fragment &pFrag);
+
   uint64_t getValueForDiscardedRelocations(const Relocation *R) const override;
 
   void reserveTargetDynamicEntries() override;
