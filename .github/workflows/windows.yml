@@ -40,6 +40,11 @@ jobs:
       contents: write
     env:
       ELD_REF: ${{ inputs.pr_sha || github.ref_name }}
+      CCACHE_DIR: ${{ github.workspace }}/ccache/main
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_COMPILERCHECK: content
+      CCACHE_NOHASHDIR: true
+
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
 
@@ -49,15 +54,23 @@ jobs:
         include:
           - runner: windows-2022
             arch: x64
-            cmake-generator: Visual Studio 17 2022
+            vs-arch: x64
+            vs-host-arch: x64
+            vs-tools: x86.x64
             name: Windows-x86_64
 
           - runner: windows-11-arm
             arch: ARM64
-            cmake-generator: Visual Studio 18 2026
+            vs-arch: arm64
+            vs-host-arch: arm64
+            vs-tools: ARM64
             name: Windows-Arm64
 
     steps:
+      - name: Disable Microsoft Defender real-time scanning
+        shell: pwsh
+        run: Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction Stop
+
       - name: Map Git usr/bin to a space-free drive and prepend to PATH
         shell: pwsh
         run: |
@@ -102,13 +115,56 @@ jobs:
           arch-name: ${{ matrix.arch }}
           branch-name: "${{ env.ELD_REF }}"
 
+      - name: Install ccache and Ninja
+        shell: pwsh
+        run: |
+          foreach ($tool in @('ccache', 'ninja')) {
+            if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
+              choco install $tool --no-progress --yes
+              if ($LASTEXITCODE -ne 0) { throw "Failed to install $tool" }
+            }
+            & $tool --version
+            if ($LASTEXITCODE -ne 0) { throw "Failed to run $tool" }
+          }
+
+      - name: Set up Visual Studio environment
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) {
+            $vswhere = "$env:ProgramFiles\Microsoft Visual Studio\Installer\vswhere.exe"
+          }
+          $vsInstall = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.${{ matrix.vs-tools }} -property installationPath
+          if (-not $vsInstall) { throw 'Visual Studio C++ tools not found' }
+          $vsEnvironment = & cmd /c "`"$vsInstall\Common7\Tools\VsDevCmd.bat`" -arch=${{ matrix.vs-arch }} -host_arch=${{ matrix.vs-host-arch }} >nul && set"
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to initialize Visual Studio environment' }
+          foreach ($entry in $vsEnvironment) {
+            if ($entry -match '^([^=]+)=(.*)$') {
+              if ([Environment]::GetEnvironmentVariable($Matches[1]) -ne $Matches[2]) {
+                $entry | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              }
+            }
+          }
+
+      - name: Restore ccache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: windows-eld-ccache-${{ matrix.arch }}-${{ github.run_id }}
+          restore-keys: |
+            windows-eld-ccache-${{ matrix.arch }}-
+
       - name: Configure CMake
         working-directory: nightly
         shell: bash
         run: |
-          mkdir -p obj
-          cd obj
-          cmake -G "${{ matrix.cmake-generator }}" -A ${{ matrix.arch }} \
+          mkdir -p "$CCACHE_DIR"
+          ccache --zero-stats
+          ccache --set-config "max_size=0"
+          ccache --show-config
+          cmake -G Ninja -S llvm-project/llvm -B obj \
+            -DCMAKE_C_COMPILER=cl \
+            -DCMAKE_CXX_COMPILER=cl \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
@@ -116,7 +172,12 @@ jobs:
             -DLLVM_ENABLE_ASSERTIONS=ON \
             -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
             -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86;Template' \
-            ../llvm-project/llvm
+            -DLLVM_CCACHE_BUILD:BOOL=ON \
+            -DLLVM_CCACHE_DIR:STRING="$CCACHE_DIR"
+
+      - name: Cache usage before build
+        shell: pwsh
+        run: ccache --show-stats --dir="$env:CCACHE_DIR"
 
       - name: Build
         working-directory: nightly/obj
@@ -138,6 +199,20 @@ jobs:
         working-directory: nightly/obj
         shell: bash
         run: cmake --build . --config Release --target check-eld-summary
+
+      - name: Cache usage after build
+        shell: pwsh
+        run: ccache --show-stats --dir="$env:CCACHE_DIR"
+
+      - name: Prune ccache before save
+        shell: pwsh
+        run: ccache --evict-older-than 7200s --dir="$env:CCACHE_DIR"
+
+      - name: Save ccache
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: windows-eld-ccache-${{ matrix.arch }}-${{ github.run_id }}
 
       - name: Update build entry
         if: github.event_name == 'schedule'
