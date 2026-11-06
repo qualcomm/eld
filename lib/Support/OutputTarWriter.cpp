@@ -74,7 +74,6 @@ void OutputTarWriter::addInputFile(const InputFile *File, bool IsLTOObject) {
 }
 
 std::string OutputTarWriter::getHashAndExtension(const Input *Ipt) const {
-  // Returns filename passed to the linker along with the file hash.
   return std::string(
              llvm::sys::path::filename(Ipt->getInputFile()->getMappedPath())) +
          "." + std::to_string(Ipt->getResolvedPathHash());
