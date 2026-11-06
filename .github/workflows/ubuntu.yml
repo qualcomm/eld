@@ -50,10 +50,8 @@ jobs:
 
     env:
       PR_NUMBER: ${{ inputs.pr_number }}
-      CCACHE_DIR: /local/mnt/workspace/ccache/main
-      CCACHE_BASEDIR: ${{ github.workspace }}
-      CCACHE_COMPILERCHECK: content
-      CCACHE_NOHASHDIR: true
+      SCCACHE_DIR: /local/mnt/workspace/sccache/main
+      SCCACHE_BASEDIRS: ${{ github.workspace }}/pr-${{ inputs.pr_number }}/llvm-project
 
     steps:
       - name: Checkout llvm-project
@@ -74,13 +72,17 @@ jobs:
       - name: Setup musl environment
         run: echo "/opt/musl/bin" >> "$GITHUB_PATH"
 
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y sccache
+
       - name: Run CMake
         working-directory: pr-${{ env.PR_NUMBER }}
         run: |
-          mkdir -p "$CCACHE_DIR"
-          ccache --zero-stats
-          ccache --set-config "max_size=0"
-          ccache --show-config
+          mkdir -p "$SCCACHE_DIR"
+          sccache --version
+          sccache --zero-stats
 
           rm -rf obj
           mkdir -p obj
@@ -99,15 +101,15 @@ jobs:
             -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
             -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86;Template' \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
-            -DLLVM_CCACHE_BUILD:BOOL=ON \
-            -DLLVM_CCACHE_DIR:STRING="$CCACHE_DIR" \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -DELD_ENABLE_SYMBOL_VERSIONING=ON \
             -DLLVM_ENABLE_WERROR:BOOL=ON \
             -DELD_ENABLE_RUN_TESTS:BOOL=On
 
       - name: Cache Usage before build
         working-directory: pr-${{ env.PR_NUMBER }}/obj
-        run: ccache --show-stats --dir="$CCACHE_DIR"
+        run: sccache --show-stats
 
       - name: Build
         working-directory: pr-${{ env.PR_NUMBER }}/obj
@@ -120,11 +122,7 @@ jobs:
 
       - name: Cache usage after build
         working-directory: pr-${{ env.PR_NUMBER }}/obj
-        run: ccache --show-stats --dir="$CCACHE_DIR"
-
-      - name: Prune ccache before save
-        working-directory: pr-${{ env.PR_NUMBER }}/obj
-        run: ccache --evict-older-than 7200s --dir="$CCACHE_DIR"
+        run: sccache --show-stats
 
       - name: Run tests
         if: inputs.skip_tests == false
