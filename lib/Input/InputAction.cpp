@@ -51,8 +51,9 @@ bool InputFileAction::activate(InputBuilder &PBuilder) {
   std::string ExpandedName = Input::expandSysrootMarkers(
       Name, Config.directories(), *Config.getDiagEngine());
 
+  std::string CheckPath = Config.applyChroot(ExpandedName);
   std::ifstream Is;
-  Is.open(ExpandedName.c_str(), std::ifstream::in);
+  Is.open(CheckPath.c_str(), std::ifstream::in);
   if (!Is.good()) {
     PBuilder.getDiagEngine()->raise(Diag::fatal_cannot_read_input)
         << ExpandedName;
@@ -259,6 +260,7 @@ bool DefSymAction::activate(InputBuilder &PBuilder) {
   Input *Inp = PBuilder.createInputNode(FileName, true /*isSpecial*/);
   Inp->setInputType(Input::Script);
   Inp->setIsDefSym();
+  Inp->setRuleMatchingPathAndHash(FileName);
   Inp->setResolvedPath(FileName);
   auto pos = MAssignment.find("=");
   if (pos != std::string::npos)

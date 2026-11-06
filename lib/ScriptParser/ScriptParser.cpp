@@ -1476,7 +1476,8 @@ bool ScriptParser::readInclude(llvm::StringRef Tok) {
   }
   Input *Input = make<eld::Input>(ResolvedFileName, ThisConfig.getDiagEngine(),
                                   Input::Script);
-  if (!Input->resolvePath(ThisConfig)) {
+  if (!Input->resolvePath(ThisConfig,
+                          /*PathAlreadyResolved=*/true)) {
     setError("Cannot resolve path " + ResolvedFileName);
     // return value by ScriptParser functions indicates that the command was
     // parsed.

@@ -144,8 +144,8 @@ bool LibReader::readLib(InputBuilder::InputIteratorT &CurNode,
 
   auto *ArchiveInput =
       make<Input>(ArchiveName, LibAttr, Config.getDiagEngine(), Input::Default);
+  ArchiveInput->setRuleMatchingPathAndHash(ArchiveName);
   ArchiveInput->setResolvedPath(ArchiveName);
-  ArchiveInput->setResolvedPathHash(Input::computeFilePathHash(ArchiveName));
   ArchiveInput->setMemberNameHash(Input::computeFilePathHash(ArchiveName));
   ArchiveInput->setMemArea(MemArea);
 
