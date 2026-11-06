@@ -1723,12 +1723,6 @@ bool GnuLdDriver::processReproduceOption(
   size_t lastScriptId = -1;
   size_t lastJustSymbolsId = -1;
 
-  auto getRewrittenRemappedPath = [&](llvm::StringRef path) -> std::string {
-    if (auto replacement = Config.options().findRemapInput(path))
-      return outputTar->rewritePath(*replacement);
-    return outputTar->rewritePath(path);
-  };
-
   auto getRewrittenActionInputPath =
       [&](eld::InputAction::InputActionKind kind, size_t &lastActionId,
           llvm::StringRef fallback) -> std::optional<std::string> {
@@ -1737,23 +1731,22 @@ bool GnuLdDriver::processReproduceOption(
       if (action->getInputActionKind() != kind)
         continue;
       lastActionId = i;
-      auto ipt = action->getInput();
-      if (!ipt)
+      auto Ipt = action->getInput();
+      if (!Ipt)
         return std::nullopt;
-      std::string key = fallback.str();
-      bool HasMappedPath = false;
-      if (ipt->getInputFile() && ipt->getInputFile()->hasMappedPath()) {
-        key = ipt->getInputFile()->getMappedPath();
-        HasMappedPath = true;
-      } else if (!ipt->getName().empty()) {
-        key = ipt->getName();
-      }
-      return HasMappedPath ? outputTar->rewritePath(key)
-                           : getRewrittenRemappedPath(key);
-    }
-    return getRewrittenRemappedPath(fallback);
-  };
+      std::string Key = fallback.str();
+      if (Ipt->getInputFile() && Ipt->getInputFile()->hasMappedPath())
+        Key = Ipt->getInputFile()->getMappedPath();
+      else if (!Ipt->getOriginalFileName().empty())
+        Key = Ipt->getOriginalFileName();
+      else if (!Ipt->getName().empty())
+        Key = Ipt->getName();
 
+      return outputTar->rewritePath(Key);
+    }
+
+  return outputTar->rewritePath(fallback);
+};
   // Capture an input that may not reach normal input processing when an
   // earlier action fails. Avoid replacing entries already registered there.
   // For linker scripts, searchScriptDirs also checks the configured -L paths;
@@ -1761,6 +1754,7 @@ bool GnuLdDriver::processReproduceOption(
   auto captureInput = [&](llvm::StringRef path, MappingFile::Kind kind,
                           bool searchScriptDirs) {
     std::string CapturePath = path.str();
+    std::string Key = CapturePath;
     if (auto Replacement = Config.options().findRemapInput(CapturePath))
       CapturePath = *Replacement;
 
@@ -1772,8 +1766,8 @@ bool GnuLdDriver::processReproduceOption(
         ResolvedPath = Resolved->native();
     }
     if (llvm::sys::fs::exists(ResolvedPath) &&
-        !outputTar->hasInput(CapturePath)) {
-      outputTar->createAndAddFile(CapturePath, ResolvedPath, kind,
+        !outputTar->hasInput(Key)) {
+      outputTar->createAndAddFile(Key, ResolvedPath, kind,
                                   /*isLTOObject=*/false);
     }
   };
@@ -1825,7 +1819,7 @@ bool GnuLdDriver::processReproduceOption(
       captureInput(arg->getValue(), MappingFile::Kind::ObjectFile,
                    /*searchScriptDirs=*/false);
       auto path = getRewrittenActionInputPath(eld::InputAction::InputFile,
-                                              lastInputFileId, arg->getValue());
+                                                    lastInputFileId, arg->getValue());
       if (!path)
         return false;
       os << *path << ' ';
@@ -1849,26 +1843,26 @@ bool GnuLdDriver::processReproduceOption(
       captureInput(arg->getValue(), MappingFile::Kind::DynamicList,
                    /*searchScriptDirs=*/true);
       os << arg->getSpelling() << ' '
-         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+         << outputTar->rewritePath(arg->getValue()) << ' ';
       break;
     case T::extern_list:
       captureInput(arg->getValue(), MappingFile::Kind::ExternList,
                    /*searchScriptDirs=*/true);
       os << arg->getSpelling() << ' '
-         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+         << outputTar->rewritePath(arg->getValue()) << ' ';
       break;
     case T::version_script:
       captureInput(arg->getValue(), MappingFile::Kind::VersionScript,
                    /*searchScriptDirs=*/true);
       os << arg->getSpelling() << ' '
-         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+         << outputTar->rewritePath(arg->getValue()) << ' ';
       break;
     case T::copy_farcalls_from_file:
     case T::no_reuse_trampolines_file:
       captureInput(arg->getValue(), MappingFile::Kind::Other,
                    /*searchScriptDirs=*/false);
       os << arg->getSpelling() << ' '
-         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+         << outputTar->rewritePath(arg->getValue()) << ' ';
       break;
     case T::T: {
       captureInput(arg->getValue(), MappingFile::Kind::LinkerScript,
