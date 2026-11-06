@@ -1050,7 +1050,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
         ICFMode = GeneralOptions::ICFMode::None;
       else {
         Config.raise(Diag::invalid_value_for_option) << "--icf" << Mode;
-        ICFMode = GeneralOptions::ICFMode::None;
+        return false;
       }
       Config.options().setICFMode(ICFMode);
       Config.addCommandLine(Table->getOptionName(T::icf), Arg->getValue());
