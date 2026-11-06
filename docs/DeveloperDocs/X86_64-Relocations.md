@@ -11,6 +11,43 @@ https://gitlab.com/x86-psABIs/x86-64-ABI
 
 ---
 
+## GOT/PLT Allocation Annotations
+
+Modes: `S` = static executable, `D` = dynamic executable, `P` = PIE,
+`H` = shared library; `I` overrides `P` for static PIE.
+Resources: `G` = symbol GOT slot, `J` = PLT destination GOT slot,
+`L` = PLT entry, `R` = IFUNC resolver PLT; `-` = no allocation.
+Conditions: `p` = Preemptible=true, `f` = function, `i` = IFUNC,
+`g` = global-bound, `t` = TLS, `h` = local-bound hidden.
+`[a&b]` requires both conditions; `!` means NOT. Unconditional entries
+apply to any visibility/type. TLS resources, modifiers, and examples are
+in the [shared annotation legend](Relocation-Reservation-Annotations.md#allocation-annotations);
+see also the [preemption flowchart](Relocation-Reservation-Annotations.md#visibility-and-preemption).
+
+- `GOTPCREL`/`REX_GOTPCRELX` reserve symbol slots for any visibility, symbol type, or link mode.
+  `GOTPCRELX` skips reservation only with `--relax`, a non-preemptible
+  non-IFUNC target, addend `-4`, and a recognized opcode. Another
+  reference may still require that symbol's slot. `REX_GOTPCRELX`
+  currently reserves its slot and has no implemented relaxation dispatch.
+- `GOT32` has a no-op handler and no GOT reservation case; its encoding
+  table's ABI formula does not imply implemented GOT access.
+- `PLT32` uses `Preemptible=true` without a `STT_FUNC` test, or the static indirect-function path for
+  static IFUNC. Absolute/PC-relative data references do not independently
+  allocate PLT entries, even for function targets.
+- TLS IE reserves one slot in every mode (`STT_TLS`), with a link-time
+  offset for non-preemptible executable targets. GD creates a pair for
+  global targets; the local-symbol scanner has no GD reservation case.
+  LD shares a module slot and asserts for static links because GD/LD-to-LE
+  relaxation is unsupported. A separate call to `__tls_get_addr` may
+  allocate a PLT; the TLS access relocation itself does not.
+- **No range trampoline is registered.** PLT allocation/GOT relaxation
+  is not far-call range extension. An out-of-range relaxed `GOTPCRELX`
+  direct displacement is an error; other relocations keep their documented
+  range/truncation behavior.
+
+Sources: [scanner](../../lib/Target/X86/x86_64Relocator.cpp),
+[backend / GOT relaxation](../../lib/Target/X86/x86_64LDBackend.cpp).
+
 ## Relocation Conventions
 
 | Symbol | Meaning |
@@ -54,31 +91,31 @@ overflows the field width. No error is raised unless explicitly requested.
 
 The table below lists the exact bounds for each relocation.
 
-| Relocation | Encoding | Signed | `VerifyRange` | Effective bound |
-|------------|----------|--------|---------------|-----------------|
-| `R_X86_64_NONE` | `EncTy_None` | — | no | — |
-| `R_X86_64_64` | `EncTy_64` | no | no | `X` truncated to 64 bits (no check) |
-| `R_X86_64_32` | `EncTy_32` | no | no | `X` truncated to 32 bits; overflow possible |
-| `R_X86_64_32S` | `EncTy_32` | yes | no | `X` truncated to 32 bits; sign-extended on load |
-| `R_X86_64_16` | `EncTy_16` | no | no | `X` truncated to 16 bits; overflow possible |
-| `R_X86_64_8` | `EncTy_8` | no | no | `X` truncated to 8 bits; overflow possible |
-| `R_X86_64_PC32` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
-| `R_X86_64_PC16` | `EncTy_16` | yes | **yes** | `−2^15 ≤ X ≤ 2^15 − 1` |
-| `R_X86_64_PC8` | `EncTy_8` | yes | **yes** | `−2^7 ≤ X ≤ 2^7 − 1` |
-| `R_X86_64_PC64` | `EncTy_64` | no | no | `X` truncated to 64 bits |
-| `R_X86_64_PLT32` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
-| `R_X86_64_GOT32` | `EncTy_32` | no | no | `X` truncated to 32 bits |
-| `R_X86_64_GOTPCREL` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
-| `R_X86_64_GOTPCRELX` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
-| `R_X86_64_REX_GOTPCRELX` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
-| `R_X86_64_TLSGD` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
-| `R_X86_64_TLSLD` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
-| `R_X86_64_DTPOFF32` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
-| `R_X86_64_GOTTPOFF` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
-| `R_X86_64_TPOFF32` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
-| `R_X86_64_DTPOFF64` | `EncTy_64` | yes | no | `X` truncated to 64 bits |
-| `R_X86_64_TPOFF64` | `EncTy_64` | yes | no | `X` truncated to 64 bits |
-| `R_X86_64_DTPMOD64` | `EncTy_64` | no | no | filled by dynamic linker |
+| Relocation | Encoding | Signed | `VerifyRange` | Effective bound | GOT allocation | PLT allocation | Trampoline / range |
+|------------|----------|--------|---------------|-----------------|-------------------------|-------------------------|--------------------|
+| `R_X86_64_NONE` | `EncTy_None` | — | no | — | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_64` | `EncTy_64` | no | no | `X` truncated to 64 bits (no check) | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_32` | `EncTy_32` | no | no | `X` truncated to 32 bits; overflow possible | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_32S` | `EncTy_32` | yes | no | `X` truncated to 32 bits; sign-extended on load | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_16` | `EncTy_16` | no | no | `X` truncated to 16 bits; overflow possible | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_8` | `EncTy_8` | no | no | `X` truncated to 8 bits; overflow possible | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_PC32` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_PC16` | `EncTy_16` | yes | **yes** | `−2^15 ≤ X ≤ 2^15 − 1` | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_PC8` | `EncTy_8` | yes | **yes** | `−2^7 ≤ X ≤ 2^7 − 1` | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_PC64` | `EncTy_64` | no | no | `X` truncated to 64 bits | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_PLT32` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: J[i]</code></li><li><code>D: J[p]</code></li><li><code>P: J[p]; I: J[p] + J[i]</code></li><li><code>H: J[p]</code></li></ul> | <ul><li><code>S: R[i]</code></li><li><code>D: L[p]</code></li><li><code>P: L[p]; I: L[p] + R[i]</code></li><li><code>H: L[p]</code></li></ul> | No |
+| `R_X86_64_GOT32` | `EncTy_32` | no | no | `X` truncated to 32 bits | <ul><li><code>S: -{n}</code></li><li><code>D: -{n}</code></li><li><code>P: -{n}</code></li><li><code>H: -{n}</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_GOTPCREL` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: G</code></li><li><code>D: G</code></li><li><code>P: G</code></li><li><code>H: G</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_GOTPCRELX` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: G[!r]</code></li><li><code>D: G[!r]</code></li><li><code>P: G[!r]</code></li><li><code>H: G[!r]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_REX_GOTPCRELX` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: G</code></li><li><code>D: G</code></li><li><code>P: G</code></li><li><code>H: G</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_TLSGD` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: Q[g&amp;t]{e}</code></li><li><code>D: Q[g&amp;t]</code></li><li><code>P: Q[g&amp;t]; I: Q[g&amp;t]{e}</code></li><li><code>H: Q[g&amp;t]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_TLSLD` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: E</code></li><li><code>D: N</code></li><li><code>P: N; I: E</code></li><li><code>H: N</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_DTPOFF32` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_GOTTPOFF` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: O[t]</code></li><li><code>D: O[t]</code></li><li><code>P: O[t]</code></li><li><code>H: O[t]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_TPOFF32` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_DTPOFF64` | `EncTy_64` | yes | no | `X` truncated to 64 bits | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_TPOFF64` | `EncTy_64` | yes | no | `X` truncated to 64 bits | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_DTPMOD64` | `EncTy_64` | no | no | filled by dynamic linker | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 > **Implicit truncation for unsigned relocations:** `R_X86_64_32`,
 > `R_X86_64_16`, and `R_X86_64_8` silently truncate the result to the field
@@ -93,14 +130,14 @@ The table below lists the exact bounds for each relocation.
 
 The computed value `S + A` is written into the relocation site.
 
-| Relocation | Type | Encoding | Operation | Signed | Range check |
-|------------|------|----------|-----------|--------|-------------|
-| `R_X86_64_NONE` | 0 | `EncTy_None` | — | — | — |
-| `R_X86_64_64` | 1 | `EncTy_64` | `S + A` | no | truncated to 64 bits |
-| `R_X86_64_32` | 10 | `EncTy_32` | `S + A` | no | truncated to 32 bits |
-| `R_X86_64_32S` | 11 | `EncTy_32` | `S + A` | **yes** | truncated to 32 bits, sign-extended on load |
-| `R_X86_64_16` | 12 | `EncTy_16` | `S + A` | no | truncated to 16 bits |
-| `R_X86_64_8` | 14 | `EncTy_8` | `S + A` | no | truncated to 8 bits |
+| Relocation | Type | Encoding | Operation | Signed | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|--------|-------------|-------------------------|-------------------------|--------------------|
+| `R_X86_64_NONE` | 0 | `EncTy_None` | — | — | — | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_64` | 1 | `EncTy_64` | `S + A` | no | truncated to 64 bits | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_32` | 10 | `EncTy_32` | `S + A` | no | truncated to 32 bits | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_32S` | 11 | `EncTy_32` | `S + A` | **yes** | truncated to 32 bits, sign-extended on load | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_16` | 12 | `EncTy_16` | `S + A` | no | truncated to 16 bits | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_8` | 14 | `EncTy_8` | `S + A` | no | truncated to 8 bits | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 > **`R_X86_64_32` vs `R_X86_64_32S`:** Both write 32 bits. `R_X86_64_32`
 > zero-extends (result must fit in `[0, 2^32)`); `R_X86_64_32S` sign-extends
@@ -114,13 +151,13 @@ The computed value `S + A - P` is written. `P` is the address of the
 relocation site; the caller's instruction already adds `P` back at runtime,
 so the net effect is a direct reference to `S + A`.
 
-| Relocation | Type | Encoding | Operation | Signed | Range check |
-|------------|------|----------|-----------|--------|-------------|
-| `R_X86_64_PC32` | 2 | `EncTy_32` | `S + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
-| `R_X86_64_PC16` | 13 | `EncTy_16` | `S + A - P` | **yes** | `−2^15 ≤ X ≤ 2^15 − 1` |
-| `R_X86_64_PC8` | 15 | `EncTy_8` | `S + A - P` | **yes** | `−2^7 ≤ X ≤ 2^7 − 1` |
-| `R_X86_64_PC64` | 24 | `EncTy_64` | `S + A - P` | no | truncated to 64 bits |
-| `R_X86_64_PLT32` | 4 | `EncTy_32` | `PLT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
+| Relocation | Type | Encoding | Operation | Signed | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|--------|-------------|-------------------------|-------------------------|--------------------|
+| `R_X86_64_PC32` | 2 | `EncTy_32` | `S + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_PC16` | 13 | `EncTy_16` | `S + A - P` | **yes** | `−2^15 ≤ X ≤ 2^15 − 1` | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_PC8` | 15 | `EncTy_8` | `S + A - P` | **yes** | `−2^7 ≤ X ≤ 2^7 − 1` | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_PC64` | 24 | `EncTy_64` | `S + A - P` | no | truncated to 64 bits | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_PLT32` | 4 | `EncTy_32` | `PLT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: J[i]</code></li><li><code>D: J[p]</code></li><li><code>P: J[p]; I: J[p] + J[i]</code></li><li><code>H: J[p]</code></li></ul> | <ul><li><code>S: R[i]</code></li><li><code>D: L[p]</code></li><li><code>P: L[p]; I: L[p] + R[i]</code></li><li><code>H: L[p]</code></li></ul> | No |
 
 > **`R_X86_64_PLT32`:** Used for function calls (`call foo`). If `foo` is
 > non-preemptible the linker writes `S + A - P` directly. If `foo` is
@@ -132,17 +169,17 @@ so the net effect is a direct reference to `S + A`.
 These embed the PC-relative offset to the symbol's GOT entry. At runtime
 the instruction loads the actual symbol address from the GOT.
 
-| Relocation | Type | Encoding | Operation | Signed | Range check |
-|------------|------|----------|-----------|--------|-------------|
-| `R_X86_64_GOT32` | 3 | `EncTy_32` | `GOT(S) + A` | no | truncated to 32 bits |
-| `R_X86_64_GOTPCREL` | 9 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
-| `R_X86_64_GOTPCRELX` | 41 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
-| `R_X86_64_REX_GOTPCRELX` | 42 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` |
+| Relocation | Type | Encoding | Operation | Signed | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|--------|-------------|-------------------------|-------------------------|--------------------|
+| `R_X86_64_GOT32` | 3 | `EncTy_32` | `GOT(S) + A` | no | truncated to 32 bits | <ul><li><code>S: -{n}</code></li><li><code>D: -{n}</code></li><li><code>P: -{n}</code></li><li><code>H: -{n}</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_GOTPCREL` | 9 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: G</code></li><li><code>D: G</code></li><li><code>P: G</code></li><li><code>H: G</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_GOTPCRELX` | 41 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: G[!r]</code></li><li><code>D: G[!r]</code></li><li><code>P: G[!r]</code></li><li><code>H: G[!r]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_REX_GOTPCRELX` | 42 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: G</code></li><li><code>D: G</code></li><li><code>P: G</code></li><li><code>H: G</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 > **`GOTPCRELX` / `REX_GOTPCRELX`:** Relaxable variants of `GOTPCREL`.
 > `GOTPCRELX` is used without a REX prefix; `REX_GOTPCRELX` is used with
-> one. When the symbol is non-preemptible the linker may rewrite the
-> instruction sequence to avoid the GOT load entirely (see
+> one. ELD currently relaxes only `GOTPCRELX`, with `--relax` and a
+> suitable non-preemptible non-IFUNC target/instruction (see
 > [Relaxations](#relaxations)).
 
 ### Local-Symbol GOT Reservations
@@ -164,12 +201,12 @@ existing GOT-load relaxation behavior.
 
 Written by the dynamic linker at load time; not applied statically by ELD.
 
-| Relocation | Type | Encoding | Operation |
-|------------|------|----------|-----------|
-| `R_X86_64_COPY` | 5 | `EncTy_None` | Copy symbol value from DSO into the executable |
-| `R_X86_64_GLOB_DAT` | 6 | `EncTy_64` | `S` — resolve GOT entry to symbol address |
-| `R_X86_64_JUMP_SLOT` | 7 | `EncTy_64` | `S` — lazy PLT resolution |
-| `R_X86_64_RELATIVE` | 8 | `EncTy_64` | `B + A` — base-relative fixup for non-preemptible symbols in PIC |
+| Relocation | Type | Encoding | Operation | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|-------------------------|-------------------------|--------------------|
+| `R_X86_64_COPY` | 5 | `EncTy_None` | Copy symbol value from DSO into the executable | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_GLOB_DAT` | 6 | `EncTy_64` | `S` — resolve GOT entry to symbol address | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_JUMP_SLOT` | 7 | `EncTy_64` | `S` — lazy PLT resolution | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_X86_64_RELATIVE` | 8 | `EncTy_64` | `B + A` — base-relative fixup for non-preemptible symbols in PIC | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 ### TLS Relocations
 
@@ -178,9 +215,9 @@ Written by the dynamic linker at load time; not applied statically by ELD.
 Calls `__tls_get_addr` with a two-word GOT descriptor (module ID +
 DTP offset). Works in all contexts.
 
-| Relocation | Type | Encoding | Operation | Signed | Range check |
-|------------|------|----------|-----------|--------|-------------|
-| `R_X86_64_TLSGD` | 19 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` (hard error) |
+| Relocation | Type | Encoding | Operation | Signed | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|--------|-------------|-------------------------|-------------------------|--------------------|
+| `R_X86_64_TLSGD` | 19 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` (hard error) | <ul><li><code>S: Q[g&amp;t]{e}</code></li><li><code>D: Q[g&amp;t]</code></li><li><code>P: Q[g&amp;t]; I: Q[g&amp;t]{e}</code></li><li><code>H: Q[g&amp;t]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 ```asm
 leaq  x@tlsgd(%rip), %rdi      # R_X86_64_TLSGD; GOT holds {dtpmod, dtpoff}
@@ -193,9 +230,9 @@ call  __tls_get_addr@PLT
 Like GD but for symbols local to the module; one `__tls_get_addr` call
 covers all LD symbols in the module.
 
-| Relocation | Type | Encoding | Operation | Signed | Range check |
-|------------|------|----------|-----------|--------|-------------|
-| `R_X86_64_TLSLD` | 20 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` (hard error) |
+| Relocation | Type | Encoding | Operation | Signed | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|--------|-------------|-------------------------|-------------------------|--------------------|
+| `R_X86_64_TLSLD` | 20 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` (hard error) | <ul><li><code>S: E</code></li><li><code>D: N</code></li><li><code>P: N; I: E</code></li><li><code>H: N</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 ```asm
 leaq  x@tlsld(%rip), %rdi      # R_X86_64_TLSLD; GOT holds {dtpmod, 0}
@@ -208,9 +245,9 @@ movl  x@dtpoff(%rax), %eax     # R_X86_64_DTPOFF32: DTP offset added by linker
 
 Loads the TP-relative offset from the GOT; no runtime call.
 
-| Relocation | Type | Encoding | Operation | Signed | Range check |
-|------------|------|----------|-----------|--------|-------------|
-| `R_X86_64_GOTTPOFF` | 22 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` (hard error) |
+| Relocation | Type | Encoding | Operation | Signed | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|--------|-------------|-------------------------|-------------------------|--------------------|
+| `R_X86_64_GOTTPOFF` | 22 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` (hard error) | <ul><li><code>S: O[t]</code></li><li><code>D: O[t]</code></li><li><code>P: O[t]</code></li><li><code>H: O[t]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 ```asm
 movq  x@gottpoff(%rip), %rax   # R_X86_64_GOTTPOFF; GOT[x] = tpoff(x)
@@ -222,10 +259,10 @@ movl  %fs:(%rax), %eax         # load x relative to TP
 Encodes the TP-relative offset directly; fastest model, only valid in
 executables.
 
-| Relocation | Type | Encoding | Operation | Signed | Range check |
-|------------|------|----------|-----------|--------|-------------|
-| `R_X86_64_TPOFF32` | 23 | `EncTy_32` | `S + A - TLS` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` (hard error) |
-| `R_X86_64_TPOFF64` | 18 | `EncTy_64` | `S + A - TLS` | **yes** | truncated to 64 bits |
+| Relocation | Type | Encoding | Operation | Signed | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|--------|-------------|-------------------------|-------------------------|--------------------|
+| `R_X86_64_TPOFF32` | 23 | `EncTy_32` | `S + A - TLS` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` (hard error) | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_TPOFF64` | 18 | `EncTy_64` | `S + A - TLS` | **yes** | truncated to 64 bits | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 ```asm
 movl  %fs:x@tpoff, %eax        # R_X86_64_TPOFF32: offset baked in at link time
@@ -235,11 +272,11 @@ movl  %fs:x@tpoff, %eax        # R_X86_64_TPOFF32: offset baked in at link time
 
 Used inside GOT entries created for GD/LD access.
 
-| Relocation | Type | Encoding | Operation | Signed | Range check |
-|------------|------|----------|-----------|--------|-------------|
-| `R_X86_64_DTPMOD64` | 16 | `EncTy_64` | TLS module index (filled by dynamic linker) | no | — |
-| `R_X86_64_DTPOFF64` | 17 | `EncTy_64` | `S + A` — DTP-relative offset | **yes** | truncated to 64 bits |
-| `R_X86_64_DTPOFF32` | 21 | `EncTy_32` | `S + A` — DTP-relative offset (32-bit) | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` (hard error) |
+| Relocation | Type | Encoding | Operation | Signed | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|--------|-------------|-------------------------|-------------------------|--------------------|
+| `R_X86_64_DTPMOD64` | 16 | `EncTy_64` | TLS module index (filled by dynamic linker) | no | — | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_DTPOFF64` | 17 | `EncTy_64` | `S + A` — DTP-relative offset | **yes** | truncated to 64 bits | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_DTPOFF32` | 21 | `EncTy_32` | `S + A` — DTP-relative offset (32-bit) | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` (hard error) | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 ---
 
@@ -264,9 +301,11 @@ created.
 
 ## Relaxations
 
-x86-64 supports GOT-load relaxation for `GOTPCRELX` and `REX_GOTPCRELX`
-when the referenced symbol is non-preemptible. The linker rewrites the
-instruction in-place; no separate flag is required.
+ELD implements GOT-load relaxation for `GOTPCRELX` with `--relax`
+when the referenced symbol is non-preemptible, is not an IFUNC, and the
+addend/opcode checks pass. The linker rewrites the instruction in-place.
+`REX_GOTPCRELX` is an ABI relaxation-capable form but is not currently
+dispatched by ELD's relaxation pass.
 
 ### `GOTPCRELX` Relaxation (no REX prefix)
 
@@ -308,7 +347,9 @@ leaq  foo(%rip), %rax          # R_X86_64_PC32
 
 ### `REX_GOTPCRELX` Relaxation (REX prefix present)
 
-Applies to 64-bit forms of the same instructions (REX.W prefix).
+The following 64-bit rewrites (REX.W prefix) describe ABI relaxation
+opportunities, **not transformations currently implemented by ELD**. ELD
+keeps the GOT entry for this relocation.
 
 **`movq foo@GOTPCREL(%rip), %reg` → `leaq foo(%rip), %reg`**
 
