@@ -142,6 +142,9 @@ public:
       return false;
     if (X->type() == llvm::ELF::R_ARM_RELATIVE)
       return false;
+    // Local-dynamic TLS identifies the current module with symbol index zero.
+    if (X->type() == llvm::ELF::R_ARM_TLS_DTPMOD32 && !X->symInfo())
+      return false;
     if (X->symInfo() && X->symInfo()->binding() == ResolveInfo::Local)
       return false;
     return true;
