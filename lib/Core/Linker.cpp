@@ -694,6 +694,8 @@ bool Linker::layout() {
     LinkerProgress->incrementAndDisplayProgress("Apply relocations");
     eld::RegisterTimer T("Apply Relocation", "Perform Layout",
                          ThisConfig->options().printTimingStats());
+    if (!ThisModule->validatePluginRelocations())
+      return false;
     ObjLinker->relocation(ThisConfig->options().emitRelocs());
   }
 

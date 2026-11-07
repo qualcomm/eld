@@ -1,0 +1,35 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# Claims from an early hook need no relocation callback or registration.
+# Joined worker tasks may claim uses; scanning itself can remain parallel.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/pointer.c -o %t.o
+RUN: echo 'GlobalPlugins: [{Type: LinkerPlugin, Name: EarlyClaimUse, Library: EarlyClaimUse, Options: early}]' > %t.yaml
+RUN: %link %linkopts --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.out
+RUN: %readelf -x .data %t.out | %filecheck %s --check-prefix=DATA
+RUN: %readelf -r %t.out | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+RUN: %link %linkopts --shared --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.so
+RUN: %readelf -x .data %t.so | %filecheck %s --check-prefix=DATA
+RUN: %readelf -r %t.so | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+RUN: %link %linkopts -pie --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.pie
+RUN: %readelf -x .data %t.pie | %filecheck %s --check-prefix=DATA
+RUN: sed 's/Options: early/Options: worker/' %t.yaml > %t.worker.yaml
+RUN: %link %linkopts --threads --thread-count=8 --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.worker.yaml -o %t.worker.out
+RUN: %readelf -x .data %t.worker.out | %filecheck %s --check-prefix=DATA
+RUN: %readelf -r %t.worker.out | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+RUN: %link %linkopts --shared --threads --thread-count=8 %t.o -L%libsdir -L%libsdir/test --plugin-config %t.worker.yaml -o %t.worker.so
+RUN: %readelf -x .data %t.worker.so | %filecheck %s --check-prefix=DATA
+# The cutoff must also run when no plugin has registered relocation callbacks.
+RUN: sed 's/Options: early/Options: late-claim/' %t.yaml > %t.late.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.late.yaml -o %t.late.out 2>&1 | %filecheck %s --check-prefix=LATE
+RUN: sed 's/Options: early/Options: missing/' %t.yaml > %t.missing.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.missing.yaml -o %t.missing.out 2>&1 | %filecheck %s --check-prefix=MISSING
+# Missing bytes are not an error if garbage collection discards the source.
+RUN: %link %linkopts --gc-sections -e main %t.o -L%libsdir -L%libsdir/test --plugin-config %t.missing.yaml -o %t.gc.out
+RUN: sed 's/Options: early/Options: late-data/' %t.yaml > %t.data.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.data.yaml -o %t.data.out 2>&1 | %filecheck %s --check-prefix=APPLICATION
+RUN: sed 's/Options: early/Options: ignore-late-data/' %t.yaml > %t.ignore.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.ignore.yaml -o %t.ignore.out 2>&1 | %filecheck %s --check-prefix=APPLICATION
+DATA: 78563412
+RELOC: {{There are no relocations|Relocation section}}
+LATE: Cannot claim plugin relocation: relocation scanning has started
+MISSING: Plugin-owned relocation {{.*}} has no replacement data
+APPLICATION: Cannot claim plugin relocation: relocation application has started

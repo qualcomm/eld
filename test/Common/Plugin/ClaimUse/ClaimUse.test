@@ -1,0 +1,26 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+RUN: %clang %clangopts -c %p/Inputs/pointer.c -o %t.o
+RUN: %link %linkopts --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.out
+RUN: %readelf -x .data %t.out | %filecheck %s --check-prefix=DATA
+RUN: %readelf -r %t.out | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+RUN: sed 's/Options: valid/Options: missing/' %p/Inputs/PluginConfig.yaml > %t.missing.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.missing.yaml -o %t.missing.out 2>&1 | %filecheck %s --check-prefix=MISSING
+RUN: sed 's/Options: valid/Options: duplicate/' %p/Inputs/PluginConfig.yaml > %t.duplicate.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.duplicate.yaml -o %t.duplicate.out 2>&1 | %filecheck %s --check-prefix=DUPLICATE
+RUN: sed 's/Options: valid/Options: invalid/' %p/Inputs/PluginConfig.yaml > %t.invalid.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.invalid.yaml -o %t.invalid.out 2>&1 | %filecheck %s --check-prefix=INVALID
+RUN: sed 's/Options: valid/Options: overridden/' %p/Inputs/PluginConfig.yaml > %t.overridden.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.overridden.yaml -o %t.overridden.out 2>&1 | %filecheck %s --check-prefix=DUPLICATE
+RUN: sed 's/Options: valid/Options: other-use/' %p/Inputs/PluginConfig.yaml > %t.other-use.yaml
+RUN: %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.other-use.yaml -o %t.other-use.out
+RUN: %readelf -x .data %t.other-use.out | %filecheck %s --check-prefix=DATA
+RUN: %not %link %linkopts -r %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.partial.out 2>&1 | %filecheck %s --check-prefix=PARTIAL
+RUN: echo 'SECTIONS { .text : { *(.text*) } .data (NOLOAD) : { *(.data*) } }' > %t.noload.t
+RUN: %not %link %linkopts %t.o -T %t.noload.t -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.noload.out 2>&1 | %filecheck %s --check-prefix=NOLOAD
+DATA: 78563412
+RELOC: {{There are no relocations|Relocation section}}
+MISSING: Plugin-owned relocation {{.*}} has no replacement data
+DUPLICATE: Cannot claim plugin relocation: relocation already owned or overridden by a plugin
+INVALID: Cannot claim plugin relocation: relocation scanning has started
+PARTIAL: Cannot claim plugin relocation: partial links are not supported
+NOLOAD: Cannot claim plugin relocation: source has no output file storage

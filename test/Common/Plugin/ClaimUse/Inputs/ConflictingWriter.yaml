@@ -1,0 +1,9 @@
+GlobalPlugins:
+  - Type: OutputSectionIterator
+    Name: ClaimUse
+    Library: ClaimUse
+    Options: unclaimed-data
+  - Type: OutputSectionIterator
+    Name: ForeignUseWriter
+    Library: ForeignUseWriter
+    Options: ignore-errors
