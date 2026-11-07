@@ -1,7 +1,8 @@
 #---ReplaceSymbolContent.test----------------------- Executable,LS --------------------#
 #BEGIN_COMMENT
-# This test verifies that LinkerWrapper::replaceSymbolContent replaces the
-# content of a defined data symbol in the output binary.
+# This test verifies that LinkerWrapper::replaceSymbolContent replaces symbol
+# contents, and that ICF is disabled when plugins may rewrite them late.
+# Identical function sections are present to ensure they are not folded.
 # The plugin replaces all bytes of foo_data with 0xAB; the readelf hex dump of
 # .data is checked to confirm abababab appears in the output.
 # The plugin also replays reloc_data's bytes back unchanged. reloc_data holds
@@ -11,8 +12,8 @@
 # main) is skipped rather than replaced.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
-RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test \
+RUN: %clang %clangopts -ffunction-sections -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --icf=all --print-icf-sections \
 RUN:   --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
 RUN: %readelf -x .data %t1.1.out | %filecheck %s --check-prefix HEXDUMP
 
@@ -22,6 +23,8 @@ RUN:   --plugin-config %p/Inputs/PluginConfig.yaml --gc-sections -e main \
 RUN:   2>&1 | %filecheck %s --check-prefix GC
 #END_TEST
 
+CHECK: --icf is disabled when plugins are loaded
+CHECK-NOT: ICF folding
 CHECK: ReplaceSymbolContentPlugin: replaced foo_data ({{[0-9]+}} bytes)
 CHECK: ReplaceSymbolContentPlugin: replayed reloc_data unchanged ({{[0-9]+}} bytes)
 

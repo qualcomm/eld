@@ -1038,6 +1038,40 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.addCommandLine(Table->getOptionName(T::gc_sections), enableGC);
     // --print-gc-sections
     Config.options().setPrintGCSections(Args.hasArg(T::print_gc_sections));
+
+    if (llvm::opt::Arg *Arg = Args.getLastArg(T::icf)) {
+      llvm::StringRef Mode = Arg->getValue();
+      GeneralOptions::ICFMode ICFMode;
+      if (Mode == "all")
+        ICFMode = GeneralOptions::ICFMode::All;
+      else if (Mode == "safe")
+        ICFMode = GeneralOptions::ICFMode::Safe;
+      else if (Mode == "none")
+        ICFMode = GeneralOptions::ICFMode::None;
+      else {
+        Config.raise(Diag::invalid_value_for_option) << "--icf" << Mode;
+        return false;
+      }
+      Config.options().setICFMode(ICFMode);
+      Config.addCommandLine(Table->getOptionName(T::icf), Arg->getValue());
+    }
+    Config.options().setPrintICFSections(Args.hasArg(T::print_icf_sections));
+  } else {
+    // ICF is not supported for partial links.
+    if (llvm::opt::Arg *Arg = Args.getLastArg(T::icf)) {
+      llvm::StringRef Mode = Arg->getValue();
+      if (Mode != "all" && Mode != "safe" && Mode != "none") {
+        Config.raise(Diag::invalid_value_for_option) << "--icf" << Mode;
+        return false;
+      }
+      if (Mode != "none") {
+        Config.raise(Diag::err_icf_relocatable) << Mode;
+        return false;
+      }
+    }
+    if (Args.hasArg(T::print_icf_sections))
+      Config.raise(Diag::warn_incompatible_option)
+          << "-print-icf-sections" << "relocatable";
   }
 
   // Disable emit relocs if -shared/-pie/relocatable
