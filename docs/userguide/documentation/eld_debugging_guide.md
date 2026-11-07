@@ -344,9 +344,11 @@ There are multiple relocation passes, and confusing them is a common source of
   backend decides whether it needs to reserve GOT/PLT entries, create or reserve
   dynamic relocations, create stubs/trampolines, etc. (target-specific logic is
   in `lib/Target/*/*Relocator.cpp`).
-- Collects copy-relocation candidates per input, then creates copy relocations
-  once per symbol (see `createCopyRelocation(...)` / `addCopyReloc(...)` in
-  `lib/Object/ObjectLinker.cpp`).
+- Collects copy-relocation candidates per input, then creates one copy
+  relocation per group of aliases: the symbols of a shared library that share
+  the copied object's storage get a single copy, sized for the largest of them,
+  and are all defined on it (see `getCopyRelocGroup(...)` /
+  `createCopyRelocation(...)` in `lib/Object/ObjectLinker.cpp`).
 - Merges per-file dynamic relocation vectors into a single "reloc input"
   (`getDynamicSectionHeadersInputFile()`) so later code can treat them
   consistently.
