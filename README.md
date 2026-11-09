@@ -45,10 +45,6 @@ You can build ELD either:
 
 You will need a recent C++ compiler for building LLVM and ELD.
 
-Use source and build directory paths without spaces. Some existing lit test
-`RUN` lines contain unquoted path substitutions, which can cause tests to fail
-when paths contain spaces.
-
 ```
 git clone https://github.com/llvm/llvm-project.git
 cd llvm-project/
