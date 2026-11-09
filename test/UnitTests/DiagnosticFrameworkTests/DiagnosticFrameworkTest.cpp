@@ -11,7 +11,9 @@
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Diagnostics/DiagnosticInfos.h"
+#include "eld/Diagnostics/DiagnosticPrinter.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
+#include "llvm/Support/raw_ostream.h"
 #include "gtest/gtest.h"
 #include <memory>
 
@@ -81,4 +83,50 @@ TEST_F(DiagnosticFrameworkTest, InvalidDiagnosticsTestRaiseDiagEntry) {
   EXPECT_EQ(output, "Fatal: Missing argument 0 when reporting diagnostic "
                     "'cannot open %0 file %1'\n");
   EXPECT_TRUE(m_DiagEngine->diagnose() == false);
+}
+
+TEST_F(DiagnosticFrameworkTest, DiagnosticLocationPrintsSourcePrefix) {
+  testing::internal::CaptureStderr();
+  m_DiagEngine->raise(Diag::err_no_inputs)
+      .setLocation(DiagnosticLocation{"test.c", 7, 0});
+  std::string output = testing::internal::GetCapturedStderr();
+  EXPECT_EQ(output, "Error: test.c:7: no inputs\n");
+}
+
+TEST_F(DiagnosticFrameworkTest, DiagnosticLocationPrintsColumn) {
+  testing::internal::CaptureStderr();
+  m_DiagEngine->raise(Diag::err_no_inputs)
+      .setLocation(DiagnosticLocation{"test.c", 7, 3});
+  std::string output = testing::internal::GetCapturedStderr();
+  EXPECT_EQ(output, "Error: test.c:7:3: no inputs\n");
+}
+
+TEST_F(DiagnosticFrameworkTest, InvalidDiagnosticLocationPrintsNoPrefix) {
+  const DiagnosticLocation InvalidLocations[] = {{"test.c", 0, 0}, {"", 7, 0}};
+  for (const DiagnosticLocation &Location : InvalidLocations) {
+    testing::internal::CaptureStderr();
+    m_DiagEngine->getPrinter()->printDiagnostic(
+        llvm::raw_ostream::WHITE, "Error", "no inputs", "", &Location);
+    std::string output = testing::internal::GetCapturedStderr();
+    EXPECT_EQ(output, "Error: no inputs\n");
+  }
+}
+
+TEST_F(DiagnosticFrameworkTest, DiagnosticLocationIsClearedBetweenMessages) {
+  testing::internal::CaptureStderr();
+  m_DiagEngine->raise(Diag::err_no_inputs)
+      .setLocation(DiagnosticLocation{"first.c", 11, 0});
+  m_DiagEngine->raise(Diag::err_no_inputs);
+  std::string output = testing::internal::GetCapturedStderr();
+  EXPECT_EQ(output, "Error: first.c:11: no inputs\nError: no inputs\n");
+}
+
+TEST_F(DiagnosticFrameworkTest, DiagnosticLocationValidity) {
+  const DiagnosticLocation Valid{"test.c", 7, 0};
+  const DiagnosticLocation MissingFile{"", 7, 0};
+  const DiagnosticLocation MissingLine{"test.c", 0, 0};
+
+  EXPECT_TRUE(Valid.isValid());
+  EXPECT_FALSE(MissingFile.isValid());
+  EXPECT_FALSE(MissingLine.isValid());
 }

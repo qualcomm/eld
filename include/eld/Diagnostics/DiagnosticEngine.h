@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 #ifndef ELD_DIAGNOSTICS_DIAGNOSTICENGINE_H
 #define ELD_DIAGNOSTICS_DIAGNOSTICENGINE_H
+#include "eld/Diagnostics/DiagnosticLocation.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/DataTypes.h"
@@ -146,12 +147,16 @@ public:
   /// - It returns std::unique_ptr<MsgHandler> instead of MsgHandler.
   ///   This is because, in case of plugin diagnostics, the lifecycle
   ///   of MsgHandler needs to be managed by plugin::DiagnosticBuilder.
+  /// The returned handler can attach a source location with setLocation().
   MsgHandler *raisePluginDiag(DiagIDType ID, const Plugin *Plugin);
 
-  /// Raise diagnostic from a DiagnosticEntry object.
+  /// Raise a diagnostic from a DiagnosticEntry object. DiagnosticEntry does
+  /// not carry a source location; use raise() and MsgHandler::setLocation()
+  /// when the diagnostic needs one.
   void raiseDiagEntry(std::unique_ptr<plugin::DiagnosticEntry> DiagEntry);
 
-  /// Raise a plugin diagnostic from a DiagnosticEntry object.
+  /// Raise a plugin diagnostic from a DiagnosticEntry object. DiagnosticEntry
+  /// does not carry a source location.
   void raisePluginDiag(std::unique_ptr<plugin::DiagnosticEntry> DiagEntry,
                        const Plugin *Plugin);
   enum {
@@ -171,6 +176,7 @@ public:
       severity = None;
       File = nullptr;
       Plugin = nullptr;
+      Location.reset();
       ThreadID = std::thread::id();
     }
 
@@ -183,6 +189,7 @@ public:
     Severity severity = Severity::None;
     Input *File = nullptr;
     const eld::Plugin *Plugin = nullptr;
+    std::optional<DiagnosticLocation> Location;
     std::thread::id ThreadID;
   };
 

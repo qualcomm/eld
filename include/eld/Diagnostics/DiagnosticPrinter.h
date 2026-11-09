@@ -153,7 +153,8 @@ public:
   /// pluginName:type: outString
   void printDiagnostic(const enum llvm::raw_ostream::Colors Color,
                        llvm::StringRef Type, const std::string &OutString,
-                       llvm::StringRef PluginName);
+                       llvm::StringRef PluginName,
+                       const DiagnosticLocation *Location = nullptr);
 
   unsigned int getNumErrors() const { return NumErrors.load(); }
   unsigned int getNumFatalErrors() const { return NumFatalErrors.load(); }
