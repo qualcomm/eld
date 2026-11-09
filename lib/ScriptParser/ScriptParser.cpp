@@ -1121,6 +1121,7 @@ bool ScriptParser::readPluginDirective(llvm::StringRef Tok) {
           .Default(std::nullopt);
   if (!OptPluginType.has_value())
     return false;
+  warnDeprecatedPluginKeyword(Tok);
   expect("(");
   llvm::StringRef LibName = unquote(next());
   expect(",");
@@ -1132,6 +1133,14 @@ bool ScriptParser::readPluginDirective(llvm::StringRef Tok) {
   ThisScriptFile.addPlugin(OptPluginType.value(), LibName.str(),
                            PluginName.str(), ConfigName.str());
   return true;
+}
+
+inline void ScriptParser::warnDeprecatedPluginKeyword(llvm::StringRef Tok) {
+  if (!ThisConfig.showLinkerScriptWarnings())
+    return;
+  setWarn("Linker script plugin keyword '" + Tok +
+              "' is deprecated; use --plugin-config instead",
+          Tok);
 }
 
 void ScriptParser::readSearchDir() {
@@ -1426,6 +1435,7 @@ PluginCmd *ScriptParser::readOutputSectionPluginDirective() {
           .Default(std::nullopt);
   if (!OptPluginType.has_value())
     return nullptr;
+  warnDeprecatedPluginKeyword(Tok);
   skip();
   expect("(");
   llvm::StringRef LibName = unquote(next());
