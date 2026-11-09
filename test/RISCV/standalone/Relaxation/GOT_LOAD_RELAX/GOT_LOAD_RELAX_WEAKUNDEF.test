@@ -1,4 +1,5 @@
 REQUIRES: riscv32 || riscv64
+UNSUPPORTED: progress_bar
 #----------GOT_LOAD_RELAX_WEAKUNDEF.test----------------- Executable------------------#
 #BEGIN_COMMENT
 # This tests checks GOT load relaxation behavior specific to handling weakundef

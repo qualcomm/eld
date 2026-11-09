@@ -1,4 +1,5 @@
 REQUIRES: shell
+UNSUPPORTED: progress_bar
 #---GetLinkerScriptHash.test----------------------- Executable,LS --------------------#
 #BEGIN_COMMENT
 # Tests plugin::LinkerScript::getHash(). Hashing is enabled by
