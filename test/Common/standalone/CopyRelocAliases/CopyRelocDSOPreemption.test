@@ -1,0 +1,26 @@
+UNSUPPORTED: windows, darwin, ndk-build
+#BEGIN_COMMENT
+# An earlier DSO defines foo_v2, while a later DSO exports
+# foo_v1 and foo_v2 as shared-storage aliases.
+# COPY relocation of foo_v1 must not capture foo_v2 from
+# the earlier DSO.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/first.c -o %t1.first.o
+RUN: %link %linkopts -shared %t1.first.o -o %t1.first.so
+RUN: %clang %clangopts -c -fPIC %p/Inputs/lib.c -o %t1.alias.o
+RUN: %link %linkopts -shared %t1.alias.o -o %t1.alias.so
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/preempt-main.c -o %t1.main.o
+RUN: %link %linkopts %t1.main.o -Bdynamic %t1.first.so %t1.alias.so -o %t1.out
+RUN: %readelf -r %t1.out | %filecheck %s --check-prefix=COPY
+RUN: %readelf -r %t1.out | grep -Ec 'R_[A-Za-z0-9_]+_COPY' | %filecheck %s --check-prefix=COUNT
+RUN: %nm -D --defined-only %t1.out | %filecheck %s --check-prefix=SYMS
+#END_TEST
+
+COPY: {{R_[A-Z0-9_]+_COPY}}{{.*}}foo_v1
+
+COUNT: {{^1$}}
+
+SYMS-NOT: foo_v2
+SYMS: foo_v1
+SYMS-NOT: foo_v2
