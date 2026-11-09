@@ -1,0 +1,11 @@
+#---InvalidCodegenOptions.test---------------- LTO ----------------#
+#BEGIN_COMMENT
+# Invalid LLVM options must be reported through ELD diagnostics and stop LTO.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o %p/Inputs/main.c -c -flto
+RUN: not %link %linkopts -o %t1.out %t1.o --flto-options=codegen=-eld-invalid-lto-option 2>&1 | %filecheck %s
+RUN: %clang %clangopts -o %t2.o %p/Inputs/main.c -c -flto=thin
+RUN: not %link %linkopts -o %t2.out %t2.o --flto-options=codegen=-eld-invalid-lto-option 2>&1 | %filecheck %s
+#END_TEST
+CHECK: LTO: LTOCodeGenOptions: Unknown command line argument '-eld-invalid-lto-option'
