@@ -409,6 +409,14 @@ bool LinkerWrapper::matchPattern(const std::string &Pattern,
   return E->match(Name);
 }
 
+bool LinkerWrapper::isLTOEnabled() const {
+  return m_Module.getConfig().options().hasLTO() || hasLTOInputs();
+}
+
+bool LinkerWrapper::hasLTOInputs() const {
+  return m_Module.needLTOToBeInvoked();
+}
+
 bool LinkerWrapper::isPostLTOPhase() const {
   return m_Module.getLinker()->getObjectLinker()->isPostLTOPhase();
 }

@@ -1489,6 +1489,10 @@ struct DLL_A_EXPORT LinkerConfig {
   bool hasGCSections() const;
   bool hasUniqueOutputSections() const;
 
+  /// Return true if LTO was explicitly requested with -flto.
+  /// Bitcode inputs can enable LTO even when this returns false.
+  bool isLTORequested() const;
+
   /// Return options set by --flto-options.
   const std::vector<std::string> &getLTOOptions() const;
 
