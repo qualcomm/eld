@@ -85,6 +85,7 @@
 #include "llvm/Support/Caching.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/FileOutputBuffer.h"
+#include "llvm/Support/LibraryOptionsContext.h"
 #include "llvm/Support/MemoryBufferRef.h"
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/Path.h"
@@ -3562,14 +3563,22 @@ bool ObjectLinker::createLTOObject(void) {
   if (LTOPlugin)
     LTOPlugin->ModifyLTOOptions(Conf, Options);
 
-  // Config.MllvmArgs are ignored, call cl::ParseCommandLineOptions instead.
+  // Config.MllvmArgs are ignored, call cl::parseCommandLineOptions instead.
   std::vector<const char *> CodegenArgv(1, "LTOCodeGenOptions");
   for (const std::string &Arg : Options)
     CodegenArgv.push_back(Arg.c_str());
-  cl::ParseCommandLineOptions(CodegenArgv.size(), CodegenArgv.data());
+  // libraryOptions must outlive Conf and the LTO object created below.
+  cl::LibraryOptionsContext libraryOptions;
+  std::string Err;
+  raw_string_ostream OS(Err);
+  if (!cl::parseCommandLineOptions(libraryOptions, CodegenArgv, "", &OS)) {
+    ThisConfig.raise(Diag::lto_codegen_error) << StringRef(Err);
+    return false;
+  }
 
-  Conf.Options = llvm::codegen::InitTargetOptionsFromCodeGenFlags(
-      ThisConfig.targets().triple());
+  Conf.LibraryOptions = &libraryOptions;
+  Conf.Options = llvm::codegen::getTargetOptions(libraryOptions,
+                                                 ThisConfig.targets().triple());
 
   if (ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly() &&
       Conf.CGFileType == CodeGenFileType::AssemblyFile)
