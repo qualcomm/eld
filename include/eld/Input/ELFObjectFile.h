@@ -49,15 +49,16 @@ public:
 
   // --- DWARF Support
 
-  void createDWARFContext(bool Is32);
+  /// Create and retain a DWARF context for this object when it contains debug
+  /// data. Does nothing if there is no input, no debug data, or the input
+  /// cannot be parsed.
+  void createDWARFContext();
 
   llvm::DWARFContext *getDWARFContext() { return DWARFContext.get(); }
 
   void deleteDWARFContext() { DWARFContext.reset(); }
 
   bool hasDWARFContext() { return !!DWARFContext; }
-
-  void populateDebugSections();
 
   // --- SectionGroup Support
   void addSectionGroup(ELFSection *S) { GroupSections.push_back(S); }
@@ -124,7 +125,6 @@ private:
   eld::TimingSection *timingSection = nullptr;
   bool IsResultFromLTO = false;
   std::unique_ptr<llvm::DWARFContext> DWARFContext;
-  std::vector<std::unique_ptr<llvm::MemoryBuffer>> DebugSections;
   std::vector<ELFSection *> GroupSections;
   std::unordered_map<const ELFSection *, GroupMemberList>
       GroupMembersByGroupSection;

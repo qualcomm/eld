@@ -5,15 +5,14 @@
 //===----------------------------------------------------------------------===//
 
 #include "eld/Input/ELFObjectFile.h"
+#include "ELDDWARFObject.h"
 #include "eld/Input/Input.h"
 #include "eld/Input/InputFile.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
-#include "llvm/ADT/StringMap.h"
 #include "llvm/DebugInfo/DWARF/DWARFContext.h"
 #include "llvm/Support/Error.h"
-#include "llvm/Support/MemoryBuffer.h"
 
 using namespace eld;
 
@@ -23,43 +22,32 @@ ELFObjectFile::ELFObjectFile(Input *I, DiagnosticEngine *DiagEngine)
     Contents = I->getFileContents();
 }
 
-void ELFObjectFile::createDWARFContext(bool Is32) {
-  if (DebugSections.empty())
+void ELFObjectFile::createDWARFContext() {
+  if (!getInput())
     return;
 
-  llvm::StringMap<std::unique_ptr<llvm::MemoryBuffer>> DebugSectMap;
-  uint32_t DebugSectionNo = 0;
-  for (Section *S : getSections()) {
-    llvm::StringRef SectionName = S->name();
-    SectionName = SectionName.substr(SectionName.find_first_not_of("._z"));
-    if (!SectionName.starts_with("debug"))
-      continue;
-    DebugSectMap[SectionName] = std::move(DebugSections[DebugSectionNo++]);
-  }
-
-  ASSERT(DebugSectionNo == DebugSections.size(),
-         "Debug Sections size mismatch");
-
-  llvm::Expected<std::unique_ptr<llvm::DWARFContext>> DC =
-      llvm::DWARFContext::create(DebugSectMap, Is32 ? 4 : 8);
-
-  if (!DC) {
-    llvm::consumeError(DC.takeError());
-    return;
-  }
-  DWARFContext = std::move(*DC);
-}
-
-void ELFObjectFile::populateDebugSections() {
+  // LLVM can create an empty context for an object without debug data, so
+  // check for debug sections before creating the context.
+  bool HasDebugSections = false;
   for (const Section *S : getSections()) {
     llvm::StringRef SectionName = S->name();
-    SectionName = SectionName.substr(SectionName.find_first_not_of("._z"));
-    if (!SectionName.starts_with("debug"))
-      continue;
-    DebugSections.push_back(llvm::MemoryBuffer::getMemBuffer(
-        llvm::dyn_cast<ELFSection>(S)->getContents(), /*BufferName*/ "",
-        /*RequiresNullTerminator*/ false));
+    if (SectionName.starts_with(".debug")) {
+      HasDebugSections = true;
+      break;
+    }
   }
+  if (!HasDebugSections)
+    return;
+
+  llvm::Expected<std::unique_ptr<const llvm::DWARFObject>> DWARFObjectOrError =
+      detail::createELDDWARFObject(*this);
+  if (!DWARFObjectOrError) {
+    llvm::consumeError(DWARFObjectOrError.takeError());
+    return;
+  }
+
+  DWARFContext =
+      std::make_unique<llvm::DWARFContext>(std::move(*DWARFObjectOrError));
 }
 
 void ELFObjectFile::addSectionAnnotation(const ELFSection &S,

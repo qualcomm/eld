@@ -63,6 +63,7 @@ set_target_properties(check-eld-unit PROPERTIES FOLDER "Linker Unit Tests")
 add_dependencies(check-eld check-eld-unit)
 
 add_subdirectory(DiagnosticFrameworkTests)
+add_subdirectory(DWARFObjectTests)
 add_subdirectory(SampleTests)
 add_subdirectory(StaticResolverTests)
 add_subdirectory(SymbolResolutionTests)
