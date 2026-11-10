@@ -262,7 +262,7 @@ jobs:
         run: |
           mkdir -p obj
           cd obj
-          cmake -G "${MATRIX_CMAKE_GENERATOR}" -A ${MATRIX_ARCH} \
+          cmake -G "${MATRIX_CMAKE_GENERATOR}" -A "${MATRIX_ARCH}" \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
             -DCLANG_ENABLE_CIR=OFF \
