@@ -4,6 +4,9 @@ run-name: "BusyBox ${{ inputs.pr_number && format('PR #{0} @{1}', inputs.pr_numb
 
 on:
   # Start after Nightly check completes so its toolset artifact is available.
+  # zizmor: ignore[dangerous-triggers] -- Nightly check only runs on a schedule
+  # against main (never PR-triggered); this job only downloads a named
+  # artifact from it, it never checks out or executes the triggering run's code.
   workflow_run:
     workflows: [Nightly check]
     types: [completed]

@@ -14,6 +14,10 @@
 name: Cherry Pick Workflow
 
 on:
+  # zizmor: ignore[dangerous-triggers] -- gated on the PR/comment author being a
+  # COLLABORATOR/MEMBER/OWNER (see job `if:` below); checkout below never
+  # overrides `ref:`, so it checks out the trusted base branch, not PR head
+  # content.
   pull_request_target:
     types: [closed]
   issue_comment:

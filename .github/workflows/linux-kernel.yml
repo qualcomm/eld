@@ -10,6 +10,9 @@ name: Linux Kernel Boot with ELD
 on:
   # BusyBox runs after Nightly check and publishes the binary used by the
   # kernel boot test, so wait for it to finish before starting this workflow.
+  # zizmor: ignore[dangerous-triggers] -- "BusyBox with ELD" is itself only
+  # reachable via workflow_run/workflow_dispatch/workflow_call, never directly
+  # by PR content; this job only downloads a named artifact from it.
   workflow_run:
     workflows: ["BusyBox with ELD"]
     types: [completed]

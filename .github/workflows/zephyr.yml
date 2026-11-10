@@ -4,6 +4,9 @@ name: Zephyr with ELD
 # Run Zephyr nightly or against a PR's ELD toolset.
 
 on:
+  # zizmor: ignore[dangerous-triggers] -- Nightly check only runs on a schedule
+  # against main (never PR-triggered); this job only downloads a named
+  # artifact from it, it never checks out or executes the triggering run's code.
   workflow_run:
     workflows: [Nightly check]
     types: [completed]

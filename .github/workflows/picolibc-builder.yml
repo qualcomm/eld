@@ -11,6 +11,10 @@ on:
     # Runs after the nightly toolchain build ("Nightly check" =
     # nightly-test.yml) finishes, so we always consume a freshly built
     # install-nightly-toolchain.tar.xz artifact.
+    # zizmor: ignore[dangerous-triggers] -- Nightly check only runs on a
+    # schedule against main (never PR-triggered); this job only downloads a
+    # named artifact from it, it never checks out or executes the triggering
+    # run's code.
     workflows: ["Nightly check"]
     types: [completed]
   workflow_dispatch:     # Allows manual triggering
