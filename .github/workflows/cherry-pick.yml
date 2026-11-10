@@ -39,4 +39,4 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Cherry-pick pull request
-        uses: creydr/cherry-pick-action@ec00f4dad513cd4391203d27478a0910385cfa8f # v1.0.14
+        uses: creydr/cherry-pick-action@c0d4224d89a75edc7a4596b0ca8b5b4e18ac02be # v1.0.15
