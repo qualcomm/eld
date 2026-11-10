@@ -210,7 +210,7 @@ jobs:
         shell: bash
         env:
           TARGET_TRIPLE: ${{ matrix.target_triple }}
-        run: |
+        run: | # zizmor: ignore[github-env] writes fixed/derived tool paths found in our own build artifacts, no attacker-controlled input
           set -euo pipefail
           toolchain_base="${{ github.workspace }}/${TARGET_TRIPLE}"
           cross_root="$(find -L "${toolchain_base}" -type f -path "*/bin/${TARGET_TRIPLE}-clang" -print -quit | sed 's|/bin/.*$||')"

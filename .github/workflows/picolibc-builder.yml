@@ -167,7 +167,7 @@ jobs:
             ${{ github.workspace }}/llvm-project
 
       - name: Install Meson
-        run: |
+        run: | # zizmor: ignore[github-env] writes a fixed, workspace-relative path, no attacker-controlled input
           git clone https://github.com/mesonbuild/meson.git meson
           cd meson
           ./packaging/create_zipapp.py --outfile meson.pyz --interpreter '/usr/bin/env python3' .

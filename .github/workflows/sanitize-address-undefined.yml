@@ -50,7 +50,7 @@ jobs:
 
       - name: Install libc++ and libc++abi
         id: install_dependencies
-        run: |
+        run: | # zizmor: ignore[github-env] writes a fixed llvm-23 install path, no attacker-controlled input
           sudo apt update
           sudo apt install -y clang-23 lld-23 ninja-build libc++-23-dev libc++abi-23-dev ccache libclang-rt-23-dev libunwind-23-dev
           printf 'PATH=/usr/lib/llvm-23/bin:%s\nLD_LIBRARY_PATH=/usr/lib/llvm-23/lib:%s\n' \
