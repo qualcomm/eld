@@ -87,9 +87,27 @@ if(LLVM_ENABLE_SPHINX)
 
   add_custom_target(eld-docs DEPENDS ${html_target_name})
 
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  set(ELD_DOCS_RENDER_PYTHON_EXECUTABLE
+      "${Python3_EXECUTABLE}"
+      CACHE FILEPATH "Python interpreter for documentation browser tests")
+  if(NOT ELD_USE_EXTERNAL_LLVM)
+    add_custom_target(
+      check-eld-docs
+      COMMAND
+        "${ELD_DOCS_RENDER_PYTHON_EXECUTABLE}" -E -m pytest
+        "${ELD_SOURCE_DIR}/test/docs" --docs-site-dir
+        "${CMAKE_BINARY_DIR}/tools/eld/docs/multiversion/site" --browser
+        chromium --output
+        "${CMAKE_CURRENT_BINARY_DIR}/test-results"
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+      COMMENT "Checking all rendered eld userguide versions with Playwright"
+      USES_TERMINAL VERBATIM)
+      add_dependencies(check-eld-docs eld-docs-multiversion)
+  endif()
+
   # PDF user guide (optional)
   if(ELD_ENABLE_PDF_DOCS)
-    find_package(Python3 REQUIRED COMPONENTS Interpreter)
     find_program(TYPST_EXECUTABLE typst)
 
     # Prefer the standalone Typst executable when available so CMake builds do
