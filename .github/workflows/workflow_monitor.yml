@@ -13,6 +13,7 @@ on:
       - macOS with ELD
       - Nightly builder for testing eld against musl-test-suite
       - Nightly check
+      - Release 23.x nightly check
       - nightly picolibc builder
       - Nightly check using reverse iterators
       - Address and undefined behavior sanitizer
