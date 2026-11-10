@@ -23,6 +23,8 @@ jobs:
 
       - name: Update Build Dashboard
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
             cd llvm-project/llvm/tools/eld
             DASH_DIR="$(mktemp -d)"
@@ -43,7 +45,7 @@ jobs:
             cd ..
             git add .
             git commit -m "Update build status data for dashboard"
-            git push -f origin HEAD:refs/heads/documentation
+            git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/documentation
         continue-on-error: true
 
       - name: Get Dependencies for Build Dashboard Screenshot
@@ -57,6 +59,8 @@ jobs:
 
       - name: Generate Build Dashboard Screenshot
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
             sleep 20
             DASH_DIR="$(mktemp -d)"
@@ -71,5 +75,5 @@ jobs:
             cd ..
             git add .
             git commit -m "Update Build Dashboard Screenshot"
-            git push -f origin HEAD:refs/heads/documentation
+            git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/documentation
         continue-on-error: true

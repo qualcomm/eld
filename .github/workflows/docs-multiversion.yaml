@@ -98,6 +98,8 @@ jobs:
           fi
 
       - name: Deploy to documentation branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           SITE_DIR="$(pwd)/build/tools/eld/docs/multiversion/site"
           cd llvm-project/llvm/tools/eld
@@ -108,4 +110,4 @@ jobs:
           cp -r "${SITE_DIR}/." .
           git add .
           git commit -m "Update multi-version documentation"
-          git push -f origin HEAD:refs/heads/documentation
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/documentation

@@ -85,6 +85,8 @@ jobs:
           ninja eld-docs
 
       - name: Deploy to docs branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           ROOT=$(pwd)
           cd llvm-project/llvm/tools/eld
@@ -96,4 +98,4 @@ jobs:
           touch .nojekyll
           git add .
           git commit -m "Update documentation"
-          git push -f origin HEAD:refs/heads/documentation
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/documentation
