@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
+include(GNUInstallDirs)
+
 set(CMAKE_COLOR_MAKEFILE ON)
 
 # Option to use external LLVM
@@ -82,9 +84,56 @@ set(ELD_BINARY_DIR
     CACHE STRING "")
 
 set(ELD_TOOLS_INSTALL_DIR
-    "bin"
-    CACHE PATH "Path for binary subdirectory (defaults to 'bin')")
+    "${CMAKE_INSTALL_BINDIR}"
+    CACHE STRING "ELD binary directory, relative to prefix or absolute")
 mark_as_advanced(ELD_TOOLS_INSTALL_DIR)
+
+set(ELD_PLUGIN_DIR
+    "${CMAKE_INSTALL_LIBDIR}"
+    CACHE STRING "ELD plugin library directory, relative to prefix or absolute")
+set(ELD_PLUGIN_CONFIG_DIR
+    "${CMAKE_INSTALL_SYSCONFDIR}/ELD/Plugins"
+    CACHE STRING "ELD plugin config directory, relative to prefix or absolute")
+set(ELD_TEMPLATE_DIR
+    "${CMAKE_INSTALL_DATADIR}/eld/templates"
+    CACHE STRING "ELD templates directory, relative to prefix or absolute")
+
+# Convert an install directory to a path relative to the installed executable.
+# Absolute directories stay absolute so distributions can use paths such as
+# /etc/ELD/Plugins. Relative directories keep the installation relocatable.
+function(eld_path_from_bindir output install_dir)
+  if(IS_ABSOLUTE "${install_dir}")
+    set(_path "${install_dir}")
+  else()
+    if(IS_ABSOLUTE "${ELD_TOOLS_INSTALL_DIR}")
+      set(_bindir "${ELD_TOOLS_INSTALL_DIR}")
+    else()
+      set(_bindir "${CMAKE_INSTALL_PREFIX}/${ELD_TOOLS_INSTALL_DIR}")
+    endif()
+    set(_install_dir "${install_dir}")
+    if(NOT IS_ABSOLUTE "${_install_dir}")
+      set(_install_dir "${CMAKE_INSTALL_PREFIX}/${_install_dir}")
+    endif()
+    file(RELATIVE_PATH _path "${_bindir}" "${_install_dir}")
+  endif()
+  set(${output} "${_path}" PARENT_SCOPE)
+endfunction()
+
+eld_path_from_bindir(ELD_PLUGIN_DIR_FROM_BINDIR "${ELD_PLUGIN_DIR}")
+eld_path_from_bindir(ELD_PLUGIN_CONFIG_DIR_FROM_BINDIR
+                     "${ELD_PLUGIN_CONFIG_DIR}")
+
+if(IS_ABSOLUTE "${ELD_PLUGIN_DIR_FROM_BINDIR}")
+  set(ELD_PLUGIN_INSTALL_RPATH "${ELD_PLUGIN_DIR_FROM_BINDIR}")
+elseif(APPLE)
+  set(ELD_PLUGIN_INSTALL_RPATH
+      "@loader_path/${ELD_PLUGIN_DIR_FROM_BINDIR}")
+elseif(UNIX)
+  set(ELD_PLUGIN_INSTALL_RPATH
+      "\$ORIGIN/${ELD_PLUGIN_DIR_FROM_BINDIR}")
+else()
+  set(ELD_PLUGIN_INSTALL_RPATH "")
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${ELD_SOURCE_DIR}/cmake/modules")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
@@ -210,15 +259,18 @@ endif()
 # $ORIGIN is ELF-specific; Mach-O uses @loader_path / @rpath.
 if(APPLE)
   set(CMAKE_MACOSX_RPATH ON)
-  set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-  set(CMAKE_INSTALL_RPATH "@loader_path/../lib")
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+  set(CMAKE_BUILD_RPATH "@loader_path/../lib")
+  set(CMAKE_INSTALL_RPATH "${ELD_PLUGIN_INSTALL_RPATH}")
 elseif(UNIX)
-  set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-  set(CMAKE_INSTALL_RPATH "\$ORIGIN/../lib")
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+  set(CMAKE_BUILD_RPATH "\$ORIGIN/../lib")
+  set(CMAKE_INSTALL_RPATH "${ELD_PLUGIN_INSTALL_RPATH}")
 endif()
 
-# Match LLVM's bin/lib layout so $ORIGIN / @loader_path/../lib resolves in the
-# build tree as well as after install. Integrated LLVM builds already set these.
+# Keep the build tree's executable and library directories alongside each
+# other, independently of the install layout. Integrated LLVM builds already
+# set these.
 if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 endif()
@@ -350,7 +402,7 @@ option(ELD_ENABLE_PDF_DOCS
 if(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES)
   install(
     DIRECTORY templates/
-    DESTINATION templates
+    DESTINATION "${ELD_TEMPLATE_DIR}"
     COMPONENT ld.eld
     FILES_MATCHING
     PATTERN "*.template"
@@ -363,13 +415,8 @@ set(ELD_INSTALL_YAML_MAP_PARSER
     CACHE BOOL "Set to OFF to skip installing YAMLMapParser.py")
 
 if(ELD_INSTALL_YAML_MAP_PARSER)
-  if("${ELD_TARGETS_TO_BUILD}" MATCHES "ARM|AArch64|RISCV")
-    set(ELD_YAML_MAP_PARSER_DEST_DIR "tools/bin")
-  else()
-    set(ELD_YAML_MAP_PARSER_DEST_DIR "bin")
-  endif()
   install(
     PROGRAMS utils/YAMLMapParser/YAMLMapParser.py
-    DESTINATION ${ELD_YAML_MAP_PARSER_DEST_DIR}
+    DESTINATION "${ELD_TOOLS_INSTALL_DIR}"
     COMPONENT ld.eld)
 endif()

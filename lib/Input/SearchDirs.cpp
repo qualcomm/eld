@@ -41,6 +41,15 @@ constexpr inline llvm::StringRef foundString(bool Found) {
   return Found ? "found" : "not found";
 }
 
+void resolveInstallDirectory(llvm::SmallVectorImpl<char> &Path,
+                             llvm::StringRef InstallDir) {
+  if (llvm::sys::path::is_absolute(InstallDir)) {
+    Path.assign(InstallDir.begin(), InstallDir.end());
+  } else {
+    llvm::sys::path::append(Path, InstallDir);
+  }
+}
+
 llvm::StringRef toString(SearchDirs::SearchInputType Type) {
   switch (Type) {
   case SearchDirs::SearchInputType::Archive:
@@ -174,9 +183,9 @@ SearchDirs::findInDirList(llvm::StringRef Type, const std::string &FileName,
 
 std::vector<eld::sys::fs::Path> SearchDirs::getDefaultPluginConfigs() const {
   std::vector<eld::sys::fs::Path> DefaultPlugins;
-  std::string PluginConfigDir = "/../etc/ELD/Plugins/Default/";
   llvm::SmallString<128> Path(SearchDirs::MainExecutablePath);
-  llvm::sys::path::append(Path, PluginConfigDir);
+  resolveInstallDirectory(Path, ELD_PLUGIN_CONFIG_DIR);
+  llvm::sys::path::append(Path, "Default");
   DiagEngine->raise(Diag::verbose_find_default_plugins) << Path.str();
   std::error_code Ec;
   if (!(llvm::sys::fs::exists(Path) && llvm::sys::fs::is_directory(Path)))
@@ -242,6 +251,12 @@ const eld::sys::fs::Path *SearchDirs::findInRPath(llvm::StringRef Type,
   if (checkLibraryOrConfigFile(Type, LibraryName, fileName, "rpath",
                                DiagEngine))
     return make<eld::sys::fs::Path>(fileName);
+  llvm::SmallString<128> PluginDir(SearchDirs::MainExecutablePath);
+  resolveInstallDirectory(PluginDir, ELD_PLUGIN_DIR_FROM_BINDIR);
+  llvm::sys::path::append(PluginDir, LibraryName);
+  if (checkLibraryOrConfigFile(Type, LibraryName, PluginDir, "plugin directory",
+                               DiagEngine))
+    return make<eld::sys::fs::Path>(PluginDir.str().str());
 #else
   llvm::SmallVector<llvm::StringRef, 8> RPathSplit;
   RPath.split(RPathSplit, ":", -1, false);
@@ -267,9 +282,8 @@ SearchDirs::findInDefaultConfigPath(llvm::StringRef Type,
                                     llvm::StringRef ConfigName,
                                     llvm::StringRef PluginName) const {
   DiagEngine->raise(Diag::note_using_default_config_path);
-  std::string PluginConfigDir = "/../etc/ELD/Plugins/";
   llvm::SmallString<128> Path(SearchDirs::MainExecutablePath);
-  llvm::sys::path::append(Path, PluginConfigDir);
+  resolveInstallDirectory(Path, ELD_PLUGIN_CONFIG_DIR);
   llvm::sys::path::append(Path, PluginName);
   llvm::sys::path::append(Path, ConfigName);
   if (checkLibraryOrConfigFile(Type, ConfigName, Path, "search path",

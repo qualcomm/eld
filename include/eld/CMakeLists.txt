@@ -6,7 +6,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/PluginAPI/PluginBase.h.inc
 # Linker Plugin include files.
 install(
   DIRECTORY PluginAPI/
-  DESTINATION include/ELD/PluginAPI/
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ELD/PluginAPI"
   COMPONENT ld.eld
   FILES_MATCHING
   PATTERN "*.h"
@@ -16,5 +16,5 @@ install(
 
 install(
   FILES ${CMAKE_CURRENT_BINARY_DIR}/PluginAPI/PluginBase.h
-  DESTINATION include/ELD/PluginAPI/
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ELD/PluginAPI"
   COMPONENT ld.eld)
