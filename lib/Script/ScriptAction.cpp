@@ -38,9 +38,10 @@ bool ScriptAction::activate(InputBuilder &PBuilder) {
   auto &SearchDirs = ThisConfig.directories();
   const ReproduceTarReader *TarReader = ThisConfig.getReproduceTarReader();
   bool FoundInReplay = TarReader && TarReader->hasFile(Path);
+  bool HasRemap = ThisConfig.options().findRemapInput(Path).has_value();
   // If replay does not have this script entry, keep normal filesystem/search
   // behavior so command-line scripts still work outside replay mode.
-  if (!FoundInReplay && !llvm::sys::fs::exists(Path)) {
+  if (!HasRemap && !FoundInReplay && !llvm::sys::fs::exists(Path)) {
     const sys::fs::Path *Res =
         SearchDirs.find(Path, SearchDirs::SearchInputType::Script);
     if (Res == nullptr) {
@@ -65,8 +66,12 @@ bool ScriptAction::activate(InputBuilder &PBuilder) {
     Path = Res->native();
   }
   setFileName(Path);
+  // Resolve remapped scripts before probing the original path, and search -L
+  // directories for the replacement using Input's script resolution.
+  if (HasRemap)
+    I = PBuilder.createDeferredInput(Path, Input::Script);
   // For replay-resident scripts, avoid filesystem probing in InputFileAction.
-  if (FoundInReplay)
+  else if (FoundInReplay)
     I = PBuilder.createInputNode(Path);
   else if (!InputFileAction::activate(PBuilder))
     return false;
