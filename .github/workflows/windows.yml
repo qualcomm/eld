@@ -145,6 +145,7 @@ jobs:
           repository: llvm/llvm-project
           ref: main
           path: nightly/llvm-project
+          persist-credentials: false
 
       - name: Checkout eld
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -153,6 +154,7 @@ jobs:
           ref: ${{ env.ELD_REF }}
           path: nightly/llvm-project/llvm/tools/eld
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Install ccache
         id: install_ccache

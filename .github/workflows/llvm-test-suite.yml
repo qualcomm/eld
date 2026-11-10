@@ -58,6 +58,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
           path: llvm-project/llvm/tools/eld
+          persist-credentials: false
 
       - name: Configure workflow environment variables
         if: inputs.pr_sha == ''

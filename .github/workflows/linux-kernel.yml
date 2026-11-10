@@ -131,6 +131,7 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
           path: llvm-project/llvm/tools/eld
+          persist-credentials: false
 
       - name: Configure workflow environment variables
         if: matrix.enabled == 1

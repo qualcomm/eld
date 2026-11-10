@@ -71,6 +71,7 @@ jobs:
           ref: main
           path: llvm-project
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Checkout ELD
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -79,6 +80,7 @@ jobs:
           ref: ${{ inputs.pr_sha || github.ref_name }}
           path: llvm-project/llvm/tools/eld
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Configure workflow environment variables
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV

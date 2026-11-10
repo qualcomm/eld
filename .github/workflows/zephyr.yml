@@ -76,6 +76,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: llvm-project/llvm/tools/eld
+          persist-credentials: false
 
       - name: Prepare ccache dir
         run: |
@@ -186,6 +187,7 @@ jobs:
         with:
           repository: zephyrproject-rtos/zephyr
           path: zephyr
+          persist-credentials: false
 
       - name: Set safe.directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE/zephyr"
