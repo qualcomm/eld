@@ -1,0 +1,14 @@
+#---GlobalOffsetTableDiscard_ARM.test----------- Executable -----------------#
+# REQUIRES: arm
+#BEGIN_COMMENT
+# Verify that ELD errors out when a GOTPLT relocation is present
+# but .got.plt section is discarded via linker script for ARM.
+# Consistent with GNU ld behavior.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/lib_arm.c -o %t1.lib.o -fPIC -ffunction-sections
+RUN: %link %linkopts %t1.lib.o -o %t1.so -shared 2>&1
+RUN: %clang %clangopts -c %p/Inputs/1_arm.c -o %t1.o -fPIC -ffunction-sections
+RUN: %not %link %linkopts -T %p/Inputs/discard.t %t1.o %t1.so -o %t1.out 2>&1 | %filecheck %s
+#END_TEST
+CHECK: depends upon discarded .got.plt section

@@ -1,8 +1,7 @@
-UNSUPPORTED: x86
-#---TraceSymbolGOTPLT1.test--------------------- Executable------------------#
+#---TraceTargetSpecificSymbols.test--------------------- Executable------------------#
 #BEGIN_COMMENT
-# Tracing of target specific symbols
-#--------------------------------------------------------------------------------------
+# Verify that --trace=symbol reports the linker-defined _GLOBAL_OFFSET_TABLE_
+# symbol ("Target Specific Symbol ... added") on all targets, including x86-64.
 #END_COMMENT
 RUN: %clang %clangopts  -ffunction-sections -c %p/Inputs/1.c -o %t1.o -fPIC
 RUN: %clang %clangopts  -ffunction-sections -c %p/Inputs/2.c -o %t2.o -fPIC

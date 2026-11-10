@@ -125,6 +125,7 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
 void RISCVLDBackend::initTargetSymbols() {
   if (config().codeGenType() == LinkerConfig::Object)
     return;
+  m_pGOTSymbol = defineGlobalOffsetTableSymbol();
 
   if (TableJumpFragment) {
     // The __jvt_base$ symbol contains the Zcmt/Xqccmt jump table base address.
