@@ -262,7 +262,7 @@ jobs:
         run: |
           mkdir -p obj
           cd obj
-          cmake -G "${{ matrix.cmake-generator }}" -A ${{ matrix.arch }} \
+          cmake -G "${MATRIX_CMAKE_GENERATOR}" -A ${MATRIX_ARCH} \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
             -DCLANG_ENABLE_CIR=OFF \
@@ -270,6 +270,9 @@ jobs:
             -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
             -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86;Template' \
             ../llvm-project/llvm
+        env:
+          MATRIX_CMAKE_GENERATOR: ${{ matrix.cmake-generator }}
+          MATRIX_ARCH: ${{ matrix.arch }}
 
       - name: Build
         id: build
