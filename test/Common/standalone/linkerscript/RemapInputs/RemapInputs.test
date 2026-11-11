@@ -39,7 +39,7 @@ RUN:   -T %p/Inputs/script_exclude.t -Map %t1.exclude.map.txt
 RUN: %filecheck %s --check-prefix=EXCLUDE < %t1.exclude.map.txt
 
 #--- Test 3: archive pattern matches remapped archive name ------------------
-# Remap libfoo.a -> libbar.a; script routes *libbar.a(*) to .text_from_bar_archive.
+# Remap libfoo.a -> libbar.a; script routes *libbar.a(.text*) to .text_from_bar_archive.
 # Without remap, libfoo.a members would go to .text_rest.
 # With remap, they go to .text_from_bar_archive.
 RUN: %link -MapStyle txt %linkopts -o %t1.archive.out \

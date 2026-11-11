@@ -999,6 +999,10 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
 bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
                                       std::vector<Section *> &Sections) {
   bool IsPartialLink = ThisConfig.isLinkPartial();
+  OutputSectionEntry *EhFrameOutput = nullptr;
+  // Share the lookup across this merge pass. The fragment graph retains the
+  // CIEs needed for layout and emission after this temporary map is destroyed.
+  EhFrameCIEMap CieMap;
   for (auto &Section : Sections) {
     if (Section->isBitcode())
       continue;
@@ -1006,6 +1010,8 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
     bool HasSectionData = Sect->hasSectionData();
     if (Sect->isIgnore() || Sect->isDiscard())
       continue;
+    bool IsEhFrame =
+        Sect->getKind() == LinkerSectionKind::EhFrame && Sect->size();
     switch (Sect->getKind()) {
     // Some *INPUT sections should not be merged.
     case LinkerSectionKind::Null:
@@ -1030,18 +1036,21 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
       if (Sect->getKind() == LinkerSectionKind::EhFrame) {
         if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)->splitEhFrameSection())
           return false;
+        // A partial link still creates a new .eh_frame section. Parse, lay out,
+        // and rewrite its CIE/FDE records as usual, but leave CIE
+        // deduplication to the later final link.
         if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)
-                 ->createCIEAndFDEFragments())
+                 ->createCIEAndFDEFragments(!IsPartialLink, CieMap))
           return false;
         llvm::dyn_cast<eld::EhFrameSection>(Sect)->finishAddingFragments(
             *ThisModule);
-        if (getTargetBackend().getEhFrameHdr() &&
-            Sect->getKind() == LinkerSectionKind::EhFrame) {
-          getTargetBackend().getEhFrameHdr()->addEhFrame(
-              *llvm::dyn_cast<eld::EhFrameSection>(Sect)->getEhFrameFragment());
-          // Since we found an EhFrame section, lets go ahead and start creating
-          // the fragments necessary to create the .eh_frame_hdr section and
-          // the filler eh_frame section.
+        auto *EhFrame = llvm::dyn_cast<eld::EhFrameSection>(Sect);
+        if (!IsPartialLink && Sect->getKind() == LinkerSectionKind::EhFrame &&
+            EhFrame->getEhFrameFragment()->size()) {
+          if (auto *EhFrameHdr = getTargetBackend().getEhFrameHdr())
+            EhFrameHdr->addEhFrame(*EhFrame->getEhFrameFragment());
+          // Every nonempty final .eh_frame needs a terminating zero record.
+          // Header creation is optional, but the filler is not.
           getTargetBackend().createEhFrameFillerAndHdrFragment();
         }
       }
@@ -1069,6 +1078,16 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
       if (nullptr !=
           (OutSect = Builder.mergeSection(getTargetBackend(), Sect))) {
         Builder.updateSectionFlags(OutSect, Sect);
+        if (!IsPartialLink && IsEhFrame) {
+          OutputSectionEntry *Output = Sect->getOutputSection();
+          if (EhFrameOutput && EhFrameOutput != Output) {
+            // Final-link CIE deduplication requires one output destination.
+            ThisConfig.raise(Diag::multiple_eh_frame_output_sections)
+                << EhFrameOutput->name() << Output->name();
+            return false;
+          }
+          EhFrameOutput = Output;
+        }
       }
       break;
     }

@@ -10,6 +10,8 @@
 
 #include "eld/Fragment/EhFrameFragment.h"
 #include "eld/Readers/ELFSection.h"
+#include "llvm/ADT/DenseMap.h"
+#include <tuple>
 
 namespace eld {
 
@@ -18,10 +20,15 @@ class DiagnosticPrinter;
 class ELFSection;
 class Module;
 class Relocation;
+class ResolveInfo;
 class EhFrameSection;
 class EhFrameCIE;
 class EhFramePiece;
 class EhFrameFragment;
+
+using EhFrameCIEMap =
+    llvm::DenseMap<std::tuple<llvm::ArrayRef<uint8_t>, ResolveInfo *, uint64_t>,
+                   EhFrameCIE *>;
 
 class EhFrameSection : public ELFSection {
 public:
@@ -40,9 +47,10 @@ public:
 
   llvm::ArrayRef<uint8_t> getData() const;
 
-  bool createCIEAndFDEFragments();
+  bool createCIEAndFDEFragments(bool DeduplicateCIEs, EhFrameCIEMap &CieMap);
 
-  EhFrameCIE *addCie(EhFramePiece &P);
+  EhFrameCIE *addCie(EhFramePiece &P, bool DeduplicateCIEs,
+                     EhFrameCIEMap &CieMap);
 
   bool isFdeLive(EhFramePiece &P);
 

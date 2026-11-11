@@ -79,7 +79,7 @@ public:
 
   llvm::ArrayRef<uint8_t> getContent(const EhFrameFragment &F) const;
 
-  eld::Expected<void> emit(MemoryRegion &Mr, Module &M, uint32_t CieOff,
+  eld::Expected<void> emit(MemoryRegion &Mr, uint32_t CieOff,
                            const EhFrameFragment &F);
 
   void dump(llvm::raw_ostream &OS) {}
@@ -87,6 +87,9 @@ public:
   void appendFDE(FDEPiece *F) { FDEs.push_back(F); }
 
   const std::vector<FDEPiece *> &getFDEs() const { return FDEs; }
+
+  // Record an input CIE that is replaced by this canonical CIE.
+  void addAlias(EhFramePiece &P) { Aliases.push_back(&P); }
 
   void setOffset(uint32_t CieOff);
 
@@ -98,6 +101,7 @@ public:
 private:
   EhFramePiece &CIE;
   std::vector<FDEPiece *> FDEs;
+  std::vector<EhFramePiece *> Aliases;
 };
 
 class EhFrameFragment : public RegionFragment {
@@ -128,22 +132,22 @@ private:
 
 class FDEPiece {
 public:
-  explicit FDEPiece(EhFramePiece &P) : FDE(P) {}
+  FDEPiece(EhFramePiece &P, const EhFrameFragment &F) : FDE(P), Source(F) {}
 
   size_t size() const { return FDE.getSize(); }
 
-  llvm::ArrayRef<uint8_t> getContent(const EhFrameFragment &F) const {
-    return FDE.getData(F.getRegion());
-  }
+  llvm::ArrayRef<uint8_t> getContent() const;
 
-  eld::Expected<void> emit(MemoryRegion &Mr, Module &M,
-                           const EhFrameFragment &F);
+  eld::Expected<void> emit(MemoryRegion &Mr);
 
   EhFramePiece &getFDE() { return FDE; }
   const EhFramePiece &getFDE() const { return FDE; }
 
 private:
   EhFramePiece &FDE;
+  // CIE deduplication can put this FDE under a CIE from another fragment.
+  // Source identifies the fragment that contains the FDE's input bytes.
+  const EhFrameFragment &Source;
 };
 
 } // namespace eld
