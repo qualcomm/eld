@@ -1,4 +1,6 @@
-find_package(Git REQUIRED)
+if(ELD_APPEND_VC_REV)
+  find_package(Git REQUIRED)
+endif()
 
 function(set_up_git_revision_monitor)
   add_custom_target(update-eld-verinfo
@@ -17,16 +19,20 @@ function(set_up_git_revision_monitor)
     -DELD_VERSION_POST_CONFIGURED_FILE=${ELD_VERSION_POST_CONFIGURED_FILE}
     -DELD_BINARY_DIR=${ELD_BINARY_DIR}
     -DELD_SOURCE_DIR=${ELD_SOURCE_DIR}
+    -DELD_APPEND_VC_REV=${ELD_APPEND_VC_REV}
     -P ${CMAKE_CURRENT_LIST_FILE})
 endfunction()
 
 # Computes git revision for the working_dir. Returns the git revision in
 # the parent scope variable specified by 'revision' parameter.
 function(compute_git_revision working_dir revision)
-  execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
-    WORKING_DIRECTORY ${working_dir}
-    OUTPUT_VARIABLE git_revision
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  set(git_revision "")
+  if(ELD_APPEND_VC_REV)
+    execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+      WORKING_DIRECTORY ${working_dir}
+      OUTPUT_VARIABLE git_revision
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  endif()
   set(${revision} ${git_revision} PARENT_SCOPE)
 endfunction()
 

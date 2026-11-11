@@ -106,6 +106,9 @@ string(REGEX REPLACE "[0-9]+\\.([0-9]+)(\\.[0-9]+)?" "\\1" ELD_VERSION_MINOR
                      ${ELD_VERSION})
 
 # Support linker version
+option(ELD_APPEND_VC_REV
+       "Record the git revision of the ELD source tree in version information"
+       ON)
 add_version_info_eld_git(ELD_REPOSITORY ELD_REVISION ${ELD_SOURCE_DIR})
 
 if(LLVM_VENDOR_NAME)
