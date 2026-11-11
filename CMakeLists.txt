@@ -344,13 +344,18 @@ endif()
 
 option(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES
        "Include linker script templates in the install" ON)
+set(ELD_TEMPLATES_INSTALL_DIR
+    "templates"
+    CACHE STRING
+          "Path for linker script templates subdirectory (defaults to 'templates')")
+mark_as_advanced(ELD_TEMPLATES_INSTALL_DIR)
 option(ELD_ENABLE_PDF_DOCS
        "Enable PDF documentation generation (requires Typst)" OFF)
 
 if(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES)
   install(
     DIRECTORY templates/
-    DESTINATION templates
+    DESTINATION "${ELD_TEMPLATES_INSTALL_DIR}"
     COMPONENT ld.eld
     FILES_MATCHING
     PATTERN "*.template"
