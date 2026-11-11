@@ -30,6 +30,25 @@ if(NOT ELD_TOOLS_BINARY_DIR)
   set(ELD_TOOLS_BINARY_DIR "")
 endif()
 
+# Whether the ELD and LLVM revisions are available in version information,
+# for tests checking them. They may not be when building from release
+# tarballs, e.g. with an external LLVM.
+set(ELD_HAS_ELD_VC_REVISION "true")
+set(ELD_HAS_LLVM_VC_REVISION "true")
+if(NOT ELD_REVISION)
+  set(ELD_HAS_ELD_VC_REVISION "false")
+endif()
+if(ELD_USE_EXTERNAL_LLVM)
+  set(LLVM_REVISION_DEFINE "")
+  if(EXISTS "${LLVM_INCLUDE_DIR}/llvm/Support/VCSRevision.h")
+    file(STRINGS "${LLVM_INCLUDE_DIR}/llvm/Support/VCSRevision.h"
+         LLVM_REVISION_DEFINE REGEX "^#define LLVM_REVISION ")
+  endif()
+  if(NOT LLVM_REVISION_DEFINE)
+    set(ELD_HAS_LLVM_VC_REVISION "false")
+  endif()
+endif()
+
 if(NOT Python3_EXECUTABLE)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
 endif()

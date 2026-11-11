@@ -1,5 +1,7 @@
 # This test makes sure that strings in comment sections are not merged with
 # debug_str sections.
+# The LLVM string comes from the LLVM revision recorded by the linker.
+REQUIRES: llvm-vc-revision
 RUN: %clang %clangopts -c %p/Inputs/1.c -g -o %t1.o
 RUN: %link %linkopts %t1.o -o %t2.out
 RUN: %readelf -p .comment %t2.out | %filecheck %s

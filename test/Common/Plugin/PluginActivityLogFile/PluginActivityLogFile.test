@@ -17,7 +17,7 @@ RUN: %filecheck %s --check-prefix PLUGINS_INFO < %t1.1.plugin.map.json
 
 CHECK: Note: Stripping symbol baz
 
-PLUGIN_ACT:   "LinkerRevision": "{{.+}}",
+PLUGIN_ACT:   "LinkerRevision": "{{.*}}",
 PLUGIN_ACT:   "PluginActivities": [
 PLUGIN_ACT:     {
 PLUGIN_ACT-DAG:       "Annotation": "",
