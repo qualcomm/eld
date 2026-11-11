@@ -1,12 +1,29 @@
 include(ELDColorMsg)
 
 set(LLVM_UTILS_DIR "${LLVM_MAIN_SRC_DIR}/utils")
-if(NOT EXISTS "${LLVM_UTILS_DIR}/llvm-lit/llvm-lit.in")
-  error("llvm-lit.in not found at ${LLVM_UTILS_DIR}/llvm-lit/llvm-lit.in, \
+set(LLVM_LIT_IN_SRC_FILE "${LLVM_UTILS_DIR}/llvm-lit/llvm-lit.in")
+if(EXISTS "${LLVM_LIT_IN_SRC_FILE}")
+  # Generate a target specific llvm-lit for each test configuration.
+  set(ELD_GENERATE_LLVM_LIT ON)
+elseif(ELD_USE_EXTERNAL_LLVM)
+  # Without an LLVM source tree, run the test suites with an installed lit,
+  # e.g. from the LLVM tools package or from "pip install lit".
+  find_program(
+    LLVM_EXTERNAL_LIT
+    NAMES llvm-lit lit lit.py
+    HINTS "${LLVM_TOOLS_BINARY_DIR}"
+    DOC "Path to lit, used to run the tests")
+  if(NOT LLVM_EXTERNAL_LIT)
+    error("lit not found, set LLVM_EXTERNAL_LIT to the lit executable")
+    message(FATAL_ERROR "lit not found")
+  endif()
+  info("Using lit: ${LLVM_EXTERNAL_LIT}")
+  set(ELD_GENERATE_LLVM_LIT OFF)
+else()
+  error("llvm-lit.in not found at ${LLVM_LIT_IN_SRC_FILE}, \
      couldn't create target specific llvm-lit")
   message(FATAL_ERROR "llvm-lit.in not found")
 endif()
-set(LLVM_LIT_IN_SRC_FILE "${LLVM_UTILS_DIR}/llvm-lit/llvm-lit.in")
 
 option(LIT_VERBOSE "Set verbose output for Lit tests" OFF)
 
@@ -27,8 +44,10 @@ set(PATHFUNC "def path(p):\n    return p\n")
 
 function(add_external_eld_lit TARGET_NAME ARCH OPTION OPTIONNAME)
   string(TOLOWER ${ARCH} ARCH_LOWER)
-  set(LLVM_EXTERNAL_LIT
-      ${CMAKE_CURRENT_BINARY_DIR}/llvm-lit-${ARCH_LOWER}-${OPTIONNAME})
+  if(ELD_GENERATE_LLVM_LIT)
+    set(LLVM_EXTERNAL_LIT
+        ${CMAKE_CURRENT_BINARY_DIR}/llvm-lit-${ARCH_LOWER}-${OPTIONNAME})
+  endif()
   set(JSON_OUTPUT
       "${CMAKE_CURRENT_BINARY_DIR}/${ARCH}-${OPTIONNAME}-config/results.json")
 
@@ -39,7 +58,7 @@ function(add_external_eld_lit TARGET_NAME ARCH OPTION OPTIONNAME)
       "llvm_src_root=${LLVM_SOURCE_DIR}"
       "llvm_obj_root=${LLVM_BINARY_DIR}"
       "llvm_tools_dir=${LLVM_TOOLS_BINARY_DIR}"
-      "llvm_libs_dir=${LLVM_BINARY_DIR}/lib"
+      "llvm_libs_dir=${LLVM_LIBRARY_DIR}"
       "eld_targets_to_build=${ARCH}_${OPTIONNAME}"
       "targets_to_build=${ARCH}_${OPTIONNAME}"
       "eld_test_target=${ARCH}"
@@ -56,6 +75,10 @@ function(add_external_eld_lit TARGET_NAME ARCH OPTION OPTIONNAME)
       "cmake_executable=${CMAKE_COMMAND}"
       "enable_run_tests=${ELD_ENABLE_RUN_TESTS}"
       "has_zlib=${LLVM_ENABLE_ZLIB}")
+  if(ELD_USE_EXTERNAL_LLVM)
+    # ld.eld and libLW are not in the LLVM tools and library directories.
+    list(APPEND ELD_PLUGIN_LIT_PARAMS "eld_tools_dir=${ELD_BINARY_DIR}")
+  endif()
   add_lit_testsuite(
     ${TARGET_NAME}-test-${ARCH_LOWER}-${OPTIONNAME}
     "Running the Linker regression tests ${ADDITIONAL_TESTMSG} for option: ${OPTION} arch: ${ARCH}"
@@ -106,7 +129,9 @@ function(add_eld_lit_cfg ARCH OPTION OPTIONNAME)
       "${CMAKE_CURRENT_BINARY_DIR}/${ARCH}-${OPTIONNAME}-config/lit.site.cfg")
   configure_lit_site_cfg(${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.in
                          ${CUSTOM_LIT_CFG})
-  generate_ext_lit(${ARCH} ${OPTIONNAME} "${CUSTOM_LIT_CFG}")
+  if(ELD_GENERATE_LLVM_LIT)
+    generate_ext_lit(${ARCH} ${OPTIONNAME} "${CUSTOM_LIT_CFG}")
+  endif()
 endfunction()
 
 function(process_options_and_generate_lit_test_suite TARGET_NAME TEST_TARGETS

@@ -64,8 +64,9 @@ if(ELD_USE_EXTERNAL_LLVM)
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-  # FIXME : Enable tests For external builds, disable tests by default (requires
-  # LLVM source tree)
+  # Tests are disabled by default for external builds. They need lit and the
+  # LLVM test tools (FileCheck, not, ...) next to the other LLVM tools, clang,
+  # and GoogleTest for unit tests if LLVM does not provide it.
   option(ELD_INCLUDE_TESTS "Include tests in external build" OFF)
 
 else()
@@ -332,13 +333,13 @@ endfunction()
 # their plugin targets normally.
 add_subdirectory(Plugins)
 
-# Only include tests if enabled (requires LLVM source tree)
+# Only include tests if enabled
 if(ELD_INCLUDE_TESTS)
   add_subdirectory(test)
 else()
   message(
     STATUS
-      "Tests disabled (set ELD_INCLUDE_TESTS=ON to enable, requires LLVM source tree)"
+      "Tests disabled (set ELD_INCLUDE_TESTS=ON to enable)"
   )
 endif()
 
