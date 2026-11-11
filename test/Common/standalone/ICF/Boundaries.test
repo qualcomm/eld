@@ -20,6 +20,9 @@
 # .init and .fini are concatenated instruction streams, so identical
 # sections must not be folded as if they were independent functions.
 # RUN: %link %linkopts --entry=init_a --icf=all --print-icf-sections %t/init-a.o %t/init-b.o -o %t/init-icf 2>&1 | %filecheck %s --check-prefix=INIT-ICF --allow-empty
+# RUN: %clang -O0 -fno-stack-protector -c %t/arrays-a.c -o %t/arrays-a.o
+# RUN: %clang -O0 -fno-stack-protector -c %t/arrays-b.c -o %t/arrays-b.o
+# RUN: %link %linkopts --entry=ctor_a --icf=all --print-icf-sections %t/arrays-a.o %t/arrays-b.o -o %t/array-icf 2>&1 | %filecheck %s --check-prefix=ARRAY-ICF --allow-empty
 
 # RELOCS-NOT: ICF folding
 # SECTIONS-NOT: ICF folding
@@ -29,6 +32,7 @@
 # ALIGN-C-SYMS: [[ALIGNED:[0-9a-f]*[02468ace]0]] {{[0-9]+}} FUNC {{.*}} foo
 # ALIGN-C-SYMS: [[ALIGNED]] {{[0-9]+}} FUNC {{.*}} bar
 # INIT-ICF-NOT: ICF folding
+# ARRAY-ICF-NOT: ICF folding
 
 #--- relocs.c
 __attribute__((noinline)) int target(void) { return 7; }
@@ -77,3 +81,15 @@ __attribute__((section(".fini"), noinline, used)) void fini_a(void) {}
 #--- init-b.c
 __attribute__((section(".init"), noinline, used)) void init_b(void) {}
 __attribute__((section(".fini"), noinline, used)) void fini_b(void) {}
+
+#--- arrays-a.c
+__attribute__((section(".ctors"), noinline, used)) void ctor_a(void) {}
+__attribute__((section(".dtors"), noinline, used)) void dtor_a(void) {}
+__attribute__((section(".init_array"), noinline, used)) void init_array_a(void) {}
+__attribute__((section(".fini_array"), noinline, used)) void fini_array_a(void) {}
+
+#--- arrays-b.c
+__attribute__((section(".ctors"), noinline, used)) void ctor_b(void) {}
+__attribute__((section(".dtors"), noinline, used)) void dtor_b(void) {}
+__attribute__((section(".init_array"), noinline, used)) void init_array_b(void) {}
+__attribute__((section(".fini_array"), noinline, used)) void fini_array_b(void) {}

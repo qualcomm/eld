@@ -50,9 +50,17 @@ bool ELFSection::isEligibleForICF() const {
   if (hasRelocData() || isFolded())
     return false;
 
-  // .init and .fini are concatenated instruction streams, not independent
-  // functions, so their contents must not be folded.
-  if (name() == ".init" || name() == ".fini")
+  // These sections are streams/tables, not independent functions. This also
+  // excludes legacy constructor/destructor tables with executable flags.
+  llvm::StringRef SectionName(name());
+  if (SectionName == ".init" || SectionName == ".fini" ||
+      SectionName.starts_with(".ctors") || SectionName.starts_with(".dtors") ||
+      SectionName.starts_with(".init_array") ||
+      SectionName.starts_with(".fini_array") ||
+      SectionName.starts_with(".preinit_array") ||
+      getType() == llvm::ELF::SHT_INIT_ARRAY ||
+      getType() == llvm::ELF::SHT_FINI_ARRAY ||
+      getType() == llvm::ELF::SHT_PREINIT_ARRAY)
     return false;
 
   // A single fragment preserves every symbol's section-relative offset.
