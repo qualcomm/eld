@@ -23,6 +23,42 @@ bool ELFSection::hasOffset() const { return (Offset != ~uint64_t(0)); }
 
 bool ELFSection::hasSectionData() const { return (Fragments.size() > 0); }
 
+bool ELFSection::isEligibleForICF() const {
+  // Garbage collection marks dead sections as Ignore. Explicitly discarded
+  // sections must not be candidates either.
+  if (isIgnore() || isDiscard())
+    return false;
+
+  // Only allocated sections contribute code to the output image.
+  if (!isAlloc())
+    return false;
+
+  // This initial pass folds only read-only executable PROGBITS sections.
+  if (!isCode() || !isProgBits() || isWritable() || isTLS() || isMergeKind())
+    return false;
+
+  // Link-order and group sections have relationships that this pass does not
+  // model.
+  if (isLinkOrder() || isInGroup())
+    return false;
+
+  // Fixed-address sections must retain their original placement.
+  if (isFixedAddr())
+    return false;
+
+  // Relocation-aware equivalence is not implemented yet.
+  if (hasRelocData() || isFolded())
+    return false;
+
+  // .init and .fini are concatenated instruction streams, not independent
+  // functions, so their contents must not be folded.
+  if (name() == ".init" || name() == ".fini")
+    return false;
+
+  // A single fragment preserves every symbol's section-relative offset.
+  return fragmentCount() == 1 && size() != 0;
+}
+
 void ELFSection::addFragment(Fragment *F) {
   // Update Owning section.
   if (!F->getOwningSection())

@@ -182,6 +182,9 @@ public:
 
   virtual ~ELFSection() {}
 
+  /// Checks if the input section can be folded by the ICF pass.
+  bool isEligibleForICF() const;
+
   // LayoutPrinter helper functions
   static llvm::StringRef getELFTypeStr(llvm::StringRef Name, uint32_t Type);
 

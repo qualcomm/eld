@@ -32,43 +32,6 @@ using namespace eld;
 
 namespace {
 
-bool isEligibleForICF(const ELFSection &Section) {
-  // Garbage collection marks dead sections as Ignore. Explicitly discarded
-  // sections must not be candidates either.
-  if (Section.isIgnore() || Section.isDiscard())
-    return false;
-
-  // Only allocated sections contribute code to the output image.
-  if (!Section.isAlloc())
-    return false;
-
-  // This initial pass folds only read-only executable PROGBITS sections.
-  if (!Section.isCode() || !Section.isProgBits() || Section.isWritable() ||
-      Section.isTLS() || Section.isMergeKind())
-    return false;
-
-  // Link-order and group sections have relationships that this pass does not
-  // model.
-  if (Section.isLinkOrder() || Section.isInGroup())
-    return false;
-
-  // Fixed-address sections must retain their original placement.
-  if (Section.isFixedAddr())
-    return false;
-
-  // Relocation-aware equivalence is not implemented yet.
-  if (Section.hasRelocData() || Section.isFolded())
-    return false;
-
-  // .init and .fini are concatenated instruction streams, not independent
-  // functions, so their contents must not be folded.
-  if (Section.name() == ".init" || Section.name() == ".fini")
-    return false;
-
-  // A single fragment preserves every symbol's section-relative offset.
-  return Section.fragmentCount() == 1 && Section.size() != 0;
-}
-
 bool haveSameIdentity(const ELFSection &A, const ELFSection &B) {
   return A.getOutputSection() == B.getOutputSection() &&
          A.getFlags() == B.getFlags() && A.getContents() == B.getContents();
@@ -140,7 +103,7 @@ void ICF::run() {
       continue;
     for (Section *Section : Object->getSections()) {
       auto *ELF = llvm::dyn_cast<ELFSection>(Section);
-      if (isEligibleForICF(*ELF))
+      if (ELF->isEligibleForICF())
         Candidates.push_back(ELF);
     }
   }
