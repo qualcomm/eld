@@ -131,6 +131,9 @@ void ICF::run() {
       CanonicalFragment->setAlignment(Alignment);
       Folded->setFolded();
       Folded->setKind(LinkerSectionKind::Discard);
+      Canonical->addSectionAnnotation(
+          "ICF folded " + Folded->originalInput()->getInput()->decoratedPath() +
+          ":" + Folded->getDecoratedName(ThisConfig.options()));
       if (ThisConfig.options().printICFSections())
         ThisConfig.raise(Diag::trace_icf_section)
             << Folded->originalInput()->getInput()->decoratedPath()
