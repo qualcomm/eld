@@ -57,10 +57,7 @@ bool ELFSection::isEligibleForICF() const {
       SectionName.starts_with(".ctors") || SectionName.starts_with(".dtors") ||
       SectionName.starts_with(".init_array") ||
       SectionName.starts_with(".fini_array") ||
-      SectionName.starts_with(".preinit_array") ||
-      getType() == llvm::ELF::SHT_INIT_ARRAY ||
-      getType() == llvm::ELF::SHT_FINI_ARRAY ||
-      getType() == llvm::ELF::SHT_PREINIT_ARRAY)
+      SectionName.starts_with(".preinit_array"))
     return false;
 
   // A single fragment preserves every symbol's section-relative offset.

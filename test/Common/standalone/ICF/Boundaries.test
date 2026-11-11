@@ -19,10 +19,12 @@
 # RUN: %clang -O2 -fno-stack-protector -c %t/init-b.c -o %t/init-b.o
 # .init and .fini are concatenated instruction streams, so identical
 # sections must not be folded as if they were independent functions.
-# RUN: %link %linkopts --entry=init_a --icf=all --print-icf-sections %t/init-a.o %t/init-b.o -o %t/init-icf 2>&1 | %filecheck %s --check-prefix=INIT-ICF --allow-empty
+# RUN: %link %linkopts --entry=init_a --icf=all --print-icf-sections %t/init-a.o %t/init-b.o -o %t/init-icf > %t/init-icf.log 2>&1
+# RUN: %filecheck %s --check-prefix=INIT-ICF --input-file=%t/init-icf.log --allow-empty
 # RUN: %clang -O0 -fno-stack-protector -c %t/arrays-a.c -o %t/arrays-a.o
 # RUN: %clang -O0 -fno-stack-protector -c %t/arrays-b.c -o %t/arrays-b.o
-# RUN: %link %linkopts --entry=ctor_a --icf=all --print-icf-sections %t/arrays-a.o %t/arrays-b.o -o %t/array-icf 2>&1 | %filecheck %s --check-prefix=ARRAY-ICF --allow-empty
+# RUN: %link %linkopts --entry=ctor_a --icf=all --print-icf-sections %t/arrays-a.o %t/arrays-b.o -o %t/array-icf > %t/array-icf.log 2>&1
+# RUN: %filecheck %s --check-prefix=ARRAY-ICF --input-file=%t/array-icf.log --allow-empty
 
 # RELOCS-NOT: ICF folding
 # SECTIONS-NOT: ICF folding

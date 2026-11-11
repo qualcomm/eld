@@ -12,6 +12,8 @@
 // The pass runs after GC and before input sections are merged into their output
 // sections.
 //
+// FIXME: Support .llvm_addrsig-aware ICF. The symbol-index table contains
+// address-significant symbols that --icf=safe must not fold.
 // FIXME: Add support for relocation-aware equivalence checking.
 //===----------------------------------------------------------------------===//
 
