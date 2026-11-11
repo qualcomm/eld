@@ -65,7 +65,9 @@ def create_argparser():
 
 def main():
     args = create_argparser().parse_args()
-    output_dir = args.output_dir
+    # Commands run from per-relocation directories, so keep output paths
+    # absolute when passing them to subprocesses.
+    output_dir = Path(args.output_dir).resolve()
 
     if not args.arch in ARCH:
         print(f"Don't know anything about architecture {args.arch}",

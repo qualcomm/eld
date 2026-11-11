@@ -20,6 +20,7 @@ on:
       - Memory with origins sanitizer
       - Hourly Build Status Dashboard Updater
       - Zephyr with ELD
+      - Relocation testing framework
     types: [completed]
 
 permissions: {}
