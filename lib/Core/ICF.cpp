@@ -23,7 +23,9 @@
 #include "eld/Input/ObjectFile.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/SymbolResolver/LDSymbol.h"
+#include "eld/SymbolResolver/ResolveInfo.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Casting.h"
 #include <algorithm>
@@ -41,28 +43,33 @@ using SectionSymbolDefinitions =
     llvm::DenseMap<ELFSection *, llvm::SmallVector<FragmentRef *, 0>>;
 
 void collectSymbolDefinition(SectionSymbolDefinitions &Definitions,
-                             LDSymbol *Symbol) {
-  if (!Symbol || !Symbol->hasFragRef())
+                             const llvm::DenseSet<ELFSection *> &Candidates,
+                             LDSymbol *InputSymbol) {
+  if (!InputSymbol || InputSymbol->shouldIgnore() ||
+      !InputSymbol->resolveInfo())
+    return;
+  LDSymbol *Symbol = InputSymbol->resolveInfo()->outSymbol();
+  if (!Symbol || Symbol->shouldIgnore() || !Symbol->hasFragRefSection())
     return;
   FragmentRef *Ref = Symbol->fragRef();
-  if (!Ref)
-    return;
   auto *Section = llvm::dyn_cast<ELFSection>(Ref->frag()->getOwningSection());
-  if (Section)
+  if (Section && Candidates.contains(Section))
     Definitions[Section].push_back(Ref);
 }
 
-// Index symbol definitions once so folding a section visits only its symbols.
-SectionSymbolDefinitions collectSectionSymbolDefinitions(Module &Module) {
+// Index symbols from live ICF candidates once so folding a section visits only
+// its symbols.
+SectionSymbolDefinitions collectSectionSymbolDefinitions(
+    Module &Module, const llvm::DenseSet<ELFSection *> &Candidates) {
   SectionSymbolDefinitions Definitions;
   for (InputFile *Input : Module.getObjectList()) {
     auto *Object = llvm::dyn_cast<ObjectFile>(Input);
     if (!Object)
       continue;
     for (LDSymbol *Symbol : Object->getSymbols())
-      collectSymbolDefinition(Definitions, Symbol);
+      collectSymbolDefinition(Definitions, Candidates, Symbol);
     for (LDSymbol *Symbol : Object->getLocalSymbols())
-      collectSymbolDefinition(Definitions, Symbol);
+      collectSymbolDefinition(Definitions, Candidates, Symbol);
   }
   return Definitions;
 }
@@ -94,19 +101,23 @@ void ICF::run() {
     return;
   }
 
-  SectionSymbolDefinitions Definitions =
-      collectSectionSymbolDefinitions(ThisModule);
   llvm::SmallVector<ELFSection *, 0> Candidates;
+  llvm::DenseSet<ELFSection *> CandidateSet;
   for (InputFile *Input : ThisModule.getObjectList()) {
     auto *Object = llvm::dyn_cast<ObjectFile>(Input);
     if (!Object)
       continue;
     for (Section *Section : Object->getSections()) {
       auto *ELF = llvm::dyn_cast<ELFSection>(Section);
-      if (ELF->isEligibleForICF())
+      if (ELF && ELF->isEligibleForICF()) {
         Candidates.push_back(ELF);
+        CandidateSet.insert(ELF);
+      }
     }
   }
+
+  SectionSymbolDefinitions Definitions =
+      collectSectionSymbolDefinitions(ThisModule, CandidateSet);
 
   // TODO: Sort section hashes and compare groups within the same hash similar
   // to what LLD does.
