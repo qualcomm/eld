@@ -1,0 +1,13 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# Eight plugin workers replace 8192 pointer fields after layout. Map-enabled
+# runs exercise both arena allocation and shared plugin/chunk map containers.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/pointers.c -o %t.o
+RUN: %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.nomap
+RUN: %elfcopy --dump-section .replacement_data=%t.nomap.bin %t.nomap
+RUN: %python %p/Inputs/check.py %t.nomap.bin
+RUN: %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -Map=%t.map -o %t.map.out
+RUN: %elfcopy --dump-section .replacement_data=%t.map.bin %t.map.out
+RUN: %python %p/Inputs/check.py %t.map.bin %t.map
+RUN: %link %linkopts --shared %t.o -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -Map=%t.activity.map --plugin-activity-file=%t.activity.json -o %t.activity.so
+RUN: %elfcopy --dump-section .replacement_data=%t.activity.bin %t.activity.so
+RUN: %python %p/Inputs/check.py %t.activity.bin %t.activity.map %t.activity.json

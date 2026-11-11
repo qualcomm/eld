@@ -1,0 +1,25 @@
+#---VisitInputLTOModuleHash.test--------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This test ensures that BitcodeFile::setLTOModuleHash API works as expected.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.set_hash.o -c -flto %p/Inputs/1.c
+RUN: %clang %clangopts -o %t.observer.o -c %p/Inputs/2.c
+RUN: %link %linkopts -o %t.out %t.set_hash.o %t.observer.o --save-temps \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck --check-prefix=CHECK-SET %s
+RUN: %filecheck --check-prefix=CHECK-MODULE %s --input-file=%t.out.llvm-lto.resolution.txt
+
+RUN: %clang %clangopts -c -flto %p/Inputs/1.c -o %t.dup_hash.o
+RUN: %not %link %linkopts -o %t.out %t.dup_hash.o \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck --check-prefix=CHECK-DUP %s
+
+RUN: %clang %clangopts -o %t.wrong_state.o -c -flto %p/Inputs/1.c
+RUN: %not %link %linkopts -o %t.out %t.wrong_state.o \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck --check-prefix=CHECK-STATE %s
+#END_TEST
+
+CHECK-SET: VisitInput: bitcode hash set=0x12345678 for '{{.*}}set_hash.o'
+CHECK-MODULE: {{.*}}set_hash.o^^12345678{{$}}
+CHECK-MODULE-NEXT: -r={{.*}}set_hash.o^^12345678,foo,
+CHECK-DUP: LTO module hash for '{{.*}}dup_hash.o' has already been set
+CHECK-STATE: Link state 'ActBeforeRuleMatching' is invalid for the API '{{.*}}setLTOModuleHash{{.*}}'. Valid link states: [Initializing]

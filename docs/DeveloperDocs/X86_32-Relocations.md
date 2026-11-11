@@ -11,6 +11,31 @@ https://gitlab.com/x86-psABIs/i386-ABI
 
 ---
 
+## GOT/PLT Allocation Annotations
+
+Modes: `S` = static executable, `D` = dynamic executable, `P` = PIE,
+`H` = shared library; `I` overrides `P` for static PIE.
+Resources: `G` = symbol GOT slot, `J` = PLT destination GOT slot,
+`L` = PLT entry, `R` = IFUNC resolver PLT; `-` = no allocation.
+Conditions: `p` = Preemptible=true, `f` = function, `i` = IFUNC,
+`g` = global-bound, `t` = TLS, `h` = local-bound hidden.
+`[a&b]` requires both conditions; `!` means NOT. Unconditional entries
+apply to any visibility/type. TLS resources, modifiers, and examples are
+in the [shared annotation legend](Relocation-Reservation-Annotations.md#allocation-annotations);
+see also the [preemption flowchart](Relocation-Reservation-Annotations.md#visibility-and-preemption).
+
+- The supported relocation set has **no per-symbol GOT or PLT
+  reservation** path, including for `STT_FUNC`, `STT_GNU_IFUNC`, or `STT_TLS`.
+  ABI relocation names alone do not imply dynamic i386 support in ELD.
+- `GOTOFF`/`GOTPC` materialize the 12-byte `GOTPLT0` base for any
+  visibility/type in every final-link mode, not an imported symbol's
+  individual GOT entry or a function PLT entry.
+- No range trampoline is registered. Narrow PC-relative overflow retains
+  its range policy; full-width ELF32 wraparound does not create a stub.
+
+Sources: [scanner](../../lib/Target/X86/X86_32Relocator.cpp),
+[backend](../../lib/Target/X86/X86_32LDBackend.cpp).
+
 ## Relocation Conventions
 
 | Symbol | Meaning |
@@ -74,17 +99,17 @@ The 8- and 16-bit i386 relocation forms are extensions rather than part of
 the usual i386 psABI relocation set. They are required by the current
 real-mode and setup-code inputs.
 
-| Relocation | Encoding | Range policy | Effective bound |
-|------------|----------|--------------|-----------------|
-| `R_386_NONE` | `EncTy_None` | none | — |
-| `R_386_32` | `EncTy_32` | none | any 32-bit bit pattern |
-| `R_386_16` | `EncTy_16` | signed or unsigned | signed 16-bit or unsigned 16-bit |
-| `R_386_8` | `EncTy_8` | signed or unsigned | signed 8-bit or unsigned 8-bit |
-| `R_386_PC32` | `EncTy_32` | none | any 32-bit bit pattern |
-| `R_386_PC16` | `EncTy_16` | signed 17-bit | `-65536 ≤ X ≤ 65535` |
-| `R_386_PC8` | `EncTy_8` | signed 8-bit | `-128 ≤ X ≤ 127` |
-| `R_386_GOTOFF` | `EncTy_32` | none | any 32-bit bit pattern |
-| `R_386_GOTPC` | `EncTy_32` | none | any 32-bit bit pattern |
+| Relocation | Encoding | Range policy | Effective bound | GOT allocation | PLT allocation | Trampoline / range |
+|------------|----------|--------------|-----------------|-------------------------|-------------------------|--------------------|
+| `R_386_NONE` | `EncTy_None` | none | — | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_32` | `EncTy_32` | none | any 32-bit bit pattern | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_16` | `EncTy_16` | signed or unsigned | signed 16-bit or unsigned 16-bit | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_8` | `EncTy_8` | signed or unsigned | signed 8-bit or unsigned 8-bit | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_PC32` | `EncTy_32` | none | any 32-bit bit pattern | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_PC16` | `EncTy_16` | signed 17-bit | `-65536 ≤ X ≤ 65535` | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_PC8` | `EncTy_8` | signed 8-bit | `-128 ≤ X ≤ 127` | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_GOTOFF` | `EncTy_32` | none | any 32-bit bit pattern | <ul><li><code>S: B</code></li><li><code>D: B</code></li><li><code>P: B</code></li><li><code>H: B</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_GOTPC` | `EncTy_32` | none | any 32-bit bit pattern | <ul><li><code>S: B</code></li><li><code>D: B</code></li><li><code>P: B</code></li><li><code>H: B</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 
 ---
@@ -96,33 +121,33 @@ real-mode and setup-code inputs.
 The computed value `S + A` is written into the relocation site. Because i386
 uses `Elf32_Rel`, `A` is read from the original contents of that site.
 
-| Relocation | Type | Encoding | Operation | Range check |
-|------------|------|----------|-----------|-------------|
-| `R_386_NONE` | 0 | `EncTy_None` | — | — |
-| `R_386_32` | 1 | `EncTy_32` | `S + A` | none; write the ELF32 result |
-| `R_386_16` | 20 | `EncTy_16` | `S + A` | signed or unsigned 16-bit |
-| `R_386_8` | 22 | `EncTy_8` | `S + A` | signed or unsigned 8-bit |
+| Relocation | Type | Encoding | Operation | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|-------------|-------------------------|-------------------------|--------------------|
+| `R_386_NONE` | 0 | `EncTy_None` | — | — | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_32` | 1 | `EncTy_32` | `S + A` | none; write the ELF32 result | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_16` | 20 | `EncTy_16` | `S + A` | signed or unsigned 16-bit | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_8` | 22 | `EncTy_8` | `S + A` | signed or unsigned 8-bit | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 ### PC-Relative Relocations
 
 The computed value `S + A - P` is written into the relocation site. `P` is
 the address of the field being relocated.
 
-| Relocation | Type | Encoding | Operation | Range check |
-|------------|------|----------|-----------|-------------|
-| `R_386_PC32` | 2 | `EncTy_32` | `S + A - P` | none; write the ELF32 result |
-| `R_386_PC16` | 21 | `EncTy_16` | `S + A - P` | signed 17-bit before truncation |
-| `R_386_PC8` | 23 | `EncTy_8` | `S + A - P` | signed 8-bit |
+| Relocation | Type | Encoding | Operation | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|-------------|-------------------------|-------------------------|--------------------|
+| `R_386_PC32` | 2 | `EncTy_32` | `S + A - P` | none; write the ELF32 result | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_PC16` | 21 | `EncTy_16` | `S + A - P` | signed 17-bit before truncation | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_PC8` | 23 | `EncTy_8` | `S + A - P` | signed 8-bit | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 ### GOT-Base Relocations
 
 These relocations use the address of the linker-created i386 GOT base. They
 do not allocate an imported symbol's individual GOT entry.
 
-| Relocation | Type | Encoding | Operation | Range check |
-|------------|------|----------|-----------|-------------|
-| `R_386_GOTOFF` | 9 | `EncTy_32` | `S + A - GOT` | none; write the ELF32 result |
-| `R_386_GOTPC` | 10 | `EncTy_32` | `GOT + A - P` | none; write the ELF32 result |
+| Relocation | Type | Encoding | Operation | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|-------------|-------------------------|-------------------------|--------------------|
+| `R_386_GOTOFF` | 9 | `EncTy_32` | `S + A - GOT` | none; write the ELF32 result | <ul><li><code>S: B</code></li><li><code>D: B</code></li><li><code>P: B</code></li><li><code>H: B</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_386_GOTPC` | 10 | `EncTy_32` | `GOT + A - P` | none; write the ELF32 result | <ul><li><code>S: B</code></li><li><code>D: B</code></li><li><code>P: B</code></li><li><code>H: B</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 When either relocation is scanned, ELD materializes the i386 `GOTPLT0`
 fragment and defines the hidden `_GLOBAL_OFFSET_TABLE_` symbol. After layout,

@@ -1,17 +1,17 @@
 .section .text.foo
-nop
-nop
-nop
-nop
+.long 0
+.long 0
+.long 0
+.long 0
 
 .section .text.bar
-nop
-nop
-nop
-nop
+.long 0
+.long 0
+.long 0
+.long 0
 
 .section .text.baz
-nop
-nop
-nop
-nop
+.long 0
+.long 0
+.long 0
+.long 0

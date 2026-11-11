@@ -47,6 +47,10 @@ public:
   /// link command-line.
   bool processPluginCommandLineOptions(GeneralOptions &Options);
 
+  /// Call VisitInput hook handler of each universal plugin. Returns false if
+  /// any of the callbacks fails.
+  bool callVisitInputHook(InputFile &IF);
+
   /// Call VisitSection hook handler of each universal plugin. Returns false if
   /// any of the callback fails.
   bool callVisitSectionsHook(InputFile &IF);

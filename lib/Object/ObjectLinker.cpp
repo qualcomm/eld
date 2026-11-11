@@ -85,6 +85,7 @@
 #include "llvm/Support/Caching.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/FileOutputBuffer.h"
+#include "llvm/Support/LibraryOptionsContext.h"
 #include "llvm/Support/MemoryBufferRef.h"
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/Path.h"
@@ -3562,14 +3563,22 @@ bool ObjectLinker::createLTOObject(void) {
   if (LTOPlugin)
     LTOPlugin->ModifyLTOOptions(Conf, Options);
 
-  // Config.MllvmArgs are ignored, call cl::ParseCommandLineOptions instead.
+  // Config.MllvmArgs are ignored, call cl::parseCommandLineOptions instead.
   std::vector<const char *> CodegenArgv(1, "LTOCodeGenOptions");
   for (const std::string &Arg : Options)
     CodegenArgv.push_back(Arg.c_str());
-  cl::ParseCommandLineOptions(CodegenArgv.size(), CodegenArgv.data());
+  // libraryOptions must outlive Conf and the LTO object created below.
+  cl::LibraryOptionsContext libraryOptions;
+  std::string Err;
+  raw_string_ostream OS(Err);
+  if (!cl::parseCommandLineOptions(libraryOptions, CodegenArgv, "", &OS)) {
+    ThisConfig.raise(Diag::lto_codegen_error) << StringRef(Err);
+    return false;
+  }
 
-  Conf.Options = llvm::codegen::InitTargetOptionsFromCodeGenFlags(
-      ThisConfig.targets().triple());
+  Conf.LibraryOptions = &libraryOptions;
+  Conf.Options = llvm::codegen::getTargetOptions(libraryOptions,
+                                                 ThisConfig.targets().triple());
 
   if (ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly() &&
       Conf.CGFileType == CodeGenFileType::AssemblyFile)
@@ -3841,6 +3850,10 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
                          ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(InputFile::InputFileKind::BinaryFileKind);
+    addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);
+    PluginManager &PM = ThisModule->getPluginManager();
+    if (!PM.callVisitInputHook(*CurInput))
+      return false;
     eld::Expected<void> ExpParseFile =
         getBinaryFileParser()->parseFile(*CurInput);
     if (!ExpParseFile) {
@@ -3848,7 +3861,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       return false;
     }
     ThisModule->getObjectList().push_back(CurInput);
-    addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);
   } else if (CurInput->getKind() == InputFile::ELFExecutableFileKind) {
     if (!CurInput->getInput()->getAttribute().isJustSymbols()) {
       ThisConfig.raise(Diag::error_executable_requires_just_symbols)
@@ -3932,6 +3944,10 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     CurInput->setToSkip();
     // LTO is needed.
     ThisModule->setLTONeeded();
+    addInputFileToTar(CurInput, MappingFile::Bitcode);
+    PluginManager &PM = ThisModule->getPluginManager();
+    if (!PM.callVisitInputHook(*CurInput))
+      return false;
     if (!getBitcodeReader()->readInput(*CurInput, LTOPlugin))
       return false;
     if (!isBackendInitialized()) {
@@ -3940,7 +3956,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     }
 
     ThisModule->getObjectList().push_back(CurInput);
-    addInputFileToTar(CurInput, MappingFile::Bitcode);
   } else if (CurInput->getKind() == InputFile::ELFSymDefFileKind) {
     eld::RegisterTimer T("Read SymDef Object Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
@@ -3952,6 +3967,9 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     }
     addInputFileToTar(CurInput, eld::MappingFile::Kind::SymDef);
     CurInput->setToSkip();
+    PluginManager &PM = ThisModule->getPluginManager();
+    if (!PM.callVisitInputHook(*CurInput))
+      return false;
     // Just to make it simple, I just added template code.
     if (!getSymDefReader()->readHeader(*CurInput, IsPostLto))
       return false;
@@ -4025,6 +4043,12 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       ThisConfig.raise(Diag::verbose_reusing_archive_file_info)
           << Input->decoratedPath() << "\n";
       CurArchive->setArchiveFileInfo(AF->getArchiveFileInfo());
+    }
+    if (!CurArchive->hasVisitedInput()) {
+      CurArchive->setVisitedInput(true);
+      PluginManager &PM = ThisModule->getPluginManager();
+      if (!PM.callVisitInputHook(*CurInput))
+        return false;
     }
     uint32_t NumObjects = 0;
     eld::Expected<uint32_t> ExpNumObjects =

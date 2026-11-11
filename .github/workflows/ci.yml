@@ -66,12 +66,26 @@ jobs:
             const onlyWorkflows = files.length > 0 && files.every(({ filename }) =>
               filename.startsWith('.github/workflows/')
             );
+            const skipBuild = onlyDocs || onlyWorkflows;
             core.info(`Changed files: ${files.map(({ filename }) => filename).join(', ')}`);
-            core.setOutput('skip_build', String(onlyDocs || onlyWorkflows));
+            core.setOutput('skip_build', String(skipBuild));
             core.setOutput('workflow_changed', String(workflowFiles.length > 0));
             core.setOutput('workflow_files', JSON.stringify(workflowFiles));
             core.setOutput('skip_workflow_lint_check', String(skipWorkflowLintCheck));
             core.info(`Skip workflow lint check label present: ${skipWorkflowLintCheck}`);
+            // Explain on the run summary page why the Ubuntu CI build was
+            // skipped, since GitHub only shows the job as "skipped".
+            if (skipBuild) {
+              const reason = onlyDocs
+                ? 'This pull request only changes documentation (files under <code>docs/</code> or ending in <code>.md</code>).'
+                : 'This pull request only changes files under <code>.github/workflows/</code>.';
+              await core.summary
+                .addHeading('Ubuntu CI build skipped', 3)
+                .addRaw(`${reason} The Ubuntu CI build and tests did not run.`, true)
+                .addHeading('Changed files', 4)
+                .addList(files.map(({ filename }) => filename))
+                .write();
+            }
 
   workflow-lint:
     name: Lint GitHub Actions workflows
