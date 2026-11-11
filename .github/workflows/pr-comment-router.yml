@@ -70,6 +70,7 @@ jobs:
             const allowed = new Set(['COLLABORATOR', 'MEMBER', 'OWNER']);
             const supported = new Set([
               'check-llvm-test-suite',
+              'check-relocation-testing',
               'check-linux-kernel',
               'check-busybox',
               'check-reviter',
@@ -116,6 +117,7 @@ jobs:
             const artifactName = `pr-eld-toolset-${pullRequest.head.sha}`;
             const checkDefinitions = new Map([
               ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
+              ['check-relocation-testing', { name: 'Relocation testing framework', context: 'PR Relocation testing framework', usesToolset: true }],
               ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
               ['check-busybox', { name: 'BusyBox', context: 'PR BusyBox', usesToolset: true }],
               ['check-reviter', { name: 'Reverse iterators', context: 'PR Reverse iterators', usesToolset: false }],
@@ -204,6 +206,7 @@ jobs:
             const runAll = command === 'check-all-workflows';
             const checkDefinitions = new Map([
               ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
+              ['check-relocation-testing', { name: 'Relocation testing framework', context: 'PR Relocation testing framework', usesToolset: true }],
               ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
               ['check-busybox', { name: 'BusyBox', context: 'PR BusyBox', usesToolset: true }],
               ['check-reviter', { name: 'Reverse iterators', context: 'PR Reverse iterators', usesToolset: false }],
@@ -298,6 +301,26 @@ jobs:
     permissions:
       contents: write
       actions: write
+
+  relocation_test:
+    needs: [validate, build]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate.result == 'success' &&
+      needs.validate.outputs.pr_sha != '' &&
+      (contains(needs.validate.outputs.command, 'check-relocation-testing') ||
+       needs.validate.outputs.command == 'check-all-workflows') &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    uses: ./.github/workflows/relocation-testing.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      toolset_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
+      toolset_artifact: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
+    permissions:
+      actions: write
+      contents: write
 
   linux_test:
     needs: [validate, build]
@@ -481,6 +504,29 @@ jobs:
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
       build_result: ${{ needs.build.result }}
       test_result: ${{ needs.llvm_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_relocation:
+    needs: [validate, build, relocation_test]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (contains(needs.validate.outputs.command, 'check-relocation-testing') ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: Relocation testing framework
+      status_context: PR Relocation testing framework
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: ${{ needs.build.result }}
+      test_result: ${{ needs.relocation_test.result }}
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
     permissions:
@@ -696,7 +742,7 @@ jobs:
       statuses: write
 
   report_all:
-    needs: [validate, build, llvm_test, linux_test, busybox_test, reviter_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, memory_sanitizer_test, windows_test, macos_test]
+    needs: [validate, build, llvm_test, relocation_test, linux_test, busybox_test, reviter_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, memory_sanitizer_test, windows_test, macos_test]
     if: |
       always() &&
       !cancelled() &&
@@ -715,6 +761,7 @@ jobs:
           PR_SHA: ${{ needs.validate.outputs.pr_sha }}
           BUILD_RESULT: ${{ needs.build.result }}
           LLVM_RESULT: ${{ needs.llvm_test.result }}
+          RELOCATION_RESULT: ${{ needs.relocation_test.result }}
           LINUX_RESULT: ${{ needs.linux_test.result }}
           BUSYBOX_RESULT: ${{ needs.busybox_test.result }}
           REVITER_RESULT: ${{ needs.reviter_test.result }}
@@ -730,6 +777,7 @@ jobs:
           script: |
             const checks = [
               ['LLVM test suite', process.env.LLVM_RESULT],
+              ['Relocation testing framework', process.env.RELOCATION_RESULT],
               ['Linux kernel boot', process.env.LINUX_RESULT],
               ['BusyBox', process.env.BUSYBOX_RESULT],
               ['Reverse iterators', process.env.REVITER_RESULT],
