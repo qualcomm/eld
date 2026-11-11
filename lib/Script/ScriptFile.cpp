@@ -222,8 +222,10 @@ void ScriptFile::addInputToTar(const std::string &Filename,
 namespace {
 
 inline bool searchIncludeFile(llvm::StringRef Name, llvm::StringRef FileName,
-                              DiagnosticEngine *DiagEngine) {
-  bool Found = llvm::sys::fs::exists(FileName);
+                              DiagnosticEngine *DiagEngine,
+                              const LinkerConfig &Config, bool UseChroot) {
+  bool Found = UseChroot ? Config.existsInChroot(FileName)
+                        : llvm::sys::fs::exists(FileName);
   DiagEngine->raise(Diag::verbose_trying_script_include_file)
       << FileName << Name << (Found ? "found" : "not found");
   return Found;
@@ -281,9 +283,11 @@ std::string ScriptFile::findIncludeFile(const std::string &Filename,
   }
 
   if (searchIncludeFile(Filename, Filename,
-                        ThisModule.getConfig().getDiagEngine())) {
-    addInputToTar(Filename, Filename);
-    return Filename;
+                        ThisModule.getConfig().getDiagEngine(), Config,
+                        /*UseChroot=*/true)) {
+    std::string ResolvedFilePath = Config.applyChroot(Filename);
+    addInputToTar(Filename, ResolvedFilePath);
+    return ResolvedFilePath;
   }
 
   for (auto *Dir : Config.directories().getDirectories()) {
@@ -291,7 +295,8 @@ std::string ScriptFile::findIncludeFile(const std::string &Filename,
     Path += "/";
     Path += Filename;
     if (searchIncludeFile(Filename, Path,
-                          ThisModule.getConfig().getDiagEngine())) {
+                          ThisModule.getConfig().getDiagEngine(), Config,
+                          /*UseChroot=*/false)) {
       addInputToTar(Filename, Path);
       return Path;
     }

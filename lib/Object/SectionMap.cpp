@@ -612,7 +612,7 @@ bool SectionMap::doesRuleMatchWithSection(const RuleContainer &R,
   }
   if (S.getOldInputFile())
     IF = S.getOldInputFile();
-  const std::string &InputFileName = IF->getInput()->getResolvedPath().native();
+  const std::string &InputFileName = IF->getInput()->getRuleMatchingPath();
   std::string SectName = S.name().str();
   uint64_t SectHash = S.sectionNameHash();
   if (!DoNotUseRmName) {
@@ -627,7 +627,7 @@ bool SectionMap::doesRuleMatchWithSection(const RuleContainer &R,
   }
   bool IsArchive = IF->isArchive() ||
                    llvm::dyn_cast<eld::ArchiveMemberInput>(IF->getInput());
-  uint64_t InputFileHash = IF->getInput()->getResolvedPathHash();
+  uint64_t InputFileHash = IF->getInput()->getRuleMatchingPathHash();
   uint64_t ArchiveMemNameHash = IF->getInput()->getArchiveMemberNameHash();
   return matched(
       R, IF, InputFileName, SectName, IsArchive, IF->getInput()->getName(),
