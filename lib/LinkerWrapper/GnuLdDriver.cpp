@@ -50,6 +50,8 @@
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
+#include <map>
+#include <set>
 #include <thread>
 
 using namespace llvm;
@@ -1711,6 +1713,67 @@ void GnuLdDriver::writeReproduceTar(void *cookie) {
               outputTar->getMappings());
 }
 
+static std::string
+rewriteExcludeLibs(llvm::StringRef Value,
+                   const std::vector<eld::InputAction *> &Actions,
+                   eld::OutputTarWriter &OutputTar) {
+  // Index each archive's original names by its captured name. A set preserves
+  // distinct archives when multiple inputs share the same basename.
+  std::map<std::string, std::set<std::string>> RewrittenNames;
+  for (eld::InputAction *Action : Actions) {
+    auto Kind = Action->getInputActionKind();
+    if (Kind != eld::InputAction::InputFile &&
+        Kind != eld::InputAction::Namespec)
+      continue;
+
+    eld::Input *Input = Action->getInput();
+    if (!Input || !Input->getInputFile())
+      continue;
+
+    std::string Key = Input->getInputFile()->hasMappedPath()
+                          ? Input->getInputFile()->getMappedPath()
+                          : Input->getName();
+    std::string CapturedName =
+        llvm::sys::path::filename(OutputTar.rewritePath(Key)).str();
+    std::string ResolvedPath = Input->getResolvedPath().native();
+    std::string ResolvedName = Input->getResolvedPath().filename().native();
+    std::string InputName = Input->getFileName();
+    // Match an exclusion written as the archive's resolved path.
+    RewrittenNames[ResolvedPath].insert(CapturedName);
+    // Match an exclusion written as the archive basename (e.g. libfoo.a).
+    RewrittenNames[ResolvedName].insert(CapturedName);
+    // Match an exclusion written as a linker namespec (e.g. -lfoo).
+    RewrittenNames["-l" + InputName].insert(CapturedName);
+  }
+
+  // Rewrite comma-separated entries independently; ALL and unknown entries
+  // retain their original spelling.
+  std::string Result;
+  bool First = true;
+  while (!Value.empty()) {
+    auto [Entry, Rest] = Value.split(',');
+    auto Matches = Entry == "ALL" ? RewrittenNames.end()
+                                  : RewrittenNames.find(Entry.str());
+    if (Matches == RewrittenNames.end()) {
+      if (!First)
+        Result += ',';
+      Result += Entry.str();
+      First = false;
+    } else {
+      // One exclusion can match multiple captured archives when basenames
+      // collide, so emit every name in the set.
+      for (const std::string &Name : Matches->second) {
+        if (!First)
+          Result += ',';
+        Result += Name;
+        First = false;
+      }
+    }
+    Value = Rest;
+  }
+  return Result;
+}
+
 template <class T>
 bool GnuLdDriver::processReproduceOption(
     llvm::opt::InputArgList &Args, eld::OutputTarWriter *outputTar,
@@ -1844,6 +1907,12 @@ bool GnuLdDriver::processReproduceOption(
     case T::Map:
       os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
          << ' ';
+      break;
+    case T::exclude_libs:
+      // Keep exclusions synchronized with archive and namespec rewrites in
+      // the replay response file.
+      os << arg->getSpelling() << '='
+         << rewriteExcludeLibs(arg->getValue(), actions, *outputTar) << ' ';
       break;
     case T::dynamic_list:
       captureInput(arg->getValue(), MappingFile::Kind::DynamicList,
