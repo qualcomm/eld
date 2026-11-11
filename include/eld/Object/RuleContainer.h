@@ -14,6 +14,7 @@
 #include "eld/Script/OutputSectDesc.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/DataTypes.h"
 #include <atomic>
 #include <chrono>
@@ -32,7 +33,8 @@ class SectionMap;
 class RuleContainer {
 public:
   typedef std::vector<Assignment *> SymbolAssignments;
-  typedef SymbolAssignments::iterator sym_iterator;
+  using SymbolAssignmentsRange =
+      llvm::iterator_range<SymbolAssignments::iterator>;
 
   RuleContainer(
       SectionMap *, std::string PName, InputSectDesc::Policy PPolicy,
@@ -67,8 +69,10 @@ public:
 
   void init(ELFSection *);
 
-  sym_iterator symBegin() { return MSymbolAssignments.begin(); }
-  sym_iterator symEnd() { return MSymbolAssignments.end(); }
+  SymbolAssignmentsRange symAssignmentsRange() {
+    return llvm::make_range(MSymbolAssignments.begin(),
+                            MSymbolAssignments.end());
+  }
 
   const SymbolAssignments &symAssignments() const { return MSymbolAssignments; }
   SymbolAssignments &symAssignments() { return MSymbolAssignments; }

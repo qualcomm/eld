@@ -26,6 +26,7 @@
 #include "eld/Target/Relocator.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/GlobPattern.h"
 #include "llvm/Support/Timer.h"
 #include <memory>
@@ -1005,9 +1006,8 @@ std::vector<plugin::Stub> OutputSection::getStubs() const {
   if (!m_OutputSection)
     return {};
   std::vector<plugin::Stub> trampolines;
-  for (auto iter = m_OutputSection->islandsBegin();
-       iter != m_OutputSection->islandsEnd(); ++iter) {
-    trampolines.emplace_back(*iter);
+  for (auto *Island : m_OutputSection->branchIslands()) {
+    trampolines.emplace_back(Island);
   }
   return trampolines;
 }
@@ -1285,6 +1285,12 @@ bool plugin::InputFile::hasInputFile() const {
   return (m_InputFile != nullptr);
 }
 
+bool plugin::InputFile::isArchiveFile() const {
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isArchive();
+}
+
 bool plugin::InputFile::isArchive() const {
   if (!m_InputFile)
     return false;
@@ -1312,9 +1318,28 @@ std::string plugin::InputFile::getMemberName() const {
   return m_InputFile->getInput()->getName();
 }
 
-bool plugin::InputFile::isObjectFile() {
-  eld::ObjectFile *object_file = llvm::dyn_cast<eld::ObjectFile>(m_InputFile);
-  return (object_file != nullptr);
+bool plugin::InputFile::isObjectFile() const {
+  eld::ObjectFile *objectFile =
+      llvm::dyn_cast_or_null<eld::ObjectFile>(m_InputFile);
+  return objectFile != nullptr;
+}
+
+bool plugin::InputFile::isDynamicLibrary() const {
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isDynamicLibrary();
+}
+
+bool plugin::InputFile::isBinaryFile() const {
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isBinaryFile();
+}
+
+bool plugin::InputFile::isExecutableELFFile() const {
+  if (!m_InputFile)
+    return false;
+  return m_InputFile->isExecutableELFFile();
 }
 
 std::vector<plugin::Symbol> plugin::InputFile::getSymbols() const {
@@ -1447,9 +1472,17 @@ std::string plugin::InputFile::getRealPath() const {
   return m_InputFile->getInput()->getResolvedPath().getFullPath();
 }
 
+plugin::BitcodeFile plugin::InputFile::getAsBitcodeFile() const {
+  if (auto *BC = llvm::dyn_cast_or_null<eld::BitcodeFile>(m_InputFile))
+    return plugin::BitcodeFile(BC);
+  return plugin::BitcodeFile(nullptr);
+}
+
 //
 //-----------------------------BitcodeFile---------------------------------
 //
+plugin::BitcodeFile::BitcodeFile(eld::BitcodeFile *F) : plugin::InputFile(F) {}
+
 plugin::BitcodeFile::BitcodeFile(eld::BitcodeFile &F) : plugin::InputFile(&F) {}
 
 eld::BitcodeFile &plugin::BitcodeFile::getBitcodeFile() const {
@@ -1462,6 +1495,29 @@ llvm::lto::InputFile &plugin::BitcodeFile::getInputFile() const {
 
 bool plugin::BitcodeFile::findIfKeptComdat(unsigned index) const {
   return getBitcodeFile().findIfKeptComdat(index);
+}
+
+eld::Expected<void>
+plugin::BitcodeFile::setLTOModuleHash(uint64_t Hash, const LinkerWrapper &LW) {
+  CHECK_LINK_STATE(LW, "Initializing");
+  auto *BC =
+      llvm::dyn_cast_or_null<eld::BitcodeFile>(InputFile::getInputFile());
+  if (!BC)
+    return std::make_unique<DiagnosticEntry>(Diag::error_invalid_argument);
+  if (BC->getOverriddenModuleHash()) {
+    return std::make_unique<DiagnosticEntry>(DiagnosticEntry(
+        Diag::error_lto_module_hash_already_set, {getFileName()}));
+  }
+  BC->setOverriddenModuleHash(Hash);
+  return {};
+}
+
+std::optional<uint64_t> plugin::BitcodeFile::getLTOModuleHash() const {
+  auto *BC =
+      llvm::dyn_cast_or_null<eld::BitcodeFile>(InputFile::getInputFile());
+  if (!BC)
+    return std::nullopt;
+  return BC->getOverriddenModuleHash();
 }
 
 //

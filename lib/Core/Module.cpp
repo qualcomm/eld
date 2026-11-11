@@ -493,7 +493,7 @@ bool Module::updateOutputSectionsWithPlugins() {
     return true;
 
   llvm::StringMap<OutputSectionEntry *> OutputSections;
-  for (auto &OutputSect : getScript().sectionMap())
+  for (auto *OutputSect : getScript().sectionMap().outputSections())
     OutputSections.insert(std::make_pair(OutputSect->name(), OutputSect));
 
   for (auto &Plugin : getScript().getPluginOutputSection()) {
@@ -832,9 +832,16 @@ uint64_t Module::getImageLayoutChecksum() const {
   return Hash;
 }
 
-void Module::setRelocationData(const eld::Relocation *R, uint64_t Data) {
+void Module::setRelocationData(const eld::Relocation *R, uint64_t Data,
+                               plugin::LinkerWrapper *Owner) {
   std::lock_guard<std::mutex> Guard(Mutex);
   RelocationData.insert({R, Data});
+  // The arena allocator and layout-map containers also need serialization
+  // when plugins submit replacement data from worker threads.
+  if (LayoutInfo *Printer = getLayoutInfo()) {
+    auto *Op = eld::make<RelocationDataPluginOp>(Owner, R);
+    Printer->recordRelocationData(Owner, Op);
+  }
 }
 
 bool Module::getRelocationData(const eld::Relocation *R, uint64_t &Data) {

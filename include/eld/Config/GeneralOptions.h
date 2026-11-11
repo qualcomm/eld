@@ -89,22 +89,14 @@ public:
   enum SortSection { Name, Alignment };
 
   typedef std::vector<std::string> RpathListType;
-  typedef RpathListType::iterator rpath_iterator;
-  typedef RpathListType::const_iterator const_rpath_iterator;
 
   typedef std::vector<std::string> ScriptListType;
-  typedef ScriptListType::iterator script_iterator;
-  typedef ScriptListType::const_iterator const_script_iterator;
 
   typedef std::vector<StrToken *> UndefSymListType;
-  typedef UndefSymListType::iterator undef_sym_iterator;
-  typedef UndefSymListType::const_iterator const_undef_sym_iterator;
 
   typedef std::set<std::string> ExcludeLIBSType;
 
   typedef ExcludeLIBSType DynListType;
-  typedef DynListType::iterator dyn_list_iterator;
-  typedef DynListType::const_iterator const_dyn_list_iterator;
 
   typedef ExcludeLIBSType ExtList;
 
@@ -114,15 +106,17 @@ public:
   };
   typedef std::vector<RemapEntry> RemapInputsType;
 
-  typedef ExtList::iterator ext_list_iterator;
-  typedef ExtList::const_iterator const_ext_list_iterator;
-
   typedef std::unordered_map<const ResolveInfo *,
                              std::vector<std::pair<const InputFile *, bool>>>
       CrefTableType;
 
   typedef std::vector<std::string> PreserveList;
-  typedef std::vector<std::string>::const_iterator StringVectorIterT;
+  using RpathRange = llvm::iterator_range<RpathListType::iterator>;
+  using UndefSymRange = llvm::iterator_range<UndefSymListType::iterator>;
+  using DynListRange = llvm::iterator_range<DynListType::iterator>;
+  using ExtListRange = llvm::iterator_range<ExtList::iterator>;
+  using StringListConstRange =
+      llvm::iterator_range<std::vector<std::string>::const_iterator>;
 
 public:
   GeneralOptions(DiagnosticEngine *);
@@ -603,20 +597,13 @@ public:
   // -----  link-in rpath  ----- //
   const RpathListType &getRpathList() const { return RpathList; }
   RpathListType &getRpathList() { return RpathList; }
-
-  const_rpath_iterator rpathBegin() const { return RpathList.begin(); }
-  rpath_iterator rpathBegin() { return RpathList.begin(); }
-  const_rpath_iterator rpathEnd() const { return RpathList.end(); }
-  rpath_iterator rpathEnd() { return RpathList.end(); }
+  RpathRange rpaths() {
+    return llvm::make_range(RpathList.begin(), RpathList.end());
+  }
 
   // -----  link-in script  ----- //
   const ScriptListType &getScriptList() const { return ScriptList; }
   ScriptListType &getScriptList() { return ScriptList; }
-
-  const_script_iterator scriptBegin() const { return ScriptList.begin(); }
-  script_iterator scriptBegin() { return ScriptList.begin(); }
-  const_script_iterator scriptEnd() const { return ScriptList.end(); }
-  script_iterator scriptEnd() { return ScriptList.end(); }
 
   // ----  forced undefined symbols ---- //
   const UndefSymListType &getUndefSymList() const { return UndefSymList; }
@@ -627,13 +614,9 @@ public:
     return ExportDynSymList;
   }
   UndefSymListType &getExportDynSymList() { return ExportDynSymList; }
-
-  const_undef_sym_iterator undefSymBegin() const {
-    return UndefSymList.begin();
+  UndefSymRange undefinedSymbols() {
+    return llvm::make_range(UndefSymList.begin(), UndefSymList.end());
   }
-  undef_sym_iterator undefSymBegin() { return UndefSymList.begin(); }
-  const_undef_sym_iterator undefSymEnd() const { return UndefSymList.end(); }
-  undef_sym_iterator undefSymEnd() { return UndefSymList.end(); }
 
   // ---- add dynamic symbols from list file ---- //
   const DynListType &getDynList() const { return DynList; }
@@ -653,14 +636,13 @@ public:
   // ---- add extern symbols from list file ---- //
   const ExtList &getExternList() const { return ExternList; }
   ExtList &getExternList() { return ExternList; }
+  ExtListRange externSymbols() {
+    return llvm::make_range(ExternList.begin(), ExternList.end());
+  }
 
-  const_ext_list_iterator extListBegin() const { return ExternList.begin(); }
-  const_ext_list_iterator extListEnd() const { return ExternList.end(); }
-
-  const_dyn_list_iterator dynListBegin() const { return DynList.begin(); }
-  dyn_list_iterator dynListBegin() { return DynList.begin(); }
-  const_dyn_list_iterator dynListEnd() const { return DynList.end(); }
-  dyn_list_iterator dynListEnd() { return DynList.end(); }
+  DynListRange dynamicSymbols() {
+    return llvm::make_range(DynList.begin(), DynList.end());
+  }
 
   // -----  filter and auxiliary filter  ----- //
   void setFilter(const std::string &PFilter) { Filter = PFilter; }
@@ -719,23 +701,23 @@ public:
 
   PreserveList &getPreserveList() { return PreserveCmdLine; }
 
-  llvm::iterator_range<StringVectorIterT> codeGenOpts() const {
+  StringListConstRange codeGenOpts() const {
     return llvm::make_range(CodegenOpts.cbegin(), CodegenOpts.cend());
   }
 
-  llvm::iterator_range<StringVectorIterT> asmOpts() const {
+  StringListConstRange asmOpts() const {
     return llvm::make_range(AsmOpts.cbegin(), AsmOpts.cend());
   }
 
   bool hasLTOAsmFile(void) const;
 
-  llvm::iterator_range<StringVectorIterT> ltoAsmFile(void) const;
+  StringListConstRange ltoAsmFile(void) const;
 
   void setLTOAsmFile(llvm::StringRef LtoAsmFile);
 
   bool hasLTOOutputFile(void) const;
 
-  llvm::iterator_range<StringVectorIterT> ltoOutputFile(void) const;
+  StringListConstRange ltoOutputFile(void) const;
 
   size_t ltoAsmFileSize() const { return LTOAsmFile.size(); }
 
@@ -1077,11 +1059,17 @@ public:
 
   void setSymbolTracingRequested() { SymbolTracingRequested = true; }
 
-  bool isSymbolTracingRequested() const { return SymbolTracingRequested; }
+  bool isSymbolTracingRequested() const {
+    return SymbolTracingRequested ||
+           DiagEngine->getPrinter()->isVerboseLevel2();
+  }
 
   void setSectionTracingRequested() { SectionTracingRequested = true; }
 
-  bool isSectionTracingRequested() const { return SectionTracingRequested; }
+  bool isSectionTracingRequested() const {
+    return SectionTracingRequested ||
+           DiagEngine->getPrinter()->isVerboseLevel2();
+  }
 
   void setPluginTracingRequested() { PluginTracingRequested = true; }
 

@@ -301,7 +301,8 @@ void AArch64LDBackend::mayBeRelax(int pass, bool &pFinished) {
           Relocation *relocation = llvm::cast<Relocation>(reloc);
           if (!relocation->symInfo())
             break;
-          if (relocation->symInfo()->isUndef())
+          if (relocation->symInfo()->isUndef() &&
+              !relocation->shouldUsePLTAddr())
             continue;
           std::pair<BranchIsland *, bool> branchIsland =
               getStubFactory()->create(*relocation, // relocation
@@ -359,8 +360,9 @@ bool AArch64LDBackend::isErratum843419Sequence(uint32_t insn1,
 
 bool AArch64LDBackend::scanErrata843419() {
   LinkerScript &script = m_Module.getScript();
-  SectionMap::iterator out, outBegin = script.sectionMap().begin(),
-                            outEnd = script.sectionMap().end();
+  SectionMap::OutputSectionEntryDescList::iterator out,
+      outBegin = script.sectionMap().outputSections().begin(),
+      outEnd = script.sectionMap().outputSections().end();
   out = outBegin;
   bool updated = false;
   for (; out != outEnd; ++out) {
@@ -434,7 +436,9 @@ bool AArch64LDBackend::scanErrata843419() {
                 // Now since a new fragment has been inserted, the fragment
                 // needs to be reset.
                 ie = section->getFragmentList().end();
-                it = frag->getIterator();
+                auto SectionFragments = section->getFragmentList();
+                it = std::find(SectionFragments.begin(), SectionFragments.end(),
+                               frag);
                 updated = true;
               }
             }
@@ -764,6 +768,12 @@ Stub *AArch64LDBackend::getBranchIslandStub(Relocation *pReloc,
   (void)pReloc;
   (void)targetValue;
   return *getStubFactory()->getAllStubs().cbegin();
+}
+
+int64_t AArch64LDBackend::getPLTAddr(ResolveInfo *info) const {
+  AArch64PLT *entry = findEntryInPLT(info);
+  assert(entry && "Requested PLT address for an unreserved slot");
+  return entry->getAddr(config().getDiagEngine());
 }
 
 // Find an entry in the GOT.

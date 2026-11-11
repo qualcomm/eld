@@ -19,9 +19,9 @@ bool GNULDBackend::createProgramHdrs() {
   ELFSegment *load_seg = nullptr;
   ELFSegment *note_seg = nullptr;
   OutputSectionEntry *prevOut = nullptr;
-  SectionMap::iterator out, outBegin, outEnd;
-  outBegin = script.sectionMap().begin();
-  outEnd = script.sectionMap().end();
+  SectionMap::OutputSectionEntryDescList::iterator out, outBegin, outEnd;
+  outBegin = script.sectionMap().outputSections().begin();
+  outEnd = script.sectionMap().outputSections().end();
   bool hasError = false;
   bool linkerScriptHasSectionsCommand =
       m_Module.getScript().linkerScriptHasSectionsCommand();
@@ -152,8 +152,8 @@ bool GNULDBackend::createProgramHdrs() {
   LDSymbol *dotSymbol = m_Module.getNamePool().findSymbol(".");
 
   auto reset_state = [&]() {
-    outBegin = script.sectionMap().begin();
-    outEnd = script.sectionMap().end();
+    outBegin = script.sectionMap().outputSections().begin();
+    outEnd = script.sectionMap().outputSections().end();
     out = outBegin;
     prev_flag = 0;
     prev = nullptr;
@@ -859,7 +859,7 @@ bool GNULDBackend::createProgramHdrs() {
   // Create PT_TLS segment
   if (seenTLS) {
     ELFSegment *pt_tls_segment = make<ELFSegment>(llvm::ELF::PT_TLS);
-    for (auto &section : script.sectionMap()) {
+    for (auto &section : script.sectionMap().outputSections()) {
       ELFSection *S = section->getSection();
       if (S->isTLS() && S->isWanted())
         pt_tls_segment->append(section);

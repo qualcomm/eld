@@ -190,7 +190,7 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
   Result.ModuleVersion.VendorVersion = eld::getVendorVersion().str();
   Result.ModuleVersion.ELDVersion = eld::getELDVersion().str();
 
-  for (auto &I : ThisLayoutInfo->getArchiveRecords()) {
+  for (auto &I : ThisLayoutInfo->archiveRecords()) {
     std::pair<std::string, std::string> Ret =
         ThisLayoutInfo->getArchiveRecord(I);
     Result.ArchiveRecords.push_back({Ret.first, Ret.second});
@@ -198,13 +198,14 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
   insertCommons(Result.Commons,
                 ThisLayoutInfo->getAllocatedCommonSymbols(Module));
   addStats(ThisLayoutInfo->getLinkStats(), Result.Stats);
-  Result.Features = ThisLayoutInfo->getFeatures();
+  Result.Features.assign(ThisLayoutInfo->features().begin(),
+                         ThisLayoutInfo->features().end());
   addInputs(Result.InputFileInfo, Module);
-  for (auto &I : ThisLayoutInfo->getInputActions()) {
+  for (auto &I : ThisLayoutInfo->inputActions()) {
     std::string Action = ThisLayoutInfo->getStringFromLoadSequence(I);
     Result.InputActions.push_back(Action);
   }
-  for (auto &Script : ThisLayoutInfo->getLinkerScripts()) {
+  for (auto &Script : ThisLayoutInfo->linkerScripts()) {
     std::string Indent = "";
     for (uint32_t I = 0; I < Script.Depth; ++I)
       Indent += "\t";
@@ -222,7 +223,23 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
   Result.OutputFile = Module.getConfig().options().outputFileName();
   Result.CommandLine = CommandLine;
   Result.EntryAddress = getEntryAddress(Module, Backend);
-  for (auto *I : Module.getScript().sectionMap()) {
+  auto AddAssignment = [&](const Assignment *A) {
+    eld::LDYAML::Assignment Assignment;
+    Assignment.Name = A->name();
+    Assignment.Value = A->value();
+    {
+      raw_string_ostream Stream(Assignment.Text);
+      A->getExpression()->dump(Stream);
+      Stream.flush();
+    }
+    Result.OutputSections.emplace_back(
+        std::make_shared<eld::LDYAML::Assignment>(std::move(Assignment)));
+  };
+  for (const Assignment *A : Module.getScript().assignments()) {
+    if (A->level() == Assignment::Level::BeforeSections)
+      AddAssignment(A);
+  }
+  for (auto *I : Module.getScript().sectionMap().outputSections()) {
     auto *Section = I->getSection();
     if (!(ThisLayoutInfo->showHeaderDetails() &&
           (Section->name() == "__ehdr__" || Section->name() == "__pHdr__")) &&
@@ -249,15 +266,15 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
     }
     for (auto J = I->begin(), N = I->end(); J != N; ++J) {
       ELFSection *IS = (*J)->getSection();
-      for (auto K = (*J)->symBegin(), M = (*J)->symEnd(); K != M; ++K) {
+      for (auto *Assign : (*J)->symAssignmentsRange()) {
         std::string Text;
         {
           llvm::raw_string_ostream Stream(Text);
-          (*K)->getExpression()->dump(Stream, true);
+          Assign->getExpression()->dump(Stream, true);
         }
         eld::LDYAML::Assignment Assignment;
-        Assignment.Name = (*K)->name();
-        Assignment.Value = (*K)->value();
+        Assignment.Name = Assign->name();
+        Assignment.Value = Assign->value();
         Assignment.Text = std::move(Text);
         Value.Inputs.push_back(
             std::make_shared<eld::LDYAML::Assignment>(std::move(Assignment)));
@@ -267,12 +284,9 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
       if (IS && IS->hasFragments())
         Frag = IS->getFrontFragment();
       if (Frag) {
-        auto *FragCur = Frag->getIterator();
-        auto *FragEnd = Frag->getOwningSection()
-                            ->getMatchedLinkerScriptRule()
-                            ->getSection()
-                            ->getFragmentList()
-                            .end();
+        auto Fragments = Frag->siblingFragments();
+        auto *FragCur = std::find(Fragments.begin(), Fragments.end(), Frag);
+        auto *FragEnd = Fragments.end();
         DiagnosticEngine *DiagEngine = Module.getConfig().getDiagEngine();
         for (; FragCur != FragEnd; ++FragCur) {
           auto *Frag = *FragCur;
@@ -394,18 +408,7 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
     }
     Result.OutputSections.emplace_back(
         std::make_shared<eld::LDYAML::OutputSection>(std::move(Value)));
-    I->forEachPostOutputSectionAssignment([&](Assignment *A) {
-      eld::LDYAML::Assignment Assignment;
-      Assignment.Name = A->name();
-      Assignment.Value = A->value();
-      {
-        raw_string_ostream Stream(Assignment.Text);
-        A->getExpression()->dump(Stream);
-        Stream.flush();
-      }
-      Result.OutputSections.emplace_back(
-          std::make_shared<eld::LDYAML::Assignment>(std::move(Assignment)));
-    });
+    I->forEachPostOutputSectionAssignment(AddAssignment);
   }
   Module::const_obj_iterator Obj, ObjEnd = Module.objEnd();
   for (Obj = Module.objBegin(); Obj != ObjEnd; ++Obj) {
@@ -529,34 +532,31 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
 
 void eld::YamlLayoutPrinter::getTrampolineMap(
     eld::Module &Module, std::vector<eld::LDYAML::TrampolineInfo> &R) {
-  for (auto &OutputSection : Module.getScript().sectionMap()) {
+  for (auto *OutputSection : Module.getScript().sectionMap().outputSections()) {
     eld::LDYAML::TrampolineInfo TInfo;
     TInfo.OutputSectionName = OutputSection->name().str();
-    typedef std::vector<BranchIsland *>::iterator branch_island_iter;
     if (!OutputSection->getNumBranchIslands())
       continue;
     bool HasBranchIsland = false;
-    branch_island_iter Bi = OutputSection->islandsBegin();
-    branch_island_iter Be = OutputSection->islandsEnd();
-    for (; Bi != Be; ++Bi) {
+    for (auto *BI : OutputSection->branchIslands()) {
       eld::LDYAML::Trampoline T;
       // ARMv7 uses the same branch island interface, but some of the stuff
       // that exists in branch island interface are not stored by the ARM
       // backend.
-      if (!(*Bi)->stub())
+      if (!BI->stub())
         continue;
 
-      if (!(*Bi)->stub()->symInfo())
+      if (!BI->stub()->symInfo())
         continue;
 
-      if (!(*Bi)->stub()->savedSymInfo())
+      if (!BI->stub()->savedSymInfo())
         continue;
       HasBranchIsland = true;
 
       // Name of the trampoline.
-      T.Name = (*Bi)->stub()->symInfo()->name();
+      T.Name = BI->stub()->symInfo()->name();
       // The file where the source is located.
-      eld::Relocation *OrigRelocation = (*Bi)->getOrigRelocation();
+      eld::Relocation *OrigRelocation = BI->getOrigRelocation();
       Fragment *PatchFrag = OrigRelocation->targetRef()->frag();
       T.From = PatchFrag->getOwningSection()->name().str();
       {
@@ -573,10 +573,9 @@ void eld::YamlLayoutPrinter::getTrampolineMap(
                        ->getInputFile()
                        ->getInput()
                        ->decoratedPath(ThisLayoutInfo->showAbsolutePath());
-      T.To = (*Bi)->stub()->savedSymInfo()->name();
-      if (!(*Bi)->stub()->savedSymInfo()->isAbsolute()) {
-        T.ToSection = (*Bi)
-                          ->stub()
+      T.To = BI->stub()->savedSymInfo()->name();
+      if (!BI->stub()->savedSymInfo()->isAbsolute()) {
+        T.ToSection = BI->stub()
                           ->savedSymInfo()
                           ->outSymbol()
                           ->fragRef()
@@ -587,17 +586,16 @@ void eld::YamlLayoutPrinter::getTrampolineMap(
       } else {
         T.ToSection = "No Section";
       }
-      T.ToFile = (*Bi)
-                     ->stub()
+      T.ToFile = BI->stub()
                      ->savedSymInfo()
                      ->resolvedOrigin()
                      ->getInput()
                      ->decoratedPath(ThisLayoutInfo->showAbsolutePath());
-      T.Addend = (*Bi)->getAddend();
+      T.Addend = BI->getAddend();
       {
-        if ((*Bi)->stub()->savedSymInfo()->isLocal()) {
+        if (BI->stub()->savedSymInfo()->isLocal()) {
           Fragment *ToFrag =
-              (*Bi)->stub()->savedSymInfo()->outSymbol()->fragRef()->frag();
+              BI->stub()->savedSymInfo()->outSymbol()->fragRef()->frag();
           auto Existing = ThisLayoutInfo->getFragmentInfoMap().find(ToFrag);
           if (Existing != ThisLayoutInfo->getFragmentInfoMap().end()) {
             auto *Info = Existing->second;
@@ -610,7 +608,7 @@ void eld::YamlLayoutPrinter::getTrampolineMap(
       }
       std::set<Fragment *> RSet;
 
-      for (auto &Reloc : (*Bi)->getReuses()) {
+      for (auto &Reloc : BI->getReuses()) {
         eld::LDYAML::Reuse R;
         Fragment *F = Reloc->targetRef()->frag();
         if (RSet.find(F) != RSet.end())

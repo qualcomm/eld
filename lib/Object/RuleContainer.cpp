@@ -46,6 +46,7 @@ RuleContainer::RuleContainer(SectionMap *Parent,
   MSpec.WildcardSectionPattern = PInputDesc.spec().WildcardSectionPattern;
   MSpec.InputArchiveMember = PInputDesc.spec().InputArchiveMember;
   MSpec.InputIsArchive = PInputDesc.spec().InputIsArchive;
+  MSpec.InputIsNonArchiveFile = PInputDesc.spec().InputIsNonArchiveFile;
   MSpec.ExcludeFilesRule = PInputDesc.spec().getExcludeFiles();
   MPSection =
       Parent->createELFSection("", LinkerSectionKind::Regular, /*Type=*/0,
@@ -96,7 +97,8 @@ Fragment *RuleContainer::getLastFrag() const {
 
 void RuleContainer::updateMatchedSections(const Module &Module) {
   // Clear the vector of sections collected by the rules.
-  for (OutputSectionEntry *OutSect : Module.getScript().sectionMap()) {
+  for (OutputSectionEntry *OutSect :
+       Module.getScript().sectionMap().outputSections()) {
     for (RuleContainer *Rule : *OutSect)
       Rule->clearSections();
   }

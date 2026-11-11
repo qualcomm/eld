@@ -40,6 +40,8 @@ public:
 
     bool isArchive() const { return InputIsArchive; }
 
+    bool isNonArchiveFile() const { return InputIsNonArchiveFile; }
+
     const WildcardPattern &file() const {
       assert(hasFile());
       return *WildcardFilePattern;
@@ -77,6 +79,8 @@ public:
         return true;
       if (WildcardFilePattern != RHS.WildcardFilePattern)
         return false;
+      if (InputIsNonArchiveFile != RHS.InputIsNonArchiveFile)
+        return false;
       if (WildcardSectionPattern != RHS.WildcardSectionPattern)
         return false;
       if (ExcludeFilesRule != RHS.ExcludeFilesRule)
@@ -100,6 +104,7 @@ public:
     // outSect : { EXCLUDE_FILES(...) *(*text*) }
     const ExcludeFiles *ExcludeFilesRule = nullptr;
     bool InputIsArchive = false;
+    bool InputIsNonArchiveFile = false;
   };
 
   bool isSpecial() const {

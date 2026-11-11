@@ -23,19 +23,23 @@ class WildcardPattern;
 class ExcludePattern {
 public:
   struct Spec {
-    Spec(WildcardPattern *A, WildcardPattern *F)
-        : ArchiveLibraryNamePattern(A), FileNamePattern(F) {}
+    Spec(WildcardPattern *A, WildcardPattern *F, bool NonArchiveFile)
+        : ArchiveLibraryNamePattern(A), FileNamePattern(F),
+          IsNonArchiveFile(NonArchiveFile) {}
     WildcardPattern *ArchiveLibraryNamePattern;
     WildcardPattern *FileNamePattern;
+    bool IsNonArchiveFile;
   };
 
   explicit ExcludePattern(WildcardPattern *Archive = nullptr,
-                          WildcardPattern *File = nullptr)
-      : InputSpec(Archive, File) {}
+                          WildcardPattern *File = nullptr,
+                          bool NonArchiveFile = false)
+      : InputSpec(Archive, File, NonArchiveFile) {}
 
   bool isArchive() { return InputSpec.ArchiveLibraryNamePattern != nullptr; }
   bool isFile() { return InputSpec.FileNamePattern != nullptr; }
   bool isFileInArchive() { return isArchive() && isFile(); }
+  bool isNonArchiveFile() { return InputSpec.IsNonArchiveFile; }
   WildcardPattern *archive() { return InputSpec.ArchiveLibraryNamePattern; }
   WildcardPattern *file() { return InputSpec.FileNamePattern; }
 

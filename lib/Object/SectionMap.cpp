@@ -56,8 +56,9 @@ SectionMap::~SectionMap() {
 
 // Find section by name.
 ELFSection *SectionMap::find(std::string POutputSection) {
-  iterator Out, OutBegin = begin(), OutEnd = end();
-  for (Out = OutBegin; Out != OutEnd; ++Out) {
+  for (auto Out = MOutputSectionEntryDescList.begin(),
+            OutEnd = MOutputSectionEntryDescList.end();
+       Out != OutEnd; ++Out) {
     if ((*Out)->name().compare(POutputSection) == 0)
       return (*Out)->getSection();
   }
@@ -66,33 +67,35 @@ ELFSection *SectionMap::find(std::string POutputSection) {
 
 // Find section by type.
 ELFSection *SectionMap::find(uint32_t SectionType) {
-  iterator Out, OutBegin = begin(), OutEnd = end();
-  for (Out = OutBegin; Out != OutEnd; ++Out) {
+  for (auto Out = MOutputSectionEntryDescList.begin(),
+            OutEnd = MOutputSectionEntryDescList.end();
+       Out != OutEnd; ++Out) {
     if ((*Out)->getSection()->getType() == SectionType)
       return (*Out)->getSection();
   }
   return nullptr;
 }
 
-SectionMap::iterator SectionMap::findIter(std::string POutputSection) {
-  iterator Out, OutBegin = begin(), OutEnd = end();
-  for (Out = OutBegin; Out != OutEnd; ++Out) {
+SectionMap::OutputSectionEntryDescList::iterator
+SectionMap::findIter(std::string POutputSection) {
+  auto Out = MOutputSectionEntryDescList.begin();
+  auto OutEnd = MOutputSectionEntryDescList.end();
+  for (; Out != OutEnd; ++Out) {
     if ((*Out)->name().compare(POutputSection) == 0)
       return Out;
   }
   return OutEnd;
 }
 
-SectionMap::mapping SectionMap::findIn(SectionMap::iterator OutBegin,
-                                       std::string PInputFile,
-                                       const ELFSection &CurInputSection,
-                                       bool IsArchive, std::string Name,
-                                       uint64_t InputSectionHash,
-                                       uint64_t InputFileHash,
-                                       uint64_t NameHash, bool GNUCompatible) {
+SectionMap::mapping
+SectionMap::findIn(OutputSectionEntryDescList::iterator OutBegin,
+                   std::string PInputFile, const ELFSection &CurInputSection,
+                   bool IsArchive, std::string Name, uint64_t InputSectionHash,
+                   uint64_t InputFileHash, uint64_t NameHash,
+                   bool GNUCompatible) {
   bool IsCommonSection = llvm::isa<CommonELFSection>(&CurInputSection);
-  iterator Out, OutEnd = end();
-  for (Out = OutBegin; Out != OutEnd; ++Out) {
+  for (auto Out = OutBegin, OutEnd = MOutputSectionEntryDescList.end();
+       Out != OutEnd; ++Out) {
     OutputSectionEntry::iterator In, InBegin = (*Out)->begin(),
                                      InEnd = (*Out)->end();
     for (In = InBegin; In != InEnd; ++In) {
@@ -105,12 +108,11 @@ SectionMap::mapping SectionMap::findIn(SectionMap::iterator OutBegin,
   return std::make_pair(nullptr, nullptr);
 }
 
-SectionMap::mapping
-SectionMap::findOnlyIn(SectionMap::iterator Out, std::string PInputFile,
-                       const ELFSection &CurInputSection, bool IsArchive,
-                       std::string Name, uint64_t InputSectionHash,
-                       uint64_t InputFileHash, uint64_t NameHash,
-                       bool GNUCompatible) {
+SectionMap::mapping SectionMap::findOnlyIn(
+    OutputSectionEntryDescList::iterator Out, std::string PInputFile,
+    const ELFSection &CurInputSection, bool IsArchive, std::string Name,
+    uint64_t InputSectionHash, uint64_t InputFileHash, uint64_t NameHash,
+    bool GNUCompatible) {
   OutputSectionEntry::iterator In, InBegin = (*Out)->begin(),
                                    InEnd = (*Out)->end();
   bool IsCommonSection = llvm::isa<CommonELFSection>(&CurInputSection);
@@ -131,12 +133,13 @@ std::pair<SectionMap::mapping, bool>
 SectionMap::insert(std::string pInputSection, std::string pOutputSection,
                    InputSectDesc::Policy pPolicy,
                    WildcardPattern::SortPolicy SortPolicy) {
-  iterator out, OutBegin = begin(), OutEnd = end();
-  for (out = OutBegin; out != OutEnd; ++out) {
+  auto out = MOutputSectionEntryDescList.begin();
+  auto OutEnd = MOutputSectionEntryDescList.end();
+  for (; out != OutEnd; ++out) {
     if ((*out)->name().compare(pOutputSection) == 0)
       break;
   }
-  if (out != end()) {
+  if (out != MOutputSectionEntryDescList.end()) {
     OutputSectionEntry::iterator In, InBegin = (*out)->begin(),
                                      InEnd = (*out)->end();
     for (In = InBegin; In != InEnd; ++In) {
@@ -205,14 +208,15 @@ SectionMap::insert(std::string pInputSection, std::string pOutputSection,
 std::pair<SectionMap::mapping, bool>
 SectionMap::insert(const InputSectDesc &pInputDesc,
                    OutputSectDesc &POutputDesc) {
-  iterator out, OutBegin = begin(), OutEnd = end();
-  for (out = OutBegin; out != OutEnd; ++out) {
+  auto out = MOutputSectionEntryDescList.begin();
+  auto OutEnd = MOutputSectionEntryDescList.end();
+  for (; out != OutEnd; ++out) {
     if ((*out)->name().compare(POutputDesc.name()) == 0 &&
         (*out)->prolog() == POutputDesc.prolog() &&
         (*out)->epilog() == POutputDesc.epilog())
       break;
   }
-  if (out != end()) {
+  if (out != MOutputSectionEntryDescList.end()) {
     bool IsOutputSectionData = llvm::isa<OutputSectData>(&pInputDesc);
 
     OutputSectionEntry::iterator In, InBegin = (*out)->begin(),
@@ -284,8 +288,9 @@ SectionMap::insert(const InputSectDesc &pInputDesc,
   return std::make_pair(std::make_pair(Output, Input), true);
 }
 
-SectionMap::iterator SectionMap::insert(iterator PPosition,
-                                        ELFSection *PSection) {
+SectionMap::OutputSectionEntryDescList::iterator
+SectionMap::insert(OutputSectionEntryDescList::iterator PPosition,
+                   ELFSection *PSection) {
   auto *Output = make<OutputSectionEntry>(this, PSection->name().str());
   auto *Input =
       make<RuleContainer>(this, PSection->name().str(), InputSectDesc::NoKeep);
@@ -310,8 +315,9 @@ SectionMap::iterator SectionMap::insert(iterator PPosition,
   return It;
 }
 
-SectionMap::iterator SectionMap::insert(iterator PPosition,
-                                        OutputSectionEntry *PSection) {
+SectionMap::OutputSectionEntryDescList::iterator
+SectionMap::insert(OutputSectionEntryDescList::iterator PPosition,
+                   OutputSectionEntry *PSection) {
   auto It = MOutputSectionEntryDescList.insert(PPosition, PSection);
   MLinkerScript.applyPendingOutputSectionInsertionsForAnchor(*this,
                                                              PSection->name());
@@ -328,6 +334,9 @@ bool SectionMap::matched(const RuleContainer &PInput, InputFile *I,
                          bool GNUCompatible, bool IsCommonSection) const {
 
   bool MatchedArchiveMember = false;
+
+  if (IsArchive && PInput.spec().isNonArchiveFile())
+    return false;
 
   if (PInput.spec().isArchive()) {
     if (!IsArchive)
@@ -442,6 +451,8 @@ bool SectionMap::matchedSections(
   if (Match) {
     if (!EF.empty()) {
       for (auto *Elem : EF.patterns()) {
+        if (IsArchive && Elem->isNonArchiveFile())
+          continue;
         const WildcardPattern *ArchivePattern = Elem->archive();
         bool ArchiveMatchWithFileName = false;
         if (ArchivePattern) {
@@ -493,7 +504,7 @@ SectionMap::OutputSectionEntryDescList
 SectionMap::getOutputSectionEntrySectionsForPluginType(plugin::Plugin::Type T) {
   OutputSectionEntryDescList OList;
 
-  for (auto &O : *this) {
+  for (auto *O : outputSections()) {
     eld::Plugin *P = O->prolog().getPlugin();
     if (!P)
       continue;

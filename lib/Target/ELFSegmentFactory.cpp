@@ -51,33 +51,16 @@ std::vector<ELFSegment *> ELFSegmentFactory::getSegments(uint32_t pType) const {
 
 ELFSegment *ELFSegmentFactory::findr(uint32_t pType, uint32_t pFlagSet,
                                      uint32_t pFlagClear) {
-  riterator segment, segEnd = m_Segments.rend();
-  for (segment = m_Segments.rbegin(); segment != segEnd; ++segment) {
-    if ((*segment)->type() == pType &&
-        ((*segment)->flag() & pFlagSet) == pFlagSet &&
-        ((*segment)->flag() & pFlagClear) == 0x0) {
-      return *segment;
+  for (auto segment = m_Segments.rbegin(), segEnd = m_Segments.rend();
+       segment != segEnd; ++segment) {
+    ELFSegment *Seg = *segment;
+    if (Seg->type() == pType && (Seg->flag() & pFlagSet) == pFlagSet &&
+        (Seg->flag() & pFlagClear) == 0x0) {
+      return Seg;
     }
   }
   return nullptr;
 }
-
-ELFSegmentFactory::iterator
-ELFSegmentFactory::find(uint32_t pType, const ELFSection *pSection) {
-  iterator segment, segEnd = end();
-  for (segment = begin(); segment != segEnd; ++segment) {
-    if ((*segment)->type() == pType) {
-      ELFSegment::iterator sect, sectEnd = (*segment)->end();
-      for (sect = (*segment)->begin(); sect != sectEnd; ++sect) {
-        if ((*sect)->getSection() == pSection)
-          return segment;
-      } // for each section
-    }
-  } // for each segment
-  return segEnd;
-}
-
-void ELFSegmentFactory::erase(iterator pSegment) { m_Segments.erase(pSegment); }
 
 uint32_t ELFSegmentFactory::size() const { return m_Segments.size(); }
 

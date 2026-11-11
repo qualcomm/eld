@@ -547,7 +547,7 @@ bool HexagonLDBackend::finalizeTargetSymbols() {
   // Get the pointer to the real end of the image.
   if (m_pEndOfImage && !m_pEndOfImage->scriptDefined()) {
     uint64_t imageEnd = 0;
-    for (auto &seg : elfSegmentTable()) {
+    for (auto *seg : elfSegmentTable().segmentsRange()) {
       if (seg->type() != llvm::ELF::PT_LOAD)
         continue;
       uint64_t segSz = seg->paddr() + seg->memsz();

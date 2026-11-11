@@ -16,6 +16,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/DataTypes.h"
 #include <atomic>
 #include <chrono>
@@ -35,14 +36,16 @@ class SectionMap;
 class OutputSectionEntry {
 public:
   typedef std::vector<RuleContainer *> InputList;
-  typedef std::vector<BranchIsland *>::iterator BranchIslandsIter;
   typedef InputList::iterator iterator;
   typedef InputList::const_iterator const_iterator;
   typedef InputList::const_reference const_reference;
   typedef InputList::reference reference;
 
   typedef std::vector<Assignment *> SymbolAssignments;
-  typedef SymbolAssignments::iterator sym_iterator;
+  using PostOutputSectionAssignmentsRange =
+      llvm::iterator_range<SymbolAssignments::iterator>;
+  using BranchIslandsRange =
+      llvm::iterator_range<std::vector<BranchIsland *>::iterator>;
 
   OutputSectionEntry(SectionMap *, std::string PName);
   OutputSectionEntry(SectionMap *, ELFSection *);
@@ -107,6 +110,11 @@ public:
     return postOutputSectionAssignments;
   }
 
+  PostOutputSectionAssignmentsRange postOutputSectionSymbols() {
+    return llvm::make_range(postOutputSectionAssignments.begin(),
+                            postOutputSectionAssignments.end());
+  }
+
   void movePostOutputSectionAssignments(OutputSectionEntry *Out) {
     postOutputSectionAssignments = Out->getPostOutputSectionAssignments();
     Out->getPostOutputSectionAssignments().clear();
@@ -137,9 +145,9 @@ public:
   RuleContainer *createDefaultRule(Module &M);
 
   // ------------------Branch island support ------------------------
-  BranchIslandsIter islandsBegin() { return BranchIslands.begin(); }
-
-  BranchIslandsIter islandsEnd() { return BranchIslands.end(); }
+  BranchIslandsRange branchIslands() {
+    return llvm::make_range(BranchIslands.begin(), BranchIslands.end());
+  }
 
   void addBranchIsland(BranchIsland *B) { BranchIslands.push_back(B); }
 

@@ -47,7 +47,7 @@ def create_worktree(repo_path: Path, worktree_path: Path, branch: str) -> None:
         )
         if str(worktree_path) in result.stdout:
             print(f"Worktree already exists: {worktree_path}")
-            run(["git", "fetch", "origin", branch], cwd=worktree_path, check=False)
+            run(["git", "fetch", "origin", branch], cwd=worktree_path)
             run(["git", "checkout", "--detach", f"origin/{branch}"], cwd=worktree_path)
             return
         else:
@@ -56,7 +56,7 @@ def create_worktree(repo_path: Path, worktree_path: Path, branch: str) -> None:
 
     worktree_path.parent.mkdir(parents=True, exist_ok=True)
 
-    run(["git", "fetch", "origin", branch], cwd=repo_path, check=False)
+    run(["git", "fetch", "origin", branch], cwd=repo_path)
     run(["git", "worktree", "add", "--detach", str(worktree_path), f"origin/{branch}"], cwd=repo_path)
 
 
@@ -91,9 +91,9 @@ def build_docs(
     print(f"  Output dir: {output_dir}")
     print(f"{'=' * 70}\n")
 
-    # Step 1: Create LLVM worktree (detached, always use main)
+    # Step 1: Create LLVM worktree (detached, matching the ELD branch)
     print("\n[Step 1/5] Creating LLVM worktree...")
-    create_worktree(llvm_repo, llvm_worktree, "main")
+    create_worktree(llvm_repo, llvm_worktree, eld_branch)
 
     # Step 2: Create ELD worktree inside LLVM
     print("\n[Step 2/5] Creating ELD worktree...")

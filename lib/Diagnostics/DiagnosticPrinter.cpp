@@ -50,7 +50,8 @@ DiagnosticPrinter::~DiagnosticPrinter() {
 
 void DiagnosticPrinter::printDiagnostic(
     const enum llvm::raw_ostream::Colors Color, llvm::StringRef Type,
-    const std::string &OutString, llvm::StringRef PluginName) {
+    const std::string &OutString, llvm::StringRef PluginName,
+    const DiagnosticLocation *Location) {
   if (Progress)
     Progress->clear();
   if (UseColor)
@@ -61,6 +62,12 @@ void DiagnosticPrinter::printDiagnostic(
     OStream << Type << ": ";
   if (UseColor)
     OStream.resetColor();
+  if (Location && Location->isValid()) {
+    OStream << Location->FileName << ":" << Location->Line;
+    if (Location->Column != 0)
+      OStream << ":" << Location->Column;
+    OStream << ": ";
+  }
   OStream << OutString << "\n";
   if (Progress)
     Progress->display(false);
@@ -103,7 +110,9 @@ DiagnosticPrinter::handleDiagnostic(DiagnosticEngine::Severity PSeverity,
 
   auto PrintDiagnostic = [&](const enum llvm::raw_ostream::Colors Color,
                              llvm::StringRef Type) {
-    printDiagnostic(Color, Type, OutString, PInfo.getPluginName());
+    const auto &Location = PInfo.getLocation();
+    printDiagnostic(Color, Type, OutString, PInfo.getPluginName(),
+                    Location ? &*Location : nullptr);
   };
   switch (PSeverity) {
   case DiagnosticEngine::Unreachable: {
@@ -168,7 +177,9 @@ DiagnosticPrinter::handleDiagnostic(DiagnosticEngine::Severity PSeverity,
     if (Progress)
       Progress->clear();
     OStream << "\n\n";
-    printDiagnostic(FatalColor, "", OutString, /*pluginName=*/"");
+    const auto &Location = PInfo.getLocation();
+    printDiagnostic(FatalColor, "", OutString, /*pluginName=*/"",
+                    Location ? &*Location : nullptr);
   }
     LLVM_FALLTHROUGH;
 

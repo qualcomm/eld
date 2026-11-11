@@ -124,8 +124,6 @@ public:
   typedef SectionTable::const_iterator const_iterator;
 
   typedef std::vector<StrToken *> ListSyms;
-  typedef ListSyms::iterator ListSyms_iterator;
-  typedef ListSyms::const_iterator const_ListSyms_iterator;
 
   typedef std::array<InputFile *, MAX> InternalInputArray;
 
@@ -541,7 +539,8 @@ public:
   bool makeChunkWritable(eld::Fragment *F);
 
   // ------------------- Relocation data set by plugins ---------------------
-  void setRelocationData(const eld::Relocation *, uint64_t);
+  void setRelocationData(const eld::Relocation *, uint64_t,
+                         plugin::LinkerWrapper *);
   bool getRelocationData(const eld::Relocation *, uint64_t &);
   bool getRelocationDataForSync(const eld::Relocation *, uint64_t &);
 

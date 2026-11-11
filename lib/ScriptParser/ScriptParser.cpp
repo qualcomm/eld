@@ -829,9 +829,24 @@ InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {
   }
   WildcardPattern *FilePat = nullptr, *ArchiveMem = nullptr;
   bool IsArchive = false;
+  bool IsNonArchiveFile = false;
   if (!isValidFilePattern(Tok))
     setError("Invalid file pattern: " + Tok);
-  if (!Tok.contains(':'))
+  if (Tok.starts_with(':') || Tok.starts_with("\":")) {
+    StringRef FileName = unquote(Tok).drop_front();
+    std::string FilePattern = "<<InvalidWildcardPattern>>";
+    if (FileName.empty())
+      setError("Missing file pattern after ':' in input section description");
+    else if (FileName.contains(':'))
+      setError("Unexpected ':' in non-archive file pattern in input section "
+               "description");
+    else {
+      FilePattern = Tok.str();
+      FilePattern.erase(FilePattern.find(':'), 1);
+    }
+    FilePat = createAndRegisterWildcardPattern(FilePattern);
+    IsNonArchiveFile = true;
+  } else if (!Tok.contains(':'))
     FilePat = createAndRegisterWildcardPattern(Tok);
   else {
     std::pair<llvm::StringRef, llvm::StringRef> Split = Tok.split(':');
@@ -866,6 +881,7 @@ InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {
   ISDSpec.WildcardSectionPattern = WildcardSections;
   ISDSpec.InputArchiveMember = ArchiveMem;
   ISDSpec.InputIsArchive = IsArchive;
+  ISDSpec.InputIsNonArchiveFile = IsNonArchiveFile;
   ISDSpec.ExcludeFilesRule = EF;
   return ISDSpec;
 }
@@ -1105,6 +1121,7 @@ bool ScriptParser::readPluginDirective(llvm::StringRef Tok) {
           .Default(std::nullopt);
   if (!OptPluginType.has_value())
     return false;
+  warnDeprecatedPluginKeyword(Tok);
   expect("(");
   llvm::StringRef LibName = unquote(next());
   expect(",");
@@ -1116,6 +1133,14 @@ bool ScriptParser::readPluginDirective(llvm::StringRef Tok) {
   ThisScriptFile.addPlugin(OptPluginType.value(), LibName.str(),
                            PluginName.str(), ConfigName.str());
   return true;
+}
+
+inline void ScriptParser::warnDeprecatedPluginKeyword(llvm::StringRef Tok) {
+  if (!ThisConfig.showLinkerScriptWarnings())
+    return;
+  setWarn("Linker script plugin keyword '" + Tok +
+              "' is deprecated; use --plugin-config instead",
+          Tok);
 }
 
 void ScriptParser::readSearchDir() {
@@ -1410,6 +1435,7 @@ PluginCmd *ScriptParser::readOutputSectionPluginDirective() {
           .Default(std::nullopt);
   if (!OptPluginType.has_value())
     return nullptr;
+  warnDeprecatedPluginKeyword(Tok);
   skip();
   expect("(");
   llvm::StringRef LibName = unquote(next());
@@ -1708,14 +1734,24 @@ WildcardPattern *ScriptParser::createAndRegisterWildcardPattern(
 }
 
 ExcludePattern *ScriptParser::createExcludePattern(StrToken *S) {
-  std::string Name = S->name();
+  std::string Name = unquote(S->name()).str();
   size_t ColonPos = Name.find(":");
   WildcardPattern *ArchivePattern = nullptr;
   WildcardPattern *FilePattern = nullptr;
   StrToken *ArchiveToken = nullptr;
   StrToken *FileToken = nullptr;
   // Handles: <file>
-  if (ColonPos == std::string::npos) {
+  if (ColonPos == 0) {
+    std::string FileName = "<<InvalidWildcardPattern>>";
+    if (Name.size() == 1)
+      setError("Missing file pattern after ':' in EXCLUDE_FILE");
+    else if (Name.find(':', 1) != std::string::npos)
+      setError("Unexpected ':' in non-archive file pattern in EXCLUDE_FILE");
+    else
+      FileName = Name.substr(1);
+    FileToken = ThisScriptFile.createStrToken(FileName);
+    FilePattern = createAndRegisterWildcardPattern(FileToken);
+  } else if (ColonPos == std::string::npos) {
     FileToken = ThisScriptFile.createStrToken(Name);
     FilePattern = createAndRegisterWildcardPattern(FileToken);
   } else {
@@ -1728,5 +1764,5 @@ ExcludePattern *ScriptParser::createExcludePattern(StrToken *S) {
       FilePattern = createAndRegisterWildcardPattern(FileToken);
     }
   }
-  return make<ExcludePattern>(ArchivePattern, FilePattern);
+  return make<ExcludePattern>(ArchivePattern, FilePattern, ColonPos == 0);
 }

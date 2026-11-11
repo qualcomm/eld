@@ -607,7 +607,13 @@ public:
   /// Return the value of the relocation target
   eld::Expected<void> getTargetDataForUse(Use &U, uint64_t &Data) const;
 
-  /// Set the value of the relocation target
+  /// Supply the final relocation storage bytes as a uint64_t value. The first
+  /// value supplied for U is retained; later calls do not overwrite it.
+  /// Calls are thread-safe, including layout-map bookkeeping. All worker tasks
+  /// launched by an overridden plugin callback must finish before that
+  /// callback returns, for example OutputSectionIteratorPlugin::Run() during
+  /// AfterLayout. This guarantee does not extend to other plugin APIs or
+  /// concurrent layout-map reads.
   eld::Expected<void> setTargetDataForUse(Use &U, uint64_t Data);
 
   /// Returns the 32-bit checksum of the image layout if this function is

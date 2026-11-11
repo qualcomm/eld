@@ -72,6 +72,7 @@ jobs:
               'check-llvm-test-suite',
               'check-linux-kernel',
               'check-busybox',
+              'check-reviter',
               'check-zephyr',
               'check-tsan',
               'check-asan-ubsan',
@@ -117,6 +118,7 @@ jobs:
               ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
               ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
               ['check-busybox', { name: 'BusyBox', context: 'PR BusyBox', usesToolset: true }],
+              ['check-reviter', { name: 'Reverse iterators', context: 'PR Reverse iterators', usesToolset: false }],
               ['check-zephyr', { name: 'Zephyr', context: 'PR Zephyr', usesToolset: true }],
               ['check-tsan', { name: 'Thread sanitizer', context: 'PR Thread Sanitizer', usesToolset: false }],
               ['check-asan-ubsan', { name: 'Address and undefined behavior sanitizer', context: 'PR Address and Undefined Behavior Sanitizer', usesToolset: false }],
@@ -204,6 +206,7 @@ jobs:
               ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
               ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
               ['check-busybox', { name: 'BusyBox', context: 'PR BusyBox', usesToolset: true }],
+              ['check-reviter', { name: 'Reverse iterators', context: 'PR Reverse iterators', usesToolset: false }],
               ['check-zephyr', { name: 'Zephyr', context: 'PR Zephyr', usesToolset: true }],
               ['check-tsan', { name: 'Thread sanitizer', context: 'PR Thread Sanitizer', usesToolset: false }],
               ['check-asan-ubsan', { name: 'Address and undefined behavior sanitizer', context: 'PR Address and Undefined Behavior Sanitizer', usesToolset: false }],
@@ -406,7 +409,9 @@ jobs:
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      run_visual_studio: false
     permissions:
+      actions: write
       contents: write
 
   macos_test:
@@ -442,6 +447,23 @@ jobs:
     permissions:
       contents: write
       actions: write
+
+  reviter_test:
+    needs: validate
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate.result == 'success' &&
+      needs.validate.outputs.pr_sha != '' &&
+      (contains(needs.validate.outputs.command, 'check-reviter') ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/reviter.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+    permissions:
+      actions: write
+      contents: write
 
   report_llvm:
     needs: [validate, build, llvm_test]
@@ -505,6 +527,29 @@ jobs:
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
       build_result: ${{ needs.build.result }}
       test_result: ${{ needs.busybox_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_reviter:
+    needs: [validate, reviter_test]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (contains(needs.validate.outputs.command, 'check-reviter') ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: Reverse iterators
+      status_context: PR Reverse iterators
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: skipped
+      test_result: ${{ needs.reviter_test.result }}
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
     permissions:
@@ -651,7 +696,7 @@ jobs:
       statuses: write
 
   report_all:
-    needs: [validate, build, llvm_test, linux_test, busybox_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, memory_sanitizer_test, windows_test, macos_test]
+    needs: [validate, build, llvm_test, linux_test, busybox_test, reviter_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, memory_sanitizer_test, windows_test, macos_test]
     if: |
       always() &&
       !cancelled() &&
@@ -672,6 +717,7 @@ jobs:
           LLVM_RESULT: ${{ needs.llvm_test.result }}
           LINUX_RESULT: ${{ needs.linux_test.result }}
           BUSYBOX_RESULT: ${{ needs.busybox_test.result }}
+          REVITER_RESULT: ${{ needs.reviter_test.result }}
           ZEPHYR_RESULT: ${{ needs.zephyr_test.result }}
           THREAD_RESULT: ${{ needs.thread_sanitizer_test.result }}
           ASAN_RESULT: ${{ needs.asan_ubsan_test.result }}
@@ -686,6 +732,7 @@ jobs:
               ['LLVM test suite', process.env.LLVM_RESULT],
               ['Linux kernel boot', process.env.LINUX_RESULT],
               ['BusyBox', process.env.BUSYBOX_RESULT],
+              ['Reverse iterators', process.env.REVITER_RESULT],
               ['Zephyr', process.env.ZEPHYR_RESULT],
               ['Thread sanitizer', process.env.THREAD_RESULT],
               ['Address and undefined behavior sanitizer', process.env.ASAN_RESULT],

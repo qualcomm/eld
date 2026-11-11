@@ -64,9 +64,8 @@ StubFactory::create(Relocation &PReloc, eld::IRBuilder &PBuilder,
   if (!Stub)
     return std::make_pair(nullptr, false);
 
-  // We need to explicitly check the range for PLT slot if the stub supports
-  // PIC code and we have a slot for it in PLT
-  if (Stub->supportsPIC() && PReloc.shouldUsePLTAddr())
+  // Check the range to the address that the relocation actually targets.
+  if (Stub->shouldUsePLTAddrForRangeCheck() && PReloc.shouldUsePLTAddr())
     TargetSymbolValue = PBackend.getPLTAddr(PReloc.symInfo());
 
   int64_t Offset = 0;

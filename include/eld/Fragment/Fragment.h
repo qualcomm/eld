@@ -16,6 +16,7 @@
 
 #include "eld/PluginAPI/Expected.h"
 #include "eld/Support/MemoryRegion.h"
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace eld {
@@ -106,7 +107,9 @@ public:
   // Helper functions for getPrevNode and getNextNode.
   Fragment *getPrevNode();
   Fragment *getNextNode();
-  llvm::SmallVectorImpl<Fragment *>::iterator getIterator();
+  using SiblingFragmentRange =
+      llvm::iterator_range<llvm::SmallVectorImpl<Fragment *>::iterator>;
+  SiblingFragmentRange siblingFragments();
 
   size_t paddingSize() const;
 

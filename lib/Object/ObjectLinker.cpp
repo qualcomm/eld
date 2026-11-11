@@ -85,6 +85,7 @@
 #include "llvm/Support/Caching.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/FileOutputBuffer.h"
+#include "llvm/Support/LibraryOptionsContext.h"
 #include "llvm/Support/MemoryBufferRef.h"
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/Path.h"
@@ -757,12 +758,8 @@ void ObjectLinker::parseDynList() {
   if (!ThisConfig.options().hasDynamicList())
     return;
 
-  GeneralOptions::const_dyn_list_iterator It =
-      ThisConfig.options().dynListBegin();
-  GeneralOptions::const_dyn_list_iterator Ie =
-      ThisConfig.options().dynListEnd();
-  for (; It != Ie; It++) {
-    if (!parseListFile(*It, ScriptFile::DynamicList))
+  for (const auto &DynListEntry : ThisConfig.options().dynamicSymbols()) {
+    if (!parseListFile(DynListEntry, ScriptFile::DynamicList))
       return;
   }
 }
@@ -878,7 +875,7 @@ void ObjectLinker::mergeIdenticalStrings() const {
       continue;
     OutputSections.push_back(S->getOutputSection());
   }
-  for (OutputSectionEntry *O : ThisModule->getScript().sectionMap()) {
+  for (auto *O : ThisModule->getScript().sectionMap().outputSections()) {
     OutputSections.push_back(O);
   }
 
@@ -1300,7 +1297,7 @@ bool ObjectLinker::updateInputSectionMappingsForPlugin() {
   initializeMerge();
 
   // Clear the vector of sections collected by the rules.
-  for (auto &Out : ThisModule->getScript().sectionMap()) {
+  for (auto *Out : ThisModule->getScript().sectionMap().outputSections()) {
     for (auto &In : *Out)
       In->clearSections();
   }
@@ -1321,7 +1318,7 @@ bool ObjectLinker::updateInputSectionMappingsForPlugin() {
   }
 
   // Sort the rule.
-  for (auto &Out : ThisModule->getScript().sectionMap()) {
+  for (auto *Out : ThisModule->getScript().sectionMap().outputSections()) {
     for (auto &In : *Out)
       sortSections(In, true);
   }
@@ -1383,7 +1380,7 @@ bool ObjectLinker::runOutputSectionIteratorPlugin() {
 
     for (auto &P : PluginList) {
       plugin::PluginBase *L = P->getLinkerPlugin();
-      for (auto &Out : ThisModule->getScript().sectionMap())
+      for (auto *Out : ThisModule->getScript().sectionMap().outputSections())
         (llvm::dyn_cast<plugin::OutputSectionIteratorPlugin>(L))
             ->processOutputSection(plugin::OutputSection(Out));
     }
@@ -1467,9 +1464,7 @@ bool ObjectLinker::mergeSections() {
   }
 
   // Create output sections.
-  SectionMap::iterator Out, OutBegin, OutEnd;
-  OutBegin = ThisModule->getScript().sectionMap().begin();
-  OutEnd = ThisModule->getScript().sectionMap().end();
+  auto Sections = ThisModule->getScript().sectionMap().outputSections();
 
   ThisModule->setLinkState(LinkState::CreatingSections);
   if (!ThisConfig.getDiagEngine()->diagnose())
@@ -1493,7 +1488,8 @@ bool ObjectLinker::mergeSections() {
     // section serially to avoid races in parallel output creation.
     applySubAlign();
     std::vector<OutputSectionEntry *> OutSections;
-    for (Out = OutBegin; Out != OutEnd; ++Out) {
+    for (auto Out = Sections.begin(), OutEnd = Sections.end(); Out != OutEnd;
+         ++Out) {
       OutSections.push_back(*Out);
     }
     for (auto &S : *ThisModule) {
@@ -1528,7 +1524,7 @@ bool ObjectLinker::mergeSections() {
 }
 
 bool ObjectLinker::initializeOutputSectionsAndRunPlugin() {
-  for (auto &O : ThisModule->getScript().sectionMap()) {
+  for (auto *O : ThisModule->getScript().sectionMap().outputSections()) {
     for (auto &In : *O)
       sortSections(In, false);
   }
@@ -1538,7 +1534,7 @@ bool ObjectLinker::initializeOutputSectionsAndRunPlugin() {
 void ObjectLinker::applySubAlign() {
   std::unordered_set<ELFSection *> seen;
 
-  for (auto *O : ThisModule->getScript().sectionMap()) {
+  for (auto *O : ThisModule->getScript().sectionMap().outputSections()) {
     auto &prolog = O->prolog();
     if (!prolog.hasSubAlign())
       continue;
@@ -1700,13 +1696,8 @@ void ObjectLinker::addNoReuseOfTrampolines() {
 /// addUndefSymbols - add any symbols specified by the -u flag
 ///   @return true if symbols added
 bool ObjectLinker::addUndefSymbols() {
-  GeneralOptions::const_ext_list_iterator It =
-      ThisConfig.options().extListBegin();
-  GeneralOptions::const_ext_list_iterator Ie =
-      ThisConfig.options().extListEnd();
-
-  for (; It != Ie; It++) {
-    if (!parseListFile(*It, ScriptFile::ExternList))
+  for (const auto &ExternListEntry : ThisConfig.options().externSymbols()) {
+    if (!parseListFile(ExternListEntry, ScriptFile::ExternList))
       return false;
   }
 
@@ -1720,14 +1711,11 @@ bool ObjectLinker::addUndefSymbols() {
   }
 
   if (!ThisConfig.options().getUndefSymList().empty()) {
-    GeneralOptions::const_undef_sym_iterator UndefSym,
-        UndefSymEnd = ThisConfig.options().undefSymEnd();
-    for (UndefSym = ThisConfig.options().undefSymBegin();
-         UndefSym != UndefSymEnd; ++UndefSym) {
+    for (auto *UndefSym : ThisConfig.options().undefinedSymbols()) {
       InputFile *I = ThisModule->getInternalInput(
           eld::Module::InternalInputType::ExternList);
       ThisModule->getNamePool().insertSymbol(
-          I, (*UndefSym)->name(), false, eld::ResolveInfo::NoType,
+          I, UndefSym->name(), false, eld::ResolveInfo::NoType,
           eld::ResolveInfo::Undefined, eld::ResolveInfo::Global, 0, 0,
           eld::ResolveInfo::Default, nullptr, Result,
           false /* isPostLTOPhase */, false, 0, ThisModule->getPrinter());
@@ -1736,7 +1724,7 @@ bool ObjectLinker::addUndefSymbols() {
       Result.Info->setOutSymbol(OutputSym);
       // Initialize origin.
       Result.Info->setResolvedOrigin(I);
-      ThisModule->addNeededSymbol((*UndefSym)->name());
+      ThisModule->addNeededSymbol(UndefSym->name());
     }
   }
 
@@ -1869,7 +1857,7 @@ bool ObjectLinker::mayBeAddSectionSymbol(ELFSection *S) {
 
 bool ObjectLinker::addSectionSymbols() {
   // create and add section symbols for each output section
-  for (auto &S : ThisModule->getScript().sectionMap())
+  for (auto *S : ThisModule->getScript().sectionMap().outputSections())
     mayBeAddSectionSymbol(S->getSection());
   for (auto &S : *ThisModule)
     mayBeAddSectionSymbol(S);
@@ -2715,15 +2703,11 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     finalizeEmitRelocSectionSizes(RelocCount);
 
   // apply relocations created by relaxation
-  SectionMap::iterator Out, OutBegin, OutEnd;
-  typedef std::vector<BranchIsland *>::iterator branch_island_iter;
-  OutBegin = ThisModule->getScript().sectionMap().begin();
-  OutEnd = ThisModule->getScript().sectionMap().end();
-  for (Out = OutBegin; Out != OutEnd; ++Out) {
-    branch_island_iter Bi = (*Out)->islandsBegin();
-    branch_island_iter Be = (*Out)->islandsEnd();
-    for (; Bi != Be; ++Bi) {
-      for (auto *Reloc : (*Bi)->getRelocations())
+  auto Sections = ThisModule->getScript().sectionMap().outputSections();
+  for (auto Out = Sections.begin(), OutEnd = Sections.end(); Out != OutEnd;
+       ++Out) {
+    for (auto *BI : (*Out)->branchIslands()) {
+      for (auto *Reloc : BI->getRelocations())
         Reloc->apply(*getTargetBackend().getRelocator());
     }
   }
@@ -2773,11 +2757,8 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
   // must be written before the input relocation overwritten the same
   // location again.
   auto SyncBranchIslandsForOutputSection = [&](OutputSectionEntry *O) -> void {
-    typedef std::vector<BranchIsland *>::iterator branch_island_iter;
-    branch_island_iter Bi = O->islandsBegin();
-    branch_island_iter Be = O->islandsEnd();
-    for (; Bi != Be; ++Bi) {
-      for (auto *Reloc : (*Bi)->getRelocations())
+    for (auto *BI : O->branchIslands()) {
+      for (auto *Reloc : BI->getRelocations())
         writeRelocationResult(*Reloc, Buffer);
     }
   };
@@ -2786,7 +2767,7 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
       !ThisConfig.isSyncRelocationsMultiThreaded()) {
     if (ThisModule->getPrinter()->traceThreads())
       ThisConfig.raise(Diag::threads_disabled) << "SyncRelocations";
-    for (auto &Out : ThisModule->getScript().sectionMap())
+    for (auto *Out : ThisModule->getScript().sectionMap().outputSections())
       SyncBranchIslandsForOutputSection(Out);
     // sync linker created internal relocations
     for (auto *R : getTargetBackend().getInternalRelocs()) {
@@ -2807,7 +2788,7 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
     // of the input relocation to be overwritten by R_AARCH_COPY_INSN.
     // Therefore, a barrier is needed between writing branch island
     // relocations and input relocations.
-    for (auto &Out : ThisModule->getScript().sectionMap()) {
+    for (auto *Out : ThisModule->getScript().sectionMap().outputSections()) {
       Pool->run([&, Out] { SyncBranchIslandsForOutputSection(Out); });
     }
     Pool->wait();
@@ -3582,14 +3563,22 @@ bool ObjectLinker::createLTOObject(void) {
   if (LTOPlugin)
     LTOPlugin->ModifyLTOOptions(Conf, Options);
 
-  // Config.MllvmArgs are ignored, call cl::ParseCommandLineOptions instead.
+  // Config.MllvmArgs are ignored, call cl::parseCommandLineOptions instead.
   std::vector<const char *> CodegenArgv(1, "LTOCodeGenOptions");
   for (const std::string &Arg : Options)
     CodegenArgv.push_back(Arg.c_str());
-  cl::ParseCommandLineOptions(CodegenArgv.size(), CodegenArgv.data());
+  // libraryOptions must outlive Conf and the LTO object created below.
+  cl::LibraryOptionsContext libraryOptions;
+  std::string Err;
+  raw_string_ostream OS(Err);
+  if (!cl::parseCommandLineOptions(libraryOptions, CodegenArgv, "", &OS)) {
+    ThisConfig.raise(Diag::lto_codegen_error) << StringRef(Err);
+    return false;
+  }
 
-  Conf.Options = llvm::codegen::InitTargetOptionsFromCodeGenFlags(
-      ThisConfig.targets().triple());
+  Conf.LibraryOptions = &libraryOptions;
+  Conf.Options = llvm::codegen::getTargetOptions(libraryOptions,
+                                                 ThisConfig.targets().triple());
 
   if (ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly() &&
       Conf.CGFileType == CodeGenFileType::AssemblyFile)
@@ -3861,6 +3850,10 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
                          ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(InputFile::InputFileKind::BinaryFileKind);
+    addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);
+    PluginManager &PM = ThisModule->getPluginManager();
+    if (!PM.callVisitInputHook(*CurInput))
+      return false;
     eld::Expected<void> ExpParseFile =
         getBinaryFileParser()->parseFile(*CurInput);
     if (!ExpParseFile) {
@@ -3868,7 +3861,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       return false;
     }
     ThisModule->getObjectList().push_back(CurInput);
-    addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);
   } else if (CurInput->getKind() == InputFile::ELFExecutableFileKind) {
     if (!CurInput->getInput()->getAttribute().isJustSymbols()) {
       ThisConfig.raise(Diag::error_executable_requires_just_symbols)
@@ -3952,6 +3944,10 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     CurInput->setToSkip();
     // LTO is needed.
     ThisModule->setLTONeeded();
+    addInputFileToTar(CurInput, MappingFile::Bitcode);
+    PluginManager &PM = ThisModule->getPluginManager();
+    if (!PM.callVisitInputHook(*CurInput))
+      return false;
     if (!getBitcodeReader()->readInput(*CurInput, LTOPlugin))
       return false;
     if (!isBackendInitialized()) {
@@ -3960,7 +3956,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     }
 
     ThisModule->getObjectList().push_back(CurInput);
-    addInputFileToTar(CurInput, MappingFile::Bitcode);
   } else if (CurInput->getKind() == InputFile::ELFSymDefFileKind) {
     eld::RegisterTimer T("Read SymDef Object Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
@@ -3972,6 +3967,9 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     }
     addInputFileToTar(CurInput, eld::MappingFile::Kind::SymDef);
     CurInput->setToSkip();
+    PluginManager &PM = ThisModule->getPluginManager();
+    if (!PM.callVisitInputHook(*CurInput))
+      return false;
     // Just to make it simple, I just added template code.
     if (!getSymDefReader()->readHeader(*CurInput, IsPostLto))
       return false;
@@ -4045,6 +4043,12 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       ThisConfig.raise(Diag::verbose_reusing_archive_file_info)
           << Input->decoratedPath() << "\n";
       CurArchive->setArchiveFileInfo(AF->getArchiveFileInfo());
+    }
+    if (!CurArchive->hasVisitedInput()) {
+      CurArchive->setVisitedInput(true);
+      PluginManager &PM = ThisModule->getPluginManager();
+      if (!PM.callVisitInputHook(*CurInput))
+        return false;
     }
     uint32_t NumObjects = 0;
     eld::Expected<uint32_t> ExpNumObjects =

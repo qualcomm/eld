@@ -1,0 +1,18 @@
+#---VisitInputThinArchive.test----------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Test that VisitInput fires for thin archives and their members, and reproducer captures both.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.main.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t.member.o %p/Inputs/2.c -c
+RUN: rm -f %t.libthin.a
+RUN: %ar crT %t.libthin.a %t.member.o
+RUN: %link %linkopts -o %t.out %t.main.o %t.libthin.a -u bar --reproduce=%t.tar \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+RUN: %tar -tf %t.tar | %filecheck %s --check-prefix=TAR
+#END_TEST
+
+CHECK-DAG: VisitInput: {{.*}}libthin.a isArchiveFile=1 isMember=0
+CHECK-DAG: VisitInput: {{.*}}member.o{{.*}}isArchiveFile=0 isMember=1
+TAR-DAG: libthin.a
+TAR-DAG: member.o

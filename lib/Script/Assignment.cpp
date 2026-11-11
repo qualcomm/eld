@@ -22,6 +22,7 @@
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/ErrorHandling.h"
 #include <cassert>
+#include <iterator>
 
 using namespace eld;
 
@@ -193,7 +194,7 @@ eld::Expected<void> Assignment::activate(Module &CurModule) {
 
   case AfterSections:
   case AfterOutputSection: {
-    SectionMap::reference Out = Script.sectionMap().back();
+    auto *Out = Script.sectionMap().back();
     Out->getPostOutputSectionAssignments().push_back(this);
     break;
   }
