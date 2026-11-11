@@ -6,6 +6,16 @@ set(LLVM_LIBS_DIR "${LLVM_BINARY_DIR}/lib/%(build_config)s")
 set(TEST_TARGETS "${ELD_TARGETS_TO_BUILD}")
 set(ELD_TESTSUITE)
 
+# Directory of libLW in the build tree. With an external LLVM, this is not
+# the LLVM library directory.
+set(ELD_LIBS_BINARY_DIR "")
+if(ELD_USE_EXTERNAL_LLVM)
+  get_target_property(ELD_LIBS_BINARY_DIR LW LIBRARY_OUTPUT_DIRECTORY)
+  if(NOT ELD_LIBS_BINARY_DIR)
+    set(ELD_LIBS_BINARY_DIR "")
+  endif()
+endif()
+
 include(LITModules)
 
 set(OPTIONS "default")
