@@ -7,6 +7,7 @@ llvm_add_library(
   BitcodeFile.cpp
   ELFDynObjectFile.cpp
   ELFFileBase.cpp
+  ELDDWARFObject.cpp
   ELFObjectFile.cpp
   ELFExecutableFile.cpp
   InputAction.cpp
