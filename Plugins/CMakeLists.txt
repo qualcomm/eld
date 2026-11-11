@@ -30,6 +30,15 @@ elseif(NOT TARGET LW)
 endif()
 set(ELD_STANDALONE ${BUILD_STANDALONE_PLUGINS})
 
+if(NOT ELD_STANDALONE)
+  option(ELD_INSTALL_PLUGINS "Install the plugins built as part of ELD" ON)
+  # Extra arguments for add_llvm_library() in plugin directories.
+  set(ELD_PLUGIN_LIBRARY_ARGS)
+  if(NOT ELD_INSTALL_PLUGINS)
+    list(APPEND ELD_PLUGIN_LIBRARY_ARGS BUILDTREE_ONLY)
+  endif()
+endif()
+
 # A plugin is an immediate child directory containing its own CMakeLists.txt.
 # CONFIGURE_DEPENDS makes CMake re-run configuration when a plugin directory is
 # added or removed. Infrastructure directories are explicitly excluded.
