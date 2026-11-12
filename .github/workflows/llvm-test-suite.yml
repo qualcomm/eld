@@ -2,6 +2,9 @@ name: LLVM test suite
 run-name: "LLVM test suite ${{ inputs.pr_number && format('PR #{0} @{1}', inputs.pr_number, inputs.pr_sha) || 'nightly' }}"
 
 on:
+  # zizmor: ignore[dangerous-triggers] -- Nightly check only runs on a schedule
+  # against main (never PR-triggered); this job only downloads a named
+  # artifact from it, it never checks out or executes the triggering run's code.
   workflow_run:
     workflows: [Nightly check]
     types: [completed]
@@ -58,6 +61,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
           path: llvm-project/llvm/tools/eld
+          persist-credentials: false
 
       - name: Configure workflow environment variables
         if: inputs.pr_sha == ''
@@ -80,10 +84,12 @@ jobs:
       - name: Install dependencies
         run: |
           pip3 install lit
-          if [ -n "${{ inputs.pr_sha }}" ]; then
+          if [ -n "${INPUTS_PR_SHA}" ]; then
             sudo apt-get update
             sudo apt-get install -y libunwind-18
           fi
+        env:
+          INPUTS_PR_SHA: ${{ inputs.pr_sha }}
 
       - name: Fetch nightly ELD
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
@@ -111,7 +117,7 @@ jobs:
 
       - name: Configure nightly toolchain library path
         if: inputs.pr_sha != ''
-        run: |
+        run: | # zizmor: ignore[github-env] writes a fixed workspace-relative path, no attacker-controlled input
           echo "LD_LIBRARY_PATH=${GITHUB_WORKSPACE}/inst/lib:${GITHUB_WORKSPACE}/inst/lib/x86_64-unknown-linux-gnu:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
 
       - name: Diagnose LLVM toolchain

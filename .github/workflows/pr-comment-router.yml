@@ -31,15 +31,17 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
-  actions: read
-  statuses: write
 
 jobs:
   validate:
     if: github.repository == 'qualcomm/eld' && (github.event_name == 'workflow_dispatch' || github.event.issue.pull_request != null)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+      actions: read
+      statuses: write
     outputs:
       pr_number: ${{ steps.request.outputs.pr_number }}
       pr_sha: ${{ steps.request.outputs.pr_sha }}

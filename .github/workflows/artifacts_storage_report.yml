@@ -163,9 +163,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: llvm-project/llvm/tools/eld
+          persist-credentials: false
 
       - name: Update Build Dashboard
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
             DASH_DIR="$(mktemp -d)"
             ls -lh reports/artifact-storage-report.json
@@ -174,14 +177,15 @@ jobs:
             cd llvm-project/llvm/tools/eld
             git config user.name 'github-actions'
             git config user.email 'github-actions@github.com'
+            remote_url="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
             git fetch --all
             git checkout dashboard
             git reset --hard origin/dashboard
             cp "${DASH_DIR}/artifact-storage-report.json" .
             git add .
             git commit -m "Update artifacts storage data for dashboard"
-            git push -f origin HEAD:refs/heads/dashboard
-            until git push -f origin HEAD:refs/heads/dashboard; do
+            git push -f "${remote_url}" HEAD:refs/heads/dashboard
+            until git push -f "${remote_url}" HEAD:refs/heads/dashboard; do
               sleep 5
               git fetch --all
               git reset --hard origin/dashboard

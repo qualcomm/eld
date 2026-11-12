@@ -16,9 +16,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: llvm-project/llvm/tools/eld
+          persist-credentials: false
 
       - name: Remove Dashboard Data Lock
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           cd llvm-project/llvm/tools/eld
           git config user.name 'github-actions'
@@ -30,7 +33,7 @@ jobs:
             rm -f data.lock
             git add -u -- data.lock
             git commit -m "Remove dashboard data lock"
-            git push -f origin HEAD:refs/heads/dashboard
+            git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/dashboard
           else
             echo "data.lock is not present on dashboard"
           fi

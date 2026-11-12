@@ -2,6 +2,9 @@ name: Memory with origins sanitizer
 # owner: Steven6798
 
 on:
+  # zizmor: ignore[dangerous-triggers] -- Nightly check only runs on a schedule
+  # against main (never PR-triggered); this job only downloads a named
+  # artifact from it, it never checks out or executes the triggering run's code.
   workflow_run:
     workflows: [Nightly check]
     types: [completed]
@@ -47,7 +50,7 @@ jobs:
 
       - name: Install libc++ and libc++abi
         id: install_dependencies
-        run: |
+        run: | # zizmor: ignore[github-env] writes a fixed llvm-23 install path, no attacker-controlled input
           sudo apt update
           sudo apt install -y clang-23 lld-23 ninja-build zlib1g-dev libc++-23-dev libc++abi-23-dev ccache libclang-rt-23-dev libunwind-23-dev
           printf 'PATH=/usr/lib/llvm-23/bin:%s\nLD_LIBRARY_PATH=/usr/lib/llvm-23/lib:%s\n' \
@@ -72,6 +75,7 @@ jobs:
           repository: llvm/llvm-project
           path: ./llvm-project/
           ref: main
+          persist-credentials: false
 
       - name: Checkout eld
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -80,6 +84,7 @@ jobs:
           path: ./llvm-project/llvm/tools/eld
           ref: ${{ inputs.pr_sha || github.ref_name }}
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Configure workflow environment variables
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV

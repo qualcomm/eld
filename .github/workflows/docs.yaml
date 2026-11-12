@@ -27,12 +27,14 @@ jobs:
           repository: llvm/llvm-project
           path: llvm-project
           ref: main
+          persist-credentials: false
 
       - name: Checkout eld
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: llvm-project/llvm/tools/eld
           ref: main
+          persist-credentials: false
 
       - name: Configure workflow environment variables
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
@@ -83,6 +85,8 @@ jobs:
           ninja eld-docs
 
       - name: Deploy to docs branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           ROOT=$(pwd)
           cd llvm-project/llvm/tools/eld
@@ -94,4 +98,4 @@ jobs:
           touch .nojekyll
           git add .
           git commit -m "Update documentation"
-          git push -f origin HEAD:refs/heads/documentation
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/documentation
