@@ -1,0 +1,42 @@
+Source: eld
+Section: devel
+Priority: optional
+Maintainer: Qualcomm ELD Team <eld-maintainers@qualcomm.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake (>= 3.16),
+ ninja-build,
+ llvm-19-dev,
+ libclang-19-dev,
+ llvm-19-tools,
+ python3,
+ zlib1g-dev,
+Standards-Version: 4.6.2
+Homepage: https://github.com/qualcomm/eld
+Rules-Requires-Root: no
+
+Package: eld
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Embedded Linker for LLVM
+ ELD is an embedded linker developed by Qualcomm, derived from mclinker.
+ It operates on ELF files and is tailored to meet the requirements of
+ the embedded community.
+ .
+ The linker supports ARM, AArch64, Hexagon, RISC-V, and X86 targets and
+ provides mature linker script support with custom extensions, a plugin
+ infrastructure, and machine-readable map files.
+ .
+ This package contains the ld.eld linker binary, the libLW shared library,
+ linker script templates, and the YAMLMapParser utility.
+
+Package: eld-plugin-dev
+Architecture: any
+Depends: eld (= ${binary:Version}), ${misc:Depends}
+Description: ELD linker plugin development headers
+ ELD is an embedded linker developed by Qualcomm, derived from mclinker.
+ It provides a plugin infrastructure that allows users to create custom
+ passes that run during link time.
+ .
+ This package contains the C++ header files needed to develop plugins
+ for the ELD linker using the PluginAPI.
