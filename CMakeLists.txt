@@ -60,6 +60,12 @@ if(ELD_USE_EXTERNAL_LLVM)
   include(TableGen)
   include(HandleLLVMOptions)
 
+  # LLVM's own option is not exported by LLVMConfig.cmake. Use the same default
+  # so that the <target>-link drivers are symlinks as in integrated builds,
+  # rather than copies of ld.eld.
+  option(LLVM_USE_SYMLINKS "Use symlinks instead of copying binaries"
+         ${CMAKE_HOST_UNIX})
+
   # Set up compiler flags similar to LLVM
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
