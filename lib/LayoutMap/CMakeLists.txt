@@ -3,9 +3,9 @@ llvm_add_library(ELDLayout STATIC LayoutInfo.cpp
 
 target_link_libraries(
   ELDLayout
-  ELDConfig
-  ELDFragment
-  ELDSupport
-  ELDDiagnostics
-  ELDTarget
-  ELDSymbolResolver)
+  PRIVATE ELDConfig
+          ELDFragment
+          ELDSupport
+          ELDDiagnostics
+          ELDTarget
+          ELDSymbolResolver)
