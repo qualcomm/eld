@@ -12,6 +12,9 @@ Configure ELD normally, then build the desired target:
 cmake --build /path/to/build-eld --target HelloWorldPlugin
 ```
 
+These plugins are installed along with ELD. Configure ELD with
+`-DELD_INSTALL_PLUGINS=OFF` to build them without installing them.
+
 ## Build against an installed package
 
 Select standalone mode explicitly:
@@ -216,6 +219,8 @@ and must be compatible with the target object formats.
 Give the plugin directory and CMake target the same name. Use
 `eld_add_standalone_plugin(... SOURCES ... LIBRARIES ...)` when
 ELD_STANDALONE is true and the normal ELD/LLVM library helpers otherwise.
+Pass `${ELD_PLUGIN_LIBRARY_ARGS}` to `add_llvm_library()` so that the plugin
+honors ELD_INSTALL_PLUGINS.
 The standalone helper links ELD::LW; optional dependencies belong to the
 plugin that needs them. `eld_standalone_require_api(plugin header symbol)`
 can reject packages missing a required public API.
