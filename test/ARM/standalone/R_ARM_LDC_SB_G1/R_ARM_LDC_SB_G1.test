@@ -1,0 +1,37 @@
+#---R_ARM_LDC_SB_G1.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify R_ARM_LDC_SB_G1 relocation is correctly applied using the base
+# address of the load segment containing the referenced symbol.
+#
+# Formula: S + A - B(S).
+#
+# B(S) = 0x1000
+# S    = 0x1404
+# A    = 0
+#
+# X = 0x404
+# G1 residual = 0x4
+# imm8 = 1
+# U = 1
+#
+# 0xed9f0100 -> 0xed9f0101
+#END_COMMENT
+#START_TEST
+RUN: %clangas -c %p/Inputs/main.s -o %t.o
+RUN: %link %linkopts -march arm -static -T %p/Inputs/script.t %t.o -o %t.out
+RUN: %readelf -x .text %t.out | %filecheck %s
+
+CHECK: 0x00000000 01019fed 1eff2fe1
+
+RUN: %clangas -c %p/Inputs/negative.s -o %t.neg.o
+RUN: %link %linkopts -march arm -static -T %p/Inputs/script.t %t.neg.o -o %t.neg.out
+RUN: %readelf -x .text %t.neg.out | %filecheck %s --check-prefix=NEGATIVE
+
+NEGATIVE: 0x00000000 00011fed 1eff2fe1
+
+RUN: %clangas -c %p/Inputs/boundary.s -o %t.boundary.o
+RUN: %link %linkopts -march arm -static -T %p/Inputs/script.t %t.boundary.o -o %t.boundary.out
+RUN: %readelf -x .text %t.boundary.out | %filecheck %s --check-prefix=BOUNDARY
+
+BOUNDARY: 0x00000000 ff019fed
+#END_TEST
