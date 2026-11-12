@@ -1,2 +1,2 @@
-int bar();
-int foo() { return bar(); }
+int foo();
+int bar() { return foo(); }

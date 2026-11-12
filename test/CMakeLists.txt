@@ -88,6 +88,14 @@ add_custom_target(${TARGET_NAME})
 process_options_and_generate_lit_test_suite("${TARGET_NAME}" "${TEST_TARGETS}"
                                             "${OPTIONS}" "${OPTIONNAMES}")
 
+# Extended test target options and their corresponding lit feature names.
+set(EXTENDED_OPTIONS
+    "--use-old-rule-matching"
+    "--progress-bar")
+set(EXTENDED_OPTIONNAMES
+    "old_rule_matching"
+    "progress_bar")
+
 # Collect one JSON results path per arch+option configuration so that
 # check-eld-summary can aggregate counts into a single table.
 set(SUMMARY_JSON_FILES)
@@ -99,6 +107,10 @@ foreach(ARCH ${TEST_TARGETS})
       "${CMAKE_CURRENT_BINARY_DIR}/${ARCH}-${OPTIONNAME}-config/results.json")
     math(EXPR OPTIONCOUNT "${OPTIONCOUNT}+1")
   endforeach()
+  foreach(OPTIONNAME ${EXTENDED_OPTIONNAMES})
+    list(APPEND SUMMARY_JSON_FILES
+      "${CMAKE_CURRENT_BINARY_DIR}/${ARCH}-${OPTIONNAME}-config/results.json")
+  endforeach()
 endforeach()
 
 add_custom_target(check-eld-summary
@@ -109,15 +121,15 @@ add_custom_target(check-eld-summary
   USES_TERMINAL)
 set_target_properties(check-eld-summary PROPERTIES FOLDER "Linker Tests")
 
-# Extended test target: builds and runs everything check-eld does, plus a
-# per-arch lit suite with --use-old-rule-matching appended to %linkopts.
+# Extended test target: builds and runs everything check-eld does, plus
+# per-arch lit suites for the extended linker options above.
 set(EXTENDED_TARGET_NAME check-eld-extended)
 add_custom_target(${EXTENDED_TARGET_NAME})
 add_dependencies(${EXTENDED_TARGET_NAME} ${TARGET_NAME})
 
 process_options_and_generate_lit_test_suite(
   "${EXTENDED_TARGET_NAME}" "${TEST_TARGETS}"
-  "--use-old-rule-matching" "old_rule_matching")
+  "${EXTENDED_OPTIONS}" "${EXTENDED_OPTIONNAMES}")
 
 add_subdirectory(UnitTests)
 add_subdirectory(Common)

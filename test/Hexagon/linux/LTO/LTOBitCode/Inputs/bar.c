@@ -1,4 +1,2 @@
-int bar() {
-  return 123;
-}
-
+extern int foo();
+int bar() { return foo(); }
