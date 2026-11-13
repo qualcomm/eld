@@ -177,6 +177,14 @@ public:
     return ((ThisBitField & IFuncNeedsGOTMask) == IFuncNeedsGOTMask);
   }
 
+  // The symbol matches a --dynamic-list pattern.  -Bsymbolic must not bind it
+  // locally.
+  void setInDynamicList() { ThisBitField |= InDynListMask; }
+
+  bool inDynamicList() const {
+    return ((ThisBitField & InDynListMask) == InDynListMask);
+  }
+
   // -----  observers  ----- //
   bool isNull() const;
 
@@ -374,6 +382,11 @@ private:
   static const uint32_t IsDefaultVersionOffset = 22;
   static const uint32_t IsDefaultVersionMask = 1 << IsDefaultVersionOffset;
 #endif
+
+  // Set by the dynamic list.  Outside ResolveMask, so overriding a symbol does
+  // not clear it.
+  static const uint32_t InDynListOffset = 23;
+  static const uint32_t InDynListMask = 1 << InDynListOffset;
 
   static const uint32_t InfoMask = 0xF;
 

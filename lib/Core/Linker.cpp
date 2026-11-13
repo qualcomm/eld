@@ -546,6 +546,11 @@ bool Linker::resolve() {
     }
   }
 
+  // Before the scan, which decides the PLT entries that -Bsymbolic must not
+  // bind locally.
+  if (ThisConfig->isCodeDynamic() || ThisConfig->options().forceDynamic())
+    ObjLinker->markDynListSymbols();
+
   LinkerProgress->incrementAndDisplayProgress("Scan relocations");
   if (LinkerConfig::Object != ThisConfig->codeGenType()) {
     eld::RegisterTimer T("Scan Relocation Processing", "Relocation Processing",

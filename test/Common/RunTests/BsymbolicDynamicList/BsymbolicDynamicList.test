@@ -1,0 +1,15 @@
+REQUIRES: run_test, linux
+#---BsymbolicDynamicList.test-------------------Executable/SharedLibrary-----#
+#BEGIN_COMMENT
+# Runtime check of -Bsymbolic with --dynamic-list.  The program defines and
+# exports variant(); the shared library's entry() calls it.  Because the listed
+# variant() stays preemptible, entry(1) uses the program's version (202).  If
+# the list were ignored, the library's own copy would run (4).
+#END_COMMENT
+RUN: %run_cc -c -fPIC %p/Inputs/rt-lib.c -o %t.lib.o
+RUN: %run_cc -shared -o %t.libv.so %t.lib.o -Wl,-Bsymbolic -Wl,--dynamic-list=%p/Inputs/rt.list
+RUN: %run_cc -c %p/Inputs/rt-main.c -o %t.main.o
+RUN: %run_cc -o %t.out %t.main.o %t.libv.so -Wl,--export-dynamic -Wl,-rpath,%T
+RUN: %run %t.out | %filecheck %s
+
+CHECK: entry(1)=202 -> program variant
