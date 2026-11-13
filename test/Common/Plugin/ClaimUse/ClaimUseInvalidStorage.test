@@ -1,0 +1,15 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# claimUse requires a complete, nonzero-width field in a PROGBITS chunk.
+# Publicly created uses exercise the API before target scanning can reject or
+# consume invalid relocation offsets itself.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/pointer.c -o %t.o
+RUN: echo 'GlobalPlugins: [{Type: LinkerPlugin, Name: CreatedUse, Library: CreatedUse, Options: zero-width}]' > %t.zero.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.zero.yaml -o %t.zero.out 2>&1 | %filecheck %s
+RUN: sed 's/Options: zero-width/Options: out-of-bounds/' %t.zero.yaml > %t.bounds.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.bounds.yaml -o %t.bounds.out 2>&1 | %filecheck %s
+RUN: sed 's/Options: zero-width/Options: negative-offset/' %t.zero.yaml > %t.negative.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.negative.yaml -o %t.negative.out 2>&1 | %filecheck %s --check-prefix=NEGATIVE
+RUN: sed 's/Options: zero-width/Options: nobits/' %t.zero.yaml > %t.nobits.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.nobits.yaml -o %t.nobits.out 2>&1 | %filecheck %s
+CHECK: Cannot claim plugin relocation: source has no writable relocation-sized data
+NEGATIVE: Invalid Use

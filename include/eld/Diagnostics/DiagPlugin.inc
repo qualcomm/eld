@@ -143,3 +143,7 @@ DIAG(error_finding_plugin_config, DiagnosticEngine::Error,
      "plugin configuration file not found: '%0'")
 DIAG(error_lto_module_hash_already_set, DiagnosticEngine::Error,
      "LTO module hash for '%0' has already been set")
+DIAG(error_plugin_owned_use, DiagnosticEngine::Error,
+     "Cannot claim plugin relocation: %0")
+DIAG(error_plugin_owned_use_missing_data, DiagnosticEngine::Error,
+     "Plugin-owned relocation in %0 at offset %1 has no replacement data")

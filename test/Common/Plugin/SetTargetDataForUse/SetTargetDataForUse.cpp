@@ -5,7 +5,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "LinkerWrapper.h"
+#ifdef BEFORE_WRITING_OUTPUT
+#include "LinkerPlugin.h"
+#else
 #include "OutputSectionIteratorPlugin.h"
+#endif
 #include "PluginVersion.h"
 #include <atomic>
 #include <thread>
@@ -13,15 +17,50 @@
 
 using namespace eld::plugin;
 
-class SetTargetDataForUse : public OutputSectionIteratorPlugin {
+#ifdef BEFORE_WRITING_OUTPUT
+using WriterPlugin = LinkerPlugin;
+#else
+using WriterPlugin = OutputSectionIteratorPlugin;
+#endif
+
+class SetTargetDataForUse : public WriterPlugin {
 public:
-  SetTargetDataForUse() : OutputSectionIteratorPlugin("SetTargetDataForUse") {}
+  SetTargetDataForUse() : WriterPlugin("SetTargetDataForUse") {}
+#ifdef BEFORE_WRITING_OUTPUT
+  void Init(const std::string &Options) override {
+    ClaimUses = Options == "claimed";
+  }
+  void ActBeforeRelocationScan() override {
+    if (!ClaimUses)
+      return;
+    std::vector<Use> Uses;
+    if (!collectUses(Uses))
+      return;
+    for (Use U : Uses) {
+      auto Result = getLinker()->claimUse(U);
+      if (!Result) {
+        getLinker()->reportDiagEntry(std::move(Result.error()));
+        return;
+      }
+    }
+  }
+  void ActBeforeWritingOutput() override { writeUses(); }
+#else
   void Init(std::string) override {}
   void processOutputSection(OutputSection) override {}
   Status Run(bool) override {
     if (!getLinker()->isLinkStateAfterLayout())
       return Status::SUCCESS;
-    std::vector<Use> Uses;
+    return writeUses() ? Status::SUCCESS : Status::ERROR;
+  }
+  std::string GetName() override { return "SetTargetDataForUse"; }
+  std::string GetLastErrorAsString() override { return ""; }
+  uint32_t GetLastError() override { return 0; }
+#endif
+  void Destroy() override {}
+
+private:
+  bool collectUses(std::vector<Use> &Uses) {
     for (InputFile F : getLinker()->getInputFiles())
       for (Section S : F.getSections()) {
         if (S.getName() != ".replacement_data")
@@ -29,10 +68,16 @@ public:
         auto Result = getLinker()->getUses(S);
         if (!Result) {
           getLinker()->reportDiagEntry(std::move(Result.error()));
-          return Status::ERROR;
+          return false;
         }
         Uses.insert(Uses.end(), Result->begin(), Result->end());
       }
+    return true;
+  }
+  bool writeUses() {
+    std::vector<Use> Uses;
+    if (!collectUses(Uses))
+      return false;
     std::atomic<unsigned> Ready{0};
     std::atomic<bool> Start{false};
     std::atomic<bool> Failed{false};
@@ -57,12 +102,11 @@ public:
     Start = true;
     for (auto &W : Workers)
       W.join();
-    return Failed ? Status::ERROR : Status::SUCCESS;
+    return !Failed;
   }
-  std::string GetName() override { return "SetTargetDataForUse"; }
-  std::string GetLastErrorAsString() override { return ""; }
-  uint32_t GetLastError() override { return 0; }
-  void Destroy() override {}
+#ifdef BEFORE_WRITING_OUTPUT
+  bool ClaimUses = false;
+#endif
 };
 
 ELD_REGISTER_PLUGIN(SetTargetDataForUse)

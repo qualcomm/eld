@@ -222,6 +222,12 @@ bool Plugin::init(eld::OutputTarWriter *OutputTar) {
         << UserPluginHandle->GetName();
   if (ThisModule.getConfig().options().hasMappingFile())
     PluginOptions = ThisModule.getConfig().getHashFromFile(PluginOptions);
+  if (llvm::isa<plugin::LinkerPlugin>(UserPluginHandle)) {
+    callInitHook();
+    if (OutputTar && llvm::sys::fs::exists(PluginOptions))
+      OutputTar->createAndAddConfigFile(PluginOptions, PluginOptions);
+    return true;
+  }
   plugin::Plugin *P = llvm::cast<plugin::Plugin>(UserPluginHandle);
   P->Init(PluginOptions);
   if (OutputTar && llvm::sys::fs::exists(PluginOptions))
@@ -619,6 +625,17 @@ void Plugin::callActBeforeRuleMatchingHook() {
   P->ActBeforeRuleMatching();
 }
 
+void Plugin::callActBeforeRelocationScanHook() {
+  Running R(this);
+  llvm::StringRef HookName = "ActBeforeRelocationScan";
+  auto *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
+  RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),
+                  Stats);
+  if (isTraced())
+    ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
+  P->ActBeforeRelocationScan();
+}
+
 void Plugin::callActBeforeSectionMergingHook() {
   llvm::StringRef HookName = "ActBeforeSectionMerging";
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
@@ -640,6 +657,7 @@ void Plugin::callActBeforePerformingLayoutHook() {
 }
 
 void Plugin::callActBeforeWritingOutputHook() {
+  Running R(this);
   llvm::StringRef HookName = "ActBeforeWritingOutput";
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
   RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),

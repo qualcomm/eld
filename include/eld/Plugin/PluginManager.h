@@ -73,6 +73,8 @@ public:
 
   bool callActBeforeRuleMatchingHook();
 
+  bool callActBeforeRelocationScanHook();
+
   bool callActBeforeSectionMergingHook();
 
   void enableShowRMSectNameInDiag(LinkerConfig &Config, const eld::Plugin &P);

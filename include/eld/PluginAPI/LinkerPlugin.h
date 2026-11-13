@@ -62,6 +62,13 @@ public:
 
   virtual void ActBeforeRuleMatching() {}
 
+  /// Invoked after serial relocation callbacks and before target scanning.
+  /// This is the only hook in which LinkerWrapper::claimUse() is allowed.
+  /// Uses may be collected in RelocCallBack() or enumerated with getUses().
+  /// All claims, including worker-thread calls, must finish before this hook
+  /// returns. Partial links invoke the hook but do not support claims.
+  virtual void ActBeforeRelocationScan() {}
+
   /// The ActBeforeSectionMerging is invoked just before section merging step in
   /// the link pipeline.
   ///
@@ -88,6 +95,10 @@ public:
 
   /// The ActBeforeWritingOutput is invoked just before writing the output
   /// image.
+  /// Replacement bytes may be updated with
+  /// LinkerWrapper::setTargetDataForUse(). All calls, including worker-thread
+  /// calls, must finish before this hook returns. Later writes are rejected
+  /// even though the link state remains ActBeforeWritingOutput.
   ///
   /// Link pipeline flow:
   /// Read inputs --> linker script rule-matching --> garbage-collection -->

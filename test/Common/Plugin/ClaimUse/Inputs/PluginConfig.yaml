@@ -1,0 +1,5 @@
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: ClaimUse
+    Library: ClaimUse
+    Options: valid

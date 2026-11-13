@@ -17,13 +17,16 @@ class DLL_A_EXPORT Plugin;
 struct DLL_A_EXPORT Use;
 
 /// LinkerPluginConfig allows to inspect and modify relocations.
-/// Each LinkerPluginConfig object has a corresponding plugin::Plugin object.
+/// Each LinkerPluginConfig object has a corresponding plugin object.
 /// LinkerPluginConfig provides callback hooks that are called for each
 /// registered relocation type. Relocation types must be registered via
 /// LinkerWrapper::RegisterReloc.
 class DLL_A_EXPORT LinkerPluginConfig {
 public:
-  explicit LinkerPluginConfig(plugin::Plugin *);
+  /// Legacy plugins may supply their owner for getPlugin(). LinkerPlugin
+  /// configs retain a typed owner in their derived class and omit this
+  /// argument.
+  explicit LinkerPluginConfig(plugin::Plugin * = nullptr);
 
   /// The Init callback hook is called before any relocation callback hook
   /// call. It is used for initialization purposes. Typically, plugins

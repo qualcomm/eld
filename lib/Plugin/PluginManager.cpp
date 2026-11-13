@@ -25,7 +25,9 @@ void PluginManager::storeUniversalPlugins() {
 bool PluginManager::callInitHook() {
   RegisterTimer T("Init", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
-    P->callInitHook();
+    // Plugins with relocation configs were initialized before Config::Init.
+    if (!P->getLinkerPluginConfig())
+      P->callInitHook();
     if (!DE.diagnose())
       return false;
   }
@@ -100,6 +102,16 @@ bool PluginManager::callActBeforeRuleMatchingHook() {
   RegisterTimer T("ActBeforeRuleMatching", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
     P->callActBeforeRuleMatchingHook();
+    if (!DE.diagnose())
+      return false;
+  }
+  return true;
+}
+
+bool PluginManager::callActBeforeRelocationScanHook() {
+  RegisterTimer T("ActBeforeRelocationScan", "Plugins", ShouldPrintTimingStats);
+  for (auto *P : UniversalPlugins) {
+    P->callActBeforeRelocationScanHook();
     if (!DE.diagnose())
       return false;
   }
