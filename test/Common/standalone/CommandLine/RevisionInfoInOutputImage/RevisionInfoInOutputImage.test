@@ -3,6 +3,7 @@
 # This test checks that the output ELF image .comment section contains linker
 # and LLVM version and revision information.
 #END_COMMENT
+#REQUIRES: eld-vc-revision
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
 RUN: %link %linkopts %t1.1.o -o %t1.1.out

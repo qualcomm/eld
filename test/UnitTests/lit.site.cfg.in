@@ -8,6 +8,7 @@ config.llvm_build_mode = "@LLVM_BUILD_MODE@"
 config.lit_tools_dir = "@LLVM_LIT_TOOLS_DIR@"
 config.eld_src_root = "@ELD_SOURCE_DIR@"
 config.eld_obj_root = "@ELD_BINARY_DIR@"
+config.eld_libs_dir = "@ELD_LIBS_BINARY_DIR@"
 config.target_triple = "x86_64-unknown-linux-gnu"
 config.python_executable = "@PYTHON_EXECUTABLE@"
 

@@ -6,6 +6,7 @@
 
 nop
 
+// REQUIRES: eld-vc-revision, llvm-vc-revision
 // START_TEST
 // RUN: %clang %clangopts -c %s -o %t.o
 // RUN: %link %linkopts %t.o -M -o %t.out 2>&1 | %filecheck %s
