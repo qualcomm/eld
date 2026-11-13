@@ -11,6 +11,7 @@
 #include "eld/Target/ELFSegmentFactory.h"
 #include "x86_64PLT.h"
 #include "x86_64RelocationFunctions.h"
+#include "x86_64RelocationInfo.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/ADT/bit.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -29,9 +30,8 @@ x86_64Relocator::x86_64Relocator(x86_64LDBackend &pParent,
   if (m_Module.getPrinter()->verifyReloc() &&
       config().options().verifyRelocList().size()) {
     auto &list = config().options().verifyRelocList();
-    for (auto &i : x86RelocDesc) {
-      auto RelocInfo = x86_64Relocs[i.type];
-      if (list.find(RelocInfo.Name) != list.end())
+    for (auto &i : x86_64::Relocs) {
+      if (list.find(i.Name) != list.end())
         i.forceVerify = true;
     }
   }
@@ -42,7 +42,7 @@ Relocator::Result x86_64Relocator::applyRelocation(Relocation &pRelocation) {
 
   ResolveInfo *symInfo = pRelocation.symInfo();
 
-  if (type > x86_64_MAXRELOCS)
+  if (type >= x86_64::RelocationTableSize)
     return Relocator::Unknown;
 
   if (symInfo) {
@@ -59,47 +59,26 @@ Relocator::Result x86_64Relocator::applyRelocation(Relocation &pRelocation) {
   }
 
   // apply the relocation
-  return x86RelocDesc[type].func(pRelocation, *this, x86RelocDesc[type]);
+  return x86_64::Relocs[type].Handler(pRelocation, *this);
 }
 
 const char *x86_64Relocator::getName(Relocation::Type pType) const {
-
-  return x86_64Relocs[pType].Name;
+  if (pType >= x86_64::RelocationTableSize)
+    return "INVALID_RELOC";
+  const char *Name = x86_64::Relocs[pType].Name;
+  return *Name ? Name : "INVALID_RELOC";
 }
 
 Relocator::Size x86_64Relocator::getSize(Relocation::Type pType) const {
-  return x86_64Relocs[pType].Size;
+  if (pType >= x86_64::RelocationTableSize)
+    return 0;
+  return x86_64::Relocs[pType].Size;
 }
 
 bool x86_64Relocator::isRelocSupported(const Relocation &Reloc) const {
-
-  switch (Reloc.type()) {
-  case llvm::ELF::R_X86_64_NONE:
-  case llvm::ELF::R_X86_64_64:
-  case llvm::ELF::R_X86_64_PC32:
-  case llvm::ELF::R_X86_64_COPY:
-  case llvm::ELF::R_X86_64_32:
-  case llvm::ELF::R_X86_64_32S:
-  case llvm::ELF::R_X86_64_16:
-  case llvm::ELF::R_X86_64_PC16:
-  case llvm::ELF::R_X86_64_8:
-  case llvm::ELF::R_X86_64_PC8:
-  case llvm::ELF::R_X86_64_PC64:
-  case llvm::ELF::R_X86_64_PLT32:
-  case llvm::ELF::R_X86_64_GOTPCREL:
-  case llvm::ELF::R_X86_64_GOTPCRELX:
-  case llvm::ELF::R_X86_64_REX_GOTPCRELX:
-  case llvm::ELF::R_X86_64_TPOFF32:
-  case llvm::ELF::R_X86_64_TPOFF64:
-  case llvm::ELF::R_X86_64_DTPOFF32:
-  case llvm::ELF::R_X86_64_DTPOFF64:
-  case llvm::ELF::R_X86_64_GOTTPOFF:
-  case llvm::ELF::R_X86_64_TLSGD:
-  case llvm::ELF::R_X86_64_TLSLD:
-    return true;
-  default:
-    return false;
-  }
+  const Relocation::Type Type = Reloc.type();
+  return Type < x86_64::RelocationTableSize &&
+         x86_64::Relocs[Type].Handler != &x86_64::unsupported;
 }
 
 void x86_64Relocator::scanDeferredRelocation(InputFile &Input,
@@ -500,35 +479,35 @@ void x86_64Relocator::partialScanRelocation(Relocation &pReloc,
   }
 }
 
-uint32_t x86_64Relocator::getNumRelocs() const { return x86_64_MAXRELOCS; }
+uint32_t x86_64Relocator::getNumRelocs() const {
+  return x86_64::RelocationTableSize;
+}
 
 //=========================================//
 // Relocation Verifier
 //=========================================//
 template <typename T>
-Relocator::Result VerifyRelocAsNeededHelper(
-    Relocation &pReloc, T Result, const RelocationDescription &pRelocDesc,
-    DiagnosticEngine *DiagEngine, const GeneralOptions &options,
-    x86_64Relocator &Parent) {
-  uint32_t RelocType = pReloc.type();
-  auto RelocInfo = x86_64Relocs[RelocType];
+Relocator::Result VerifyRelocAsNeededHelper(Relocation &pReloc, T Result,
+                                            DiagnosticEngine *DiagEngine,
+                                            const GeneralOptions &options,
+                                            x86_64Relocator &Parent) {
+  const x86_64::RelocationDescriptor &Desc = x86_64::Relocs[pReloc.type()];
   Relocator::Result R = Relocator::OK;
 
   auto PreShift = Result;
-  Result >>= x86_64Relocs[RelocType].Shift;
+  Result >>= Desc.Shift;
 
-  if (RelocInfo.VerifyRange && !verifyRangeX86_64(RelocInfo, Result)) {
-    unsigned EffectiveBits =
-        getNumberOfBits(RelocInfo.EncType) + RelocInfo.Shift;
-    if (RelocInfo.IsSigned)
+  if (Desc.VerifyRange && !x86_64::verifyRangeX86_64(Desc, Result)) {
+    unsigned EffectiveBits = x86_64::getNumberOfBits(Desc.EncType) + Desc.Shift;
+    if (Desc.IsSigned)
       return checkSignedRange(pReloc, Parent, llvm::bit_cast<int64_t>(PreShift),
                               EffectiveBits);
     return reportUnsignedOverflow(pReloc, Parent, PreShift, EffectiveBits);
   }
 
-  if ((pRelocDesc.forceVerify) && (isTruncatedX86_64(RelocInfo, Result))) {
+  if (Desc.forceVerify && x86_64::isTruncatedX86_64(Desc, Result)) {
     DiagEngine->raise(Diag::reloc_truncated)
-        << RelocInfo.Name << pReloc.symInfo()->name()
+        << Desc.Name << pReloc.symInfo()->name()
         << pReloc.getTargetPath(options) << pReloc.getSourcePath(options);
   }
   return R;
@@ -569,22 +548,18 @@ void x86_64Relocator::computeTLSOffsets() {
 }
 
 template <typename T>
-Relocator::Result ApplyReloc(Relocation &pReloc, T Result,
-                             const RelocationDescription &pRelocDesc,
-                             DiagnosticEngine *DiagEngine,
-                             const GeneralOptions &options,
-                             x86_64Relocator &Parent) {
-  auto RelocInfo = x86_64Relocs[pReloc.type()];
-
+Relocator::Result
+ApplyReloc(Relocation &pReloc, T Result, DiagnosticEngine *DiagEngine,
+           const GeneralOptions &options, x86_64Relocator &Parent) {
   // Verify the Relocation.
   Relocator::Result R = Relocator::OK;
-  R = VerifyRelocAsNeededHelper(pReloc, Result, pRelocDesc, DiagEngine, options,
-                                Parent);
+  R = VerifyRelocAsNeededHelper(pReloc, Result, DiagEngine, options, Parent);
   if (R != Relocator::OK)
     return R;
 
   // Apply the relocation
-  pReloc.target() = doRelocX86_64(RelocInfo, pReloc.target(), Result);
+  const x86_64::RelocationDescriptor &Desc = x86_64::Relocs[pReloc.type()];
+  pReloc.target() = x86_64::doRelocX86_64(Desc, pReloc.target(), Result);
   return R;
 }
 
@@ -592,21 +567,19 @@ Relocator::Result ApplyReloc(Relocation &pReloc, T Result,
 // Each relocation function implementation //
 //=========================================//
 // R_X86_64_NONE
-Relocator::Result eld::none(Relocation &pReloc, x86_64Relocator &pParent,
-                            RelocationDescription &pRelocDesc) {
+Relocator::Result x86_64::none(Relocation &pReloc, x86_64Relocator &pParent) {
   return Relocator::OK;
 }
 
 Relocator::Result applyRel(Relocation &pReloc, Relocator::DWord Result,
-                           const RelocationDescription &pRelocDesc,
                            DiagnosticEngine *DiagEngine,
                            const GeneralOptions &options,
                            x86_64Relocator &Parent) {
-  return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine, options, Parent);
+  return ApplyReloc(pReloc, Result, DiagEngine, options, Parent);
 }
 
-Relocator::Result eld::relocAbs(Relocation &pReloc, x86_64Relocator &pParent,
-                                RelocationDescription &pRelocDesc) {
+Relocator::Result x86_64::relocAbs(Relocation &pReloc,
+                                   x86_64Relocator &pParent) {
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   ResolveInfo *rsym = pReloc.symInfo();
   Relocator::Address S = pReloc.symValue(pParent.module());
@@ -620,13 +593,13 @@ Relocator::Result eld::relocAbs(Relocation &pReloc, x86_64Relocator &pParent,
   if (rsym && rsym->isWeakUndef() &&
       (pParent.config().codeGenType() == LinkerConfig::Exec)) {
     S = 0;
-    return ApplyReloc(pReloc, S + A, pRelocDesc, DiagEngine, options, pParent);
+    return ApplyReloc(pReloc, S + A, DiagEngine, options, pParent);
   }
 
   // if the flag of target section is not ALLOC, we eprform only static
   // relocation.
   if (!pReloc.targetRef()->getOutputELFSection()->isAlloc()) {
-    return ApplyReloc(pReloc, S + A, pRelocDesc, DiagEngine, options, pParent);
+    return ApplyReloc(pReloc, S + A, DiagEngine, options, pParent);
   }
 
   if (rsym && (rsym->reserved() & Relocator::ReserveRel)) {
@@ -637,11 +610,11 @@ Relocator::Result eld::relocAbs(Relocation &pReloc, x86_64Relocator &pParent,
   //    S =
   //    pParent.getTarget().findEntryInPLT(rsym)->getAddr(config().getDiagEngine());
 
-  return ApplyReloc(pReloc, S + A, pRelocDesc, DiagEngine, options, pParent);
+  return ApplyReloc(pReloc, S + A, DiagEngine, options, pParent);
 }
 
-Relocator::Result eld::relocPCREL(Relocation &pReloc, x86_64Relocator &pParent,
-                                  RelocationDescription &pRelocDesc) {
+Relocator::Result x86_64::relocPCRel(Relocation &pReloc,
+                                     x86_64Relocator &pParent) {
   //  ResolveInfo *rsym = pReloc.symInfo();
   Relocator::DWord Result;
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
@@ -657,7 +630,7 @@ Relocator::Result eld::relocPCREL(Relocation &pReloc, x86_64Relocator &pParent,
   const GeneralOptions &options = pParent.config().options();
   // for relocs inside non ALLOC, just apply
   if (!target_sect->isAlloc()) {
-    return applyRel(pReloc, Result, pRelocDesc, DiagEngine, options, pParent);
+    return applyRel(pReloc, Result, DiagEngine, options, pParent);
   }
 
   // FIXME PLT STUFF
@@ -666,18 +639,18 @@ Relocator::Result eld::relocPCREL(Relocation &pReloc, x86_64Relocator &pParent,
   //      S =
   //      pParent.getTarget().findEntryInPLT(rsym)->getAddr(config().getDiagEngine());
   //      Result = S + A - P;
-  //      applyRel(pReloc, Result, pRelocDesc, DiagEngine);
+  //      applyRel(pReloc, Result, DiagEngine, options, pParent);
   //      return Relocator::OK;
   //    }
   //  }
 
-  return applyRel(pReloc, Result, pRelocDesc, DiagEngine, options, pParent);
+  return applyRel(pReloc, Result, DiagEngine, options, pParent);
 }
 
 // R_X86_64_PLT32 - PC-relative 32-bit relocation for function calls
 // Formula: S + A - P (or PLT_entry + A - P if symbol has PLT)
-Relocator::Result eld::relocPLT32(Relocation &pReloc, x86_64Relocator &pParent,
-                                  RelocationDescription &pRelocDesc) {
+Relocator::Result x86_64::relocPLT32(Relocation &pReloc,
+                                     x86_64Relocator &pParent) {
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   ResolveInfo *symInfo = pReloc.symInfo();
   Relocator::Address S;
@@ -693,12 +666,12 @@ Relocator::Result eld::relocPLT32(Relocation &pReloc, x86_64Relocator &pParent,
   Relocator::DWord A = pReloc.addend();
   Relocator::DWord P = pReloc.place(pParent.module());
   Relocator::DWord Result = S + A - P;
-  return applyRel(pReloc, Result, pRelocDesc, DiagEngine,
-                  pParent.config().options(), pParent);
+  return applyRel(pReloc, Result, DiagEngine, pParent.config().options(),
+                  pParent);
 }
 
-Relocator::Result eld::unsupport(Relocation &pReloc, x86_64Relocator &pParent,
-                                 RelocationDescription &pRelocDesc) {
+Relocator::Result x86_64::unsupported(Relocation &pReloc,
+                                      x86_64Relocator &pParent) {
   return x86_64Relocator::Unsupport;
 }
 
@@ -708,9 +681,8 @@ Relocator::Result eld::unsupport(Relocation &pReloc, x86_64Relocator &pParent,
 // and TLS related relocations GOTTPOFF and TLSGD.
 /// These relocations share the same application formula but differ in GOT
 /// entry type (regular vs TLS) determined during relocation scanning.
-Relocator::Result eld::relocGOTRelative(Relocation &pReloc,
-                                        x86_64Relocator &pParent,
-                                        RelocationDescription &pRelocDesc) {
+Relocator::Result x86_64::relocGOTRelative(Relocation &pReloc,
+                                           x86_64Relocator &pParent) {
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   ResolveInfo *symInfo = pReloc.symInfo();
   const GeneralOptions &options = pParent.config().options();
@@ -724,11 +696,11 @@ Relocator::Result eld::relocGOTRelative(Relocation &pReloc,
   Relocator::DWord P = pReloc.place(pParent.module());
   x86_64GOT *gotEntry = pParent.getTarget().findEntryInGOT(symInfo);
   uint64_t Result = gotEntry->getAddr(DiagEngine) + A - P;
-  return applyRel(pReloc, Result, pRelocDesc, DiagEngine, options, pParent);
+  return applyRel(pReloc, Result, DiagEngine, options, pParent);
 }
 
-Relocator::Result eld::relocTPOFF(Relocation &pReloc, x86_64Relocator &pParent,
-                                  RelocationDescription &pRelocDesc) {
+Relocator::Result x86_64::relocTPOFF(Relocation &pReloc,
+                                     x86_64Relocator &pParent) {
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   const GeneralOptions &options = pParent.config().options();
 
@@ -743,15 +715,15 @@ Relocator::Result eld::relocTPOFF(Relocation &pReloc, x86_64Relocator &pParent,
   Relocator::DWord A = pReloc.addend();
   uint64_t Result = S + A - TLSTemplateSize;
 
-  return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine, options, pParent);
+  return ApplyReloc(pReloc, Result, DiagEngine, options, pParent);
 }
 
-Relocator::Result eld::relocDTPOFF(Relocation &pReloc, x86_64Relocator &pParent,
-                                   RelocationDescription &pRelocDesc) {
+Relocator::Result x86_64::relocDTPOFF(Relocation &pReloc,
+                                      x86_64Relocator &pParent) {
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   const GeneralOptions &options = pParent.config().options();
   uint64_t S = pParent.getSymValue(&pReloc);
   Relocator::DWord A = pReloc.addend();
   int64_t Result = S + A;
-  return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine, options, pParent);
+  return ApplyReloc(pReloc, Result, DiagEngine, options, pParent);
 }
