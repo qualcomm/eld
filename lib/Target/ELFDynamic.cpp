@@ -139,7 +139,10 @@ void ELFDynamic::reserveEntries(GNULDBackend &pBackend, DynStrFragment *DynStr,
       applySoname(DynStr->addString(m_Config.options().soname()));
     }
 
-    if (m_Config.options().bsymbolic())
+    // With a dynamic list, -Bsymbolic applies only to unlisted symbols, and
+    // DT_SYMBOLIC would make the listed ones bind locally at run time.  GNU ld
+    // omits the flag in that case.
+    if (m_Config.options().bsymbolic() && !m_Config.options().hasDynamicList())
       reserveOne(llvm::ELF::DT_SYMBOLIC); // DT_SYMBOLIC
   }
 
@@ -215,7 +218,7 @@ void ELFDynamic::reserveEntries(GNULDBackend &pBackend, DynStrFragment *DynStr,
   uint64_t dt_flags = 0x0;
   if (m_Config.options().hasNow())
     dt_flags |= llvm::ELF::DF_BIND_NOW;
-  if (m_Config.options().bsymbolic())
+  if (m_Config.options().bsymbolic() && !m_Config.options().hasDynamicList())
     dt_flags |= llvm::ELF::DF_SYMBOLIC;
   if (ShouldEmitTextRel)
     dt_flags |= llvm::ELF::DF_TEXTREL;
@@ -281,7 +284,7 @@ void ELFDynamic::applyEntries(GNULDBackend &pBackend,
                               const ELFSection *DynStrSect,
                               const Module &pModule) {
   if (LinkerConfig::DynObj == m_Config.codeGenType() &&
-      m_Config.options().bsymbolic()) {
+      m_Config.options().bsymbolic() && !m_Config.options().hasDynamicList()) {
     applyOne(llvm::ELF::DT_SYMBOLIC, 0x0); // DT_SYMBOLIC
   }
 
@@ -415,7 +418,7 @@ void ELFDynamic::applyEntries(GNULDBackend &pBackend,
 
   // All values for new flags go here.
   uint64_t dt_flags = 0x0;
-  if (m_Config.options().bsymbolic())
+  if (m_Config.options().bsymbolic() && !m_Config.options().hasDynamicList())
     dt_flags |= llvm::ELF::DF_SYMBOLIC;
   if (m_Config.options().hasNow())
     dt_flags |= llvm::ELF::DF_BIND_NOW;

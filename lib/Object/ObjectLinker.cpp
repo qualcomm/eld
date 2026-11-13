@@ -2057,12 +2057,32 @@ bool ObjectLinker::addScriptSymbols() {
   return Ret;
 }
 
+void ObjectLinker::markDynListSymbols() {
+  std::vector<ScriptSymbol *> &DynListSyms = ThisModule->dynListSyms();
+  if (DynListSyms.empty())
+    return;
+  for (auto &G : ThisModule->getNamePool().getGlobals()) {
+    ResolveInfo *R = G.getValue();
+    LDSymbol *Sym = ThisModule->getNamePool().findSymbol(R->name());
+    bool ShouldExport = !R->isUndef() &&
+                        R->visibility() == ResolveInfo::Default && Sym &&
+                        !Sym->shouldIgnore();
+    if (!ShouldExport)
+      continue;
+    for (auto &Pattern : DynListSyms) {
+      if (Pattern->matched(*R)) {
+        R->setInDynamicList();
+        break;
+      }
+    }
+  }
+}
+
 bool ObjectLinker::addDynListSymbols() {
-  // Dynamic list is only for non-shared libraries that use dynamic symbol
-  // tables
-  if (ThisConfig.codeGenType() == LinkerConfig::DynObj &&
-      !ThisConfig.options().isPIE())
-    return true;
+  // A shared object exports every global already, so the list does not change
+  // its exports.
+  bool IsSharedObject = ThisConfig.codeGenType() == LinkerConfig::DynObj &&
+                        !ThisConfig.options().isPIE();
   bool NoError = true;
   std::vector<ScriptSymbol *> &DynListSyms = ThisModule->dynListSyms();
   std::unordered_set<ScriptSymbol *> UsedPatterns;
@@ -2073,19 +2093,22 @@ bool ObjectLinker::addDynListSymbols() {
                         R->visibility() == ResolveInfo::Default && Sym &&
                         !Sym->shouldIgnore();
     if (MDynlistExports.count(R->name())) {
-      if (ShouldExport)
+      if (ShouldExport && !IsSharedObject)
         R->setExportToDyn();
       continue;
     }
     for (auto &Pattern : DynListSyms) {
       if (Pattern->matched(*R)) {
-        if (ShouldExport)
+        if (ShouldExport && !IsSharedObject)
           R->setExportToDyn();
         UsedPatterns.insert(Pattern);
         break;
       }
     }
   }
+  // The list is kept for shared objects: the GC preservation step reads it.
+  if (IsSharedObject)
+    return true;
   if (ThisConfig.options().getErrorStyle() == GeneralOptions::llvm) {
     for (const auto &E : DynListSyms)
       if (!UsedPatterns.count(E)) {

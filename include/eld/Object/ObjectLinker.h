@@ -182,6 +182,11 @@ public:
   /// dynamic-list argument.
   bool addDynListSymbols();
 
+  /// markDynListSymbols - mark the symbols that match the dynamic list, before
+  /// the relocation scan.  The scan decides which references need a PLT, and
+  /// -Bsymbolic reads the mark.
+  void markDynListSymbols();
+
   /// scanRelocations - scan all relocation entries by output symbols.
   bool scanRelocations(bool IsPartialLink = false);
 
