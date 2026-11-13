@@ -1,0 +1,80 @@
+#---ArchiveQualifiedExcludeFile.test----------- PartialLink,LS ----------------#
+#BEGIN_COMMENT
+# Verify that archive-qualified EXCLUDE_FILE patterns match both the archive
+# and member without excluding standalone inputs or unrelated archives. Cover
+# wildcard members and inside/outside rules with regular and thin archives
+# using both rule-matching algorithms.
+#END_COMMENT
+#START_TEST
+RUN: split-file %s %t
+RUN: mkdir -p %t/dir %t/matching %t/other
+RUN: %clang %clangopts -c %t/input.c -DPREFIX=standalone -o %t/dir/file.o
+RUN: %clang %clangopts -c %t/input.c -DPREFIX=regular -o %t/matching/regular-file.o
+RUN: %clang %clangopts -c %t/input.c -DPREFIX=thin -o %t/matching/thin-file.o
+RUN: %clang %clangopts -c %t/input.c -DPREFIX=other_regular -o %t/other/regular-file.o
+RUN: %clang %clangopts -c %t/input.c -DPREFIX=other_thin -o %t/other/thin-file.o
+RUN: %ar cr %t/dir/libregular.a %t/matching/regular-file.o
+RUN: %ar crT %t/dir/libthin.a %t/matching/thin-file.o
+RUN: %ar cr %t/dir/other-regular.a %t/other/regular-file.o
+RUN: %ar crT %t/dir/other-thin.a %t/other/thin-file.o
+RUN: cd %t && %link %linkopts -r dir/file.o --whole-archive dir/libregular.a dir/libthin.a dir/other-regular.a dir/other-thin.a -T script.t -MapStyle txt -Map out.map -o out.o
+RUN: %filecheck %s < %t/out.map
+RUN: cd %t && %link %linkopts -r --use-old-rule-matching dir/file.o --whole-archive dir/libregular.a dir/libthin.a dir/other-regular.a dir/other-thin.a -T script.t -MapStyle txt -Map old.map -o old.o
+RUN: %filecheck %s < %t/old.map
+
+# CHECK: SELECTED {{.*}} 0xc # Offset
+# CHECK: standalone_member
+# CHECK-NOT: {{[[:space:]]}}regular_member
+# CHECK-NOT: {{[[:space:]]}}thin_member
+# CHECK: other_regular_member
+# CHECK: other_thin_member
+# CHECK: EXCLUDED {{.*}} 0x8 # Offset
+# CHECK: {{[[:space:]]}}regular_member
+# CHECK: {{[[:space:]]}}thin_member
+
+# CHECK: ALL_SELECTED {{.*}} 0xc # Offset
+# CHECK: standalone_all
+# CHECK-NOT: {{[[:space:]]}}regular_all
+# CHECK-NOT: {{[[:space:]]}}thin_all
+# CHECK: other_regular_all
+# CHECK: other_thin_all
+# CHECK: ALL_EXCLUDED {{.*}} 0x8 # Offset
+# CHECK: {{[[:space:]]}}regular_all
+# CHECK: {{[[:space:]]}}thin_all
+
+# CHECK: NAME_SELECTED {{.*}} 0x14 # Offset
+# CHECK: standalone_name
+# CHECK: {{[[:space:]]}}regular_name
+# CHECK: {{[[:space:]]}}thin_name
+# CHECK: other_regular_name
+# CHECK: other_thin_name
+
+# CHECK: OUTSIDE_SELECTED {{.*}} 0xc # Offset
+# CHECK: standalone_outside
+# CHECK-NOT: {{[[:space:]]}}regular_outside
+# CHECK-NOT: {{[[:space:]]}}thin_outside
+# CHECK: other_regular_outside
+# CHECK: other_thin_outside
+# CHECK: OUTSIDE_EXCLUDED {{.*}} 0x8 # Offset
+# CHECK: {{[[:space:]]}}regular_outside
+# CHECK: {{[[:space:]]}}thin_outside
+#END_TEST
+
+#--- input.c
+#define CONCAT_IMPL(Prefix, Suffix) Prefix##Suffix
+#define CONCAT(Prefix, Suffix) CONCAT_IMPL(Prefix, Suffix)
+int CONCAT(PREFIX, _member) __attribute__((section(".member"))) = 1;
+int CONCAT(PREFIX, _all) __attribute__((section(".all"))) = 2;
+int CONCAT(PREFIX, _name) __attribute__((section(".name"))) = 3;
+int CONCAT(PREFIX, _outside) __attribute__((section(".outside"))) = 4;
+
+#--- script.t
+SECTIONS {
+  SELECTED : { *(EXCLUDE_FILE(dir/lib*.a:*file.o) .member) }
+  EXCLUDED : { *(.member) }
+  ALL_SELECTED : { *(EXCLUDE_FILE(dir/lib*.a:*) .all) }
+  ALL_EXCLUDED : { *(.all) }
+  NAME_SELECTED : { *(EXCLUDE_FILE(dir/lib*.a:*lib*.a) .name) }
+  OUTSIDE_SELECTED : { EXCLUDE_FILE(dir/lib*.a:*file.o) *(.outside) }
+  OUTSIDE_EXCLUDED : { *(.outside) }
+}

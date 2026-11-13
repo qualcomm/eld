@@ -483,7 +483,7 @@ bool SectionMap::matchedSections(
           return false;
 
         // Match archive name because script don't understand what is archive.
-        if ((Elem)->file() && FileMatchWithFileName)
+        if (!Elem->isArchive() && Elem->file() && FileMatchWithFileName)
           return false;
       }
     }
