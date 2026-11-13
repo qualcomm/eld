@@ -1,7 +1,7 @@
 option(
   ELD_CREATE_SYMLINKS
-  "Enable this option to create <target>-link symlinks in the bin folder of both the build and install directories."
-  On)
+  "Enable this option to create eld-<target>-link symlinks in the bin folder of both the build and install directories."
+  OFF)
 
 macro(add_eld_symlink name dest)
   llvm_add_tool_symlink(ELD ${name} ${dest} ALWAYS_GENERATE)
@@ -41,6 +41,7 @@ if(ELD_CREATE_SYMLINKS)
     if(${target_name} MATCHES "X86")
       set(ld_eld_name "x86_64-link")
     endif()
+    set(ld_eld_name "eld-${ld_eld_name}")
     add_eld_symlink("${ld_eld_name}" ld.eld)
   endforeach()
 endif()
