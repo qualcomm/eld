@@ -102,6 +102,57 @@ bool x86_64Relocator::isRelocSupported(const Relocation &Reloc) const {
   }
 }
 
+bool x86_64Relocator::needsSerialScan(const Relocation &Reloc,
+                                      const ELFSection &) const {
+  ResolveInfo *Sym = Reloc.symInfo();
+
+  switch (getRelocationScanKind(Reloc.type())) {
+  case RelocationScanKind::Absolute64:
+  case RelocationScanKind::AbsoluteNarrow:
+    return config().isCodeIndep() ||
+           (!Sym->isLocal() && m_Target.isSymbolPreemptible(*Sym));
+  case RelocationScanKind::PLT:
+    return !Sym->isLocal() && ((Sym->isIFunc() && config().isCodeStatic()) ||
+                               m_Target.isSymbolPreemptible(*Sym));
+  case RelocationScanKind::GOT:
+  case RelocationScanKind::GOTPCRELX:
+  case RelocationScanKind::GOTTPOFF:
+  case RelocationScanKind::TLSGD:
+  case RelocationScanKind::TLSLD:
+    return true;
+  case RelocationScanKind::None:
+    return false;
+  }
+}
+
+x86_64Relocator::RelocationScanKind
+x86_64Relocator::getRelocationScanKind(Relocation::Type Type) const {
+  switch (Type) {
+  case llvm::ELF::R_X86_64_64:
+    return RelocationScanKind::Absolute64;
+  case llvm::ELF::R_X86_64_32:
+  case llvm::ELF::R_X86_64_32S:
+  case llvm::ELF::R_X86_64_16:
+  case llvm::ELF::R_X86_64_8:
+    return RelocationScanKind::AbsoluteNarrow;
+  case llvm::ELF::R_X86_64_PLT32:
+    return RelocationScanKind::PLT;
+  case llvm::ELF::R_X86_64_GOTPCREL:
+  case llvm::ELF::R_X86_64_REX_GOTPCRELX:
+    return RelocationScanKind::GOT;
+  case llvm::ELF::R_X86_64_GOTPCRELX:
+    return RelocationScanKind::GOTPCRELX;
+  case llvm::ELF::R_X86_64_GOTTPOFF:
+    return RelocationScanKind::GOTTPOFF;
+  case llvm::ELF::R_X86_64_TLSGD:
+    return RelocationScanKind::TLSGD;
+  case llvm::ELF::R_X86_64_TLSLD:
+    return RelocationScanKind::TLSLD;
+  default:
+    return RelocationScanKind::None;
+  }
+}
+
 void x86_64Relocator::scanDeferredRelocation(InputFile &Input,
                                              Relocation &Reloc,
                                              ELFSection &Section,
@@ -209,10 +260,9 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
   ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
-  switch (pReloc.type()) {
-  case llvm::ELF::R_X86_64_64: {
+  switch (getRelocationScanKind(pReloc.type())) {
+  case RelocationScanKind::Absolute64: {
     if (config().isCodeIndep()) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
       if (!checkDynamicRelocAllowed(pReloc, pSection, true))
         return;
       rsym->setReserved(rsym->reserved() | ReserveRel);
@@ -223,15 +273,11 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
     }
     return;
   }
-  case llvm::ELF::R_X86_64_32:
-  case llvm::ELF::R_X86_64_32S:
-  case llvm::ELF::R_X86_64_16:
-  case llvm::ELF::R_X86_64_8:
+  case RelocationScanKind::AbsoluteNarrow:
     if (config().isCodeIndep())
       checkDynamicRelocAllowed(pReloc, pSection, true);
     return;
-  case llvm::ELF::R_X86_64_GOTTPOFF: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::GOTTPOFF: {
     if (rsym->reserved() & ReserveGOT)
       return;
     x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
@@ -248,8 +294,7 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
-  case llvm::ELF::R_X86_64_GOTPCRELX: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::GOTPCRELX: {
     // Relaxability is decided per relocation (it inspects this reference's own
     // opcode bytes), so it must be checked before the per-symbol ReserveGOT
     // short-circuit: a non-relaxable reference to the same symbol may have
@@ -267,21 +312,20 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
-  case llvm::ELF::R_X86_64_GOTPCREL:
-  case llvm::ELF::R_X86_64_REX_GOTPCRELX: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::GOT: {
     if (rsym->reserved() & ReserveGOT)
       return;
     CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
-  case llvm::ELF::R_X86_64_TLSLD: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSLD: {
     getTLSModuleID(pReloc.symInfo(), config().isCodeStatic());
     return;
   }
-  default:
+  case RelocationScanKind::None:
+  case RelocationScanKind::PLT:
+  case RelocationScanKind::TLSGD:
     break;
   }
 }
@@ -295,9 +339,8 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
 
-  switch (pReloc.type()) {
-  case llvm::ELF::R_X86_64_64: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  switch (getRelocationScanKind(pReloc.type())) {
+  case RelocationScanKind::Absolute64: {
     bool isSymbolPreemptible = m_Target.isSymbolPreemptible(*rsym);
     if (getTarget().symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
                                       true)) {
@@ -329,14 +372,7 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     return;
   }
 
-  // Handle smaller absolute relocations similarly: if a dynamic relocation
-  // would be required, can use COPY reloc; otherwise need to error out as
-  // non-pointer-sized dynamic relocations should not be emitted
-  case llvm::ELF::R_X86_64_32:
-  case llvm::ELF::R_X86_64_32S:
-  case llvm::ELF::R_X86_64_16:
-  case llvm::ELF::R_X86_64_8: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::AbsoluteNarrow: {
     const bool isAbsReloc = true;
     if (getTarget().symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
                                       isAbsReloc)) {
@@ -356,13 +392,11 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
           << (int)pReloc.type() << pReloc.symInfo()->name()
           << pReloc.getSourcePath(config().options());
       m_Target.getModule().setFailure(true);
-      return;
     }
-    // No dynamic relocation needed; keep as static relocation.
     return;
   }
-  case llvm::ELF::R_X86_64_PLT32: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+
+  case RelocationScanKind::PLT: {
     // return if we already create plt for this symbol
     if (rsym->reserved() & ReservePLT)
       return;
@@ -386,8 +420,7 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     rsym->setReserved(rsym->reserved() | ReservePLT);
     return;
   }
-  case llvm::ELF::R_X86_64_GOTPCRELX: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::GOTPCRELX: {
     // Relaxability is decided per relocation (it inspects this reference's own
     // opcode bytes), so it must be checked before the per-symbol ReserveGOT
     // short-circuit: a non-relaxable reference to the same symbol may have
@@ -406,24 +439,14 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
-  case llvm::ELF::R_X86_64_GOTPCREL: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::GOT: {
     if (rsym->reserved() & ReserveGOT)
       return;
     CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
-  case llvm::ELF::R_X86_64_REX_GOTPCRELX: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (rsym->reserved() & ReserveGOT)
-      return;
-    CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
-    rsym->setReserved(rsym->reserved() | ReserveGOT);
-    return;
-  }
-  case llvm::ELF::R_X86_64_GOTTPOFF: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::GOTTPOFF: {
     if (rsym->reserved() & ReserveGOT)
       return;
     x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, rsym);
@@ -439,8 +462,7 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
-  case llvm::ELF::R_X86_64_TLSGD: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSGD: {
     if (rsym->reserved() & ReserveGOT)
       return;
 
@@ -464,12 +486,11 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
-  case llvm::ELF::R_X86_64_TLSLD: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSLD: {
     getTLSModuleID(pReloc.symInfo(), config().isCodeStatic());
     return;
   }
-  default:
+  case RelocationScanKind::None:
     break;
 
   } // end of switch

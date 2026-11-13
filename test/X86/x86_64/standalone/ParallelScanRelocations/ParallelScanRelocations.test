@@ -1,5 +1,5 @@
 ## The x86 relocation scan records allocation work per input in parallel and
-## replays it in input order.
+## scans the deferred relocations in input order.
 
 # RUN: split-file %s %t
 # RUN: %llvm-mc -triple=x86_64 -filetype=obj %t/a.s -o %t/a.o
