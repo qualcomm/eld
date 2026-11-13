@@ -1,0 +1,20 @@
+#---RemapInputsFileSpecialCharacters.test------- Executable -------------------#
+#BEGIN_COMMENT
+# Verify a remap inputs file path with spaces and a quote survives replay.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/remap-main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/remap-foo.c -o %t.original.o
+RUN: %clang %clangopts -c %p/Inputs/remap-bar.c -o %t.replacement.o
+RUN: %echo "%t.original.o=%t.replacement.o" > "%t.remap @rules's.txt"
+RUN: %link %linkopts %t.main.o %t.original.o --remap-inputs-file "%t.remap @rules's.txt" -o %t.original.out --reproduce %t.tar
+RUN: %mkdir %t.replay
+RUN: cd %t.replay
+RUN: %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: %filecheck %s --check-prefix=RESPONSE < response.txt
+RUN: %link @response.txt -o replay.out
+RUN: %readelf -s replay.out | %filecheck %s
+
+CHECK: foo
+RESPONSE: --remap-inputs-file "{{.*}}remap @rules's.txt{{.*}}"
+#END_TEST

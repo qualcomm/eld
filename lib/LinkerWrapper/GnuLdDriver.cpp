@@ -1779,7 +1779,29 @@ bool GnuLdDriver::processReproduceOption(
   };
 
   const bool IsWindows = utility::isHostWindows();
-
+  // Write one logical argument in a form the host response-file tokenizer can
+  // read back as the same argument. Set IsPath only where adding './' preserves
+  // the path's meaning. Quoting a leading '@' does not prevent nested response
+  // file expansion after tokenization.
+  auto writeResponseArgument = [&](llvm::StringRef Value, bool IsPath = false) {
+    std::string AtPrefixedValue;
+    if (IsPath && Value.starts_with("@")) {
+      AtPrefixedValue = "./" + Value.str();
+      Value = AtPrefixedValue;
+    }
+    // Keep simple tokens readable, but quote anything that could be split or
+    // interpreted specially by the host response-file tokenizer.
+    if (Value.empty() ||
+        Value.find_first_of(" \t\n\r\v\f\\\"'#") != llvm::StringRef::npos) {
+      if (IsWindows)
+        os << utility::serializeWindowsResponseFileArgument(Value);
+      else
+        os << utility::serializeGNUResponseFileArgument(Value);
+    } else {
+      os << Value;
+    }
+    os << ' ';
+  };
   auto zArgsRange = Args.filtered(T::dash_z);
   auto zArgIt = zArgsRange.begin();
 
@@ -1804,7 +1826,7 @@ bool GnuLdDriver::processReproduceOption(
           // resolved. Preserve the original namespec so replay reports the
           // same failure instead of silently dropping the input.
           if (!ipt || !ipt->getInputFile()) {
-            os << arg->getSpelling() << arg->getValue() << ' ';
+            writeResponseArgument(arg->getSpelling().str() + arg->getValue());
             break;
           }
           // Use the mapped path as the rewrite key. For a namespec input
@@ -1813,12 +1835,12 @@ bool GnuLdDriver::processReproduceOption(
           std::string key = ipt->getInputFile()
                                 ? ipt->getInputFile()->getMappedPath()
                                 : ipt->getName();
-          os << outputTar->rewritePath(key) << ' ';
+          writeResponseArgument(outputTar->rewritePath(key), /*IsPath=*/true);
           break;
         }
       }
       if (!foundAction)
-        os << arg->getSpelling() << arg->getValue() << ' ';
+        writeResponseArgument(arg->getSpelling().str() + arg->getValue());
       break;
     }
     case T::INPUT: {
@@ -1828,7 +1850,7 @@ bool GnuLdDriver::processReproduceOption(
                                               lastInputFileId, arg->getValue());
       if (!path)
         return false;
-      os << *path << ' ';
+      writeResponseArgument(*path, /*IsPath=*/true);
       break;
     }
     case T::plugin_config: {
@@ -1836,39 +1858,45 @@ bool GnuLdDriver::processReproduceOption(
           "plugin configuration file", arg->getValue(), "");
       outputTar->createAndAddConfigFile(arg->getValue(),
                                         P ? P->getFullPath() : "");
-      os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
-         << ' ';
+      writeResponseArgument(arg->getSpelling());
+      writeResponseArgument(outputTar->rewritePath(arg->getValue()),
+                            /*IsPath=*/true);
       break;
     }
     case T::output_file:
     case T::Map:
-      os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
-         << ' ';
+      writeResponseArgument(arg->getSpelling());
+      writeResponseArgument(outputTar->rewritePath(arg->getValue()),
+                            /*IsPath=*/true);
       break;
     case T::dynamic_list:
       captureInput(arg->getValue(), MappingFile::Kind::DynamicList,
                    /*searchScriptDirs=*/true);
-      os << arg->getSpelling() << ' '
-         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+      writeResponseArgument(arg->getSpelling());
+      writeResponseArgument(getRewrittenRemappedPath(arg->getValue()),
+                            /*IsPath=*/true);
       break;
     case T::extern_list:
       captureInput(arg->getValue(), MappingFile::Kind::ExternList,
                    /*searchScriptDirs=*/true);
-      os << arg->getSpelling() << ' '
-         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+      writeResponseArgument(arg->getSpelling());
+      writeResponseArgument(getRewrittenRemappedPath(arg->getValue()),
+                            /*IsPath=*/true);
       break;
     case T::version_script:
       captureInput(arg->getValue(), MappingFile::Kind::VersionScript,
                    /*searchScriptDirs=*/true);
-      os << arg->getSpelling() << ' '
-         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+      writeResponseArgument(arg->getSpelling());
+      writeResponseArgument(getRewrittenRemappedPath(arg->getValue()),
+                            /*IsPath=*/true);
       break;
     case T::copy_farcalls_from_file:
     case T::no_reuse_trampolines_file:
       captureInput(arg->getValue(), MappingFile::Kind::Other,
                    /*searchScriptDirs=*/false);
-      os << arg->getSpelling() << ' '
-         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+      writeResponseArgument(arg->getSpelling());
+      writeResponseArgument(getRewrittenRemappedPath(arg->getValue()),
+                            /*IsPath=*/true);
       break;
     case T::T: {
       captureInput(arg->getValue(), MappingFile::Kind::LinkerScript,
@@ -1877,7 +1905,8 @@ bool GnuLdDriver::processReproduceOption(
                                               lastScriptId, arg->getValue());
       if (!path)
         return false;
-      os << arg->getSpelling() << ' ' << *path << ' ';
+      writeResponseArgument(arg->getSpelling());
+      writeResponseArgument(*path, /*IsPath=*/true);
       break;
     }
     case T::R: {
@@ -1887,47 +1916,50 @@ bool GnuLdDriver::processReproduceOption(
           eld::InputAction::JustSymbols, lastJustSymbolsId, arg->getValue());
       if (!path)
         return false;
-      os << arg->getSpelling() << ' ' << *path << ' ';
+      writeResponseArgument(arg->getSpelling());
+      writeResponseArgument(*path, /*IsPath=*/true);
       break;
     }
-    case T::remap_inputs:
-      os << arg->getSpelling() << ' ';
-      if (IsWindows)
-        os << utility::serializeWindowsResponseFileArgument(arg->getValue());
-      else
-        os << utility::serializeGNUResponseFileArgument(arg->getValue());
-      os << ' ';
-      break;
     case T::remap_inputs_file: {
       const eld::sys::fs::Path *P = Config.directories().findFile(
           "remap input file", arg->getValue(), "");
       outputTar->createAndAddConfigFile(arg->getValue(),
                                         P ? P->getFullPath() : "");
-      os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
-         << ' ';
+      writeResponseArgument(arg->getSpelling());
+      writeResponseArgument(outputTar->rewritePath(arg->getValue()),
+                            /*IsPath=*/true);
       break;
     }
     case T::dash_z: {
       ASSERT(zArgIt != zArgsRange.end(), "Expected valid z argument iterator!");
-      os << arg->getSpelling() << ' ';
+      writeResponseArgument(arg->getSpelling());
       llvm::StringRef zOpt = (*zArgIt)->getValue();
-      os << zOpt << ' ';
+      writeResponseArgument(zOpt);
       ++zArgIt;
       break;
     }
-    default:
-      os << arg->getAsString(Args) << ' ';
+    default: {
+      llvm::opt::ArgStringList RenderedArgs;
+      const llvm::opt::Arg *RenderArg = arg->getAlias() ? arg->getAlias() : arg;
+      RenderArg->render(Args, RenderedArgs);
+      for (const char *RenderedArg : RenderedArgs)
+        writeResponseArgument(RenderedArg);
       break;
+    }
     }
   }
   if (!outputTar->getLTOObjects().empty()) {
-    os << "--flto-options=lto-output-file=";
+    std::string LTOOptions = "--flto-options=lto-output-file=";
     auto &LTOObjects = outputTar->getLTOObjects();
     for (size_t i = 0; i < LTOObjects.size() - 1; ++i)
-      os << outputTar->rewritePath(LTOObjects[i]) << ",";
-    os << outputTar->rewritePath(LTOObjects.back()) << " ";
+      LTOOptions += outputTar->rewritePath(LTOObjects[i]) + ",";
+    LTOOptions += outputTar->rewritePath(LTOObjects.back());
+    writeResponseArgument(LTOOptions);
   }
-  os << "--mapping-file=" << outputTar->getMappingFileName() << "\n";
+  std::string MappingFileArg = "--mapping-file=";
+  MappingFileArg += outputTar->getMappingFileName();
+  writeResponseArgument(MappingFileArg);
+  os << '\n';
   outputTar->createResponseFile(responseData.str());
   if (Config.options().getDumpResponse())
     writeDump(Config.options().getResponseDumpFile(), responseData.str());

@@ -1,0 +1,17 @@
+#---DynamicLinkerSpecialCharacters.test------------ Executable ----------------#
+#BEGIN_COMMENT
+# The joined --dynamic-linker form must preserve spaces and quotes in its path.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.input.o
+RUN: %link %linkopts %t.input.o -e foo --dynamic-linker="%t.dynamic @linker's.so" -o %t.original.out --reproduce %t.tar
+RUN: %mkdir %t.replay
+RUN: cd %t.replay
+RUN: %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: %filecheck %s --check-prefix=RESPONSE < response.txt
+RUN: %link @response.txt -o replay.out
+RUN: %readelf -s replay.out | %filecheck %s
+
+CHECK: foo
+RESPONSE: "{{.*}}--dynamic-linker={{.*}}dynamic @linker's.so{{.*}}"
+#END_TEST

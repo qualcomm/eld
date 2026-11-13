@@ -1,0 +1,21 @@
+#---MapOutputPathSpecialCharacters.test------------- Executable ---------------#
+#BEGIN_COMMENT
+# Verify a map output path with spaces and a quote survives replay.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.input.o
+RUN: %mkdir %t.replay
+RUN: %link %linkopts %t.input.o -o %t.original.out -Map "%t.replay/@map output's.txt" --reproduce %t.tar
+RUN: cd %t.replay
+RUN: %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: %filecheck %s --check-prefix=RESPONSE < response.txt
+# Replaying must treat this path as the map output and replace the sentinel.
+RUN: %echo "map-output --definitely-invalid-option" > "@map output's.txt"
+RUN: %link @response.txt -o replay.out
+RUN: %readelf -s replay.out | %filecheck %s
+RUN: %filecheck %s --check-prefix=MAP < "@map output's.txt"
+
+CHECK: foo
+RESPONSE: --Map "./@map output's.txt"
+MAP: # Linker based on LLVM version
+#END_TEST
