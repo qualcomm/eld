@@ -68,11 +68,11 @@ precedes the static-link test for imported/undefined symbols, and IFUNC
 handling precedes the final version-script-scope test.
 
 ```{eval-rst}
-.. d2:: ../userguide/documentation/images/SymbolPreemption.d2
+.. d2:: ../documentation/images/SymbolPreemption.d2
    :alt: Symbol preemption decisions for visibility, binding, resolution state, link mode, and symbolic options.
 ```
 
-[D2 flowchart source](../userguide/documentation/images/SymbolPreemption.d2).
+{download}`D2 flowchart source <../documentation/images/SymbolPreemption.d2>`.
 The diagram uses ELD's shared D2 styles and documentation renderer.
 
 The chart's shared-object output branch is reached only after excluding PIE;

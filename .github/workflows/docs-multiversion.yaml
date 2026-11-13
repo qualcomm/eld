@@ -50,6 +50,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y graphviz doxygen ninja-build
           pip install -r llvm-project/llvm/tools/eld/docs/userguide/requirements.txt
+          pip install -r llvm-project/llvm/tools/eld/test/docs/requirements.txt
+          python3 -m playwright install --with-deps chromium
 
       - name: Install D2
         run: |
@@ -79,6 +81,9 @@ jobs:
 
       - name: Build multi-version docs
         run: cmake --build build --target eld-docs-multiversion
+
+      - name: Check Generated Docs
+        run: cmake --build build --target check-eld-docs
 
       - name: Checkout documentation branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
