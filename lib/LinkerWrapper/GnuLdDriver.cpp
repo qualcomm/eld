@@ -50,6 +50,7 @@
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
+#include <optional>
 #include <thread>
 
 using namespace llvm;
@@ -1029,6 +1030,22 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   } else
     Config.setCodeGenType(eld::LinkerConfig::Exec);
 
+  Arg *ICFArg = Args.getLastArg(T::icf);
+  std::optional<GeneralOptions::ICFMode> ParsedICF;
+  if (ICFArg) {
+    StringRef Mode = ICFArg->getValue();
+    if (Mode == "all")
+      ParsedICF = GeneralOptions::ICFMode::All;
+    else if (Mode == "safe")
+      ParsedICF = GeneralOptions::ICFMode::Safe;
+    else if (Mode == "none")
+      ParsedICF = GeneralOptions::ICFMode::None;
+    else {
+      Config.raise(Diag::invalid_value_for_option) << "--icf" << Mode;
+      return false;
+    }
+  }
+
   // Disable --gc-sections, --print-gc-sections for Partial Linking.
   if (Config.codeGenType() != eld::LinkerConfig::Object) {
     // --[no-]gc-sections
@@ -1038,6 +1055,21 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.addCommandLine(Table->getOptionName(T::gc_sections), enableGC);
     // --print-gc-sections
     Config.options().setPrintGCSections(Args.hasArg(T::print_gc_sections));
+
+    if (ParsedICF) {
+      Config.options().setICFMode(*ParsedICF);
+      Config.addCommandLine(Table->getOptionName(T::icf), ICFArg->getValue());
+    }
+    Config.options().setPrintICFSections(Args.hasArg(T::print_icf_sections));
+  } else {
+    // ICF is not supported for partial links.
+    if (ParsedICF && *ParsedICF != GeneralOptions::ICFMode::None) {
+      Config.raise(Diag::err_icf_relocatable) << ICFArg->getValue();
+      return false;
+    }
+    if (Args.hasArg(T::print_icf_sections))
+      Config.raise(Diag::warn_incompatible_option)
+          << "-print-icf-sections" << "relocatable";
   }
 
   // Disable emit relocs if -shared/-pie/relocatable

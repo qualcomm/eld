@@ -953,6 +953,13 @@ defm print_gc_sections
     : mDashDeprWithOpt<"print-gc-sections", "print_gc_sections",
                        "Print sections that are garbage collected">,
       Group<grp_optimizationopts>;
+defm icf : mDashDeprEq<"icf", "Fold identical code sections (all, safe, none)">,
+           MetaVarName<"<mode>">,
+           Group<grp_optimizationopts>;
+defm print_icf_sections
+    : mDashDeprWithOpt<"print-icf-sections", "print_icf_sections",
+                       "Print sections folded by ICF">,
+      Group<grp_optimizationopts>;
 def eh_frame_hdr : FF<"eh-frame-hdr">,
                    HelpText<"Create EH Frame Header section for faster "
                             "exception handling">,

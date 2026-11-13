@@ -50,8 +50,14 @@ DIAG(fatal_unwritable_output, DiagnosticEngine::Fatal,
      "unable to write output file %0 because of %1")
 DIAG(warn_unsupported_option, DiagnosticEngine::Warning,
      "Unrecognized option `%0'")
+DIAG(warn_icf_disabled_plugins, DiagnosticEngine::Warning,
+     "--icf is disabled when plugins are loaded because plugins may replace "
+     "symbol contents")
 DIAG(warn_incompatible_option, DiagnosticEngine::Warning,
      "Option `-%0' is disabled as it is incompatible with `-%1`")
+DIAG(err_icf_relocatable, DiagnosticEngine::Error,
+     "--icf=%0 cannot be used with -r (partial link); use --icf=none or omit "
+     "--icf")
 DIAG(symdef_incompatible_option, DiagnosticEngine::Fatal,
      "SymDef files are valid only when building executables")
 DIAG(warn_shared_textrel, DiagnosticEngine::Warning,
