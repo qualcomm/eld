@@ -208,6 +208,15 @@ if(UNIX)
   set(CMAKE_INSTALL_RPATH "\$ORIGIN/../lib")
 endif()
 
+# Match LLVM's bin/lib layout so $ORIGIN / @loader_path/../lib resolves in the
+# build tree as well as after install. Integrated LLVM builds already set these.
+if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+endif()
+if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+endif()
+
 # Configure header files
 configure_file(${ELD_SOURCE_DIR}/include/eld/Config/Config.h.cmake
                ${ELD_BINARY_DIR}/include/eld/Config/Config.h)
