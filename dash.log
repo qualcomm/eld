@@ -8882,3 +8882,4 @@ Sat Nov 14 10:01:07 UTC 2026 -> Add data lock for linux-kernel aarch64 build sta
 Sat Nov 14 10:01:09 UTC 2026 -> Add linux-kernel aarch64 build status data in DB
 Sat Nov 14 10:21:44 UTC 2026 -> Add data lock for memory-with-origins-sanitizer all build status data to be written
 Sat Nov 14 10:21:46 UTC 2026 -> Add memory-with-origins-sanitizer all build status data in DB
+Sat Nov 14 11:47:27 AM UTC 2026 -> Add data lock for zephyr  build status data to be written
