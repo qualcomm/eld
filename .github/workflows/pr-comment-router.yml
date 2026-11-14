@@ -87,12 +87,28 @@ jobs:
             ]);
             const requestedCommands = [...new Set(command.split(/\s+/).filter(Boolean))];
             const runAll = requestedCommands.includes('check-all-workflows');
-            if (!requestedCommands.length ||
-                (runAll && requestedCommands.length !== 1) ||
-                requestedCommands.some(requestedCommand => !supported.has(requestedCommand)) ||
-                (!isWorkflowDispatch &&
-                 !allowed.has(context.payload.comment.author_association))) {
+            let reason;
+            if (!requestedCommands.length) {
+              reason = 'The request does not contain a check command.';
+            } else if (!isWorkflowDispatch &&
+                       !allowed.has(context.payload.comment.author_association)) {
+              reason = 'Only users with <code>COLLABORATOR</code>, <code>MEMBER</code>, or <code>OWNER</code> association can request PR checks.';
+            } else if (requestedCommands.some(requestedCommand => !supported.has(requestedCommand))) {
+              reason = 'The request contains text that is not a supported check command. Use only check commands, separated by spaces.';
+            } else if (runAll && requestedCommands.length !== 1) {
+              reason = '<code>check-all-workflows</code> must be the only command in the request.';
+            }
+            if (reason) {
               core.info('Ignoring unrelated or unauthorized comment.');
+              // Explain skipped requests on the run summary page; ordinary conversation gets none.
+              // Comments are user-controlled, so only fixed strings are written.
+              if (isWorkflowDispatch ||
+                  requestedCommands.some(requestedCommand => supported.has(requestedCommand))) {
+                await core.summary
+                  .addHeading('PR checks skipped', 3)
+                  .addRaw(`${reason} The PR checks did not run.`, true)
+                  .write();
+              }
               return;
             }
 
