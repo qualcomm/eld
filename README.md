@@ -35,8 +35,10 @@ binary is built natively for the host architecture (`arm64` or `x86_64`);
 universal binaries are not required.
 
 ELD depends on LLVM. You can build ELD either:
-- Integrated into an `llvm-project` build (recommended for running tests), or
-- Against an external, prebuilt LLVM installation (faster iteration if you already have an LLVM release).
+- Integrated into an `llvm-project` build, or
+- Against an external, prebuilt LLVM installation, such as an LLVM release or
+  the LLVM packages of a Linux distribution (faster iteration if you already
+  have an LLVM installation).
 
 You will need a recent C++ compiler for building LLVM and ELD.
 
@@ -70,9 +72,90 @@ cd <ELD_BUILD_DIR>
 ninja
 ```
 
+You can also configure ELD directly with CMake, for instance against the LLVM
+packages of a Linux distribution:
+
+```bash
+cmake -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DELD_USE_EXTERNAL_LLVM=ON \
+  -DLLVM_DIR=/usr/lib/llvm-24/lib/cmake/llvm \
+  -B <ELD_BUILD_DIR> \
+  -S <ELD_SOURCE_DIR>
+ninja -C <ELD_BUILD_DIR>
+```
+
+LLVM installations with static component libraries and LLVM installations
+built as a single shared library (`LLVM_LINK_LLVM_DYLIB`, as in the Debian,
+Ubuntu, Fedora and Arch packages) are both supported.
+
 Notes:
-- Tests are disabled by default for external builds;
+- Tests are disabled by default for external builds; see
+  [Running tests with an external LLVM](#running-tests-with-an-external-llvm)
+  to enable them;
 - To build just the linker: `ninja ld.eld`
+
+### Running tests with an external LLVM
+
+Configure with `-DELD_INCLUDE_TESTS=ON` to run tests against an external LLVM.
+An LLVM build tree is used as is. With an LLVM installation, the tests
+additionally need:
+
+- `lit`, found next to the LLVM tools or in `PATH` (for instance from
+  `pip install lit`), or given with `-DLLVM_EXTERNAL_LIT=/path/to/lit`;
+- the LLVM test tools (`FileCheck`, `not`, `count`, `split-file`, `yaml2obj`,
+  `obj2yaml`, ...) installed next to the other LLVM tools, e.g. from the
+  `llvm-<version>-tools` package on Debian and Ubuntu. CMake warns about
+  missing tools;
+- GoogleTest for the unit tests, if LLVM does not provide it (LLVM
+  installations usually don't). The unit tests are skipped if GoogleTest is
+  not found.
+
+Then run the tests as usual:
+
+```bash
+ninja -C <ELD_BUILD_DIR> check-eld
+```
+
+Tests that check the ELD or LLVM git revision in version information are
+unsupported when that revision was not recorded, for instance when building
+from source tarballs or with `-DELD_APPEND_VC_REV=OFF`.
+
+### Packaging ELD
+
+The following CMake options help distributions and other packagers integrate
+ELD. Their defaults preserve the standard build and install layout.
+
+- `-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=OFF`
+
+  By default, the directories of linked libraries, such as the library
+  directory of an external LLVM, are recorded in the RUNPATH of `ld.eld` and
+  `libLW`. Turn this off when LLVM is installed in the default library search
+  path. The `$ORIGIN/../lib` RUNPATH is kept.
+
+- `-DELD_APPEND_VC_REV=OFF`
+
+  By default, the git revision of the ELD source tree is recorded in version
+  information (the `.comment` section of linked outputs, `--repository-version`
+  and map files). Turn this off when building from a source tarball or from a
+  packaging repository, whose revision is not an ELD revision. Git is then not
+  needed to build ELD.
+
+- `-DELD_INSTALL_PLUGINS=OFF`
+
+  Build the in-tree plugins, such as `HelloWorldPlugin`, without installing
+  them.
+
+- `-DELD_TEMPLATES_INSTALL_DIR=share/eld/templates`
+
+  Install the linker script templates to this directory instead of
+  `templates`. A relative path is relative to the install prefix.
+
+- `-DLLVM_USE_SYMLINKS=OFF`
+
+  The `<target>-link` drivers (`aarch64-link`, `arm-link`, ...) are symlinks
+  to `ld.eld` by default on Unix hosts. Turn this off to install copies
+  instead, or pass `-DELD_CREATE_SYMLINKS=OFF` to not create these drivers.
 
 Some (optional) helpful CMake options:
 
