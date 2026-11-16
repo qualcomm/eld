@@ -49,10 +49,10 @@ jobs:
       actions: write
       contents: write
     steps:
-      - name: Check out ELD sources
+      - name: Checkout ELD
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.pr_sha || github.sha }}
+          ref: ${{ inputs.pr_sha || github.ref_name }}
           path: llvm-project/llvm/tools/eld
           persist-credentials: ${{ inputs.pr_sha == '' }}
 
