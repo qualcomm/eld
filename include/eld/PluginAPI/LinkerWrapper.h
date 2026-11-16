@@ -486,6 +486,13 @@ public:
   /// Return the associated LinkerScript
   LinkerScript getLinkerScript();
 
+  /// Returns MEMORY regions in declaration order, including unused
+  /// and zero-length regions. REGION_ALIAS entries are included.
+  ///
+  /// Use after linker-script activation, such as in
+  /// LinkerPlugin::ActBeforeWritingOutput(), to inspect evaluated regions.
+  std::vector<MemoryRegion> getMemoryRegions() const;
+
   /// Get FileName file contents.
   ///
   /// If FileName doesn't exist, then returns an empty string.

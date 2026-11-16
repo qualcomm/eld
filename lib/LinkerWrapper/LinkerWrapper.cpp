@@ -644,6 +644,13 @@ plugin::LinkerScript LinkerWrapper::getLinkerScript() {
   return plugin::LinkerScript(&m_Module.getLinkerScript());
 }
 
+std::vector<plugin::MemoryRegion> LinkerWrapper::getMemoryRegions() const {
+  std::vector<plugin::MemoryRegion> Regions;
+  for (const auto *Region : m_Module.getLinkerScript().getMemoryRegions())
+    Regions.emplace_back(Region);
+  return Regions;
+}
+
 std::string LinkerWrapper::getFileContents(std::string FileName) {
   if (m_Module.getConfig().options().hasMappingFile())
     FileName = m_Module.getConfig().getHashFromFile(FileName);
