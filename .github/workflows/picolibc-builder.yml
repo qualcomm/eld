@@ -11,6 +11,10 @@ on:
     # Runs after the nightly toolchain build ("Nightly check" =
     # nightly-test.yml) finishes, so we always consume a freshly built
     # install-nightly-toolchain.tar.xz artifact.
+    # zizmor: ignore[dangerous-triggers] -- Nightly check only runs on a
+    # schedule against main (never PR-triggered); this job only downloads a
+    # named artifact from it, it never checks out or executes the triggering
+    # run's code.
     workflows: ["Nightly check"]
     types: [completed]
   workflow_dispatch:     # Allows manual triggering
@@ -95,6 +99,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: llvm-project/llvm/tools/eld
+          persist-credentials: false
 
       - name: Configure workflow environment variables
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
@@ -162,7 +167,7 @@ jobs:
             ${{ github.workspace }}/llvm-project
 
       - name: Install Meson
-        run: |
+        run: | # zizmor: ignore[github-env] writes a fixed, workspace-relative path, no attacker-controlled input
           git clone https://github.com/mesonbuild/meson.git meson
           cd meson
           ./packaging/create_zipapp.py --outfile meson.pyz --interpreter '/usr/bin/env python3' .

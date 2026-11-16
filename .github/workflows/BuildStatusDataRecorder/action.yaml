@@ -44,6 +44,7 @@ runs:
         STATUS: ${{ inputs.status }}
         RUN_ID: ${{ inputs.run-id }}
         BRANCH_NAME: ${{ inputs.branch-name }}
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         # Set +e to not immediately exit "run" step on failure.
         set +e
@@ -53,6 +54,7 @@ runs:
         cp .github/workflows/scripts/record_builds.py "${DASH_DIR}/"
         git config user.name 'github-actions'
         git config user.email 'github-actions@github.com'
+        remote_url="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
         # Record current branch name
         current_branch=$(git rev-parse --abbrev-ref HEAD)
@@ -94,7 +96,7 @@ runs:
         git commit -m "Add data lock for ${WORKFLOW_NAME} ${ARCH_NAME} build status data to be written"
 
         # Keep trying until a data lock is pushed successfully.
-        until git push -f origin HEAD:refs/heads/dashboard; do
+        until git push -f "${remote_url}" HEAD:refs/heads/dashboard; do
           sleep 5
           check_lock
           echo "$(date) -> $lock_file_msg" >> dash.log
@@ -118,7 +120,7 @@ runs:
            git add data.lock
            git add dash.log
            git commit -m "Removing ${WORKFLOW_NAME} ${ARCH_NAME} data lock."
-           until git push -f origin HEAD:refs/heads/dashboard; do
+           until git push -f "${remote_url}" HEAD:refs/heads/dashboard; do
             sleep 5
             git fetch --all
             git reset --hard origin/dashboard
@@ -141,7 +143,7 @@ runs:
           git add dash.log
           git commit -m "Add ${WORKFLOW_NAME} ${ARCH_NAME} build status data in DB"
           # Keep trying until lock/conflicts are resolved and build data is pushed successfully.
-          until git push -f origin HEAD:refs/heads/dashboard; do
+          until git push -f "${remote_url}" HEAD:refs/heads/dashboard; do
             sleep 5
             git checkout dashboard
             check_lock

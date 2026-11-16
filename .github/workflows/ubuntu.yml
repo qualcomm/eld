@@ -62,6 +62,7 @@ jobs:
           repository: llvm/llvm-project
           ref: main
           path: pr-${{ env.PR_NUMBER }}/llvm-project
+          persist-credentials: false
 
       - name: Checkout qualcomm/eld PR branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -70,6 +71,7 @@ jobs:
           ref: ${{ inputs.pr_sha }}
           path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup musl environment
         run: echo "/opt/musl/bin" >> "$GITHUB_PATH"

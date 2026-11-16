@@ -21,13 +21,15 @@ runs:
     - name: Resolve busybox.yml run id
       id: resolve
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+      env:
+        INPUT_ARCH: ${{ inputs.arch }}
       with:
         github-token: ${{ github.token }}
         script: |
           const owner = context.repo.owner;
           const repo = context.repo.repo;
           const workflowId = 'busybox.yml';
-          const artifactName = 'busybox-eld-${{ inputs.arch }}';
+          const artifactName = `busybox-eld-${process.env.INPUT_ARCH}`;
           let selectedRun;
 
           for (let attempt = 1; attempt <= 5 && !selectedRun; attempt++) {

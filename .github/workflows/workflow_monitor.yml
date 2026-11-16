@@ -4,6 +4,8 @@ name: Monitor workflow failures
 on:
   # A workflow_run trigger lets this workflow inspect the completed run without
   # checking out or executing code from the monitored workflow.
+  # zizmor: ignore[dangerous-triggers] -- read-only inspection of run metadata;
+  # permissions: {} below, no checkout, no code from the monitored run is executed.
   workflow_run:
     workflows:
       - Build multi-version docs
