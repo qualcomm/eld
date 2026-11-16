@@ -1,0 +1,21 @@
+# REQUIRES: hexagon
+RUN: %clang %clangopts -c %p/Inputs/branches.s -o %t.o
+RUN: %link %linkopts %t.o -T %p/Inputs/branches.t -o %t.original
+RUN: %readelf -s %t.original | %filecheck %s --check-prefix=ORIGINAL
+RUN: %link %linkopts %t.o -T %p/Inputs/branches.t -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.claimed 2>&1 | %filecheck %s --check-prefix=COUNT
+RUN: %readelf -s %t.claimed | %filecheck %s --check-prefix=CLAIMED --implicit-check-not=trampoline_for_claimed
+RUN: %readelf -r %t.claimed | %filecheck %s --check-prefix=RELOCS --implicit-check-not=" claimed_far " --implicit-check-not=" claimed_near "
+RUN: %objdump -d %t.claimed | %filecheck %s --check-prefix=CODE
+# ELD can delete a tail jump to the immediately following function.
+# Claimed branches must retain their storage and original relocation metadata.
+RUN: %link %linkopts --relax %t.o -T %p/Inputs/branches.t -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.relaxed 2>&1 | %filecheck %s --check-prefix=COUNT
+RUN: %objdump -d %t.relaxed | %filecheck %s --check-prefix=CODE
+RUN: %readelf -s %t.relaxed | %filecheck %s --check-prefix=CLAIMED --implicit-check-not=trampoline_for_claimed
+ORIGINAL: trampoline_for_claimed_far
+COUNT: claimed uses: 2
+CLAIMED: trampoline_for_other_far
+RELOCS: {{There are no relocations|Relocation section}}
+CODE-LABEL: <_start>:
+CODE-NEXT: {{.*}}nop
+CODE-LABEL: <near_branch>:
+CODE-NEXT: {{.*}}nop

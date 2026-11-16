@@ -1,0 +1,5 @@
+GlobalPlugins:
+  - Type: OutputSectionIterator
+    Name: ClaimUse
+    Library: ClaimUse
+    Options: valid

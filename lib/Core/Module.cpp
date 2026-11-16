@@ -817,16 +817,34 @@ uint64_t Module::getImageLayoutChecksum() const {
   return Hash;
 }
 
-void Module::setRelocationData(const eld::Relocation *R, uint64_t Data,
-                               plugin::LinkerWrapper *Owner) {
+eld::Expected<void> Module::setRelocationData(const eld::Relocation *R,
+                                              uint64_t Data,
+                                              plugin::LinkerWrapper *Owner) {
   std::lock_guard<std::mutex> Guard(Mutex);
-  RelocationData.insert({R, Data});
+  auto Fail = [&](const char *Reason) -> eld::Expected<void> {
+    PluginRelocationDataError = Reason;
+    // After validation there is no later ownership check to report this.
+    if (PluginRelocationDataClosed)
+      getConfig().raise(Diag::error_plugin_owned_use) << Reason;
+    return std::make_unique<plugin::DiagnosticEntry>(
+        Diag::error_plugin_owned_use, std::vector<std::string>{Reason});
+  };
+  if (PluginRelocationDataClosed)
+    return Fail("relocation application has started");
+  // An unclaimed replacement also belongs to its first writer. Only that
+  // writer may update the value.
+  auto [It, Inserted] =
+      RelocationData.try_emplace(R, RelocationDataEntry{Owner, std::nullopt});
+  if (!Inserted && It->second.Owner != Owner)
+    return Fail("replacement supplied by a different plugin");
+  It->second.Data = Data;
   // The arena allocator and layout-map containers also need serialization
   // when plugins submit replacement data from worker threads.
   if (LayoutInfo *Printer = getLayoutInfo()) {
     auto *Op = eld::make<RelocationDataPluginOp>(Owner, R);
     Printer->recordRelocationData(Owner, Op);
   }
+  return {};
 }
 
 bool Module::getRelocationData(const eld::Relocation *R, uint64_t &Data) {
@@ -837,10 +855,72 @@ bool Module::getRelocationData(const eld::Relocation *R, uint64_t &Data) {
 bool Module::getRelocationDataForSync(const eld::Relocation *R,
                                       uint64_t &Data) {
   auto It = RelocationData.find(R);
-  if (It == RelocationData.end())
+  if (It == RelocationData.end() || !It->second.Data)
     return false;
-  Data = It->second;
+  Data = *It->second.Data;
   return true;
+}
+
+eld::Expected<void>
+Module::claimRelocation(eld::Relocation *R,
+                        const plugin::LinkerWrapper *Owner) {
+  std::lock_guard<std::mutex> Guard(Mutex);
+  auto Fail = [&](const char *Reason) -> eld::Expected<void> {
+    PluginRelocationClaimError = Reason;
+    if (PluginRelocationDataClosed)
+      getConfig().raise(Diag::error_plugin_owned_use) << Reason;
+    return std::make_unique<plugin::DiagnosticEntry>(
+        Diag::error_plugin_owned_use, std::vector<std::string>{Reason});
+  };
+  if (PluginRelocationClaimsClosed)
+    return Fail("relocation scanning has started");
+  if (!RelocationData.try_emplace(R, RelocationDataEntry{Owner, std::nullopt})
+           .second) {
+    return Fail("relocation already owned or overridden by a plugin");
+  }
+  R->setPluginOwned();
+  return {};
+}
+
+void Module::closePluginRelocationClaims() {
+  std::lock_guard<std::mutex> Guard(Mutex);
+  PluginRelocationClaimsClosed = true;
+}
+
+bool Module::validatePluginRelocations() {
+  std::lock_guard<std::mutex> Guard(Mutex);
+  PluginRelocationClaimsClosed = true;
+  PluginRelocationDataClosed = true;
+  // Report conflicts at the application boundary even when a plugin ignored
+  // its failed API result. Plugins that report errors stop the link earlier.
+  bool Valid = !PluginRelocationClaimError && !PluginRelocationDataError;
+  if (PluginRelocationClaimError)
+    getConfig().raise(Diag::error_plugin_owned_use)
+        << PluginRelocationClaimError;
+  if (PluginRelocationDataError)
+    getConfig().raise(Diag::error_plugin_owned_use)
+        << PluginRelocationDataError;
+  for (const auto &Entry : RelocationData) {
+    const Relocation *R = Entry.first;
+    if (!R->isPluginOwned())
+      continue;
+    const ELFSection *S = R->targetRef()->frag()->getOwningSection();
+    if (S->isIgnore() || S->isDiscard() ||
+        (S->getOutputSection() && S->getOutputSection()->isDiscard()))
+      continue;
+    if (R->targetRef()->getOutputELFSection()->isNoBits()) {
+      getConfig().raise(Diag::error_plugin_owned_use)
+          << ("source has no output file storage: " +
+              R->getSourcePath(getConfig().options()));
+      Valid = false;
+    } else if (!Entry.second.Data) {
+      getConfig().raise(Diag::error_plugin_owned_use_missing_data)
+          << R->getSourcePath(getConfig().options())
+          << llvm::utohexstr(R->targetRef()->offset());
+      Valid = false;
+    }
+  }
+  return Valid;
 }
 
 void Module::addReferencedSymbol(Section &RefencingSection,

@@ -178,7 +178,6 @@ public:
   bool scanRelocations(bool IsPartialLink = false);
 
   void scanRelocationsHelper(InputFile *Input, bool IsPartialLink,
-                             LinkerScript::PluginVectorT PluginVect,
                              Relocator::CopyRelocs &);
 
   bool finalizeScanRelocations();

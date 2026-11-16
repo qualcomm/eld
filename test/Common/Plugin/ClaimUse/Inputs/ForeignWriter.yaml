@@ -1,0 +1,8 @@
+GlobalPlugins:
+  - Type: OutputSectionIterator
+    Name: ClaimUse
+    Library: ClaimUse
+    Options: valid
+  - Type: OutputSectionIterator
+    Name: ForeignUseWriter
+    Library: ForeignUseWriter
