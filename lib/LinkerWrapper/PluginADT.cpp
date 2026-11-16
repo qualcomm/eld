@@ -14,6 +14,7 @@
 #include "eld/Input/BitcodeFile.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/ObjectFile.h"
+#include "eld/Object/ScriptMemoryRegion.h"
 #include "eld/Plugin/PluginData.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/PluginAPI/LinkerWrapper.h"
@@ -874,6 +875,48 @@ plugin::Segment::getOutputSections(const LinkerWrapper &LW) const {
   for (eld::OutputSectionEntry *O : S->sections())
     Sections.push_back(OutputSection(O));
   return Sections;
+}
+
+//
+//-------------------------------MemoryRegion---------------------------------
+//
+std::string plugin::MemoryRegion::getName() const {
+  if (!m_MemoryRegion)
+    return "";
+  return m_MemoryRegion->getName();
+}
+
+std::string plugin::MemoryRegion::getAttributes() const {
+  if (!m_MemoryRegion)
+    return "";
+  const auto *Desc = m_MemoryRegion->getMemoryDesc();
+  if (!Desc || !Desc->getMemorySpec())
+    return "";
+  return Desc->getMemorySpec()->getMemoryAttributes();
+}
+
+eld::Expected<uint64_t> plugin::MemoryRegion::getOrigin() const {
+  if (!m_MemoryRegion)
+    return 0;
+  return m_MemoryRegion->getOrigin();
+}
+
+eld::Expected<uint64_t> plugin::MemoryRegion::getLength() const {
+  if (!m_MemoryRegion)
+    return 0;
+  return m_MemoryRegion->getLength();
+}
+
+plugin::MemoryRegion OutputSection::getVMAMemoryRegion() const {
+  if (!m_OutputSection)
+    return plugin::MemoryRegion();
+  return plugin::MemoryRegion(m_OutputSection->epilog().ScriptVMAMemoryRegion);
+}
+
+plugin::MemoryRegion OutputSection::getLMAMemoryRegion() const {
+  if (!m_OutputSection || m_OutputSection->prolog().hasLMA())
+    return plugin::MemoryRegion();
+  return plugin::MemoryRegion(m_OutputSection->epilog().ScriptLMAMemoryRegion);
 }
 
 //

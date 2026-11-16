@@ -34,6 +34,34 @@ allocation of GOT/PLT entries and dynamic relocations.
 
 ## Plugin Abstract Data Types
 
+### Memory Regions
+
+`LinkerWrapper::getMemoryRegions()` returns evaluated `MEMORY`
+regions in declaration order, including unused and zero-length regions.
+`REGION_ALIAS` entries are also included.
+Use this inspection API after linker-script activation, such as in
+`LinkerPlugin::ActBeforeWritingOutput()`.
+
+`MemoryRegion::getName()` returns the region name; `getAttributes()` preserves
+the raw attribute spelling and parentheses, such as `(rx)` or `(!rx)`.
+`getOrigin()` and `getLength()` return evaluated 64-bit values as
+`eld::Expected<uint64_t>` and propagate expression-evaluation errors.
+An empty handle is false, returns empty name/attribute strings, and returns
+zero for its origin and length. `getMemoryRegion()` exposes the underlying
+pointer for identity comparisons.
+
+`OutputSection::getVMAMemoryRegion()` and `getLMAMemoryRegion()` return the
+effective assigned region handles after layout, or empty handles when no
+region is assigned. The LMA region may be the same as the VMA region, including
+when both names are aliases of one region. An explicit `AT(address)` has no
+LMA memory-region mapping even if internal layout bookkeeping retains a
+region pointer.
+
+```{eval-rst}
+.. doxygenstruct:: eld::plugin::MemoryRegion
+   :members:
+```
+
 ### Chunk
 
 ```{eval-rst}
