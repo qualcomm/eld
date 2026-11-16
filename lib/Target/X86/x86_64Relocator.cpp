@@ -493,15 +493,11 @@ Relocator::Result VerifyRelocAsNeededHelper(Relocation &pReloc, T Result,
   const x86_64::RelocationDescriptor &Desc = x86_64::Relocs[pReloc.type()];
   Relocator::Result R = Relocator::OK;
 
-  auto PreShift = Result;
-  Result >>= Desc.Shift;
-
   if (Desc.VerifyRange && !x86_64::verifyRangeX86_64(Desc, Result)) {
-    unsigned EffectiveBits = x86_64::getNumberOfBits(Desc.EncType) + Desc.Shift;
     if (Desc.IsSigned)
-      return checkSignedRange(pReloc, Parent, llvm::bit_cast<int64_t>(PreShift),
-                              EffectiveBits);
-    return reportUnsignedOverflow(pReloc, Parent, PreShift, EffectiveBits);
+      return checkSignedRange(pReloc, Parent, llvm::bit_cast<int64_t>(Result),
+                              Desc.Size);
+    return reportUnsignedOverflow(pReloc, Parent, Result, Desc.Size);
   }
 
   if (Desc.forceVerify && x86_64::isTruncatedX86_64(Desc, Result)) {

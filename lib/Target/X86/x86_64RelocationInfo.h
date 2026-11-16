@@ -16,27 +16,27 @@ namespace x86_64 {
 
 // clang-format off
 #define X86_64_RELOC_OVERRIDES(Add)                                                 \
-  Add(llvm::ELF::R_X86_64_NONE, none, EncTy_None, 0, false, false, 64)             \
-  Add(llvm::ELF::R_X86_64_64, relocAbs, EncTy_64, 0, false, false, 64)             \
-  Add(llvm::ELF::R_X86_64_PC32, relocPCRel, EncTy_32, 0, true, true, 32)           \
-  Add(llvm::ELF::R_X86_64_PLT32, relocPLT32, EncTy_32, 0, true, true, 32)          \
-  Add(llvm::ELF::R_X86_64_GOTPCREL, relocGOTRelative, EncTy_32, 0, true, true, 32) \
-  Add(llvm::ELF::R_X86_64_32, relocAbs, EncTy_32, 0, false, false, 32)             \
-  Add(llvm::ELF::R_X86_64_32S, relocAbs, EncTy_32, 0, false, true, 32)             \
-  Add(llvm::ELF::R_X86_64_16, relocAbs, EncTy_16, 0, false, false, 16)             \
-  Add(llvm::ELF::R_X86_64_PC16, relocPCRel, EncTy_16, 0, true, true, 16)           \
-  Add(llvm::ELF::R_X86_64_8, relocAbs, EncTy_8, 0, false, false, 8)                \
-  Add(llvm::ELF::R_X86_64_PC8, relocPCRel, EncTy_8, 0, true, true, 8)              \
-  Add(llvm::ELF::R_X86_64_DTPOFF64, relocDTPOFF, EncTy_64, 0, false, true, 64)     \
-  Add(llvm::ELF::R_X86_64_TPOFF64, relocTPOFF, EncTy_64, 0, false, true, 64)       \
-  Add(llvm::ELF::R_X86_64_TLSGD, relocGOTRelative, EncTy_32, 0, true, true, 32)    \
-  Add(llvm::ELF::R_X86_64_TLSLD, relocGOTRelative, EncTy_32, 0, true, true, 32)    \
-  Add(llvm::ELF::R_X86_64_DTPOFF32, relocDTPOFF, EncTy_32, 0, true, true, 32)      \
-  Add(llvm::ELF::R_X86_64_GOTTPOFF, relocGOTRelative, EncTy_32, 0, true, true, 32) \
-  Add(llvm::ELF::R_X86_64_TPOFF32, relocTPOFF, EncTy_32, 0, true, true, 32)        \
-  Add(llvm::ELF::R_X86_64_PC64, relocPCRel, EncTy_64, 0, false, false, 64)         \
-  Add(llvm::ELF::R_X86_64_GOTPCRELX, relocGOTRelative, EncTy_32, 0, true, true, 32) \
-  Add(llvm::ELF::R_X86_64_REX_GOTPCRELX, relocGOTRelative, EncTy_32, 0, true, true, 32)
+  Add(llvm::ELF::R_X86_64_NONE, none, false, false, 64)                             \
+  Add(llvm::ELF::R_X86_64_64, relocAbs, false, false, 64)                           \
+  Add(llvm::ELF::R_X86_64_PC32, relocPCRel, true, true, 32)                         \
+  Add(llvm::ELF::R_X86_64_PLT32, relocPLT32, true, true, 32)                        \
+  Add(llvm::ELF::R_X86_64_GOTPCREL, relocGOTRelative, true, true, 32)               \
+  Add(llvm::ELF::R_X86_64_32, relocAbs, false, false, 32)                           \
+  Add(llvm::ELF::R_X86_64_32S, relocAbs, false, true, 32)                           \
+  Add(llvm::ELF::R_X86_64_16, relocAbs, false, false, 16)                           \
+  Add(llvm::ELF::R_X86_64_PC16, relocPCRel, true, true, 16)                         \
+  Add(llvm::ELF::R_X86_64_8, relocAbs, false, false, 8)                             \
+  Add(llvm::ELF::R_X86_64_PC8, relocPCRel, true, true, 8)                           \
+  Add(llvm::ELF::R_X86_64_DTPOFF64, relocDTPOFF, false, true, 64)                   \
+  Add(llvm::ELF::R_X86_64_TPOFF64, relocTPOFF, false, true, 64)                     \
+  Add(llvm::ELF::R_X86_64_TLSGD, relocGOTRelative, true, true, 32)                  \
+  Add(llvm::ELF::R_X86_64_TLSLD, relocGOTRelative, true, true, 32)                  \
+  Add(llvm::ELF::R_X86_64_DTPOFF32, relocDTPOFF, true, true, 32)                    \
+  Add(llvm::ELF::R_X86_64_GOTTPOFF, relocGOTRelative, true, true, 32)               \
+  Add(llvm::ELF::R_X86_64_TPOFF32, relocTPOFF, true, true, 32)                      \
+  Add(llvm::ELF::R_X86_64_PC64, relocPCRel, false, false, 64)                       \
+  Add(llvm::ELF::R_X86_64_GOTPCRELX, relocGOTRelative, true, true, 32)              \
+  Add(llvm::ELF::R_X86_64_REX_GOTPCRELX, relocGOTRelative, true, true, 32)
 // clang-format on
 
 constexpr std::array<RelocationDescriptor, RelocationTableSize>
@@ -47,11 +47,9 @@ createRelocationDescriptors() {
 #include "llvm/BinaryFormat/ELFRelocs/x86_64.def"
 #undef ELF_RELOC
 
-#define ADD_X86_64_RELOC_OVERRIDE(Type, Function, Encoding, ShiftValue,        \
-                                  VerifyValue, SignedValue, SizeValue)         \
+#define ADD_X86_64_RELOC_OVERRIDE(Type, Function, VerifyValue, SignedValue,    \
+                                  SizeValue)                                   \
   Entries[Type].Handler = &Function;                                           \
-  Entries[Type].EncType = Encoding;                                            \
-  Entries[Type].Shift = ShiftValue;                                            \
   Entries[Type].VerifyRange = VerifyValue;                                     \
   Entries[Type].IsSigned = SignedValue;                                        \
   Entries[Type].Size = SizeValue;

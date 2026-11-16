@@ -28,11 +28,9 @@ Relocator::Result unsupported(Relocation &pReloc, x86_64Relocator &pParent);
 
 struct RelocationDescriptor {
   const char *Name = "";
-  EncodingType EncType = EncTy_None;
-  uint32_t Shift = 0;
+  uint32_t Size = 0; // Field width in bits. 0 for unsupported relocations.
   bool VerifyRange = false;
   bool IsSigned = false;
-  uint32_t Size = 0;
   RelocationHandler Handler = &unsupported;
   bool forceVerify = false;
 };

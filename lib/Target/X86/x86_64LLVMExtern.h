@@ -11,8 +11,6 @@
 namespace eld {
 namespace x86_64 {
 
-enum EncodingType { EncTy_None, EncTy_8, EncTy_16, EncTy_32, EncTy_64 };
-
 struct RelocationDescriptor;
 
 constexpr uint32_t getRelocationTableSize() {
@@ -31,8 +29,6 @@ uint64_t doRelocX86_64(const RelocationDescriptor &Desc, uint64_t Instruction,
                        uint64_t Value);
 
 bool verifyRangeX86_64(const RelocationDescriptor &Desc, uint64_t Value);
-
-unsigned getNumberOfBits(EncodingType Type);
 
 bool isTruncatedX86_64(const RelocationDescriptor &Desc, uint64_t Value);
 
