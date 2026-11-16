@@ -1,0 +1,20 @@
+#---ExcludeLibsBareNamespecReplay.test--------------- Executable------------------#
+#BEGIN_COMMENT
+# Verify a bare namespec exclusion survives the original link and replay.
+#END_COMMENT
+#-------------------------------------------------------------------------------
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o -fPIC
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o -fPIC
+RUN: mkdir -p %t.2
+RUN: %ar -cr %t.2/lib2.a %t.2.o
+RUN: %link %linkopts -shared %t.1.o -L %t.2 -l2 --exclude-libs 2 -o %t.out --reproduce %t.tar
+RUN: %readelf --dyn-symbols %t.out | %filecheck %s
+RUN: %mkdir %t.reproduce
+RUN: cd %t.reproduce
+RUN: %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: %link @response.txt -o reproduce.out
+RUN: %readelf --dyn-symbols %t.reproduce/reproduce.out | %filecheck %s
+#END_TEST
+
+#CHECK-NOT: foo
