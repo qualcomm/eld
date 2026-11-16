@@ -120,8 +120,6 @@ int x86_64LinkDriver::link(llvm::ArrayRef<const char *> Args,
   // Save parsed options so they can be accessed later as needed. Right now it's
   // only used for LTO options, but can be expanded to track unused aguments.
   auto &ArgList = Config.options().setParsedArgs(std::move(ArgListLocal));
-  if (!processLLVMOptions<OPT_x86_64LinkOptTable>(ArgList))
-    return LINK_FAIL;
   if (!processTargetOptions<OPT_x86_64LinkOptTable>(ArgList))
     return LINK_FAIL;
   if (!processOptions<OPT_x86_64LinkOptTable>(ArgList))
@@ -158,12 +156,6 @@ template <class T>
 bool x86_64LinkDriver::processTargetOptions(llvm::opt::InputArgList &Args) {
   return GnuLdDriver::processTargetOptions<T>(Args);
 }
-
-template <class T>
-bool x86_64LinkDriver::processLLVMOptions(llvm::opt::InputArgList &Args) {
-  return GnuLdDriver::processLLVMOptions<T>(Args);
-}
-
 
 bool x86_64LinkDriver::isValidEmulation(llvm::StringRef Emulation){
   return Emulation == "elf_x86_64" || Emulation == "elf_amd64";

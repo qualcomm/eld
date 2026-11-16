@@ -1,0 +1,15 @@
+#---ArchiveLazySymbolTypes.test------------- Executable ----------------#
+#BEGIN_COMMENT
+# Verify that a COMMON introduced by one archive member causes a later member
+# containing a matching data definition to be included.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.a
+RUN: %clang %clangopts -o %t1.main.o %p/Inputs/main.c -c
+RUN: %clang %clangopts -fcommon -o %t1.common.o %p/Inputs/common.c -c
+RUN: %clang %clangopts -o %t1.define.o %p/Inputs/define.c -c
+RUN: %ar cr %aropts %t1.a %t1.common.o %t1.define.o
+RUN: %link %linkopts %emulation -o %t1.out %t1.main.o %t1.a
+RUN: %readelf -s %t1.out | %filecheck %s
+#END_TEST
+CHECK: archive_definition

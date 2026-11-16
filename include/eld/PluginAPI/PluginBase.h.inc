@@ -41,8 +41,9 @@ __attribute__((
     section("__DATA,__eld_plugin"))) static const char eld_plugin_built_with[] =
     "Plugin built with tools @LLVM_VENDOR_VERSION@";
 #else
-__asm__(".section .comment, \"MS\",@progbits,1\n\t"
-        ".string \"Plugin built with tools @LLVM_VENDOR_VERSION@\"");
+__asm__(".pushsection .comment\n\t"
+        ".string \"Plugin built with tools @LLVM_VENDOR_VERSION@\"\n\t"
+        ".popsection");
 #endif
 
 class DLL_A_EXPORT PluginBase {

@@ -60,12 +60,19 @@ if(ELD_USE_EXTERNAL_LLVM)
   include(TableGen)
   include(HandleLLVMOptions)
 
+  # LLVM's own option is not exported by LLVMConfig.cmake. Use the same default
+  # so that the <target>-link drivers are symlinks as in integrated builds,
+  # rather than copies of ld.eld.
+  option(LLVM_USE_SYMLINKS "Use symlinks instead of copying binaries"
+         ${CMAKE_HOST_UNIX})
+
   # Set up compiler flags similar to LLVM
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-  # FIXME : Enable tests For external builds, disable tests by default (requires
-  # LLVM source tree)
+  # Tests are disabled by default for external builds. They need lit and the
+  # LLVM test tools (FileCheck, not, ...) next to the other LLVM tools, clang,
+  # and GoogleTest for unit tests if LLVM does not provide it.
   option(ELD_INCLUDE_TESTS "Include tests in external build" OFF)
 
 else()
@@ -106,6 +113,9 @@ string(REGEX REPLACE "[0-9]+\\.([0-9]+)(\\.[0-9]+)?" "\\1" ELD_VERSION_MINOR
                      ${ELD_VERSION})
 
 # Support linker version
+option(ELD_APPEND_VC_REV
+       "Record the git revision of the ELD source tree in version information"
+       ON)
 add_version_info_eld_git(ELD_REPOSITORY ELD_REVISION ${ELD_SOURCE_DIR})
 
 if(LLVM_VENDOR_NAME)
@@ -332,25 +342,30 @@ endfunction()
 # their plugin targets normally.
 add_subdirectory(Plugins)
 
-# Only include tests if enabled (requires LLVM source tree)
+# Only include tests if enabled
 if(ELD_INCLUDE_TESTS)
   add_subdirectory(test)
 else()
   message(
     STATUS
-      "Tests disabled (set ELD_INCLUDE_TESTS=ON to enable, requires LLVM source tree)"
+      "Tests disabled (set ELD_INCLUDE_TESTS=ON to enable)"
   )
 endif()
 
 option(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES
        "Include linker script templates in the install" ON)
+set(ELD_TEMPLATES_INSTALL_DIR
+    "templates"
+    CACHE STRING
+          "Path for linker script templates subdirectory (defaults to 'templates')")
+mark_as_advanced(ELD_TEMPLATES_INSTALL_DIR)
 option(ELD_ENABLE_PDF_DOCS
        "Enable PDF documentation generation (requires Typst)" OFF)
 
 if(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES)
   install(
     DIRECTORY templates/
-    DESTINATION templates
+    DESTINATION "${ELD_TEMPLATES_INSTALL_DIR}"
     COMPONENT ld.eld
     FILES_MATCHING
     PATTERN "*.template"
