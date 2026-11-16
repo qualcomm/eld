@@ -17,6 +17,20 @@ ARCH = {
     "objdump": ["llvm-objdump"],
     "run_prefix": ["qemu-arm"],
     "run_timeout_seconds": 5,
+    "address_target_templates": {
+      "data": "address.s.in",
+      "interworking": {
+        "template": "address-interworking.s.in",
+        "symbols": {
+          "arm": "arm_v",
+          "thumb": "thumb_v",
+        },
+        "usages": {
+          "arm_usage": {"symbol": "arm_v", "label": "arm"},
+          "thumb_usage": {"symbol": "thumb_v", "label": "thumb"},
+        },
+      },
+    },
   },
   "relocs": [
     {

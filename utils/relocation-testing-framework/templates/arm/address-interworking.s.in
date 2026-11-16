@@ -1,0 +1,43 @@
+@ Apply the relocation to ARM and Thumb functions to exercise T=0 and T=1.
+@ BLX calls both pointers; each function must return 42.
+.syntax unified
+.arm
+
+.global _start
+
+.text
+_start:
+{{arm_usage}}
+  blx {{scratch_reg}}
+  cmp r0, #42
+  bne .Lfail
+{{thumb_usage}}
+  blx {{scratch_reg}}
+  cmp r0, #42
+  bne .Lfail
+  mov r0, #42
+  b .Lexit
+.Lfail:
+  mov r0, #1
+.Lexit:
+  mov r7, #1
+  svc #0
+
+.arm
+.balign 4
+.{{binding_arm}} arm_v
+{{visibility_arm}}
+.type arm_v, %function
+arm_v:
+  mov r0, #42
+  bx lr
+
+.thumb
+.balign 4
+.{{binding_thumb}} thumb_v
+{{visibility_thumb}}
+.type thumb_v, %function
+.thumb_func
+thumb_v:
+  movs r0, #42
+  bx lr

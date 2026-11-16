@@ -115,7 +115,16 @@ def run_run_analysis(arch_name, arch_info, output_dir, verbose):
 def build_run_matrix(arch_info):
     for parameters in build_parameter_matrix(PARAMETERS):
         for reloc in arch_info["relocs"]:
-            yield {**parameters, "relocation": reloc}
+            if reloc["category"] == "address":
+                address_targets = list(arch_info["config"].get(
+                    "address_target_templates", {"data": None}))
+            else:
+                address_targets = [None]
+            for address_target in address_targets:
+                combination = {**parameters, "relocation": reloc}
+                if address_target is not None:
+                    combination["address_target"] = address_target
+                yield combination
 
 
 def build_parameter_matrix(parameters):
