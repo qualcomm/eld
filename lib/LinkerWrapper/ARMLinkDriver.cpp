@@ -201,8 +201,6 @@ int ARMLinkDriver::link(llvm::ArrayRef<const char *> Args,
   // Save parsed options so they can be accessed later as needed. Right now it's
   // only used for LTO options, but can be expanded to track unused aguments.
   auto &ArgList = Config.options().setParsedArgs(std::move(ArgListLocal));
-  if (!processLLVMOptions<OPT_ARMLinkOptTable>(ArgList))
-    return LINK_FAIL;
   if (!processTargetOptions<OPT_ARMLinkOptTable>(ArgList))
     return LINK_FAIL;
   if (!processOptions<OPT_ARMLinkOptTable>(ArgList))
@@ -268,22 +266,4 @@ bool ARMLinkDriver::processTargetOptions(llvm::opt::InputArgList &Args) {
     Config.targets().setTriple(TheTriple);
   }
   return result;
-}
-
-template <class T>
-bool ARMLinkDriver::processLLVMOptions(llvm::opt::InputArgList &Args) {
-  llvm::Triple triple;
-  if (llvm::opt::Arg *arg = Args.getLastArg(T::mtriple))
-    triple.setTriple(arg->getValue());
-  else
-    triple.setTriple(llvm::sys::getDefaultTargetTriple());
-
-  // Parse and evaluate -mllvm options.
-  std::vector<const char *> V;
-  V.push_back("eld (LLVM option parsing)");
-  for (auto *Arg : Args.filtered(T::mllvm))
-    V.push_back(Arg->getValue());
-
-  cl::ParseCommandLineOptions(V.size(), V.data());
-  return true;
 }
