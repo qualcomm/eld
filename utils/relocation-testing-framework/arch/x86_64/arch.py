@@ -15,6 +15,7 @@ ARCH = {
         "objdump": ["llvm-objdump"],
         "run_prefix": [],
         "run_timeout_seconds": 5,
+        "address_target_templates": {"data": "address.s.in"},
     },
     "relocs": [
         {

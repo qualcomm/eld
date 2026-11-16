@@ -1,3 +1,5 @@
+@ Address relocation under test resolves v, a data object. The program loads
+@ through that address and exits with v's value, 42.
 .syntax unified
 .arm
 

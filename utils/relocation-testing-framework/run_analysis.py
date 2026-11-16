@@ -59,7 +59,8 @@ def load_template(arch_name, template_name):
 def validate_relocation(arch_name, config, reloc, parameters, report_name,
                         report_dir, verbose):
     category = reloc.get("category", "")
-    reloc_dir = report_dir / sanitize(reloc.get("name", "unknown"))
+    case_name = relocation_case_name(reloc, parameters)
+    reloc_dir = report_dir / sanitize(case_name)
     reloc_dir.mkdir(parents=True, exist_ok=True)
 
     error = check_reloc_description(reloc)
@@ -110,7 +111,7 @@ def validate_relocation(arch_name, config, reloc, parameters, report_name,
         "verbose": verbose,
     }
     invariant_results = [exit_code_check(executable, context)]
-    return TestResult(parameters, report_name, reloc["name"], "PASS",
+    return TestResult(parameters, report_name, case_name, "PASS",
                       invariant_results)
 
 
@@ -132,17 +133,52 @@ def generate_sources(arch_name, config, reloc, parameters):
 
 
 def generate_address_test(arch_name, config, reloc, parameters):
-    """Generate a data-symbol reference test for address relocations."""
-    usage = render(reloc["usage"], {
-        "var": "v",
-        "reg": config["scratch_reg"],
-    })
-    source = render(load_template(arch_name, "address.s.in"), {
-        "binding": parameters["symbol_binding"],
-        "scratch_reg": config["scratch_reg"],
-        "usage": usage,
-        "visibility": visibility_directive(parameters["symbol_visibility"], "v"),
-    })
+    """Generate an address test using the configured target template."""
+    address_target = parameters.get("address_target", "data")
+    address_templates = config.get("address_target_templates", {})
+    target_config = address_templates.get(address_target)
+    if target_config is None:
+        raise ValueError("no address template configured for target: "
+                         f"{address_target}")
+
+    # String entries retain the simple one-symbol configuration. Mapping
+    # entries can name several symbols and usage placeholders for richer tests.
+    if isinstance(target_config, str):
+        template_name = target_config
+        symbols = {"default": "v"}
+        usages = {"usage": {"symbol": "v", "label": "single"}}
+    else:
+        template_name = target_config["template"]
+        symbols = target_config.get("symbols", {"default": "v"})
+        usages = target_config.get(
+            "usages", {"usage": {"symbol": "v", "label": "single"}})
+
+    # Supply binding and visibility values for every symbol named by the
+    # template configuration.
+    template_values = {"scratch_reg": config["scratch_reg"]}
+    for name, symbol in symbols.items():
+        suffix = "" if name == "default" else f"_{name}"
+        template_values[f"binding{suffix}"] = parameters["symbol_binding"]
+        template_values[f"visibility{suffix}"] = visibility_directive(
+            parameters["symbol_visibility"], symbol)
+
+    # Render the relocation usage separately for each configured symbol,
+    # scratch register, and label.
+    for placeholder, usage_config in usages.items():
+        template_values[placeholder] = render(reloc["usage"], {
+            "var": usage_config["symbol"],
+            "reg": config["scratch_reg"],
+            "label": usage_config.get("label", placeholder),
+        })
+
+    # The architecture template composes the populated usages and symbols
+    # into the test source.
+    source = render(load_template(arch_name, template_name), template_values)
+    if "{{" in source:
+        raise ValueError(
+            f"unresolved placeholders in template {template_name} "
+            f"for address target {address_target}"
+        )
     return {"main.s": source}, "main.s"
 
 
@@ -235,9 +271,18 @@ def exit_code_check(executable, context):
 
 
 def make_result(parameters, report_name, reloc, build_status):
-    return TestResult(parameters, report_name, reloc.get("name", "<unknown>"),
+    return TestResult(parameters, report_name,
+                      relocation_case_name(reloc, parameters),
                       build_status, [InvariantResult("exit_code_check", False,
                                                     "SKIP")])
+
+
+def relocation_case_name(reloc, parameters):
+    name = reloc.get("name", "<unknown>")
+    address_target = parameters.get("address_target")
+    if address_target not in (None, "data"):
+        return f"{name} ({address_target.title()} target)"
+    return name
 
 
 def result_passed(result):
