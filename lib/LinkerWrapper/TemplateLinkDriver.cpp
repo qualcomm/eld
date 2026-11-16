@@ -140,8 +140,6 @@ int TemplateLinkDriver::link(llvm::ArrayRef<const char *> Args,
   // Save parsed options so they can be accessed later as needed. Right now it's
   // only used for LTO options, but can be expanded to track unused aguments.
   auto &ArgList = Config.options().setParsedArgs(std::move(ArgListLocal));
-  if (!processLLVMOptions<OPT_TemplateLinkOptTable>(ArgList))
-    return LINK_FAIL;
   if (!processTargetOptions<OPT_TemplateLinkOptTable>(ArgList))
     return LINK_FAIL;
   if (!processOptions<OPT_TemplateLinkOptTable>(ArgList))
@@ -205,9 +203,4 @@ bool TemplateLinkDriver::processTargetOptions(llvm::opt::InputArgList &Args) {
     Config.targets().setTriple(TheTriple);
   }
   return result;
-}
-
-template <class T>
-bool TemplateLinkDriver::processLLVMOptions(llvm::opt::InputArgList &Args) {
-  return GnuLdDriver::processLLVMOptions<T>(Args);
 }
