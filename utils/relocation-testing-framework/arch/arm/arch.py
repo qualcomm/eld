@@ -23,6 +23,7 @@ ARCH = {
       "name": "R_ARM_ABS32",
       "category": "address",
       "usage": "ldr {{reg}}, ={{var}}",
+      "static_usage": ".word {{var}}",
     },
   ],
 }

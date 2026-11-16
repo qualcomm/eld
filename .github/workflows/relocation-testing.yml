@@ -117,7 +117,7 @@ jobs:
             report="${results_dir}/${arch}-report.txt"
             if ! python3 "${framework}" \
                 --arch="${arch}" \
-                --mode=run \
+                --mode=both \
                 --output-dir="${results_dir}/${arch}" > "${report}" 2>&1; then
               test_status=1
             fi
