@@ -29,8 +29,8 @@ see also the [preemption flowchart](Relocation-Reservation-Annotations.md#visibi
   non-IFUNC target, addend `-4`, and a recognized opcode. Another
   reference may still require that symbol's slot. `REX_GOTPCRELX`
   currently reserves its slot and has no implemented relaxation dispatch.
-- `GOT32` has a no-op handler and no GOT reservation case; its encoding
-  table's ABI formula does not imply implemented GOT access.
+- `GOT32` is not supported. ELD rejects it as an unsupported relocation, so
+  it has no GOT reservation case.
 - `PLT32` uses `Preemptible=true` without a `STT_FUNC` test, or the static indirect-function path for
   static IFUNC. Absolute/PC-relative data references do not independently
   allocate PLT entries, even for function targets.
@@ -104,7 +104,7 @@ The table below lists the exact bounds for each relocation.
 | `R_X86_64_PC8` | `EncTy_8` | yes | **yes** | `−2^7 ≤ X ≤ 2^7 − 1` | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 | `R_X86_64_PC64` | `EncTy_64` | no | no | `X` truncated to 64 bits | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 | `R_X86_64_PLT32` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: J[i]</code></li><li><code>D: J[p]</code></li><li><code>P: J[p]; I: J[p] + J[i]</code></li><li><code>H: J[p]</code></li></ul> | <ul><li><code>S: R[i]</code></li><li><code>D: L[p]</code></li><li><code>P: L[p]; I: L[p] + R[i]</code></li><li><code>H: L[p]</code></li></ul> | No |
-| `R_X86_64_GOT32` | `EncTy_32` | no | no | `X` truncated to 32 bits | <ul><li><code>S: -{n}</code></li><li><code>D: -{n}</code></li><li><code>P: -{n}</code></li><li><code>H: -{n}</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_GOT32` | `EncTy_32` | no | no | not supported | <ul><li><code>S: -{n}</code></li><li><code>D: -{n}</code></li><li><code>P: -{n}</code></li><li><code>H: -{n}</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 | `R_X86_64_GOTPCREL` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: G</code></li><li><code>D: G</code></li><li><code>P: G</code></li><li><code>H: G</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 | `R_X86_64_GOTPCRELX` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: G[!r]</code></li><li><code>D: G[!r]</code></li><li><code>P: G[!r]</code></li><li><code>H: G[!r]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 | `R_X86_64_REX_GOTPCRELX` | `EncTy_32` | yes | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: G</code></li><li><code>D: G</code></li><li><code>P: G</code></li><li><code>H: G</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
@@ -171,7 +171,7 @@ the instruction loads the actual symbol address from the GOT.
 
 | Relocation | Type | Encoding | Operation | Signed | Range check | GOT allocation | PLT allocation | Trampoline / range |
 |------------|------|----------|-----------|--------|-------------|-------------------------|-------------------------|--------------------|
-| `R_X86_64_GOT32` | 3 | `EncTy_32` | `GOT(S) + A` | no | truncated to 32 bits | <ul><li><code>S: -{n}</code></li><li><code>D: -{n}</code></li><li><code>P: -{n}</code></li><li><code>H: -{n}</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_X86_64_GOT32` | 3 | `EncTy_32` | not supported | no | not supported | <ul><li><code>S: -{n}</code></li><li><code>D: -{n}</code></li><li><code>P: -{n}</code></li><li><code>H: -{n}</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 | `R_X86_64_GOTPCREL` | 9 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: G</code></li><li><code>D: G</code></li><li><code>P: G</code></li><li><code>H: G</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 | `R_X86_64_GOTPCRELX` | 41 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: G[!r]</code></li><li><code>D: G[!r]</code></li><li><code>P: G[!r]</code></li><li><code>H: G[!r]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 | `R_X86_64_REX_GOTPCRELX` | 42 | `EncTy_32` | `GOT(S) + A - P` | **yes** | `−2^31 ≤ X ≤ 2^31 − 1` | <ul><li><code>S: G</code></li><li><code>D: G</code></li><li><code>P: G</code></li><li><code>H: G</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
@@ -200,6 +200,8 @@ existing GOT-load relaxation behavior.
 ### Dynamic / Runtime Relocations
 
 Written by the dynamic linker at load time; not applied statically by ELD.
+The linker writes these types into its output. An input object that contains
+one of them is rejected as an unsupported relocation.
 
 | Relocation | Type | Encoding | Operation | GOT allocation | PLT allocation | Trampoline / range |
 |------------|------|----------|-----------|-------------------------|-------------------------|--------------------|
