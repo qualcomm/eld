@@ -15,7 +15,6 @@
 
 #include "eld/Core/Module.h"
 #include "eld/Readers/Relocation.h"
-#include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallVector.h"
@@ -88,12 +87,13 @@ public:
   /// Parallel relocation scanning runs in two phases:
   ///
   /// Phase 1 (scanRelocationParallel) may run concurrently over input files.
-  /// It only performs the checks that are common to every backend and records
-  /// which relocations need further processing. It creates no GOT/PLT slots
-  /// and no dynamic relocations.
+  /// It performs common checks and target specific classification. Relocations
+  /// with serial side effects are recorded in input order. No slots or dynamic
+  /// relocations are recorded here.
   ///
-  /// Phase 2 (replayScanRelocations) is serial and visits the recorded
-  /// relocations in input order. Slot allocation happens here.
+  /// Phase 2 (scanDeferredRelocations) is serial and visits only the recorded
+  /// relocations in input order. Slot allocation and other shared mutations
+  /// happen here.
   ///
   /// Prepare for phase 1. Must be called before a parallel scan.
   void initScanRelocations();
@@ -106,9 +106,9 @@ public:
                               InputFile &Input, size_t InputIndex,
                               size_t SectIndex, size_t RelocIndex);
 
-  /// Phase 2: Replays the relocations recorded by phase 1 in input
-  /// order, serially.
-  void replayScanRelocations(CopyRelocs &CopyRelocSet);
+  /// Phase 2: Scans the relocations recorded by phase 1 in input order,
+  /// serially.
+  void scanDeferredRelocations(CopyRelocs &CopyRelocSet);
 
   // Issue an undefined reference error if the symbol is a magic section symbol.
   void issueUndefRefForMagicSymbol(const Relocation &pReloc);
@@ -212,6 +212,11 @@ protected:
   /// just before the relocation is dropped.
   virtual void scanNonAllocReloc(Relocation &Reloc, ELFSection &Section) {}
 
+  virtual bool needsSerialScan(const Relocation &Reloc,
+                               const ELFSection &Section) const {
+    return true;
+  }
+
   /// Phase 2: Handle one relocation recorded by phase 1, serially. Target
   /// implementations determine and create any GOT, PLT, or dynamic relocation
   /// entries required by the relocation.
@@ -235,8 +240,18 @@ private:
   bool scanRelocationPrologue(Relocation &Reloc, ELFSection &Section,
                               InputFile &Input);
 
+  struct DeferredRange {
+    size_t Begin;
+    size_t End;
+  };
+
+  struct DeferredSection {
+    ELFSection *Section = nullptr;
+    llvm::SmallVector<DeferredRange, 0> Ranges;
+  };
+
   struct DeferredInput {
-    llvm::SmallVector<llvm::BitVector, 0> RelocationsBySection;
+    llvm::SmallVector<DeferredSection, 0> Sections;
   };
   llvm::SmallVector<DeferredInput, 0> DeferredRelocations;
 };
