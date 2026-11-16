@@ -91,6 +91,7 @@ jobs:
             if (!requestedCommands.length) {
               reason = 'The request does not contain a check command.';
             } else if (!isWorkflowDispatch &&
+                       requestedCommands.some(requestedCommand => supported.has(requestedCommand)) &&
                        !allowed.has(context.payload.comment.author_association)) {
               reason = 'Only users with <code>COLLABORATOR</code>, <code>MEMBER</code>, or <code>OWNER</code> association can request PR checks.';
             } else if (requestedCommands.some(requestedCommand => !supported.has(requestedCommand))) {
@@ -100,15 +101,12 @@ jobs:
             }
             if (reason) {
               core.info('Ignoring unrelated or unauthorized comment.');
-              // Explain skipped requests on the run summary page; ordinary conversation gets none.
+              // Explain every skipped request on the run summary page, ordinary conversation included.
               // Comments are user-controlled, so only fixed strings are written.
-              if (isWorkflowDispatch ||
-                  requestedCommands.some(requestedCommand => supported.has(requestedCommand))) {
-                await core.summary
-                  .addHeading('PR checks skipped', 3)
-                  .addRaw(`${reason} The PR checks did not run.`, true)
-                  .write();
-              }
+              await core.summary
+                .addHeading('PR checks skipped', 3)
+                .addRaw(`${reason} The PR checks did not run.`, true)
+                .write();
               return;
             }
 
