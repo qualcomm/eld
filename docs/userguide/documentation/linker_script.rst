@@ -337,6 +337,16 @@ NOCROSSREFS
 
      * Each command is treated as an independent set of output sections that are checked for cross references.
 
+LMA alignment with ``AT>REGION``
+--------------------------------
+
+With ``AT>REGION``, the LMA is assigned from the LMA region cursor. Natural
+input-section alignment does not automatically align the LMA. An explicit
+``ALIGN(n)`` in the output section description after the colon (for example,
+``.section : ALIGN(n) { }``) aligns both the VMA and LMA. An ``ALIGN(n)``
+before the colon (for example, ``.section ALIGN(n) : { }``) aligns only the
+VMA; the LMA continues from the region cursor.
+
 Output Section Description
 ---------------------------
 

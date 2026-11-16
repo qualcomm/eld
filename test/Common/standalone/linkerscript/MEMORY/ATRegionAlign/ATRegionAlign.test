@@ -1,0 +1,9 @@
+# Section-description ALIGN() with AT> aligns the LMA and VMA. Prolog ALIGN()
+# before the colon aligns only the VMA.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link -Wlinker-script-memory -MapStyle txt %linkopts %t1.o -T %p/Inputs/script.t -Map %t1.map -o %t1.out 2>&1
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+
+#MAP: .foo {{.*}} LMA: 0x1000, {{.*}} Memory : [M1, M1_LMA]
+#MAP: .bar {{.*}} LMA: 0x1{{[0-9a-f][0-9a-f][0-9a-f]}}, {{.*}} Memory : [M1, M1_LMA]
+#MAP: .baz {{.*}} LMA: 0x2000, {{.*}} Memory : [M1, M1_LMA]
