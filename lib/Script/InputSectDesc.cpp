@@ -47,8 +47,14 @@ void InputSectDesc::dumpSpec(llvm::raw_ostream &Outs) const {
   if (InputSpec.hasFile()) {
     if (InputSpec.file().sortPolicy() == WildcardPattern::SORT_BY_NAME)
       Outs << "SORT (";
-    if (!InputSpec.file().name().empty())
-      Outs << InputSpec.file().getDecoratedName();
+    if (InputSpec.isNonArchiveFile() && InputSpec.file().isQuoted())
+      Outs << "\":" << InputSpec.file().name() << "\"";
+    else {
+      if (InputSpec.isNonArchiveFile())
+        Outs << ":";
+      if (!InputSpec.file().name().empty())
+        Outs << InputSpec.file().getDecoratedName();
+    }
     if (InputSpec.isArchive())
       Outs << ":";
     if (InputSpec.isArchive() && InputSpec.hasArchiveMember())
@@ -99,6 +105,8 @@ void InputSectDesc::dumpSpec(llvm::raw_ostream &Outs) const {
             Outs << ListIt->archive()->getDecoratedName() << ":";
           if (!(ListIt->isFileInArchive()))
             Outs << " ";
+          if (ListIt->isNonArchiveFile())
+            Outs << ":";
           if (ListIt->isFile())
             Outs << ListIt->file()->getDecoratedName() << " ";
         }
@@ -138,6 +146,8 @@ void InputSectDesc::dumpMap(llvm::raw_ostream &Outs, bool UseColor,
         Outs << It->archive()->getDecoratedName() << ":";
       if (!(It->isFileInArchive()))
         Outs << " ";
+      if (It->isNonArchiveFile())
+        Outs << ":";
       if (It->isFile())
         Outs << It->file()->getDecoratedName() << " ";
     }
@@ -186,6 +196,8 @@ void InputSectDesc::dumpOnlyThis(llvm::raw_ostream &Outs) const {
         Outs << It->archive()->getDecoratedName() << ":";
       if (!(It->isFileInArchive()))
         Outs << " ";
+      if (It->isNonArchiveFile())
+        Outs << ":";
       if (It->isFile())
         Outs << It->file()->getDecoratedName() << " ";
     }

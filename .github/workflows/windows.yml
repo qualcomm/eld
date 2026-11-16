@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: ""
+      run_visual_studio:
+        description: "Run Visual Studio generator matrix entries"
+        required: false
+        type: boolean
+        default: true
   workflow_call:
     inputs:
       pr_number:
@@ -24,19 +29,90 @@ on:
         required: false
         type: string
         default: ""
+      run_visual_studio:
+        description: "Run Visual Studio generator matrix entries"
+        required: false
+        type: boolean
+        default: true
 
 
 permissions:
   contents: write
 jobs:
-  build-windows:
+  prepare-matrix:
     if: |
       github.repository == 'qualcomm/eld' &&
        (github.event_name == 'schedule' ||
         github.event_name == 'workflow_dispatch' ||
         github.event_name == 'workflow_call' ||
         inputs.pr_sha != '')
+    runs-on: ubuntu-latest
     permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+    steps:
+      - name: Select generator matrix entries
+        id: select
+        shell: bash
+        env:
+          RUN_VISUAL_STUDIO: ${{ github.event_name == 'schedule' || inputs.run_visual_studio }}
+        run: |
+          matrix=$(jq -cn --argjson run_visual_studio "$RUN_VISUAL_STUDIO" '
+            {
+              include: [
+                {
+                  runner: "windows-2022",
+                  arch: "x64",
+                  "cmake-generator": "Ninja",
+                  name: "Windows-x86_64-Ninja"
+                },
+                (
+                  if $run_visual_studio then
+                    {
+                      runner: "windows-2022",
+                      arch: "x64",
+                      "cmake-generator": "Visual Studio 17 2022",
+                      name: "Windows-x86_64-Visual-Studio"
+                    }
+                  else
+                    empty
+                  end
+                ),
+                {
+                  runner: "windows-11-arm",
+                  arch: "ARM64",
+                  "cmake-generator": "Ninja",
+                  name: "Windows-Arm64-Ninja"
+                },
+                (
+                  if $run_visual_studio then
+                    {
+                      runner: "windows-11-arm",
+                      arch: "ARM64",
+                      "cmake-generator": "Visual Studio 18 2026",
+                      name: "Windows-Arm64-Visual-Studio"
+                    }
+                  else
+                    empty
+                  end
+                )
+              ]
+            }
+          ')
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  build-windows:
+    if: |
+      github.repository == 'qualcomm/eld' &&
+       (github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'workflow_call' ||
+        inputs.pr_sha != '') &&
+       needs.prepare-matrix.result == 'success'
+    needs: prepare-matrix
+    permissions:
+      actions: write
       contents: write
     env:
       ELD_REF: ${{ inputs.pr_sha || github.ref_name }}
@@ -45,17 +121,7 @@ jobs:
 
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - runner: windows-2022
-            arch: x64
-            cmake-generator: Visual Studio 17 2022
-            name: Windows-x86_64
-
-          - runner: windows-11-arm
-            arch: ARM64
-            cmake-generator: Visual Studio 18 2026
-            name: Windows-Arm64
+      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.matrix) }}
 
     steps:
       - name: Map Git usr/bin to a space-free drive and prepend to PATH
@@ -88,6 +154,71 @@ jobs:
           path: nightly/llvm-project/llvm/tools/eld
           fetch-depth: 1
 
+      - name: Install ccache
+        id: install_ccache
+        if: matrix.cmake-generator == 'Ninja'
+        shell: pwsh
+        run: |
+          choco install ccache --yes --no-progress
+          $ccachePath = Join-Path $env:ProgramData 'chocolatey\bin'
+          $ccacheDir = Join-Path $env:GITHUB_WORKSPACE 'ccache'
+          "$ccachePath" >> $env:GITHUB_PATH
+          "CCACHE_DIR=$ccacheDir" >> $env:GITHUB_ENV
+          'CCACHE_COMPILERCHECK=content' >> $env:GITHUB_ENV
+          & (Join-Path $ccachePath 'ccache.exe') --version
+
+      - name: Restore ccache
+        if: matrix.cmake-generator == 'Ninja'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: ${{ github.workspace }}/ccache
+          key: windows-ccache-${{ matrix.arch }}-${{ github.run_id }}
+          restore-keys: |
+            windows-ccache-${{ matrix.arch }}-
+
+      # Ninja needs the MSVC compiler and SDK paths in its environment. Each
+      # Actions step gets a fresh shell, so pass VsDevCmd's environment forward.
+      - name: Load MSVC compiler and SDK paths
+        if: matrix.cmake-generator == 'Ninja'
+        shell: pwsh
+        env:
+          MSVC_ARCH: ${{ matrix.arch }}
+        run: |
+          # Find the Visual Studio installation provided by this runner image.
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $vsInstall = & $vswhere -latest -products '*' -property installationPath
+          if (-not $vsInstall) {
+            throw 'Could not find a Visual Studio installation.'
+          }
+
+          $vsDevCmd = Join-Path $vsInstall 'Common7\Tools\VsDevCmd.bat'
+          if (-not (Test-Path $vsDevCmd)) {
+            throw "Could not find VsDevCmd.bat at $vsDevCmd"
+          }
+
+          # Configure the MSVC tools for the matrix target architecture.
+          # `set` prints the environment so PowerShell can transfer it to later steps.
+          $targetArch = if ($env:MSVC_ARCH -eq 'ARM64') { 'arm64' } else { 'x64' }
+          $devEnvCommand = "call `"$vsDevCmd`" -arch=$targetArch -host_arch=$targetArch >nul && set"
+          $devEnv = & cmd.exe /d /c $devEnvCommand
+          if ($LASTEXITCODE -ne 0) {
+            throw "VsDevCmd.bat failed for architecture $targetArch"
+          }
+
+          # Forward NAME=VALUE entries through GITHUB_ENV. Skip cmd.exe's
+          # pseudo-variables and GitHub's reserved GITHUB_*/RUNNER_* variables.
+          foreach ($line in $devEnv) {
+            $separator = $line.IndexOf('=')
+            if ($separator -le 0) {
+              continue
+            }
+            $name = $line.Substring(0, $separator)
+            if ($name -match '^(GITHUB_|RUNNER_)') {
+              continue
+            }
+            "$name=$($line.Substring($separator + 1))" >> $env:GITHUB_ENV
+          }
+
       - name: Record pre-build entry
         if: github.event_name == 'schedule'
         uses: ./nightly/llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
@@ -102,14 +233,34 @@ jobs:
           arch-name: ${{ matrix.arch }}
           branch-name: "${{ env.ELD_REF }}"
 
-      - name: Configure CMake
+      - name: Configure CMake with Ninja
+        if: matrix.cmake-generator == 'Ninja'
+        working-directory: nightly
+        shell: bash
+        run: |
+          mkdir -p obj
+          mkdir -p "$CCACHE_DIR"
+          cd obj
+          ccache --zero-stats
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
+            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
+            -DCLANG_ENABLE_CIR=OFF \
+            -DLLVM_ENABLE_ASSERTIONS=ON \
+            -DLLVM_CCACHE_BUILD:BOOL=ON \
+            -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
+            -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86;Template' \
+            ../llvm-project/llvm
+
+      - name: Configure CMake with Visual Studio
+        if: startsWith(matrix.cmake-generator, 'Visual Studio')
         working-directory: nightly
         shell: bash
         run: |
           mkdir -p obj
           cd obj
           cmake -G "${{ matrix.cmake-generator }}" -A ${{ matrix.arch }} \
-            -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
             -DCLANG_ENABLE_CIR=OFF \
@@ -119,9 +270,15 @@ jobs:
             ../llvm-project/llvm
 
       - name: Build
+        id: build
         working-directory: nightly/obj
         shell: bash
         run: cmake --build . --config Release
+
+      - name: Show ccache statistics
+        if: always() && matrix.cmake-generator == 'Ninja' && steps.install_ccache.outcome == 'success'
+        shell: bash
+        run: ccache --show-stats --dir="$CCACHE_DIR"
 
       - name: Install PyYAML
         shell: bash
@@ -138,6 +295,19 @@ jobs:
         working-directory: nightly/obj
         shell: bash
         run: cmake --build . --config Release --target check-eld-summary
+
+      - name: Save ccache
+        if: always() && matrix.cmake-generator == 'Ninja' && steps.build.outcome == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: ${{ github.workspace }}/ccache
+          key: windows-ccache-${{ matrix.arch }}-${{ github.run_id }}
+
+      - name: Delete old ccache entries
+        if: always() && matrix.cmake-generator == 'Ninja' && steps.build.outcome == 'success'
+        uses: ./nightly/llvm-project/llvm/tools/eld/.github/workflows/DeleteOldCaches
+        with:
+          cache-key-prefixes: windows-ccache-${{ matrix.arch }}-
 
       - name: Update build entry
         if: github.event_name == 'schedule'

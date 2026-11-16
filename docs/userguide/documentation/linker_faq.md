@@ -1419,10 +1419,28 @@ specification to do the following:
    * - dir/subdir/*:(.text.*)
      - Specify one or more .text. sections from any archive in the
        specified directory (dir/subdir)
+   * - :dir/subdir/init.o(.text.*)
+     - Specify one or more .text. sections from an object file outside
+       an archive. The file pattern may contain wildcards.
    * - \*(.text.*)
      - Specify one or more .text. sections from any archive or object
        file in the entire file system
 ```
+
+A leading colon restricts a file pattern to non-archive inputs. For example,
+`:*.o(.text.*)` selects sections from standalone object files but not archive
+members, including members of thin archives. This syntax also works in
+`EXCLUDE_FILE` lists: `*(EXCLUDE_FILE(:*.o) .text.*)` excludes matching standalone
+object files while retaining archive members.
+
+**Compatibility note:** Earlier ELD versions parsed leading-colon patterns such
+as `:member.o` as archive-qualified patterns with an empty archive name. These
+patterns now explicitly select standalone inputs only. To select archive members,
+use `*:member.o` for any archive or `lib.a:member.o` for a specific archive instead.
+The same distinction applies in `EXCLUDE_FILE` lists: `EXCLUDE_FILE(:*file.o)`
+excludes standalone inputs, whereas `EXCLUDE_FILE(*:*file.o)` excludes matching
+archive members. Empty leading-colon patterns (`:` or `":"`) and patterns with
+additional colons (such as `:lib.a:member.o`) are diagnosed as errors.
 
 ### Fill Values
 

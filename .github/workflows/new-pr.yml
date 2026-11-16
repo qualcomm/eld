@@ -4,19 +4,19 @@ name: "New pull requests policy check"
 permissions:
   contents: read
 
+concurrency:
+  group: new-pr-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 on:
-  # Copied from LLVM's workflow
-  # It's safe to use pull_request_target here, because we aren't checking out
-  # code from the pull request branch.
-  # See https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
-  # zizmor: ignore[dangerous-triggers] no PR code is checked out; labeler only reads PR metadata
-  pull_request_target:
+  pull_request:
     types:
       - opened
       - edited
       - reopened
       - ready_for_review
       - synchronize
+      - labeled
 
 jobs:
   automate-pr-labels:
@@ -26,9 +26,7 @@ jobs:
     if: >
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      (github.event.action == 'opened' ||
-       github.event.action == 'reopened' ||
-       github.event.action == 'ready_for_review')
+      github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
         id: labeler
@@ -38,9 +36,15 @@ jobs:
 
   policy-checks:
     needs: automate-pr-labels
+    # Run for fork PRs even though their read-only token skips the labeler.
     if: >
       always() &&
-      github.event.pull_request.draft == false
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.draft == false &&
+      (needs.automate-pr-labels.result == 'success' ||
+       needs.automate-pr-labels.result == 'failure' ||
+       (needs.automate-pr-labels.result == 'skipped' &&
+        github.event.pull_request.head.repo.full_name != github.repository))
     runs-on: ubuntu-24.04
     permissions:
       contents: read

@@ -37,6 +37,10 @@ public:
 
   unsigned int getNumArgs() const { return DiagEngine.state().NumArgs; }
 
+  const std::optional<DiagnosticLocation> &getLocation() const {
+    return DiagEngine.state().Location;
+  }
+
   DiagnosticEngine::ArgumentKind getArgKind(unsigned int PIdx) const {
     assert(PIdx < getNumArgs() && "Argument index is out of range!");
     return (DiagnosticEngine::ArgumentKind)DiagEngine.state()

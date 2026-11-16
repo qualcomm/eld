@@ -86,6 +86,9 @@ public:
 
   virtual bool supportsPIC() const { return false; }
 
+  /// Whether to use the PLT entry address when checking if this stub is needed.
+  virtual bool shouldUsePLTAddrForRangeCheck() const { return supportsPIC(); }
+
   /// name - name of this stub
   virtual const std::string &name() const = 0;
 

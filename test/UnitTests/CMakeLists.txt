@@ -25,6 +25,22 @@ endif()
 
 add_custom_target(ELDUnitTests)
 set_target_properties(ELDUnitTests PROPERTIES FOLDER "eld unit tests")
+
+# LLVM's gtest is not part of LLVM installations. When building against an
+# external LLVM without it, use the system GoogleTest through the
+# default_gtest targets that add_unittest() links with, or skip unit tests.
+if(NOT TARGET llvm_gtest AND NOT TARGET default_gtest)
+  find_package(GTest)
+  if(NOT GTest_FOUND)
+    info("GoogleTest not found, unit tests disabled")
+    return()
+  endif()
+  info("Using GoogleTest from the system for unit tests")
+  add_library(default_gtest INTERFACE)
+  target_link_libraries(default_gtest INTERFACE GTest::gtest)
+  add_library(default_gtest_main INTERFACE)
+  target_link_libraries(default_gtest_main INTERFACE GTest::gtest_main)
+endif()
 get_property(
   system_libs
   TARGET LLVMSupport

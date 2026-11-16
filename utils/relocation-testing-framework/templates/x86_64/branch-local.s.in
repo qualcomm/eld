@@ -1,0 +1,15 @@
+.global _start
+
+.text
+_start:
+{{usage}}
+  mov %eax, %edi
+  mov $60, %rax
+  syscall
+
+.section .text.target,"ax"
+.local target_func
+{{visibility}}
+target_func:
+  mov $7, %eax
+  ret

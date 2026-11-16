@@ -1,0 +1,22 @@
+#---R_ARM_LDC_SB_G0_Error.test--------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify R_ARM_LDC_SB_G0 reports an error when the selected residual
+# cannot be encoded in the LDC/STC scaled 8-bit immediate.
+#
+# Overflow:
+#   X = 0x1000 = 4096
+#
+# Unaligned:
+#   X = 0x102, which is not 4-byte aligned.
+#END_COMMENT
+#START_TEST
+RUN: %clangas -c %p/Inputs/overflow.s -o %t.overflow.o
+RUN: %not %link %linkopts -march arm -static -T %p/Inputs/script.t %t.overflow.o -o %t.overflow.out 2>&1 | %filecheck %s --check-prefix=OVERFLOW
+
+OVERFLOW: R_ARM_LDC_SB_G0 out of range: 4096 is not in [0, 1023]
+
+RUN: %clangas -c %p/Inputs/unaligned.s -o %t.unaligned.o
+RUN: %not %link %linkopts -march arm -static -T %p/Inputs/script.t %t.unaligned.o -o %t.unaligned.out 2>&1 | %filecheck %s --check-prefix=UNALIGNED
+
+UNALIGNED: Relocation error when applying relocation `R_ARM_LDC_SB_G0'
+#END_TEST

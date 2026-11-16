@@ -1,10 +1,13 @@
 #---HugeVMA.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This tests that the linker is able to create a new segment when the VMA/LMA
-# requirements need to be met.
+# requirements need to be met. Clang emits .eh_frame FDEs with PC32
+# relocations back to .text.foo and .text.bar; the script's VMA gap puts those
+# references out of range. Without this flag, those unrelated relocations fail
+# before the test reaches its segment assertions.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections -fno-asynchronous-unwind-tables
 RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
 RUN: %readelf -l -W %t2.out | %filecheck %s
 

@@ -48,13 +48,15 @@ The top-level flow of option parsing and dispatch is in
 `lib/LinkerWrapper/GnuLdDriver.cpp` (`GnuLdDriver::link(...)`):
 
 1. `parseOptions(...)`
-2. `processLLVMOptions(...)` (parses `-mllvm ...` arguments)
-3. `processTargetOptions(...)` (handles `-mtriple`, `-march`, `-mabi`,
+2. `processTargetOptions(...)` (handles `-mtriple`, `-march`, `-mabi`,
    `-m <emulation>`, etc.)
-4. `processOptions(...)` (general linker options)
-5. `checkOptions(...)` and `overrideOptions(...)`
-6. `createInputActions(...)` to build the ordered action list
-7. `doLink(...)` to run the actual link pipeline
+3. `processOptions(...)` (general linker options)
+4. `checkOptions(...)` and `overrideOptions(...)`
+5. `createInputActions(...)` to build the ordered action list
+6. `doLink(...)` to run the actual link pipeline
+
+`-mllvm` options are collected by `processLTOOptions(...)` during LTO
+processing.
 
 If you suspect argument/option issues, start with:
 

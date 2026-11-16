@@ -1,0 +1,24 @@
+#---DeprecatedPluginKeywords.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# This test checks that linker script plugin keywords warn about deprecation.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/input.c -o %t.o
+RUN: %not %link %linkopts -Wlinker-script %t.o -T %p/Inputs/deprecated-plugin-keywords.t -o %t.out 2>&1 | %filecheck %s
+RUN: %not %link %linkopts -Wno-linker-script %t.o -T %p/Inputs/deprecated-plugin-keywords.t -o %t.out 2>&1 | %filecheck %s --check-prefix=NO-WARN --allow-empty
+#END_TEST
+
+CHECK: Warning: {{.*}}deprecated-plugin-keywords.t:1:1: Linker script plugin keyword 'PLUGIN_SECTION_MATCHER' is deprecated; use --plugin-config instead
+CHECK: Warning: {{.*}}deprecated-plugin-keywords.t:2:1: Linker script plugin keyword 'PLUGIN_ITER_SECTIONS' is deprecated; use --plugin-config instead
+CHECK: Warning: {{.*}}deprecated-plugin-keywords.t:3:1: Linker script plugin keyword 'PLUGIN_OUTPUT_SECTION_ITER' is deprecated; use --plugin-config instead
+CHECK: Warning: {{.*}}deprecated-plugin-keywords.t:4:1: Linker script plugin keyword 'LINKER_PLUGIN' is deprecated; use --plugin-config instead
+CHECK: Warning: {{.*}}deprecated-plugin-keywords.t:7:11: Linker script plugin keyword 'PLUGIN_CONTROL_FILESZ' is deprecated; use --plugin-config instead
+CHECK: Warning: {{.*}}deprecated-plugin-keywords.t:8:10: Linker script plugin keyword 'PLUGIN_CONTROL_MEMSZ' is deprecated; use --plugin-config instead
+
+NO-WARN-NOT: Warning: {{.*}}deprecated-plugin-keywords.t:1:1: Linker script plugin keyword 'PLUGIN_SECTION_MATCHER' is deprecated; use --plugin-config instead
+NO-WARN-NOT: Warning: {{.*}}deprecated-plugin-keywords.t:2:1: Linker script plugin keyword 'PLUGIN_ITER_SECTIONS' is deprecated; use --plugin-config instead
+NO-WARN-NOT: Warning: {{.*}}deprecated-plugin-keywords.t:3:1: Linker script plugin keyword 'PLUGIN_OUTPUT_SECTION_ITER' is deprecated; use --plugin-config instead
+NO-WARN-NOT: Warning: {{.*}}deprecated-plugin-keywords.t:4:1: Linker script plugin keyword 'LINKER_PLUGIN' is deprecated; use --plugin-config instead
+NO-WARN-NOT: Warning: {{.*}}deprecated-plugin-keywords.t:7:11: Linker script plugin keyword 'PLUGIN_CONTROL_FILESZ' is deprecated; use --plugin-config instead
+NO-WARN-NOT: Warning: {{.*}}deprecated-plugin-keywords.t:8:10: Linker script plugin keyword 'PLUGIN_CONTROL_MEMSZ' is deprecated; use --plugin-config instead

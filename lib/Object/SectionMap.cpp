@@ -335,6 +335,9 @@ bool SectionMap::matched(const RuleContainer &PInput, InputFile *I,
 
   bool MatchedArchiveMember = false;
 
+  if (IsArchive && PInput.spec().isNonArchiveFile())
+    return false;
+
   if (PInput.spec().isArchive()) {
     if (!IsArchive)
       return false;
@@ -448,6 +451,8 @@ bool SectionMap::matchedSections(
   if (Match) {
     if (!EF.empty()) {
       for (auto *Elem : EF.patterns()) {
+        if (IsArchive && Elem->isNonArchiveFile())
+          continue;
         const WildcardPattern *ArchivePattern = Elem->archive();
         bool ArchiveMatchWithFileName = false;
         if (ArchivePattern) {

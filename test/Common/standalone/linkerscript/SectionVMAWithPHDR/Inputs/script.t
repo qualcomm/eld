@@ -6,5 +6,5 @@ PHDRS {
 SECTIONS {
   .mytext : { *(*text*) } :A
   .mydata 0x1024 : { *(.mydata*) } :B
-  /DISCARD/ : { *(.ARM.exidx*) }
+  /DISCARD/ : { *(.ARM.exidx*) *(.eh_frame) }
 }

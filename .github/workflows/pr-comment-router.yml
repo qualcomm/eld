@@ -409,7 +409,9 @@ jobs:
     with:
       pr_number: ${{ needs.validate.outputs.pr_number }}
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      run_visual_studio: false
     permissions:
+      actions: write
       contents: write
 
   macos_test:

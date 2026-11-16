@@ -6,4 +6,5 @@ SECTIONS {
     end = .;
   }
   TEXT : { *(*text*) }
+  /DISCARD/ : { *(.eh_frame) }
 }

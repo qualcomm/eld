@@ -62,10 +62,6 @@ public:
   template <class T = OPT_RISCVLinkOptTable>
   bool processOptions(llvm::opt::InputArgList &Args);
 
-  // Process LLVM options.
-  template <class T = OPT_RISCVLinkOptTable>
-  bool processLLVMOptions(llvm::opt::InputArgList &Args);
-
   // Process Target specific options.
   template <class T = OPT_RISCVLinkOptTable>
   bool processTargetOptions(llvm::opt::InputArgList &Args);

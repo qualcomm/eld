@@ -12,6 +12,7 @@
 #include "x86_64PLT.h"
 #include "x86_64RelocationFunctions.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/ADT/bit.h"
 #include "llvm/BinaryFormat/ELF.h"
 
 #include <algorithm>
@@ -520,7 +521,8 @@ Relocator::Result VerifyRelocAsNeededHelper(
     unsigned EffectiveBits =
         getNumberOfBits(RelocInfo.EncType) + RelocInfo.Shift;
     if (RelocInfo.IsSigned)
-      return checkSignedRange(pReloc, Parent, PreShift, EffectiveBits);
+      return checkSignedRange(pReloc, Parent, llvm::bit_cast<int64_t>(PreShift),
+                              EffectiveBits);
     return reportUnsignedOverflow(pReloc, Parent, PreShift, EffectiveBits);
   }
 
@@ -595,7 +597,7 @@ Relocator::Result eld::none(Relocation &pReloc, x86_64Relocator &pParent,
   return Relocator::OK;
 }
 
-Relocator::Result applyRel(Relocation &pReloc, uint32_t Result,
+Relocator::Result applyRel(Relocation &pReloc, Relocator::DWord Result,
                            const RelocationDescription &pRelocDesc,
                            DiagnosticEngine *DiagEngine,
                            const GeneralOptions &options,
@@ -641,7 +643,7 @@ Relocator::Result eld::relocAbs(Relocation &pReloc, x86_64Relocator &pParent,
 Relocator::Result eld::relocPCREL(Relocation &pReloc, x86_64Relocator &pParent,
                                   RelocationDescription &pRelocDesc) {
   //  ResolveInfo *rsym = pReloc.symInfo();
-  uint32_t Result;
+  Relocator::DWord Result;
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   Relocator::Address S = pReloc.symValue(pParent.module());
   Relocator::DWord A = pReloc.addend();

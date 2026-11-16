@@ -29,6 +29,7 @@ public:
     enum SymbolStatus : uint8_t { Include, Exclude, Unknown };
 
     enum SymbolType : uint8_t {
+      Uninitialized,
       NoType,
       DefineData,
       DefineFunction,

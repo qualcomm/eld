@@ -190,6 +190,9 @@ jobs:
       - name: Set safe.directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE/zephyr"
 
+      - name: Record Zephyr commit
+        run: git -C zephyr rev-parse HEAD
+
       - name: West setup
         shell: bash
         run: |

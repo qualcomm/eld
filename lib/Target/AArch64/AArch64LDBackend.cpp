@@ -301,7 +301,8 @@ void AArch64LDBackend::mayBeRelax(int pass, bool &pFinished) {
           Relocation *relocation = llvm::cast<Relocation>(reloc);
           if (!relocation->symInfo())
             break;
-          if (relocation->symInfo()->isUndef())
+          if (relocation->symInfo()->isUndef() &&
+              !relocation->shouldUsePLTAddr())
             continue;
           std::pair<BranchIsland *, bool> branchIsland =
               getStubFactory()->create(*relocation, // relocation
@@ -767,6 +768,12 @@ Stub *AArch64LDBackend::getBranchIslandStub(Relocation *pReloc,
   (void)pReloc;
   (void)targetValue;
   return *getStubFactory()->getAllStubs().cbegin();
+}
+
+int64_t AArch64LDBackend::getPLTAddr(ResolveInfo *info) const {
+  AArch64PLT *entry = findEntryInPLT(info);
+  assert(entry && "Requested PLT address for an unreserved slot");
+  return entry->getAddr(config().getDiagEngine());
 }
 
 // Find an entry in the GOT.

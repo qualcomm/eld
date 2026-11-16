@@ -26,6 +26,12 @@ bool MsgHandler::emit() {
   return DiagEngine.emit(std::move(Lock));
 }
 
+const MsgHandler &MsgHandler::setLocation(DiagnosticLocation Location) const {
+  ASSERT(Location.isValid(), "Cannot attach an invalid diagnostic location");
+  DiagEngine.state().Location = std::move(Location);
+  return *this;
+}
+
 void MsgHandler::addString(llvm::StringRef PStr) const {
   assert(NumArgs < DiagnosticEngine::MaxArguments &&
          "Too many arguments to diagnostic!");

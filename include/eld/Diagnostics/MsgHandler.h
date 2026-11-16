@@ -46,6 +46,9 @@ public:
 
   bool emit();
 
+  /// Attach a source location to this diagnostic.
+  const MsgHandler &setLocation(DiagnosticLocation Location) const;
+
   void addString(llvm::StringRef PStr) const;
 
   void addString(const std::string &PStr) const;

@@ -2,6 +2,7 @@
 #BEGIN_COMMENT
 # This option prints the Linker Repository version.
 #END_COMMENT
+#REQUIRES: eld-vc-revision
 #START_TEST
 RUN: %link %emulation --repository-version 2>&1 | %filecheck %s
 #CHECK: {{ARM/AArch64|Hexagon|RISCV32/RISCV64|x86_64|i386}} eld repository revision: ({{[a-z0-9]+}})

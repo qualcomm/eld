@@ -127,8 +127,9 @@ bool BitcodeReader::readInput(InputFile &InputFile,
   // this, so we can later identify locals coming from this file. If this is
   // ThinLTO, we use the Module Hash instead since it is stable for files
   // inside archives.
-  std::optional<uint64_t> PluginLTOHash;
-  if (LTOPlugin) {
+  std::optional<uint64_t> PluginLTOHash =
+      BitcodeFile->getOverriddenModuleHash();
+  if (!PluginLTOHash && LTOPlugin) {
     auto PluginLTOHashExp = LTOPlugin->OverrideLTOModuleHash(
         plugin::BitcodeFile(*BitcodeFile), PathWithArchiveOffset);
     if (!m_Module.getConfig().getDiagEngine()->diagnose())

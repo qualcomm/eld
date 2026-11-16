@@ -11,6 +11,48 @@ https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/master/riscv-elf.adoc
 
 ---
 
+## GOT/PLT Allocation Annotations
+
+Modes: `S` = static executable, `D` = dynamic executable, `P` = PIE,
+`H` = shared library; `I` overrides `P` for static PIE.
+Resources: `G` = symbol GOT slot, `J` = PLT destination GOT slot,
+`L` = PLT entry, `R` = IFUNC resolver PLT; `-` = no allocation.
+Conditions: `p` = Preemptible=true, `f` = function, `i` = IFUNC,
+`g` = global-bound, `t` = TLS, `h` = local-bound hidden.
+`[a&b]` requires both conditions; `!` means NOT. Unconditional entries
+apply to any visibility/type. TLS resources, modifiers, and examples are
+in the [shared annotation legend](Relocation-Reservation-Annotations.md#allocation-annotations);
+see also the [preemption flowchart](Relocation-Reservation-Annotations.md#visibility-and-preemption).
+
+- `GOT_HI20` reserves a symbol slot for any visibility, symbol type, or link mode. Paired
+  `PCREL_LO12_I/S` refer to the **HI relocation site label**, not the
+  original target, and do not request another slot.
+- Absolute data/HI20/LO12 references use `Preemptible=true` and `STT_FUNC`; `CALL`/`CALL_PLT`
+  use `Preemptible=true` only in non-static links. `JAL`, `BRANCH`, and compressed
+  branches do not independently allocate ordinary PLT entries.
+- Global-bound static IFUNC data/address/control-flow references use
+  the static indirect-function path; local-bound symbols take the ordinary local scanner.
+  GOT references use the PLT-associated slot; mixed GOT/direct references
+  are tracked for final processing. Invalid IFUNC forms can warn and
+  still allocate a PLT; TLS forms are not valid IFUNC address sequences.
+- TLS GD reserves a pair and IE one slot in every mode (`STT_TLS`).
+  Static GD slots use module ID 1 and a link-time TLS offset. TLSDESC
+  uses a descriptor in shared libraries, IE for preemptible executable
+  targets, or LE without a GOT for non-preemptible executable targets.
+  All four TLSDESC sequence relocations can trigger this reservation,
+  including `TLSDESC_CALL`; none requests an ordinary function PLT.
+- **No range-extension trampoline is registered**, including for calls,
+  JAL, conditional/compressed branches, or Xqcilo forms. Call relaxation
+  shortens AUIPC/JALR into reachable JAL/compressed jumps; it does not
+  extend an overflowing branch's reach. Existing range checks still apply.
+- Internal forms normally inherit reservations. `QC_E_32` and
+  `QC_E_CALL_PLT` also have explicit absolute/call scanner cases.
+  `GOT32_PCREL` and internal `TPREL_I/S` have unsupported handlers;
+  their formulas do not imply usable relocations in ELD.
+
+Sources: [scanner](../../lib/Target/RISCV/RISCVRelocator.cpp),
+[backend / relaxation](../../lib/Target/RISCV/RISCVLDBackend.cpp).
+
 ## Relocation Conventions
 
 | Symbol | Meaning |
@@ -85,31 +127,31 @@ value `X` are placed into which instruction word bits, matching the
 
 These are written by the dynamic linker at load time.
 
-| Relocation | Type | Encoding | Operation | Size |
-|------------|------|----------|-----------|------|
-| `R_RISCV_NONE` | 0 | none | — | — |
-| `R_RISCV_32` | 1 | `EncTy_32` | `S + A` | 32 |
-| `R_RISCV_64` | 2 | `EncTy_64` | `S + A` | 64 |
-| `R_RISCV_RELATIVE` | 3 | none | `B + A` | 32 |
-| `R_RISCV_COPY` | 4 | none | Copy from shared object | 32 |
-| `R_RISCV_JUMP_SLOT` | 5 | none | PLT entry | 32 |
-| `R_RISCV_TLS_DTPMOD32` | 6 | none | TLS module index (32-bit) | 32 |
-| `R_RISCV_TLS_DTPMOD64` | 7 | none | TLS module index (64-bit) | 64 |
-| `R_RISCV_TLS_DTPREL32` | 8 | `EncTy_32` | TLS DTP offset (32-bit) | 32 |
-| `R_RISCV_TLS_DTPREL64` | 9 | `EncTy_64` | TLS DTP offset (64-bit) | 64 |
-| `R_RISCV_TLS_TPREL32` | 10 | `EncTy_32` | TLS TP offset (32-bit) | 32 |
-| `R_RISCV_TLS_TPREL64` | 11 | `EncTy_64` | TLS TP offset (64-bit) | 64 |
+| Relocation | Type | Encoding | Operation | Size | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|------|-------------------------|-------------------------|--------------------|
+| `R_RISCV_NONE` | 0 | none | — | — | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_32` | 1 | `EncTy_32` | `S + A` | 32 | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: J[p&amp;f]</code></li><li><code>P: J[p&amp;f]; I: J[p&amp;f] + J[g&amp;i]</code></li><li><code>H: J[p&amp;f]</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: L[p&amp;f]</code></li><li><code>P: L[p&amp;f]; I: L[p&amp;f] + R[g&amp;i]</code></li><li><code>H: L[p&amp;f]</code></li></ul> | No |
+| `R_RISCV_64` | 2 | `EncTy_64` | `S + A` | 64 | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: J[p&amp;f]</code></li><li><code>P: J[p&amp;f]; I: J[p&amp;f] + J[g&amp;i]</code></li><li><code>H: J[p&amp;f]</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: L[p&amp;f]</code></li><li><code>P: L[p&amp;f]; I: L[p&amp;f] + R[g&amp;i]</code></li><li><code>H: L[p&amp;f]</code></li></ul> | No |
+| `R_RISCV_RELATIVE` | 3 | none | `B + A` | 32 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_COPY` | 4 | none | Copy from shared object | 32 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_JUMP_SLOT` | 5 | none | PLT entry | 32 | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_RISCV_TLS_DTPMOD32` | 6 | none | TLS module index (32-bit) | 32 | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_TLS_DTPMOD64` | 7 | none | TLS module index (64-bit) | 64 | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_TLS_DTPREL32` | 8 | `EncTy_32` | TLS DTP offset (32-bit) | 32 | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_TLS_DTPREL64` | 9 | `EncTy_64` | TLS DTP offset (64-bit) | 64 | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_TLS_TPREL32` | 10 | `EncTy_32` | TLS TP offset (32-bit) | 32 | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_TLS_TPREL64` | 11 | `EncTy_64` | TLS TP offset (64-bit) | 64 | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 ### Control Flow Relocations
 
-| Relocation | Type | Encoding | Operation | Inst size | Alignment | Range check |
-|------------|------|----------|-----------|-----------|-----------|-------------|
-| `R_RISCV_BRANCH` | 12 | `EncTy_SB` | `S + A - P` | 32-bit | 2 bytes | `−4096 <= X < 4096`, `X` must be even |
-| `R_RISCV_JAL` | 13 | `EncTy_UJ` | `S + A - P` | 32-bit | 2 bytes | `−1048576 <= X < 1048576`, `X` must be even |
-| `R_RISCV_CALL` | 14 | `EncTy_None` | `S + A - P` | 32-bit | 2 bytes | none (32-bit range via `auipc+jalr`) |
-| `R_RISCV_CALL_PLT` | 15 | `EncTy_None` | `S + A - P` (via PLT) | 32-bit | 2 bytes | none (32-bit range via `auipc+jalr`) |
-| `R_RISCV_RVC_BRANCH` | 44 | `EncTy_CB` | `S + A - P` | 16-bit | 2 bytes | `−256 <= X < 256`, `X` must be even |
-| `R_RISCV_RVC_JUMP` | 45 | `EncTy_CJ` | `S + A - P` | 16-bit | 2 bytes | `−2048 <= X < 2048`, `X` must be even |
+| Relocation | Type | Encoding | Operation | Inst size | Alignment | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|-----------|-----------|-------------|-------------------------|-------------------------|--------------------|
+| `R_RISCV_BRANCH` | 12 | `EncTy_SB` | `S + A - P` | 32-bit | 2 bytes | `−4096 <= X < 4096`, `X` must be even | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: J[g&amp;i]</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: R[g&amp;i]</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_JAL` | 13 | `EncTy_UJ` | `S + A - P` | 32-bit | 2 bytes | `−1048576 <= X < 1048576`, `X` must be even | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: J[g&amp;i]</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: R[g&amp;i]</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_CALL` | 14 | `EncTy_None` | `S + A - P` | 32-bit | 2 bytes | none (32-bit range via `auipc+jalr`) | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: J[p]</code></li><li><code>P: J[p]; I: J[g&amp;i]</code></li><li><code>H: J[p]</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: L[p]</code></li><li><code>P: L[p]; I: R[g&amp;i]</code></li><li><code>H: L[p]</code></li></ul> | No |
+| `R_RISCV_CALL_PLT` | 15 | `EncTy_None` | `S + A - P` (via PLT) | 32-bit | 2 bytes | none (32-bit range via `auipc+jalr`) | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: J[p]</code></li><li><code>P: J[p]; I: J[g&amp;i]</code></li><li><code>H: J[p]</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: L[p]</code></li><li><code>P: L[p]; I: R[g&amp;i]</code></li><li><code>H: L[p]</code></li></ul> | No |
+| `R_RISCV_RVC_BRANCH` | 44 | `EncTy_CB` | `S + A - P` | 16-bit | 2 bytes | `−256 <= X < 256`, `X` must be even | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: J[g&amp;i]</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: R[g&amp;i]</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_RVC_JUMP` | 45 | `EncTy_CJ` | `S + A - P` | 16-bit | 2 bytes | `−2048 <= X < 2048`, `X` must be even | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: J[g&amp;i]</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: R[g&amp;i]</code></li><li><code>H: -</code></li></ul> | No |
 
 > **`R_RISCV_CALL` / `R_RISCV_CALL_PLT`:** Applied to an `auipc`+`jalr` pair
 > (8 bytes). The linker splits `X` into a 20-bit upper part (encoded in `auipc`)
@@ -122,11 +164,11 @@ These are written by the dynamic linker at load time.
 These always appear in pairs: a HI20 relocation on `auipc` followed by a
 LO12 relocation on the instruction that uses the result.
 
-| Relocation | Type | Encoding | Operation | Inst size | Range check |
-|------------|------|----------|-----------|-----------|-------------|
-| `R_RISCV_PCREL_HI20` | 19 | `EncTy_U_HI20` | `S + A - P` | 32-bit | none |
-| `R_RISCV_PCREL_LO12_I` | 20 | `EncTy_I` | low 12 bits of paired HI20 | 32-bit | none |
-| `R_RISCV_PCREL_LO12_S` | 21 | `EncTy_S` | low 12 bits of paired HI20 (stores) | 32-bit | none |
+| Relocation | Type | Encoding | Operation | Inst size | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|-----------|-------------|-------------------------|-------------------------|--------------------|
+| `R_RISCV_PCREL_HI20` | 19 | `EncTy_U_HI20` | `S + A - P` | 32-bit | none | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: J[g&amp;i]</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: R[g&amp;i]</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_PCREL_LO12_I` | 20 | `EncTy_I` | low 12 bits of paired HI20 | 32-bit | none | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: J[g&amp;i]</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: R[g&amp;i]</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_PCREL_LO12_S` | 21 | `EncTy_S` | low 12 bits of paired HI20 (stores) | 32-bit | none | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: J[g&amp;i]</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: R[g&amp;i]</code></li><li><code>H: -</code></li></ul> | No |
 
 > **Pair invariant:** The symbol of `R_RISCV_PCREL_LO12_I/S` must point to
 > the address of the corresponding `R_RISCV_PCREL_HI20` relocation site, not
@@ -135,67 +177,67 @@ LO12 relocation on the instruction that uses the result.
 
 ### Absolute Address Relocations
 
-| Relocation | Type | Encoding | Operation | Inst size | Range check |
-|------------|------|----------|-----------|-----------|-------------|
-| `R_RISCV_HI20` | 22 | `EncTy_U_HI20` | `S + A` | 32-bit | `−2^31 <= X < 2^31` (32-bit range) |
-| `R_RISCV_LO12_I` | 23 | `EncTy_I` | `S + A` low 12 bits | 32-bit | none |
-| `R_RISCV_LO12_S` | 24 | `EncTy_S` | `S + A` low 12 bits (stores) | 32-bit | none |
+| Relocation | Type | Encoding | Operation | Inst size | Range check | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|-----------|-------------|-------------------------|-------------------------|--------------------|
+| `R_RISCV_HI20` | 22 | `EncTy_U_HI20` | `S + A` | 32-bit | `−2^31 <= X < 2^31` (32-bit range) | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: J[p&amp;f]</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: L[p&amp;f]</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | No |
+| `R_RISCV_LO12_I` | 23 | `EncTy_I` | `S + A` low 12 bits | 32-bit | none | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: J[p&amp;f]</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: L[p&amp;f]</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | No |
+| `R_RISCV_LO12_S` | 24 | `EncTy_S` | `S + A` low 12 bits (stores) | 32-bit | none | <ul><li><code>S: J[g&amp;i]</code></li><li><code>D: J[p&amp;f]</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: L[p&amp;f]</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | No |
 
 ### TLS Relocations
 
-| Relocation | Type | Encoding | Operation | Inst size |
-|------------|------|----------|-----------|-----------|
-| `R_RISCV_TPREL_HI20` | 25 | `EncTy_U_HI20` | `S + A - tp` | 32-bit |
-| `R_RISCV_TPREL_LO12_I` | 26 | `EncTy_I` | low 12 bits of TP offset | 32-bit |
-| `R_RISCV_TPREL_LO12_S` | 27 | `EncTy_S` | low 12 bits of TP offset (stores) | 32-bit |
-| `R_RISCV_TPREL_ADD` | 28 | none | Relaxation hint (no bits written) | 32-bit |
-| `R_RISCV_TLS_GOT_HI20` | 17 | `EncTy_U_HI20` | `GOT(S) - P` | 32-bit |
-| `R_RISCV_TLS_GD_HI20` | 18 | `EncTy_U_HI20` | `GOT(S) - P` (GD model) | 32-bit |
-| `R_RISCV_TLSDESC_HI20` | 58 | `EncTy_U_HI20` | `TLSDESC(S) - P` | 32-bit |
-| `R_RISCV_TLSDESC_LOAD_LO12` | 59 | `EncTy_I` | low 12 bits of TLSDESC | 32-bit |
-| `R_RISCV_TLSDESC_ADD_LO12` | 60 | `EncTy_I` | low 12 bits of TLSDESC | 32-bit |
-| `R_RISCV_TLSDESC_CALL` | 61 | none | TLSDESC call hint | 32-bit |
+| Relocation | Type | Encoding | Operation | Inst size | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|-----------|-------------------------|-------------------------|--------------------|
+| `R_RISCV_TPREL_HI20` | 25 | `EncTy_U_HI20` | `S + A - tp` | 32-bit | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: X</code></li></ul> | No |
+| `R_RISCV_TPREL_LO12_I` | 26 | `EncTy_I` | low 12 bits of TP offset | 32-bit | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: X</code></li></ul> | No |
+| `R_RISCV_TPREL_LO12_S` | 27 | `EncTy_S` | low 12 bits of TP offset (stores) | 32-bit | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: X</code></li></ul> | No |
+| `R_RISCV_TPREL_ADD` | 28 | none | Relaxation hint (no bits written) | 32-bit | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_TLS_GOT_HI20` | 17 | `EncTy_U_HI20` | `GOT(S) - P` | 32-bit | <ul><li><code>S: O[t]</code></li><li><code>D: O[t]</code></li><li><code>P: O[t]</code></li><li><code>H: O[t]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_TLS_GD_HI20` | 18 | `EncTy_U_HI20` | `GOT(S) - P` (GD model) | 32-bit | <ul><li><code>S: Q[t]</code></li><li><code>D: Q[t]</code></li><li><code>P: Q[t]</code></li><li><code>H: Q[t]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_TLSDESC_HI20` | 58 | `EncTy_U_HI20` | `TLSDESC(S) - P` | 32-bit | <ul><li><code>S: -</code></li><li><code>D: O[t&amp;p]</code></li><li><code>P: O[t&amp;p]</code></li><li><code>H: C[t]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_TLSDESC_LOAD_LO12` | 59 | `EncTy_I` | low 12 bits of TLSDESC | 32-bit | <ul><li><code>S: -</code></li><li><code>D: O[t&amp;p]</code></li><li><code>P: O[t&amp;p]</code></li><li><code>H: C[t]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_TLSDESC_ADD_LO12` | 60 | `EncTy_I` | low 12 bits of TLSDESC | 32-bit | <ul><li><code>S: -</code></li><li><code>D: O[t&amp;p]</code></li><li><code>P: O[t&amp;p]</code></li><li><code>H: C[t]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_TLSDESC_CALL` | 61 | none | TLSDESC call hint | 32-bit | <ul><li><code>S: -</code></li><li><code>D: O[t&amp;p]</code></li><li><code>P: O[t&amp;p]</code></li><li><code>H: C[t]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 ### GOT Relocations
 
-| Relocation | Type | Encoding | Operation | Inst size |
-|------------|------|----------|-----------|-----------|
-| `R_RISCV_GOT_HI20` | 16 | `EncTy_U_HI20` | `GOT(S) - P` | 32-bit |
-| `R_RISCV_GOT32_PCREL` | 37 | `EncTy_None` | `GOT(S) - P` (32-bit) | 32-bit |
+| Relocation | Type | Encoding | Operation | Inst size | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|-----------|-------------------------|-------------------------|--------------------|
+| `R_RISCV_GOT_HI20` | 16 | `EncTy_U_HI20` | `GOT(S) - P` | 32-bit | <ul><li><code>S: J[g&amp;i]{a} + G[!(g&amp;i)]</code></li><li><code>D: G</code></li><li><code>P: G; I: J[g&amp;i]{a} + G[!(g&amp;i)]</code></li><li><code>H: G</code></li></ul> | <ul><li><code>S: R[g&amp;i]</code></li><li><code>D: -</code></li><li><code>P: -; I: R[g&amp;i]</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_GOT32_PCREL` | 37 | `EncTy_None` | `GOT(S) - P` (32-bit) | 32-bit | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | N/A |
 
 ### Arithmetic / Addend Relocations
 
 Used in debug sections and compact unwind tables to encode label differences.
 
-| Relocation | Type | Encoding | Operation | Size |
-|------------|------|----------|-----------|------|
-| `R_RISCV_ADD8` | 29 | `EncTy_8` | `*(loc) += S + A` | 8 |
-| `R_RISCV_ADD16` | 30 | `EncTy_16` | `*(loc) += S + A` | 16 |
-| `R_RISCV_ADD32` | 31 | `EncTy_32` | `*(loc) += S + A` | 32 |
-| `R_RISCV_ADD64` | 32 | `EncTy_64` | `*(loc) += S + A` | 64 |
-| `R_RISCV_SUB8` | 33 | `EncTy_8` | `*(loc) -= S + A` | 8 |
-| `R_RISCV_SUB16` | 34 | `EncTy_16` | `*(loc) -= S + A` | 16 |
-| `R_RISCV_SUB32` | 35 | `EncTy_32` | `*(loc) -= S + A` | 32 |
-| `R_RISCV_SUB64` | 36 | `EncTy_64` | `*(loc) -= S + A` | 64 |
-| `R_RISCV_SUB6` | 52 | `EncTy_6` | `*(loc)[5:0] -= S + A` | 8 |
-| `R_RISCV_SET6` | 53 | `EncTy_6` | `*(loc)[5:0] = S + A` | 8 |
-| `R_RISCV_SET8` | 54 | `EncTy_8` | `*(loc) = S + A` | 8 |
-| `R_RISCV_SET16` | 55 | `EncTy_16` | `*(loc) = S + A` | 16 |
-| `R_RISCV_SET32` | 56 | `EncTy_32` | `*(loc) = S + A` | 32 |
-| `R_RISCV_32_PCREL` | 57 | `EncTy_32` | `S + A - P` (32-bit) | 32 |
-| `R_RISCV_SET_ULEB128` | 62 | `EncTy_LEB128` | `*(loc) = S + A` (ULEB128) | variable |
-| `R_RISCV_SUB_ULEB128` | 63 | `EncTy_LEB128` | `*(loc) -= S + A` (ULEB128) | variable |
+| Relocation | Type | Encoding | Operation | Size | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|----------|-----------|------|-------------------------|-------------------------|--------------------|
+| `R_RISCV_ADD8` | 29 | `EncTy_8` | `*(loc) += S + A` | 8 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_ADD16` | 30 | `EncTy_16` | `*(loc) += S + A` | 16 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_ADD32` | 31 | `EncTy_32` | `*(loc) += S + A` | 32 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_ADD64` | 32 | `EncTy_64` | `*(loc) += S + A` | 64 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_SUB8` | 33 | `EncTy_8` | `*(loc) -= S + A` | 8 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_SUB16` | 34 | `EncTy_16` | `*(loc) -= S + A` | 16 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_SUB32` | 35 | `EncTy_32` | `*(loc) -= S + A` | 32 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_SUB64` | 36 | `EncTy_64` | `*(loc) -= S + A` | 64 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_SUB6` | 52 | `EncTy_6` | `*(loc)[5:0] -= S + A` | 8 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_SET6` | 53 | `EncTy_6` | `*(loc)[5:0] = S + A` | 8 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_SET8` | 54 | `EncTy_8` | `*(loc) = S + A` | 8 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_SET16` | 55 | `EncTy_16` | `*(loc) = S + A` | 16 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_SET32` | 56 | `EncTy_32` | `*(loc) = S + A` | 32 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_32_PCREL` | 57 | `EncTy_32` | `S + A - P` (32-bit) | 32 | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_SET_ULEB128` | 62 | `EncTy_LEB128` | `*(loc) = S + A` (ULEB128) | variable | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_SUB_ULEB128` | 63 | `EncTy_LEB128` | `*(loc) -= S + A` (ULEB128) | variable | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 ### Relaxation Hint Relocations
 
 These carry no data; they mark sites eligible for relaxation.
 
-| Relocation | Type | Meaning |
-|------------|------|---------|
-| `R_RISCV_RELAX` | 51 | Paired with another relocation to indicate the site may be relaxed |
-| `R_RISCV_ALIGN` | 43 | Requests NOP padding to meet an alignment requirement; bytes may be deleted by relaxation |
-| `R_RISCV_TPREL_ADD` | 28 | Marks the `add` in a `TPREL_HI20`+`add`+`TPREL_LO12` TLS-LE sequence; deleted during relaxation |
-| `R_RISCV_VENDOR` | 255 | Vendor extension marker; the following relocation is vendor-defined |
+| Relocation | Type | Meaning | GOT allocation | PLT allocation | Trampoline / range |
+|------------|------|---------|-------------------------|-------------------------|--------------------|
+| `R_RISCV_RELAX` | 51 | Paired with another relocation to indicate the site may be relaxed | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_ALIGN` | 43 | Requests NOP padding to meet an alignment requirement; bytes may be deleted by relaxation | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_TPREL_ADD` | 28 | Marks the `add` in a `TPREL_HI20`+`add`+`TPREL_LO12` TLS-LE sequence; deleted during relaxation | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
+| `R_RISCV_VENDOR` | 255 | Vendor extension marker; the following relocation is vendor-defined | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: -</code></li><li><code>P: -</code></li><li><code>H: -</code></li></ul> | No |
 
 ---
 
@@ -205,25 +247,25 @@ These relocations are created by ELD during relaxation and are never
 present in input object files. They are used to apply the final encoding
 after an instruction sequence has been rewritten.
 
-| Relocation | Encoding | Operation | Inst size | Notes |
-|------------|----------|-----------|-----------|-------|
-| `R_RISCV_RVC_LUI` | `EncTy_CI` | `S` | 16-bit | LUI compressed to `c.lui` |
-| `R_RISCV_RVC_LI` | `EncTy_CI` | `S` | 16-bit | Load immediate compressed to `c.li` |
-| `R_RISCV_GPREL_I` | `EncTy_I` | `S - G` | 32-bit | GP-relative I-type load/compute |
-| `R_RISCV_GPREL_S` | `EncTy_S` | `S - G` | 32-bit | GP-relative S-type store |
-| `R_RISCV_TPREL_I` | `EncTy_I` | `S - tp` | 32-bit | TP-relative I-type after TLS-LE relaxation |
-| `R_RISCV_TPREL_S` | `EncTy_S` | `S - tp` | 32-bit | TP-relative S-type after TLS-LE relaxation |
-| `R_RISCV_TBJAL` | none | — | 16-bit | Table-jump (`cm.jt`/`cm.jalt`) after call relaxation |
-| `R_RISCV_QC_ABS26_I` | `EncTy_QC_EI` | `S + A` | 48-bit | Xqcilo absolute load (26-bit imm) |
-| `R_RISCV_QC_ABS26_S` | `EncTy_QC_ES` | `S + A` | 48-bit | Xqcilo absolute store (26-bit imm) |
-| `R_RISCV_QC_GPREL26_I` | `EncTy_QC_EI` | `S - G` | 48-bit | Xqcilo GP-relative load |
-| `R_RISCV_QC_GPREL26_S` | `EncTy_QC_ES` | `S - G` | 48-bit | Xqcilo GP-relative store |
-| `R_RISCV_QC_ABS20_U` | `EncTy_U_ABS20` | `S + A` | 32-bit | Xqci 20-bit absolute |
-| `R_RISCV_QC_E_BRANCH` | `EncTy_QC_EB` | `S + A - P` | 48-bit | Xqci extended branch |
-| `R_RISCV_QC_E_32` | `EncTy_QC_EAI` | `S + A` | 48-bit | Xqci extended 32-bit immediate |
-| `R_RISCV_QC_E_CALL_PLT` | `EncTy_QC_EJ` | `S + A - P` | 48-bit | Xqci extended call (via PLT) |
-| `R_RISCV_QC_ACCESS_16` | none | — | 16-bit | Xqcilo 16-bit access marker |
-| `R_RISCV_QC_ACCESS_32` | none | — | 32-bit | Xqcilo 32-bit access marker |
+| Relocation | Encoding | Operation | Inst size | Notes | GOT allocation | PLT allocation | Trampoline / range |
+|------------|----------|-----------|-----------|-------|-------------------------|-------------------------|--------------------|
+| `R_RISCV_RVC_LUI` | `EncTy_CI` | `S` | 16-bit | LUI compressed to `c.lui` | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_RISCV_RVC_LI` | `EncTy_CI` | `S` | 16-bit | Load immediate compressed to `c.li` | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_RISCV_GPREL_I` | `EncTy_I` | `S - G` | 32-bit | GP-relative I-type load/compute | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_RISCV_GPREL_S` | `EncTy_S` | `S - G` | 32-bit | GP-relative S-type store | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_RISCV_TPREL_I` | `EncTy_I` | `S - tp` | 32-bit | TP-relative I-type after TLS-LE relaxation | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | N/A |
+| `R_RISCV_TPREL_S` | `EncTy_S` | `S - tp` | 32-bit | TP-relative S-type after TLS-LE relaxation | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | N/A |
+| `R_RISCV_TBJAL` | none | — | 16-bit | Table-jump (`cm.jt`/`cm.jalt`) after call relaxation | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_RISCV_QC_ABS26_I` | `EncTy_QC_EI` | `S + A` | 48-bit | Xqcilo absolute load (26-bit imm) | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_RISCV_QC_ABS26_S` | `EncTy_QC_ES` | `S + A` | 48-bit | Xqcilo absolute store (26-bit imm) | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_RISCV_QC_GPREL26_I` | `EncTy_QC_EI` | `S - G` | 48-bit | Xqcilo GP-relative load | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_RISCV_QC_GPREL26_S` | `EncTy_QC_ES` | `S - G` | 48-bit | Xqcilo GP-relative store | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_RISCV_QC_ABS20_U` | `EncTy_U_ABS20` | `S + A` | 32-bit | Xqci 20-bit absolute | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_RISCV_QC_E_BRANCH` | `EncTy_QC_EB` | `S + A - P` | 48-bit | Xqci extended branch | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_RISCV_QC_E_32` | `EncTy_QC_EAI` | `S + A` | 48-bit | Xqci extended 32-bit immediate | <ul><li><code>S: -</code></li><li><code>D: J[p&amp;f]</code></li><li><code>P: J[p&amp;f]</code></li><li><code>H: J[p&amp;f]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: L[p&amp;f]</code></li><li><code>P: L[p&amp;f]</code></li><li><code>H: L[p&amp;f]</code></li></ul> | No |
+| `R_RISCV_QC_E_CALL_PLT` | `EncTy_QC_EJ` | `S + A - P` | 48-bit | Xqci extended call (via PLT) | <ul><li><code>S: -</code></li><li><code>D: J[p]</code></li><li><code>P: J[p]; I: -</code></li><li><code>H: J[p]</code></li></ul> | <ul><li><code>S: -</code></li><li><code>D: L[p]</code></li><li><code>P: L[p]; I: -</code></li><li><code>H: L[p]</code></li></ul> | No |
+| `R_RISCV_QC_ACCESS_16` | none | — | 16-bit | Xqcilo 16-bit access marker | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
+| `R_RISCV_QC_ACCESS_32` | none | — | 32-bit | Xqcilo 32-bit access marker | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | <ul><li><code>S: U</code></li><li><code>D: U</code></li><li><code>P: U</code></li><li><code>H: U</code></li></ul> | No |
 
 ---
 
