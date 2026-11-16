@@ -30,14 +30,14 @@ on:
         description: "Name of the uploaded PR ELD toolset artifact"
         value: ${{ jobs.ubuntu.outputs.artifact_name }}
       artifact_run_id:
-        description: "CI workflow run containing the toolset artifact"
+        description: "Workflow run containing the toolset artifact"
         value: ${{ jobs.ubuntu.outputs.artifact_run_id }}
 permissions: {}
 jobs:
   ubuntu:
     name: Build and test ELD on Ubuntu
     outputs:
-      artifact_name: ${{ format('pr-eld-toolset-{0}', inputs.pr_sha) }}
+      artifact_name: ${{ format('pr-eld-toolset-{0}-{1}', inputs.pr_number, inputs.pr_sha) }}
       artifact_run_id: ${{ github.run_id }}
     runs-on: self-hosted
     concurrency:
@@ -59,6 +59,7 @@ jobs:
       - name: Checkout llvm-project
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: ${{ inputs.pr_sha == '' }}
           repository: llvm/llvm-project
           ref: main
           path: pr-${{ env.PR_NUMBER }}/llvm-project
@@ -66,6 +67,7 @@ jobs:
       - name: Checkout qualcomm/eld PR branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: ${{ inputs.pr_sha == '' }}
           repository: qualcomm/eld
           ref: ${{ inputs.pr_sha }}
           path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
@@ -182,24 +184,10 @@ jobs:
       - name: Upload PR ELD toolset
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 #v7.0.2
         with:
-          name: ${{ format('pr-eld-toolset-{0}', inputs.pr_sha) }}
+          name: ${{ format('pr-eld-toolset-{0}-{1}', inputs.pr_number, inputs.pr_sha) }}
           # Keep a fallback copy in case the workflow fails before cleanup.
           retention-days: 7
           path: pr-${{ env.PR_NUMBER }}/install-pr-toolset.tar.xz
-
-      # Local action paths must be literal, so copy the PR version to a fixed
-      # workspace path before invoking it.
-      - name: Stage DeleteOldArtifacts action
-        run: |
-          mkdir -p .github/workflows/DeleteOldArtifacts
-          cp "pr-${PR_NUMBER}/llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts/action.yaml" .github/workflows/DeleteOldArtifacts/action.yaml
-
-      - name: Delete older PR ELD toolsets
-        continue-on-error: true
-        uses: ./.github/workflows/DeleteOldArtifacts
-        with:
-          artifact-names: ${{ format('pr-eld-toolset-{0}', inputs.pr_sha) }}
-          pull-request-number: ${{ inputs.pr_number }}
 
       - name: Clean up
         if: always()

@@ -31,15 +31,18 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
   actions: read
-  statuses: write
 
 jobs:
   validate:
     if: github.repository == 'qualcomm/eld' && (github.event_name == 'workflow_dispatch' || github.event.issue.pull_request != null)
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: read
+      statuses: write
     outputs:
       pr_number: ${{ steps.request.outputs.pr_number }}
       pr_sha: ${{ steps.request.outputs.pr_sha }}
@@ -70,6 +73,7 @@ jobs:
             const allowed = new Set(['COLLABORATOR', 'MEMBER', 'OWNER']);
             const supported = new Set([
               'check-llvm-test-suite',
+              'check-relocation-testing',
               'check-linux-kernel',
               'check-busybox',
               'check-reviter',
@@ -113,9 +117,10 @@ jobs:
             const requestId = isWorkflowDispatch
               ? process.env.INPUT_REQUEST_ID
               : `${context.issue.number}-${pullRequest.head.sha}-${context.payload.comment.id}`;
-            const artifactName = `pr-eld-toolset-${pullRequest.head.sha}`;
+            const artifactName = `pr-eld-toolset-${prNumber}-${pullRequest.head.sha}`;
             const checkDefinitions = new Map([
               ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
+              ['check-relocation-testing', { name: 'Relocation testing framework', context: 'PR Relocation testing framework', usesToolset: true }],
               ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
               ['check-busybox', { name: 'BusyBox', context: 'PR BusyBox', usesToolset: true }],
               ['check-reviter', { name: 'Reverse iterators', context: 'PR Reverse iterators', usesToolset: false }],
@@ -204,6 +209,7 @@ jobs:
             const runAll = command === 'check-all-workflows';
             const checkDefinitions = new Map([
               ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
+              ['check-relocation-testing', { name: 'Relocation testing framework', context: 'PR Relocation testing framework', usesToolset: true }],
               ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
               ['check-busybox', { name: 'BusyBox', context: 'PR BusyBox', usesToolset: true }],
               ['check-reviter', { name: 'Reverse iterators', context: 'PR Reverse iterators', usesToolset: false }],
@@ -298,6 +304,26 @@ jobs:
     permissions:
       contents: write
       actions: write
+
+  relocation_test:
+    needs: [validate, build]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate.result == 'success' &&
+      needs.validate.outputs.pr_sha != '' &&
+      (contains(needs.validate.outputs.command, 'check-relocation-testing') ||
+       needs.validate.outputs.command == 'check-all-workflows') &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    uses: ./.github/workflows/relocation-testing.yml
+    with:
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      toolset_run_id: ${{ needs.build.outputs.artifact_run_id || needs.validate.outputs.artifact_run_id }}
+      toolset_artifact: ${{ needs.build.outputs.artifact_name || needs.validate.outputs.artifact_name }}
+    permissions:
+      actions: write
+      contents: write
 
   linux_test:
     needs: [validate, build]
@@ -481,6 +507,29 @@ jobs:
       pr_sha: ${{ needs.validate.outputs.pr_sha }}
       build_result: ${{ needs.build.result }}
       test_result: ${{ needs.llvm_test.result }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+
+  report_relocation:
+    needs: [validate, build, relocation_test]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate.outputs.pr_sha != '' &&
+      (contains(needs.validate.outputs.command, 'check-relocation-testing') ||
+       needs.validate.outputs.command == 'check-all-workflows')
+    uses: ./.github/workflows/report-pr-check.yml
+    with:
+      check_name: Relocation testing framework
+      status_context: PR Relocation testing framework
+      pr_number: ${{ needs.validate.outputs.pr_number }}
+      pr_sha: ${{ needs.validate.outputs.pr_sha }}
+      build_result: ${{ needs.build.result }}
+      test_result: ${{ needs.relocation_test.result }}
       run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
     permissions:
@@ -696,7 +745,7 @@ jobs:
       statuses: write
 
   report_all:
-    needs: [validate, build, llvm_test, linux_test, busybox_test, reviter_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, memory_sanitizer_test, windows_test, macos_test]
+    needs: [validate, build, llvm_test, relocation_test, linux_test, busybox_test, reviter_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, memory_sanitizer_test, windows_test, macos_test]
     if: |
       always() &&
       !cancelled() &&
@@ -715,6 +764,7 @@ jobs:
           PR_SHA: ${{ needs.validate.outputs.pr_sha }}
           BUILD_RESULT: ${{ needs.build.result }}
           LLVM_RESULT: ${{ needs.llvm_test.result }}
+          RELOCATION_RESULT: ${{ needs.relocation_test.result }}
           LINUX_RESULT: ${{ needs.linux_test.result }}
           BUSYBOX_RESULT: ${{ needs.busybox_test.result }}
           REVITER_RESULT: ${{ needs.reviter_test.result }}
@@ -730,6 +780,7 @@ jobs:
           script: |
             const checks = [
               ['LLVM test suite', process.env.LLVM_RESULT],
+              ['Relocation testing framework', process.env.RELOCATION_RESULT],
               ['Linux kernel boot', process.env.LINUX_RESULT],
               ['BusyBox', process.env.BUSYBOX_RESULT],
               ['Reverse iterators', process.env.REVITER_RESULT],
@@ -769,3 +820,53 @@ jobs:
               issue_number: Number(process.env.PR_NUMBER),
               body: `${message}\n\n${details}\n\n[View workflow run](${process.env.RUN_URL}).`,
             });
+
+  # Delete uploaded test outputs here so the PR code jobs can keep read-only tokens.
+  cleanup_pr_artifacts:
+    needs:
+      - validate
+      - build
+      - llvm_test
+      - linux_test
+      - busybox_test
+      - zephyr_test
+      - thread_sanitizer_test
+      - asan_ubsan_test
+      - windows_test
+      - macos_test
+      - memory_sanitizer_test
+      - reviter_test
+      - report_llvm
+      - report_linux
+      - report_busybox
+      - report_reviter
+      - report_zephyr
+      - report_thread_sanitizer
+      - report_asan_ubsan
+      - report_windows
+      - report_macos
+      - report_memory_sanitizer
+      - report_all
+    if: always() && needs.validate.outputs.pr_sha != ''
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout artifact cleanup action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.repository.default_branch }}
+          path: eld-workflows
+          persist-credentials: false
+
+      - name: Delete older PR artifacts
+        continue-on-error: true
+        uses: ./eld-workflows/.github/workflows/DeleteOldArtifacts
+        with:
+          artifact-name-prefixes: |
+            busybox-eld-pr-${{ needs.validate.outputs.pr_number }}-
+            kernel-boot-pr-${{ needs.validate.outputs.pr_number }}-
+            llvm-test-suite-results-pr-${{ needs.validate.outputs.pr_number }}-
+            zephyr-twister-results-pr-${{ needs.validate.outputs.pr_number }}-

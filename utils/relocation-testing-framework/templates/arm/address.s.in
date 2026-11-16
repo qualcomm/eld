@@ -1,0 +1,17 @@
+.syntax unified
+.arm
+
+.global _start
+
+.text
+_start:
+{{usage}}
+  ldr r0, [{{scratch_reg}}]
+  mov r7, #1
+  svc #0
+
+.data
+.{{binding}} v
+{{visibility}}
+v:
+  .word 42

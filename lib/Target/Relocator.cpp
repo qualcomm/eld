@@ -39,13 +39,10 @@ void Relocator::initScanRelocations() {
     const auto *ObjFile = llvm::dyn_cast<ELFObjectFile>(Inputs[I]);
     if (!ObjFile)
       continue;
-    auto &RelocationsBySection = DeferredRelocations[I].RelocationsBySection;
-    for (ELFSection *Rs : ObjFile->getRelocationSections()) {
-      if (Rs->isIgnore() || Rs->isDiscard())
-        RelocationsBySection.emplace_back();
-      else
-        RelocationsBySection.emplace_back(Rs->getLink()->getRelocationCount());
-    }
+    auto &Sections = DeferredRelocations[I].Sections;
+    Sections.reserve(ObjFile->getRelocationSections().size());
+    for (ELFSection *Rs : ObjFile->getRelocationSections())
+      Sections.push_back({Rs->getLink(), {}});
   }
 }
 
@@ -118,34 +115,43 @@ void Relocator::scanRelocationParallel(Relocation &Reloc, ELFSection &Section,
   if (!scanRelocationPrologue(Reloc, Section, Input))
     return;
 
-  // Defer everything that reaches here to the serial phase, so that no slot is
-  // allocated and nothing is appended to a shared section off the main thread.
+  ELFSection *LinkedSection = Section.getLink();
+  if (!needsSerialScan(Reloc, *LinkedSection))
+    return;
+
   ASSERT(InputIndex < DeferredRelocations.size(),
          "input index " + std::to_string(InputIndex) + " (" +
              Input.getInput()->decoratedPath() +
              ") missing from scan bookkeeping");
-  DeferredRelocations[InputIndex].RelocationsBySection[SectIndex].set(
-      RelocIndex);
+  ASSERT(SectIndex < DeferredRelocations[InputIndex].Sections.size(),
+         "section index " + std::to_string(SectIndex) +
+             " missing from scan "
+             "bookkeeping for " +
+             Input.getInput()->decoratedPath());
+  DeferredSection &Deferred =
+      DeferredRelocations[InputIndex].Sections[SectIndex];
+  ASSERT(Deferred.Section == LinkedSection,
+         "relocation section order changed during parallel scan");
+  if (!Deferred.Ranges.empty() && Deferred.Ranges.back().End == RelocIndex) {
+    ++Deferred.Ranges.back().End;
+  } else {
+    Deferred.Ranges.push_back({RelocIndex, RelocIndex + 1});
+  }
 }
 
-void Relocator::replayScanRelocations(CopyRelocs &CopyRelocSet) {
+void Relocator::scanDeferredRelocations(CopyRelocs &CopyRelocSet) {
   const auto &Inputs = m_Module.getObjectList();
   for (size_t I = 0; I != Inputs.size(); ++I) {
-    const auto *ObjFile = llvm::dyn_cast<ELFObjectFile>(Inputs[I]);
-    if (!ObjFile)
-      continue;
-    const auto &RelocationsBySection =
-        DeferredRelocations[I].RelocationsBySection;
-    size_t SectIndex = 0;
-    for (ELFSection *Rs : ObjFile->getRelocationSections()) {
-      const llvm::BitVector &Deferred = RelocationsBySection[SectIndex++];
-      if (Rs->isIgnore() || Rs->isDiscard() || Deferred.none())
+    for (const DeferredSection &Deferred : DeferredRelocations[I].Sections) {
+      if (Deferred.Ranges.empty())
         continue;
-      ELFSection *Section = Rs->getLink();
-      size_t RelocIndex = 0;
-      for (Relocation *Reloc : Section->getRelocations()) {
-        if (Deferred.test(RelocIndex++))
-          scanDeferredRelocation(*Inputs[I], *Reloc, *Section, CopyRelocSet);
+      auto Relocations = Deferred.Section->getRelocations();
+      for (const DeferredRange &Range : Deferred.Ranges) {
+        ASSERT(Range.End <= Deferred.Section->getRelocationCount(),
+               "deferred relocation range exceeds section size");
+        for (size_t J = Range.Begin; J != Range.End; ++J)
+          scanDeferredRelocation(*Inputs[I], **(Relocations.begin() + J),
+                                 *Deferred.Section, CopyRelocSet);
       }
     }
   }
