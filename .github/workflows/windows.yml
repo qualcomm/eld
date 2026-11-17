@@ -116,6 +116,9 @@ jobs:
       contents: write
     env:
       ELD_REF: ${{ inputs.pr_sha || github.ref_name }}
+      # MSVC 14.52 crashes compiling LLVM on Arm64. The runner has MSVC 14.44;
+      # select it and install its matching ATL component for LLVM DIA support.
+      MSVC_TOOLSET: ${{ matrix.arch == 'ARM64' && '14.44' || '' }}
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
 
@@ -178,6 +181,40 @@ jobs:
           restore-keys: |
             windows-ccache-${{ matrix.arch }}-
 
+      - name: Ensure ATL for the pinned Arm64 MSVC toolset
+        if: matrix.arch == 'ARM64'
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $vsInstall = & $vswhere -latest -products '*' -property installationPath
+          if (-not $vsInstall) {
+            throw 'Could not find a Visual Studio installation.'
+          }
+
+          # LLVM's DIA support needs ATL from the same toolset as the compiler.
+          $atlRoot = Join-Path $vsInstall "VC\Tools\MSVC\$env:MSVC_TOOLSET.*\atlmfc"
+          $atlHeader = Join-Path $atlRoot 'include\atlbase.h'
+          $atlLibrary = Join-Path $atlRoot 'lib\arm64\atls.lib'
+          if ((Test-Path $atlHeader) -and (Test-Path $atlLibrary)) {
+            Write-Output "ATL for MSVC $env:MSVC_TOOLSET Arm64 is already installed."
+            exit 0
+          }
+
+          $vsInstaller = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\setup.exe'
+          $installerArgs = @(
+            'modify', '--installPath', "`"$vsInstall`"",
+            '--add', 'Microsoft.VisualStudio.Component.VC.14.44.17.14.ATL.ARM64',
+            '--quiet', '--norestart'
+          )
+          $installation = Start-Process -FilePath $vsInstaller -ArgumentList $installerArgs -Wait -PassThru
+          if ($installation.ExitCode -notin @(0, 3010)) {
+            throw "Installing Arm64 ATL failed with exit code $($installation.ExitCode)."
+          }
+          if (-not ((Test-Path $atlHeader) -and (Test-Path $atlLibrary))) {
+            throw "ATL headers or Arm64 libraries are missing for MSVC $env:MSVC_TOOLSET after installation."
+          }
+          Write-Output "Installed ATL for MSVC $env:MSVC_TOOLSET Arm64."
+
       # Ninja needs the MSVC compiler and SDK paths in its environment. Each
       # Actions step gets a fresh shell, so pass VsDevCmd's environment forward.
       - name: Load MSVC compiler and SDK paths
@@ -201,10 +238,12 @@ jobs:
           # Configure the MSVC tools for the matrix target architecture.
           # `set` prints the environment so PowerShell can transfer it to later steps.
           $targetArch = if ($env:MSVC_ARCH -eq 'ARM64') { 'arm64' } else { 'x64' }
-          $devEnvCommand = "call `"$vsDevCmd`" -arch=$targetArch -host_arch=$targetArch >nul && set"
-          $devEnv = & cmd.exe /d /c $devEnvCommand
+          $toolsetArg = if ($env:MSVC_TOOLSET) { " -vcvars_ver=$env:MSVC_TOOLSET" } else { '' }
+          $devEnvCommand = "call `"$vsDevCmd`" -arch=$targetArch -host_arch=$targetArch$toolsetArg && set"
+          $devEnv = & cmd.exe /d /c $devEnvCommand 2>&1
           if ($LASTEXITCODE -ne 0) {
-            throw "VsDevCmd.bat failed for architecture $targetArch"
+            $details = $devEnv -join [Environment]::NewLine
+            throw "VsDevCmd.bat failed for architecture ${targetArch}: $details"
           }
 
           # Forward NAME=VALUE entries through GITHUB_ENV. Skip cmd.exe's
@@ -262,7 +301,11 @@ jobs:
         run: |
           mkdir -p obj
           cd obj
-          cmake -G "${{ matrix.cmake-generator }}" -A ${{ matrix.arch }} \
+          toolset_args=()
+          if [[ -n "$MSVC_TOOLSET" ]]; then
+            toolset_args=(-T "v143,version=$MSVC_TOOLSET")
+          fi
+          cmake -G "${{ matrix.cmake-generator }}" -A ${{ matrix.arch }} "${toolset_args[@]}" \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
             -DCLANG_ENABLE_CIR=OFF \
