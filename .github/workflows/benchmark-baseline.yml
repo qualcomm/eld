@@ -1,0 +1,71 @@
+name: Benchmark Baseline (main)
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'  # daily at 2am UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    name: Build and benchmark ELD on main
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y cmake ninja-build clang time python3
+
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          path: eld
+
+      - name: Checkout LLVM
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          ref: main
+          path: llvm-project
+          fetch-depth: 1
+
+      - name: Build ELD (main)
+        run: |
+          cmake -G Ninja \
+            -S llvm-project/llvm \
+            -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DLLVM_ENABLE_PROJECTS="" \
+            -DLLVM_EXTERNAL_PROJECTS=eld \
+            -DLLVM_EXTERNAL_ELD_SOURCE_DIR=${{ github.workspace }}/eld \
+            -DLLVM_TARGETS_TO_BUILD="AArch64;ARM;Hexagon;RISCV;X86"
+          cmake --build build --target ld.eld -j$(nproc)
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Collect reproducers
+        run: nix-build eld/utils/benchmark/collect.nix -o reproducers
+
+      - name: Run benchmark (main baseline)
+        run: |
+          bash eld/utils/benchmark/run_benchmark.sh \
+            --eld build/bin/ld.eld \
+            --reproducers reproducers \
+            > baseline.json
+
+      - name: Upload baseline artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-baseline
+          path: baseline.json
+          retention-days: 30
