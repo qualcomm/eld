@@ -3577,8 +3577,7 @@ bool ObjectLinker::createLTOObject(void) {
   }
 
   Conf.LibraryOptions = &libraryOptions;
-  Conf.Options = llvm::codegen::getTargetOptions(libraryOptions,
-                                                 ThisConfig.targets().triple());
+  Conf.Options = llvm::codegen::InitTargetOptionsFromCodeGenFlags(ThisConfig.targets().triple());
 
   if (ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly() &&
       Conf.CGFileType == CodeGenFileType::AssemblyFile)
