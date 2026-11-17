@@ -8,26 +8,29 @@
 //===----------------------------------------------------------------------===//
 #include "x86_64Helper.h"
 #include "x86_64LLVMExtern.h"
-#include "x86_64RelocationInfo.h"
+#include "x86_64RelocationFunctions.h"
 #include "llvm/Support/MathExtras.h"
 
+namespace eld {
+namespace x86_64 {
+
 namespace {
-bool checkRange(uint64_t Value, bool IsSigned, EncodingType Type) {
+bool checkRange(uint64_t Value, bool IsSigned, uint32_t Bits) {
   bool Reachable;
-  switch (Type) {
-  case EncTy_8: {
+  switch (Bits) {
+  case 8: {
     if (IsSigned)
       Reachable = llvm::isInt<8>(static_cast<int64_t>(Value));
     else
       Reachable = llvm::isUInt<8>(Value);
   } break;
-  case EncTy_16: {
+  case 16: {
     if (IsSigned)
       Reachable = llvm::isInt<16>(static_cast<int64_t>(Value));
     else
       Reachable = llvm::isUInt<16>(Value);
   } break;
-  case EncTy_32: {
+  case 32: {
     if (IsSigned)
       Reachable = llvm::isInt<32>(static_cast<int64_t>(Value));
     else
@@ -39,15 +42,15 @@ bool checkRange(uint64_t Value, bool IsSigned, EncodingType Type) {
   return Reachable;
 }
 
-uint64_t clearImmediateBits(uint64_t Instr, EncodingType Type) {
-  switch (Type) {
-  case EncTy_8:
+uint64_t clearImmediateBits(uint64_t Instr, uint32_t Bits) {
+  switch (Bits) {
+  case 8:
     return Instr & 0xFFFFFFFFFFFFFF00ULL;
-  case EncTy_16:
+  case 16:
     return Instr & 0xFFFFFFFFFFFF0000ULL;
-  case EncTy_32:
+  case 32:
     return Instr & 0xFFFFFFFF00000000ULL;
-  case EncTy_64:
+  case 64:
     return 0ULL;
   default:
     return Instr;
@@ -57,20 +60,20 @@ uint64_t clearImmediateBits(uint64_t Instr, EncodingType Type) {
 // The Relocation helper function that computes the Instruction bits with the
 // relocation applied.
 template <typename T>
-uint64_t doRelocHelper(const RelocationInfo &RelocInfo, uint64_t Instruction,
+uint64_t doRelocHelper(const RelocationDescriptor &Desc, uint64_t Instruction,
                        T Value) {
-  Instruction = clearImmediateBits(Instruction, RelocInfo.EncType);
-  switch (RelocInfo.EncType) {
-  case EncTy_64:
+  Instruction = clearImmediateBits(Instruction, Desc.Size);
+  switch (Desc.Size) {
+  case 64:
     Value = encode64(Value);
     break;
-  case EncTy_32:
+  case 32:
     Value = encode32(Value);
     break;
-  case EncTy_16:
+  case 16:
     Value = encode16(Value);
     break;
-  case EncTy_8:
+  case 8:
     Value = encode8(Value);
     break;
   default:
@@ -80,50 +83,23 @@ uint64_t doRelocHelper(const RelocationInfo &RelocInfo, uint64_t Instruction,
 }
 } // anonymous namespace
 
-extern "C" {
-// This function finds the Mask for the Instruction and applies the Mask.
-
-uint64_t doRelocX86_64(const RelocationInfo &RelocInfo, uint64_t Instruction,
+uint64_t doRelocX86_64(const RelocationDescriptor &Desc, uint64_t Instruction,
                        uint64_t Value) {
-  if (x86_64Relocs[RelocInfo.Type].IsSigned) {
-    return doRelocHelper<int64_t>(RelocInfo, Instruction, Value);
-  } else {
-    return doRelocHelper<uint64_t>(RelocInfo, Instruction, Value);
-  }
+  if (Desc.IsSigned)
+    return doRelocHelper<int64_t>(Desc, Instruction, Value);
+  return doRelocHelper<uint64_t>(Desc, Instruction, Value);
 }
 
-/* Verify the Range specified by the ABI */
-bool verifyRangeX86_64(const RelocationInfo &RelocInfo, uint64_t Value) {
-  if (RelocInfo.IsSigned)
-    return checkRange(static_cast<int64_t>(Value) >> RelocInfo.Shift,
-                      RelocInfo.IsSigned, RelocInfo.EncType);
-  else
-    return checkRange(static_cast<uint64_t>(Value) >> RelocInfo.Shift,
-                      RelocInfo.IsSigned, RelocInfo.EncType);
+bool verifyRangeX86_64(const RelocationDescriptor &Desc, uint64_t Value) {
+  return checkRange(Value, Desc.IsSigned, Desc.Size);
 }
 
-unsigned getNumberOfBits(EncodingType Type) {
-  switch (Type) {
-  case EncTy_8:
-    return 8;
-  case EncTy_16:
-    return 16;
-  case EncTy_32:
-    return 32;
-  case EncTy_64:
-    return 64;
-  default:
-    break;
-  }
-  return 64;
-}
-
-/* Check if the result will be Truncated */
-bool isTruncatedX86_64(const RelocationInfo &RelocInfo, uint64_t Value) {
-  if (x86_64Relocs[RelocInfo.Type].IsSigned)
+bool isTruncatedX86_64(const RelocationDescriptor &Desc, uint64_t Value) {
+  if (Desc.IsSigned)
     return false;
-  unsigned N = getNumberOfBits(RelocInfo.EncType);
+  unsigned N = Desc.Size;
   return Value & (~0U >> (64 - N));
 }
 
-} // extern "C"
+} // namespace x86_64
+} // namespace eld
