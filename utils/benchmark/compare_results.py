@@ -40,14 +40,31 @@ def regression_icon(wall_pct, mem_pct, threshold):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--pr", required=True)
-    parser.add_argument("--baseline", required=True)
+    parser.add_argument("--baseline", required=False, default=None)
     parser.add_argument("--threshold", type=float, default=5.0,
                         help="Percentage change threshold for regression warning")
     args = parser.parse_args()
 
     pr = load(args.pr)
-    baseline = load(args.baseline)
+    baseline = load(args.baseline) if args.baseline else None
     threshold = args.threshold
+
+    lines = []
+    lines.append("## ELD Linker Benchmark Results")
+    lines.append("")
+
+    if baseline is None:
+        # First run — no baseline exists yet, just report absolute numbers
+        lines.append("> ℹ️ **No baseline available yet.** This run will be used as the baseline for future comparisons.")
+        lines.append("")
+        lines.append("| Workload | Wall time | Peak memory | Status |")
+        lines.append("|----------|-----------|-------------|--------|")
+        for wl in sorted(pr):
+            p = pr[wl]
+            status = "✅" if p["exit_status"] == 0 else "❌"
+            lines.append(f"| {wl} | {p['wall_seconds']:.2f}s | {p['peak_memory_mb']:.0f} MB | {status} |")
+        print("\n".join(lines))
+        sys.exit(0)
 
     all_workloads = sorted(set(pr) | set(baseline))
 
@@ -84,11 +101,6 @@ def main():
             fmt_pct(mem_pct),
             icon,
         ))
-
-    # Build markdown
-    lines = []
-    lines.append("## ELD Linker Benchmark Results")
-    lines.append("")
 
     if has_regression:
         lines.append(f"> ⚠️ **Performance regression detected** (>{threshold:.0f}% slower or higher memory than main tip)")

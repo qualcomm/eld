@@ -63,23 +63,32 @@ jobs:
             > results-pr.json
 
       - name: Download baseline artifact
+        id: download-baseline
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: benchmark-baseline.yml
           branch: main
           name: benchmark-baseline
           path: .
+        continue-on-error: true
 
       - name: Compare and post PR comment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          python3 eld/utils/benchmark/compare_results.py \
-            --pr results-pr.json \
-            --baseline baseline.json \
-            --threshold 5 \
-            > comment.md
+          if [ -f baseline.json ]; then
+            python3 eld/utils/benchmark/compare_results.py \
+              --pr results-pr.json \
+              --baseline baseline.json \
+              --threshold 5 \
+              > comment.md
+          else
+            python3 eld/utils/benchmark/compare_results.py \
+              --pr results-pr.json \
+              --threshold 5 \
+              > comment.md
+          fi
 
           gh pr comment "$PR_NUMBER" \
             --repo ${{ github.repository }} \
