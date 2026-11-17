@@ -1,4 +1,5 @@
 #---LinkerScriptSymbols.test--------------------- Executable------------------#
+UNSUPPORTED: progress_bar
 #BEGIN_COMMENT
 # This test checks the symbol resolution report when there are linker script
 # symbols.

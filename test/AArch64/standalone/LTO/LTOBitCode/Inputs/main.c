@@ -1,8 +1,5 @@
 int common_array[20];
 
-extern int foo();
+extern int bar();
 
-int main()
-{
-  return foo();
-}
+int main() { return bar(); }
