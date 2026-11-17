@@ -298,10 +298,10 @@ jobs:
           prerelease: true
           files: eld-unstable.tar.xz
 
-      - name: Run tests
+      - name: Run ELD extended tests
         run: |
           cd obj
-          ninja -j8 check-eld
+          ninja -j8 check-eld-extended
 
       - name: Summarize test results
         run: |
