@@ -219,8 +219,6 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
           << utility::toHex(S->getAddrAlign()) << utility::toHex(S->size())
           << ELFSection::getELFPermissionsStr(S->getFlags());
   }
-  EObj->populateDebugSections();
-
   auto expReadMergeStrings =
       readMergeStringSections(config, m_Module, *inputFile, mergeStrFragments);
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadMergeStrings);

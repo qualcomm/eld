@@ -197,6 +197,7 @@ void ELFReader<ELFT>::setSectionAttributes(ELFSection *S, Elf_Shdr rawSectHdr) {
   S->setAddrAlign(rawSectHdr.sh_addralign);
   S->setSize(rawSectHdr.sh_size);
   S->setOffset(rawSectHdr.sh_offset);
+  S->setInputRange(rawSectHdr.sh_offset, rawSectHdr.sh_size);
   S->setInfo(rawSectHdr.sh_info);
   S->setAddr(rawSectHdr.sh_addr);
   S->setInputFile(&m_InputFile);

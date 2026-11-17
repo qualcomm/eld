@@ -782,14 +782,14 @@ plugin::LinkerWrapper::LinkMode LinkerWrapper::getLinkMode() const {
 // --- DWARF support:
 eld::Expected<DWARFInfo>
 LinkerWrapper::getDWARFInfoForInputFile(plugin::InputFile F,
-                                        bool is32bit) const {
+                                        bool /*is32bit*/) const {
   eld::InputFile *IF = F.getInputFile();
   eld::ELFObjectFile *EObj = llvm::dyn_cast<eld::ELFObjectFile>(IF);
   if (!EObj)
     return std::make_unique<DiagnosticEntry>(
         DiagnosticEntry(Diag::error_invalid_input_file, {F.getFileName()}));
   if (!EObj->hasDWARFContext())
-    EObj->createDWARFContext(is32bit);
+    EObj->createDWARFContext();
   llvm::DWARFContext *DC = EObj->getDWARFContext();
   if (!DC)
     return std::make_unique<DiagnosticEntry>(DiagnosticEntry(

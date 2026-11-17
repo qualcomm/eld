@@ -534,7 +534,7 @@ public:
   LinkMode getLinkMode() const;
 
   // --- DWARF Support
-
+  // TODO: remove unused is32bit and bump API version.
   eld::Expected<DWARFInfo> getDWARFInfoForInputFile(plugin::InputFile F,
                                                     bool is32bit) const;
 

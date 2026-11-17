@@ -204,6 +204,18 @@ public:
     return m_InputFile->getSlice(Offset, size());
   }
 
+  /// Return the original bytes for this input section, using the range recorded
+  /// when its section header was parsed. Unlike getContents(), this remains
+  /// valid after the linker changes Offset or size for layout.
+  llvm::StringRef getOriginalContents() const {
+    return m_InputFile->getSlice(InputOffset, InputSize);
+  }
+
+  void setInputRange(uint64_t InputOffset, uint64_t InputSize) {
+    this->InputOffset = InputOffset;
+    this->InputSize = InputSize;
+  }
+
   ELFSection *getLink() const {
     return llvm::dyn_cast_or_null<ELFSection>(Link);
   }
@@ -394,6 +406,8 @@ protected:
 
   /// FIXME: This has different meanings for Input/Output sections.
   uint64_t Offset = ~uint64_t(0);
+  uint64_t InputOffset = ~uint64_t(0);
+  uint64_t InputSize = 0;
   uint64_t Addr = InvalidAddr;
 
   /// FIXME: These can probably be moved out
