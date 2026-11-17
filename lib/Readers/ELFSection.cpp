@@ -23,6 +23,47 @@ bool ELFSection::hasOffset() const { return (Offset != ~uint64_t(0)); }
 
 bool ELFSection::hasSectionData() const { return (Fragments.size() > 0); }
 
+bool ELFSection::isEligibleForICF() const {
+  // Garbage collection marks dead sections as Ignore. Explicitly discarded
+  // sections must not be candidates either.
+  if (isIgnore() || isDiscard())
+    return false;
+
+  // Only allocated sections contribute code to the output image.
+  if (!isAlloc())
+    return false;
+
+  // This initial pass folds only read-only executable PROGBITS sections.
+  if (!isCode() || !isProgBits() || isWritable() || isTLS() || isMergeKind())
+    return false;
+
+  // Link-order and group sections have relationships that this pass does not
+  // model.
+  if (isLinkOrder() || isInGroup())
+    return false;
+
+  // Fixed-address sections must retain their original placement.
+  if (isFixedAddr())
+    return false;
+
+  // Relocation-aware equivalence is not implemented yet.
+  if (hasRelocData() || isFolded())
+    return false;
+
+  // These sections are streams/tables, not independent functions. This also
+  // excludes legacy constructor/destructor tables with executable flags.
+  llvm::StringRef SectionName(name());
+  if (SectionName == ".init" || SectionName == ".fini" ||
+      SectionName.starts_with(".ctors") || SectionName.starts_with(".dtors") ||
+      SectionName.starts_with(".init_array") ||
+      SectionName.starts_with(".fini_array") ||
+      SectionName.starts_with(".preinit_array"))
+    return false;
+
+  // A single fragment preserves every symbol's section-relative offset.
+  return fragmentCount() == 1 && size() != 0;
+}
+
 void ELFSection::addFragment(Fragment *F) {
   // Update Owning section.
   if (!F->getOwningSection())

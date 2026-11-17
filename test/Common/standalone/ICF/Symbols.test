@@ -1,0 +1,16 @@
+# A relocation from data through a folded section must resolve to the canonical
+# function, including for a local symbol.
+
+# RUN: split-file %s %t
+# RUN: %clang -O2 -ffunction-sections -fno-stack-protector -c %t/input.c -o %t/input.o
+# RUN: %link %linkopts --entry=foo --icf=all --print-icf-sections %t/input.o -o %t/out 2>&1 | %filecheck %s --check-prefix=FOLD
+# RUN: %readelf -sW %t/out | %filecheck %s --check-prefix=SYMS
+
+# FOLD: ICF folding {{.*}}:(.text.bar) into {{.*}}:(.text.foo)
+# SYMS-DAG: {{ *}}[[ADDR:[0-9a-f]+]] {{[0-9]+}} FUNC {{.*}} foo
+# SYMS-DAG: {{ *}}[[ADDR]] {{[0-9]+}} FUNC {{.*}} bar
+
+#--- input.c
+int foo(void) { return 42; }
+static int bar(void) { return 42; }
+int (*bar_reference)(void) = bar;

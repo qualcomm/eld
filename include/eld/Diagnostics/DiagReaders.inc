@@ -40,6 +40,8 @@ DIAG(fatal_zlib_unavailable, DiagnosticEngine::Fatal,
      "unavailable")
 DIAG(discarding_section, DiagnosticEngine::Verbose,
      "Discard section %0 in file %1")
+DIAG(trace_icf_section, DiagnosticEngine::Trace,
+     "ICF folding %0:(%1) into %2:(%3)")
 DIAG(eh_frame_read_error, DiagnosticEngine::Error,
      "EhFrame Read Error : %0 from file %1")
 DIAG(eh_frame_read_warn, DiagnosticEngine::Warning,

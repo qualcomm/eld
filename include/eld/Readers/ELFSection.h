@@ -182,6 +182,9 @@ public:
 
   virtual ~ELFSection() {}
 
+  /// Checks if the input section can be folded by the ICF pass.
+  bool isEligibleForICF() const;
+
   // LayoutPrinter helper functions
   static llvm::StringRef getELFTypeStr(llvm::StringRef Name, uint32_t Type);
 
@@ -271,6 +274,9 @@ public:
   ELFSection *getOutputELFSection() const {
     return m_OutputSection ? m_OutputSection->getSection() : nullptr;
   }
+
+  void setFolded() { IsFolded = true; }
+  bool isFolded() const { return IsFolded; }
 
   //  LTO Tracking support
   bool hasOldInputFile() const override {
@@ -404,6 +410,7 @@ protected:
 
   llvm::SmallVector<Fragment *, 0> Fragments;
   llvm::SmallVector<Relocation *, 0> Relocations;
+  bool IsFolded = false;
 };
 
 } // namespace eld
