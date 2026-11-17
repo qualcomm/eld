@@ -458,7 +458,8 @@ bool GNULDBackend::createProgramHdrs() {
         // do not align LMA. A LMA region exists for the VMA
         // region just for making it easy for us to handle assigning
         // physical addresses
-        if (!(*out)->prolog().hasAlignWithInput() && !hasLMARegion)
+        if (!(*out)->prolog().hasAlignWithInput() &&
+            (!hasLMARegion || (*out)->prolog().hasAlign()))
           alignAddress(pma, cur->getAddrAlign());
       } else if (!prev || !disconnect_lma_vma) {
         pma = vma;
@@ -555,7 +556,8 @@ bool GNULDBackend::createProgramHdrs() {
       } else if (hasVMARegion || hasLMARegion) {
         ScriptMemoryRegion &R = (*out)->epilog().lmaRegion();
         pma = R.getPhysicalAddr(*out);
-        if (!(*out)->prolog().hasAlignWithInput() && !hasLMARegion)
+        if (!(*out)->prolog().hasAlignWithInput() &&
+            (!hasLMARegion || (*out)->prolog().hasAlign()))
           alignAddress(pma, cur->getAddrAlign());
       } else if (!prev || !disconnect_lma_vma) {
         pma = vma;

@@ -2415,6 +2415,17 @@ bool GNULDBackend::setupSegment(ELFSegment *E) {
                                 E->type() == llvm::ELF::PT_GNU_RELRO))
       continue;
 
+    // .tbss is SHT_NOBITS and occupies no file space. Its offset is inherited
+    // from a preceding file-backed section, so it must not affect PT_TLS file
+    // bounds. Keep it in the memory bounds so PT_TLS accounts for its size.
+    if (isTLS && isCurBSS && E->type() == llvm::ELF::PT_TLS) {
+      if (cur->addr() < lower)
+        lower = cur->addr();
+      if ((cur->addr() + cur->size()) > upper)
+        upper = cur->addr() + cur->size();
+      continue;
+    }
+
     // Dont count empty sections.
     if (!cur->size())
       continue;

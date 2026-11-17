@@ -1,0 +1,14 @@
+UNSUPPORTED: ndk-build
+
+# PT_TLS FileSize is zero when it contains only .tbss, while MemSize remains
+# nonzero for the thread-local storage reservation.
+RUN: %clang %clangopts -c %p/Inputs/tbss_only.c -o %t.o %clangg0opts
+RUN: %link %linkopts -T %p/Inputs/tbss_only_phdrs.t %t.o -o %t.out --defsym __aeabi_read_tp=0
+RUN: %readelf --elf-output-style LLVM -l -W %t.out | %filecheck %s
+
+# CHECK: Type: PT_TLS
+# CHECK-NEXT: Offset:
+# CHECK-NEXT: VirtualAddress:
+# CHECK-NEXT: PhysicalAddress:
+# CHECK-NEXT: FileSize: 0
+# CHECK-NEXT: MemSize: {{[1-9][0-9]*}}

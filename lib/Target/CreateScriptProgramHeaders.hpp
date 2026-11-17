@@ -312,7 +312,8 @@ bool GNULDBackend::createScriptProgramHdrs() {
     } else if (hasVMARegion || hasLMARegion) {
       ScriptMemoryRegion &R = (*out)->epilog().lmaRegion();
       pma = R.getPhysicalAddr(*out);
-      if (!(*out)->prolog().hasAlignWithInput() && !hasLMARegion)
+      if (!(*out)->prolog().hasAlignWithInput() &&
+          (!hasLMARegion || (*out)->prolog().hasAlign()))
         alignAddress(pma, cur->getAddrAlign());
     } else if (hasFixedLMA) {
       // If the current segment has a fixed LMA address, then
