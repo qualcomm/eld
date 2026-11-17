@@ -49,15 +49,26 @@ public:
 
   // --- DWARF Support
 
-  void createDWARFContext(bool Is32);
+  /// Create and retain a DWARF context for this object when it contains debug
+  /// data. Does nothing if there is no input, no usable debug data, or the
+  /// input cannot be parsed. The context refers to the input's contents, so the
+  /// Input and its MemoryArea must remain alive until the context is deleted or
+  /// this ELFObjectFile is destroyed.
+  void createDWARFContext();
 
+  /// Return the context created by createDWARFContext, or nullptr when no
+  /// context is available. The returned pointer is owned by this object and is
+  /// invalidated by deleteDWARFContext or destruction of this ELFObjectFile.
   llvm::DWARFContext *getDWARFContext() { return DWARFContext.get(); }
 
-  void deleteDWARFContext() { DWARFContext.reset(); }
+  /// Destroy the retained context. Any pointers or references obtained from
+  /// getDWARFContext become invalid.
+  void deleteDWARFContext() {
+    DWARFContext.reset();
+    DWARFContextCreationAttempted = false;
+  }
 
   bool hasDWARFContext() { return !!DWARFContext; }
-
-  void populateDebugSections();
 
   // --- SectionGroup Support
   void addSectionGroup(ELFSection *S) { GroupSections.push_back(S); }
@@ -102,8 +113,7 @@ public:
 
   bool hasSectionAnnotations(const ELFSection &S) const;
 
-  llvm::ArrayRef<std::string>
-  getSectionAnnotations(const ELFSection &S) const;
+  llvm::ArrayRef<std::string> getSectionAnnotations(const ELFSection &S) const;
 
   void setSectionSignatureSymbol(const ELFSection &S, LDSymbol *Sym) {
     if (Sym)
@@ -124,7 +134,7 @@ private:
   eld::TimingSection *timingSection = nullptr;
   bool IsResultFromLTO = false;
   std::unique_ptr<llvm::DWARFContext> DWARFContext;
-  std::vector<std::unique_ptr<llvm::MemoryBuffer>> DebugSections;
+  bool DWARFContextCreationAttempted = false;
   std::vector<ELFSection *> GroupSections;
   std::unordered_map<const ELFSection *, GroupMemberList>
       GroupMembersByGroupSection;

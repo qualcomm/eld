@@ -7,6 +7,7 @@ llvm_add_library(
   BitcodeFile.cpp
   ELFDynObjectFile.cpp
   ELFFileBase.cpp
+  ELDDWARFObject.cpp
   ELFObjectFile.cpp
   ELFExecutableFile.cpp
   InputAction.cpp
@@ -20,6 +21,7 @@ llvm_add_library(
   SearchDirs.cpp
   SymDefFile.cpp
   LINK_COMPONENTS
-  DebugInfoDWARF)
+  DebugInfoDWARF
+  Object)
 
 target_link_libraries(ELDInput PRIVATE ELDSupport ELDFragment)

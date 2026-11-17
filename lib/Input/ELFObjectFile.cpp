@@ -5,15 +5,16 @@
 //===----------------------------------------------------------------------===//
 
 #include "eld/Input/ELFObjectFile.h"
+#include "ELDDWARFObject.h"
+#include "eld/Diagnostics/Diagnostic.h"
+#include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Input/Input.h"
 #include "eld/Input/InputFile.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
-#include "llvm/ADT/StringMap.h"
 #include "llvm/DebugInfo/DWARF/DWARFContext.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/Compression.h"
 
 using namespace eld;
 
@@ -23,43 +24,48 @@ ELFObjectFile::ELFObjectFile(Input *I, DiagnosticEngine *DiagEngine)
     Contents = I->getFileContents();
 }
 
-void ELFObjectFile::createDWARFContext(bool Is32) {
-  if (DebugSections.empty())
+void ELFObjectFile::createDWARFContext() {
+  if (!getInput() || DWARFContextCreationAttempted)
     return;
+  DWARFContextCreationAttempted = true;
 
-  llvm::StringMap<std::unique_ptr<llvm::MemoryBuffer>> DebugSectMap;
-  uint32_t DebugSectionNo = 0;
-  for (Section *S : getSections()) {
-    llvm::StringRef SectionName = S->name();
-    SectionName = SectionName.substr(SectionName.find_first_not_of("._z"));
-    if (!SectionName.starts_with("debug"))
-      continue;
-    DebugSectMap[SectionName] = std::move(DebugSections[DebugSectionNo++]);
-  }
-
-  ASSERT(DebugSectionNo == DebugSections.size(),
-         "Debug Sections size mismatch");
-
-  llvm::Expected<std::unique_ptr<llvm::DWARFContext>> DC =
-      llvm::DWARFContext::create(DebugSectMap, Is32 ? 4 : 8);
-
-  if (!DC) {
-    llvm::consumeError(DC.takeError());
-    return;
-  }
-  DWARFContext = std::move(*DC);
-}
-
-void ELFObjectFile::populateDebugSections() {
+  // LLVM can create an empty context for an object without debug data, so
+  // check for debug sections before creating the context.
+  bool HasDebugSections = false;
+  bool HasGNUCompressedDebugSections = false;
   for (const Section *S : getSections()) {
-    llvm::StringRef SectionName = S->name();
-    SectionName = SectionName.substr(SectionName.find_first_not_of("._z"));
-    if (!SectionName.starts_with("debug"))
+    const auto *ELFS = llvm::dyn_cast_or_null<ELFSection>(S);
+    if (!ELFS)
       continue;
-    DebugSections.push_back(llvm::MemoryBuffer::getMemBuffer(
-        llvm::dyn_cast<ELFSection>(S)->getContents(), /*BufferName*/ "",
-        /*RequiresNullTerminator*/ false));
+    llvm::StringRef SectionName = ELFS->name();
+    if (SectionName.starts_with(".zdebug_"))
+      HasGNUCompressedDebugSections = true;
+    if (SectionName.starts_with(".debug") ||
+        SectionName.starts_with(".zdebug_")) {
+      HasDebugSections = true;
+    }
   }
+  if (!HasDebugSections)
+    return;
+  if (HasGNUCompressedDebugSections &&
+      !llvm::compression::zlib::isAvailable()) {
+    if (DiagnosticEngine *DiagEngine = getDiagEngine())
+      DiagEngine->raise(Diag::verbose_dwarf_object_unavailable)
+          << getInput()->getName()
+          << "zlib support is unavailable for GNU compressed debug sections";
+    return;
+  }
+
+  eld::Expected<std::unique_ptr<const llvm::DWARFObject>> DWARFObjectOrError =
+      detail::createELDDWARFObject(*this);
+  if (!DWARFObjectOrError) {
+    if (DiagnosticEngine *DiagEngine = getDiagEngine())
+      DiagEngine->raiseDiagEntry(std::move(DWARFObjectOrError.error()));
+    return;
+  }
+
+  DWARFContext =
+      std::make_unique<llvm::DWARFContext>(std::move(*DWARFObjectOrError));
 }
 
 void ELFObjectFile::addSectionAnnotation(const ELFSection &S,
