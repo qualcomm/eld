@@ -43,7 +43,10 @@ You can build ELD either:
 - Integrated into an `llvm-project` build, or
 - Against an external, prebuilt LLVM installation (using a compatible LLVM
   revision, such as an LLVM release or the LLVM packages of a Linux
-  distribution for the matching release branch).
+  distribution for the matching release branch). The compatible LLVM revision for
+  eld main branch is the llvm-project main branch, and for eld release
+  `release/N.x` branches, it is the corresponding llvm-project release
+  `release/N.x` branch.
 
 You will need a recent C++ compiler for building LLVM and ELD.
 
