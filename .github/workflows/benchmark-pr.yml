@@ -92,7 +92,7 @@ jobs:
           workflow: benchmark-baseline.yml
           branch: main
           name: benchmark-baseline
-          path: baseline-artifact
+          path: .
         continue-on-error: true
 
       - name: Compare and post PR comment
@@ -100,21 +100,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          # Check if LLVM version changed between PR and baseline
+          # Warn if workloads.txt changed in this PR — different workloads = baseline not comparable
           NOTICE=""
-          if [ -f baseline-artifact/llvm-version.txt ]; then
-            BASELINE_VER=$(cat baseline-artifact/llvm-version.txt | tr -d '[:space:]')
-            if [ "$BASELINE_VER" != "$LLVM_VER" ]; then
-              NOTICE="> ⚠️ **LLVM version changed: baseline used LLVM ${BASELINE_VER}, this PR uses LLVM ${LLVM_VER}.**"
-              NOTICE="$NOTICE Results are not directly comparable — a new baseline needs to be established."
-            fi
+          if ! git -C eld diff --quiet origin/main...HEAD -- utils/benchmark/workloads.txt; then
+            NOTICE="> ⚠️ **workloads.txt changed in this PR** — baseline results used different workloads and are not directly comparable. A new baseline will be established after merge."
           fi
 
           REGRESSION=0
-          if [ -f baseline-artifact/baseline.json ]; then
+          if [ -f baseline.json ]; then
             python3 eld/utils/benchmark/compare_results.py \
               --pr results-pr.json \
-              --baseline baseline-artifact/baseline.json \
+              --baseline baseline.json \
               --threshold 15 \
               > comment.md || REGRESSION=$?
           else
