@@ -65,6 +65,7 @@ jobs:
             -B build \
             -DELD_USE_EXTERNAL_LLVM=ON \
             -DLLVM_DIR="$LLVM_DIR" \
+            "-DLLVM_TABLEGEN_EXE=/usr/lib/llvm-${LLVM_VER}/bin/llvm-tblgen" \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER=clang-${LLVM_VER} \
             -DCMAKE_CXX_COMPILER=clang++-${LLVM_VER}
