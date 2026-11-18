@@ -49,6 +49,8 @@ jobs:
             libc++-${LLVM_VER}-dev libc++abi-${LLVM_VER}-dev lld-${LLVM_VER} \
             ninja-build cmake time
           echo "LLVM_DIR=/usr/lib/llvm-${LLVM_VER}/lib/cmake/llvm" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=/usr/lib/llvm-${LLVM_VER}/lib" >> $GITHUB_ENV
+          printf 'PATH=/usr/lib/llvm-%s/bin:%s\n' "${LLVM_VER}" "$PATH" >> $GITHUB_ENV
 
       - name: Cache reproducers
         id: cache-reproducers
