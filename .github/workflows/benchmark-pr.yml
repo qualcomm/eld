@@ -84,7 +84,8 @@ jobs:
             -DCMAKE_C_COMPILER=clang-${LLVM_VER} \
             -DCMAKE_CXX_COMPILER=clang++-${LLVM_VER} \
             -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
-            -DLLVM_ENABLE_LLD=ON
+            -DLLVM_ENABLE_LLD=ON \
+            -DLLVM_LINK_LLVM_DYLIB=ON
           cmake --build build --target ld.eld -j$(nproc)
 
       - name: Filter workloads
