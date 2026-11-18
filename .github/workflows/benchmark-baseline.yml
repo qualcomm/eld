@@ -89,7 +89,11 @@ jobs:
           mkdir reproducers-filtered
           WORKLOADS=$(grep -v '^\s*#' eld/utils/benchmark/workloads.txt | xargs)
           for wl in $WORKLOADS; do
-            [ -d "reproducers/$wl" ] && ln -s "$PWD/reproducers/$wl" "reproducers-filtered/$wl"
+            if [ -d "reproducers/$wl" ]; then
+              ln -s "$PWD/reproducers/$wl" "reproducers-filtered/$wl"
+            else
+              echo "WARNING: workload '$wl' not found in reproducers, skipping"
+            fi
           done
 
       - name: Run benchmark (main baseline)
