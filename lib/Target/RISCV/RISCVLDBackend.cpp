@@ -2072,8 +2072,12 @@ void RISCVLDBackend::postRelax(bool &pFinished) {
     // the generic relocation-shift code. The direct-branch repair is needed
     // only for ILUT deletions: ordinary RISC-V relaxations retain their
     // existing relocation-driven behavior, and RV64 cannot create ILUT edits.
-    if (RISCVILUTFragment::hasPendingILUTEdit(*Frag))
-      RISCVILUTFragment::fixupPCRelativeInstructions(*Frag);
+    if (RISCVILUTFragment::hasPendingILUTEdit(*Frag) &&
+        !RISCVILUTFragment::fixupPCRelativeInstructions(*Frag)) {
+      config().raise(Diag::riscv_relaxation_error);
+      m_Module.setFailure(true);
+      return;
+    }
     Frag->commitRelaxEdits();
   }
   m_FragmentsWithPendingRelaxEdits.clear();
