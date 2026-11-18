@@ -403,6 +403,71 @@ bool RISCVRelocator::isPICRelocTypeSupported(const Relocation &reloc) const {
   }
 }
 
+bool RISCVRelocator::needsSerialScan(const Relocation &Reloc,
+                                     const ELFSection &) const {
+  ResolveInfo *Sym = Reloc.symInfo();
+  const Relocation::Type Type = Reloc.type();
+  const RelocationScanKind Kind = getRelocationScanKind(Type);
+
+  if (Kind == RelocationScanKind::TLSDESC) {
+    if (Type == llvm::ELF::R_RISCV_TLSDESC_ADD_LO12)
+      return true;
+    return !config().isBuildingExecutable() ||
+           m_Target.isSymbolPreemptible(*Sym);
+  }
+
+  if (!Sym->isLocal() && Sym->isIFunc() && config().isCodeStatic())
+    return true;
+
+  switch (Kind) {
+  case RelocationScanKind::Address:
+    if (Sym->isLocal())
+      return (Type == llvm::ELF::R_RISCV_32 || Type == llvm::ELF::R_RISCV_64) &&
+             config().isCodeIndep();
+    return config().isCodeIndep() || m_Target.isSymbolPreemptible(*Sym);
+  case RelocationScanKind::GOT:
+  case RelocationScanKind::TLSGD:
+  case RelocationScanKind::TLSGOT:
+    return true;
+  case RelocationScanKind::Calls:
+    return !Sym->isLocal() && !config().isCodeStatic() &&
+           m_Target.isSymbolPreemptible(*Sym);
+  case RelocationScanKind::None:
+  case RelocationScanKind::TLSDESC:
+    return false;
+  }
+}
+
+RISCVRelocator::RelocationScanKind
+RISCVRelocator::getRelocationScanKind(Relocation::Type Type) const {
+  switch (Type) {
+  case llvm::ELF::R_RISCV_32:
+  case llvm::ELF::R_RISCV_64:
+  case llvm::ELF::R_RISCV_HI20:
+  case llvm::ELF::R_RISCV_LO12_I:
+  case llvm::ELF::R_RISCV_LO12_S:
+  case eld::ELF::riscv::internal::R_RISCV_QC_E_32:
+    return RelocationScanKind::Address;
+  case llvm::ELF::R_RISCV_GOT_HI20:
+    return RelocationScanKind::GOT;
+  case llvm::ELF::R_RISCV_TLS_GD_HI20:
+    return RelocationScanKind::TLSGD;
+  case llvm::ELF::R_RISCV_TLS_GOT_HI20:
+    return RelocationScanKind::TLSGOT;
+  case llvm::ELF::R_RISCV_CALL:
+  case llvm::ELF::R_RISCV_CALL_PLT:
+  case eld::ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT:
+    return RelocationScanKind::Calls;
+  case llvm::ELF::R_RISCV_TLSDESC_HI20:
+  case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
+  case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
+  case llvm::ELF::R_RISCV_TLSDESC_CALL:
+    return RelocationScanKind::TLSDESC;
+  default:
+    return RelocationScanKind::None;
+  }
+}
+
 void RISCVRelocator::scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
                                             ELFSection &Section,
                                             CopyRelocs &CopyRelocSet) {
@@ -411,11 +476,7 @@ void RISCVRelocator::scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
   ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&Input);
 
   // Common relocation processing for both local and global symbols.
-  switch (Reloc.type()) {
-  case llvm::ELF::R_RISCV_TLSDESC_HI20:
-  case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
-  case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
-  case llvm::ELF::R_RISCV_TLSDESC_CALL: {
+  if (getRelocationScanKind(Reloc.type()) == RelocationScanKind::TLSDESC) {
     if (config().isBuildingExecutable()) {
       // Non-preemptible symbols in executables will be optimized or relaxed,
       // no GOT needed.
@@ -454,10 +515,6 @@ void RISCVRelocator::scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
     return;
   }
 
-  default:
-    break;
-  }
-
   if (Sym->isLocal())
     scanLocalReloc(Input, Reloc, Builder, Section);
   else
@@ -483,14 +540,15 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
 
   // Special case when the linker makes a symbol local for example linker
   // defined symbols such as _DYNAMIC
-  switch (pReloc.type()) {
-  case llvm::ELF::R_RISCV_32:
-  case llvm::ELF::R_RISCV_64:
+  switch (getRelocationScanKind(pReloc.type())) {
+  case RelocationScanKind::Address:
+    if (pReloc.type() != llvm::ELF::R_RISCV_32 &&
+        pReloc.type() != llvm::ELF::R_RISCV_64)
+      return;
     // If building PIC object (shared library or PIC executable),
     // a dynamic relocations with RELATIVE type to this location is needed.
     // Reserve an entry in .rel.dyn
     if (config().isCodeIndep()) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
       if (!checkDynamicRelocAllowed(pReloc, pSection, true))
         return;
       helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
@@ -500,8 +558,7 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
       rsym->setReserved(rsym->reserved() | ReserveRel);
     }
     return;
-  case llvm::ELF::R_RISCV_GOT_HI20: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::GOT: {
     // Symbol needs GOT entry, reserve entry in .got
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
@@ -513,8 +570,7 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
-  case llvm::ELF::R_RISCV_TLS_GD_HI20: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSGD: {
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
       config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
@@ -542,8 +598,7 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     G->getNext()->setValueType(GOT::SymbolValue);
     break;
   }
-  case llvm::ELF::R_RISCV_TLS_GOT_HI20: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSGOT: {
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
       config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
@@ -563,7 +618,9 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     break;
   }
 
-  default:
+  case RelocationScanKind::None:
+  case RelocationScanKind::Calls:
+  case RelocationScanKind::TLSDESC:
     break;
   }
 }
@@ -580,14 +637,8 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     return handleScanForNonPreemptibleIFunc(pReloc, Obj);
 
   RISCVLDBackend &ld_backend = getTarget();
-  switch (pReloc.type()) {
-  case llvm::ELF::R_RISCV_32:
-  case llvm::ELF::R_RISCV_64:
-  case llvm::ELF::R_RISCV_HI20:
-  case llvm::ELF::R_RISCV_LO12_I:
-  case llvm::ELF::R_RISCV_LO12_S:
-  case eld::ELF::riscv::internal::R_RISCV_QC_E_32: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  switch (getRelocationScanKind(pReloc.type())) {
+  case RelocationScanKind::Address: {
     ReservedEntryType reservedEntryType = Relocator::None;
     bool isSymbolPreemptible = m_Target.isSymbolPreemptible(*rsym);
 
@@ -632,8 +683,7 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     return;
   }
 
-  case llvm::ELF::R_RISCV_GOT_HI20: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::GOT: {
     // Symbol needs GOT entry, reserve entry in .got
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
@@ -650,10 +700,7 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     return;
   }
 
-  case llvm::ELF::R_RISCV_CALL:
-  case llvm::ELF::R_RISCV_CALL_PLT:
-  case eld::ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::Calls: {
     if (rsym->reserved() & ReservePLT)
       return;
     if (!config().isCodeStatic() && ld_backend.isSymbolPreemptible(*rsym)) {
@@ -663,8 +710,7 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     return;
   }
 
-  case llvm::ELF::R_RISCV_TLS_GD_HI20: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSGD: {
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
       config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
@@ -696,8 +742,7 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     break;
   }
 
-  case llvm::ELF::R_RISCV_TLS_GOT_HI20: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  case RelocationScanKind::TLSGOT: {
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
       config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
@@ -718,7 +763,8 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     break;
   }
 
-  default:
+  case RelocationScanKind::None:
+  case RelocationScanKind::TLSDESC:
     break;
   }
 }
@@ -744,7 +790,6 @@ void RISCVRelocator::partialScanRelocation(Relocation &pReloc,
 
 RISCVGOT *RISCVRelocator::getTLSModuleID(ResolveInfo *R) {
   static RISCVGOT *G = nullptr;
-  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
   if (G != nullptr) {
     m_Target.recordGOT(R, G);
     return G;
@@ -1134,7 +1179,6 @@ RISCVRelocator::Result applyVendor(Relocation &pReloc, RISCVLDBackend &,
 
 void RISCVRelocator::handleScanForNonPreemptibleIFunc(Relocation &R,
                                                       ELFObjectFile *Obj) {
-  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
   ResolveInfo *RI = R.symInfo();
   Relocator::Type relocType = R.type();
 

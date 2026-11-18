@@ -1,4 +1,5 @@
 name: Zephyr with ELD
+run-name: "Zephyr ${{ inputs.pr_number && format('PR #{0} @{1}', inputs.pr_number, inputs.pr_sha) || 'nightly' }}"
 # owner: quic-areg
 
 # Run Zephyr nightly or against a PR's ELD toolset.
@@ -37,14 +38,45 @@ on:
         default: "install-pr-toolset.tar.xz"
 
 jobs:
-  zephyr:
+  resolve-zephyr-revision:
+    name: Resolve weekly Zephyr revision
     if: |
       github.repository == 'qualcomm/eld' &&
        ((github.event_name == 'workflow_run' &&
          github.event.workflow_run.conclusion == 'success') ||
         github.event_name == 'workflow_dispatch' ||
-        github.event_name == 'workflow_call' ||
         inputs.pr_sha != '')
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+    steps:
+      - name: Resolve weekly Zephyr revision
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          now="$(date -u +%s)"
+          dow="$(date -u -d "@${now}" +%w)"
+          sunday_utc="$(date -u -d "@$((now - dow * 86400))" +%Y-%m-%dT00:00:00Z)"
+          commits="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 --retry-connrefused \
+            --get \
+            --data-urlencode 'sha=main' \
+            --data-urlencode "until=${sunday_utc}" \
+            --data-urlencode 'per_page=1' \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            https://api.github.com/repos/zephyrproject-rtos/zephyr/commits)"
+          zephyr_sha="$(python3 -c 'import json, sys; commits = json.load(sys.stdin); print(commits[0]["sha"] if commits else "")' <<< "$commits")"
+          if [[ ! "$zephyr_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Could not resolve Zephyr main at ${sunday_utc}" >&2
+            exit 1
+          fi
+          echo "sha=${zephyr_sha}" >> "$GITHUB_OUTPUT"
+          echo "Pinning Zephyr to ${zephyr_sha} (main as of ${sunday_utc})"
+
+  zephyr:
+    needs: resolve-zephyr-revision
     permissions:
       contents: write
       actions: write
@@ -75,6 +107,7 @@ jobs:
       - name: Checkout eld
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: ${{ inputs.pr_sha == '' }}
           path: llvm-project/llvm/tools/eld
 
       - name: Prepare ccache dir
@@ -184,11 +217,16 @@ jobs:
       - name: Clone Zephyr
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: ${{ inputs.pr_sha == '' }}
           repository: zephyrproject-rtos/zephyr
+          ref: ${{ needs.resolve-zephyr-revision.outputs.sha }}
           path: zephyr
 
       - name: Set safe.directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE/zephyr"
+
+      - name: Record Zephyr commit
+        run: git -C zephyr rev-parse HEAD
 
       - name: West setup
         shell: bash
@@ -290,7 +328,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 #v7.0.2
         with:
-          name: zephyr-twister-results-${{ matrix.target.board }}
+          name: zephyr-twister-results${{ inputs.pr_sha && format('-pr-{0}', inputs.pr_number) || '' }}-${{ matrix.target.board }}
           # Keep a fallback copy in case the workflow fails before cleanup.
           retention-days: 7
           path: |
@@ -315,6 +353,7 @@ jobs:
           steps.build_hello_world.outcome == 'success' &&
           inputs.pr_sha == '' &&
           matrix.target.arch == 'riscv64'
+        id: save_ccache
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
@@ -323,12 +362,11 @@ jobs:
       - name: Delete old ccache entries
         if: |
           always() &&
-          steps.build_hello_world.outcome == 'success' &&
-          inputs.pr_sha == '' &&
+          steps.save_ccache.outcome == 'success' &&
           matrix.target.arch == 'riscv64'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldCaches
         with:
-          cache-key-prefixes: zephyr-ccache-
+          cache-key-prefixes: zephyr-ccache-${{ matrix.target.arch }}-${{ matrix.target.toolchain || 'cpullvm' }}-
 
       - name: Update build entry
         if: success() && inputs.pr_sha == ''
@@ -343,10 +381,8 @@ jobs:
           run-id: ${{github.run_id}}
 
       - name: Delete older Zephyr results
-        if: success()
+        if: success() && inputs.pr_sha == ''
         continue-on-error: true
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/DeleteOldArtifacts
         with:
           artifact-names: zephyr-twister-results-${{ matrix.target.board }}
-          workflow-id: zephyr.yml
-          pull-request-number: ${{ inputs.pr_number }}

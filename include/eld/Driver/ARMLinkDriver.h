@@ -64,9 +64,6 @@ public:
   // Process the linker options.
   template <class T> bool processOptions(llvm::opt::InputArgList &Args);
 
-  // Process LLVM options.
-  template <class T> bool processLLVMOptions(llvm::opt::InputArgList &Args);
-
   // Process Target specific options.
   template <class T> bool processTargetOptions(llvm::opt::InputArgList &Args);
 

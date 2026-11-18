@@ -96,7 +96,7 @@ X86_32Relocator::X86_32Relocator(X86_32LDBackend &pParent,
     : Relocator(pConfig, pModule), m_Target(pParent) {}
 
 bool X86_32Relocator::canIssueUndefRef(ResolveInfo *Sym) {
-  // _GLOBAL_OFFSET_TABLE_ is created while GOT-base relocations are replayed
+  // _GLOBAL_OFFSET_TABLE_ is created while GOT-base relocations are scanned
   // in the serial scan phase.
   if (isGOTBaseSymbol(Sym))
     return false;
@@ -129,6 +129,11 @@ bool X86_32Relocator::isRelocSupported(const Relocation &Reloc) const {
   return isSupportedRelocation(Reloc.type()) &&
          (!isGOTBaseSymbol(Reloc.symInfo()) ||
           isGOTBaseRelocation(Reloc.type()));
+}
+
+bool X86_32Relocator::needsSerialScan(const Relocation &Reloc,
+                                      const ELFSection &) const {
+  return isGOTBaseRelocation(Reloc.type());
 }
 
 void X86_32Relocator::scanDeferredRelocation(InputFile &, Relocation &Reloc,

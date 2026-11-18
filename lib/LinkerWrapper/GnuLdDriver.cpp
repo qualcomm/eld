@@ -50,6 +50,7 @@
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
+#include <optional>
 #include <thread>
 
 using namespace llvm;
@@ -1029,6 +1030,22 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   } else
     Config.setCodeGenType(eld::LinkerConfig::Exec);
 
+  Arg *ICFArg = Args.getLastArg(T::icf);
+  std::optional<GeneralOptions::ICFMode> ParsedICF;
+  if (ICFArg) {
+    StringRef Mode = ICFArg->getValue();
+    if (Mode == "all")
+      ParsedICF = GeneralOptions::ICFMode::All;
+    else if (Mode == "safe")
+      ParsedICF = GeneralOptions::ICFMode::Safe;
+    else if (Mode == "none")
+      ParsedICF = GeneralOptions::ICFMode::None;
+    else {
+      Config.raise(Diag::invalid_value_for_option) << "--icf" << Mode;
+      return false;
+    }
+  }
+
   // Disable --gc-sections, --print-gc-sections for Partial Linking.
   if (Config.codeGenType() != eld::LinkerConfig::Object) {
     // --[no-]gc-sections
@@ -1038,6 +1055,21 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.addCommandLine(Table->getOptionName(T::gc_sections), enableGC);
     // --print-gc-sections
     Config.options().setPrintGCSections(Args.hasArg(T::print_gc_sections));
+
+    if (ParsedICF) {
+      Config.options().setICFMode(*ParsedICF);
+      Config.addCommandLine(Table->getOptionName(T::icf), ICFArg->getValue());
+    }
+    Config.options().setPrintICFSections(Args.hasArg(T::print_icf_sections));
+  } else {
+    // ICF is not supported for partial links.
+    if (ParsedICF && *ParsedICF != GeneralOptions::ICFMode::None) {
+      Config.raise(Diag::err_icf_relocatable) << ICFArg->getValue();
+      return false;
+    }
+    if (Args.hasArg(T::print_icf_sections))
+      Config.raise(Diag::warn_incompatible_option)
+          << "-print-icf-sections" << "relocatable";
   }
 
   // Disable emit relocs if -shared/-pie/relocatable
@@ -1587,17 +1619,6 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
   return true;
 }
 
-template <class T>
-bool GnuLdDriver::processLLVMOptions(llvm::opt::InputArgList &Args) const {
-  // Parse and evaluate -mllvm options.
-  std::vector<const char *> V;
-  V.push_back("eld (LLVM option parsing)");
-  for (auto *Arg : Args.filtered(T::mllvm))
-    V.push_back(Arg->getValue());
-  cl::ParseCommandLineOptions(V.size(), V.data());
-  return true;
-}
-
 // march values for RISCV can also be rv32i, rv32g, rv32imc, rv64 etc
 // These need to be converted to riscv32 or riscv64 for LLVM target
 // registry entry to be found by the driver.
@@ -1939,9 +1960,14 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
                                     std::vector<std::string> &LLVMOptions) {
   llvm::opt::InputArgList &Args = Config.options().parsedArgs();
 
-  // LLVM options will be applied by the caller.
-  for (opt::Arg *Arg : Args.filtered(OptTable::plugin_opt_eq_minus))
-    LLVMOptions.push_back(std::string("-") + Arg->getValue());
+  // LLVM options will be applied by the caller. Keep the command-line order
+  // since multiple options may override one another.
+  for (opt::Arg *Arg : Args) {
+    if (Arg->getOption().matches(OptTable::plugin_opt_eq_minus))
+      LLVMOptions.push_back(std::string("-") + Arg->getValue());
+    else if (Arg->getOption().matches(OptTable::mllvm))
+      LLVMOptions.push_back(Arg->getValue());
+  }
 
   if (const auto *Arg = Args.getLastArg(OptTable::lto_cs_profile_file))
     Conf.CSIRProfile = Arg->getValue();
@@ -2408,8 +2434,6 @@ int GnuLdDriver::link(llvm::ArrayRef<const char *> Args,
   // only used for LTO options, but can be expanded to track unused aguments.
   auto &ArgList = Config.options().setParsedArgs(std::move(ArgListLocal));
 
-  if (!processLLVMOptions<OPT_GnuLdOptTable>(ArgList))
-    return LINK_FAIL;
   if (!processTargetOptions<OPT_GnuLdOptTable>(ArgList))
     return LINK_FAIL;
   if (!processOptions<OPT_GnuLdOptTable>(ArgList))
@@ -2437,8 +2461,6 @@ template bool GnuLdDriver::checkOptions<OPT_HexagonLinkOptTable>(
     llvm::opt::InputArgList &args) const;
 template bool GnuLdDriver::processOptions<OPT_HexagonLinkOptTable>(
     llvm::opt::InputArgList &args);
-template bool GnuLdDriver::processLLVMOptions<OPT_HexagonLinkOptTable>(
-    llvm::opt::InputArgList &args) const;
 template bool GnuLdDriver::processTargetOptions<OPT_HexagonLinkOptTable>(
     llvm::opt::InputArgList &args);
 template bool GnuLdDriver::createInputActions<OPT_HexagonLinkOptTable>(
@@ -2460,8 +2482,6 @@ template bool GnuLdDriver::checkOptions<OPT_ARMLinkOptTable>(
     llvm::opt::InputArgList &args) const;
 template bool
 GnuLdDriver::processOptions<OPT_ARMLinkOptTable>(llvm::opt::InputArgList &args);
-template bool GnuLdDriver::processLLVMOptions<OPT_ARMLinkOptTable>(
-    llvm::opt::InputArgList &args) const;
 template bool GnuLdDriver::processTargetOptions<OPT_ARMLinkOptTable>(
     llvm::opt::InputArgList &args);
 template bool GnuLdDriver::createInputActions<OPT_ARMLinkOptTable>(
@@ -2484,8 +2504,6 @@ template bool GnuLdDriver::checkOptions<OPT_RISCVLinkOptTable>(
     llvm::opt::InputArgList &args) const;
 template bool GnuLdDriver::processOptions<OPT_RISCVLinkOptTable>(
     llvm::opt::InputArgList &args);
-template bool GnuLdDriver::processLLVMOptions<OPT_RISCVLinkOptTable>(
-    llvm::opt::InputArgList &args) const;
 template bool GnuLdDriver::processTargetOptions<OPT_RISCVLinkOptTable>(
     llvm::opt::InputArgList &args);
 template bool GnuLdDriver::createInputActions<OPT_RISCVLinkOptTable>(
@@ -2507,8 +2525,6 @@ template bool GnuLdDriver::checkOptions<OPT_TemplateLinkOptTable>(
     llvm::opt::InputArgList &args) const;
 template bool GnuLdDriver::processOptions<OPT_TemplateLinkOptTable>(
     llvm::opt::InputArgList &args);
-template bool GnuLdDriver::processLLVMOptions<OPT_TemplateLinkOptTable>(
-    llvm::opt::InputArgList &args) const;
 template bool GnuLdDriver::processTargetOptions<OPT_TemplateLinkOptTable>(
     llvm::opt::InputArgList &args);
 template bool GnuLdDriver::createInputActions<OPT_TemplateLinkOptTable>(
@@ -2530,8 +2546,6 @@ template bool GnuLdDriver::checkOptions<OPT_x86_64LinkOptTable>(
     llvm::opt::InputArgList &args) const;
 template bool GnuLdDriver::processOptions<OPT_x86_64LinkOptTable>(
     llvm::opt::InputArgList &args);
-template bool GnuLdDriver::processLLVMOptions<OPT_x86_64LinkOptTable>(
-    llvm::opt::InputArgList &args) const;
 template bool GnuLdDriver::processTargetOptions<OPT_x86_64LinkOptTable>(
     llvm::opt::InputArgList &args);
 template bool GnuLdDriver::createInputActions<OPT_x86_64LinkOptTable>(

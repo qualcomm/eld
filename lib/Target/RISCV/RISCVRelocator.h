@@ -51,7 +51,22 @@ protected:
                               ELFSection &Section,
                               CopyRelocs &CopyRelocSet) override;
 
+  bool needsSerialScan(const Relocation &Reloc,
+                       const ELFSection &Section) const override;
+
 private:
+  enum class RelocationScanKind {
+    None,
+    Address,
+    GOT,
+    TLSGD,
+    TLSGOT,
+    Calls,
+    TLSDESC,
+  };
+
+  RelocationScanKind getRelocationScanKind(Relocation::Type Type) const;
+
   bool isPICRelocTypeSupported(const Relocation &reloc) const override;
 
   virtual void scanLocalReloc(InputFile &pInput, Relocation &pReloc,

@@ -62,6 +62,7 @@ following checks by commenting the command on the pull request:
 | Comment | Check |
 | --- | --- |
 | `check-llvm-test-suite` | LLVM test suite |
+| `check-relocation-testing` | Relocation testing framework |
 | `check-linux-kernel` | Linux kernel boot with ELD |
 | `check-busybox` | BusyBox with ELD |
 | `check-reviter` | Reverse iterator build and tests |

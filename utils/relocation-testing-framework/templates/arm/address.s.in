@@ -1,0 +1,19 @@
+@ Address relocation under test resolves v, a data object. The program loads
+@ through that address and exits with v's value, 42.
+.syntax unified
+.arm
+
+.global _start
+
+.text
+_start:
+{{usage}}
+  ldr r0, [{{scratch_reg}}]
+  mov r7, #1
+  svc #0
+
+.data
+.{{binding}} v
+{{visibility}}
+v:
+  .word 42

@@ -66,10 +66,6 @@ public:
   template <class T = OPT_x86_64LinkOptTable>
   bool processOptions(llvm::opt::InputArgList &Args);
 
-  // Process LLVM options.
-  template <class T = OPT_x86_64LinkOptTable>
-  bool processLLVMOptions(llvm::opt::InputArgList &Args);
-
   // Process Target specific options.
   template <class T = OPT_x86_64LinkOptTable>
   bool processTargetOptions(llvm::opt::InputArgList &Args);

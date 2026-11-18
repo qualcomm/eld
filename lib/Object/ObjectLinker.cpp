@@ -118,8 +118,6 @@ private:
   std::mutex MMutex;
 };
 
-codegen::RegisterCodeGenFlags CGF;
-
 } // namespace
 
 //===----------------------------------------------------------------------===//
@@ -2374,7 +2372,7 @@ bool ObjectLinker::scanRelocations(bool IsPartialLink) {
   }
 
   if (RunParallel)
-    Reloc->replayScanRelocations(CopyRelocSet);
+    Reloc->scanDeferredRelocations(CopyRelocSet);
 
   // assume there is only one copy relocation type per target
   Relocation::Type CopyRelocType = getTargetBackend().getCopyRelType();
@@ -3571,7 +3569,9 @@ bool ObjectLinker::createLTOObject(void) {
   cl::LibraryOptionsContext libraryOptions;
   std::string Err;
   raw_string_ostream OS(Err);
-  if (!cl::parseCommandLineOptions(libraryOptions, CodegenArgv, "", &OS)) {
+  if (!cl::parseCommandLineOptions(libraryOptions,
+                                   llvm::codegen::getToolOptions(), CodegenArgv,
+                                   "", &OS)) {
     ThisConfig.raise(Diag::lto_codegen_error) << StringRef(Err);
     return false;
   }
