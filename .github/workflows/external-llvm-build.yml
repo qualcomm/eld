@@ -1,0 +1,84 @@
+name: External LLVM build
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ELD against installed LLVM
+    if: github.repository == 'qualcomm/eld'
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout ELD
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: release/23.x
+
+      - name: Install LLVM 23 and build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo install -d -m 0755 /usr/share/keyrings
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | gpg --dearmor \
+            | sudo tee /usr/share/keyrings/llvm-archive-keyring.gpg >/dev/null
+          UBUNTU_CODENAME="$(. /etc/os-release && echo "${VERSION_CODENAME}")"
+          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] https://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-23 main" \
+            | sudo tee /etc/apt/sources.list.d/llvm-23.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang-23 \
+            cmake \
+            libc++-23-dev \
+            libc++abi-23-dev \
+            lld-23 \
+            llvm-23 \
+            llvm-23-dev \
+            llvm-23-tools \
+            libgtest-dev \
+            ninja-build \
+            python3-venv
+          echo "/usr/lib/llvm-23/bin" >> "$GITHUB_PATH"
+          echo "LD_LIBRARY_PATH=/usr/lib/llvm-23/lib:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+
+      - name: Install lit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv "${RUNNER_TEMP}/lit-venv"
+          "${RUNNER_TEMP}/lit-venv/bin/pip" install lit
+          echo "LLVM_EXTERNAL_LIT=${RUNNER_TEMP}/lit-venv/bin/lit" >> "$GITHUB_ENV"
+
+      - name: Prepare external LLVM layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXT_LLVM_DIR="${GITHUB_WORKSPACE}/external-llvm"
+          LLVM_PREFIX=/usr/lib/llvm-23
+          mkdir -p "${EXT_LLVM_DIR}/bin" "${EXT_LLVM_DIR}/lib/cmake"
+          ln -s "$(command -v clang-23)" "${EXT_LLVM_DIR}/bin/clang"
+          ln -s "$(command -v clang++-23)" "${EXT_LLVM_DIR}/bin/clang++"
+          ln -s "${LLVM_PREFIX}/bin/llvm-tblgen" "${EXT_LLVM_DIR}/bin/llvm-tblgen"
+          ln -s "${LLVM_PREFIX}/lib/cmake/llvm" "${EXT_LLVM_DIR}/lib/cmake/llvm"
+          echo "EXT_LLVM_DIR=${EXT_LLVM_DIR}" >> "$GITHUB_ENV"
+
+      - name: Configure, build, and test ELD
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./configure_external_llvm.sh \
+            "${EXT_LLVM_DIR}" \
+            "${GITHUB_WORKSPACE}/external-eld-build" \
+            --target check-eld \
+            -- \
+              -DLLVM_ENABLE_SPHINX=OFF \
+              -DELD_INCLUDE_TESTS=ON \
+              -DLLVM_EXTERNAL_LIT="${LLVM_EXTERNAL_LIT}"
+          "${GITHUB_WORKSPACE}/external-eld-build/bin/ld.eld" --version
