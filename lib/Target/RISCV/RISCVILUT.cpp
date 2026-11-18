@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <cstring>
 #include <map>
+#include <numeric>
 #include <set>
 
 using namespace eld;
@@ -996,27 +997,19 @@ void RISCVILUTFragment::finalizeContents() {
   // Put 8-byte entries first because qc.itdec represents their count as a
   // leading run. Remap every selected use to the reordered entry indices.
   std::vector<Entry> OldEntries = Entries;
-  llvm::stable_sort(
-      Entries, [](const Entry &A, const Entry &B) { return A.Size > B.Size; });
+  std::vector<unsigned> Order(Entries.size());
+  std::iota(Order.begin(), Order.end(), 0);
+  std::stable_sort(Order.begin(), Order.end(), [&](unsigned A, unsigned B) {
+    return OldEntries[A].Size > OldEntries[B].Size;
+  });
 
-  // Rebuild old-to-new indices after sorting. Entries are deduplicated by
-  // size and payload, so each old entry has one matching sorted entry.
-  std::vector<unsigned> Remap;
-  for (const Entry &E : Entries) {
-    unsigned Old = 0;
-    for (; Old < OldEntries.size(); ++Old)
-      if (OldEntries[Old].Size == E.Size && OldEntries[Old].Bytes == E.Bytes)
-        break;
-    Remap.push_back(Old);
+  std::vector<unsigned> OldToNew(Entries.size());
+  for (unsigned New = 0; New < Order.size(); ++New) {
+    Entries[New] = OldEntries[Order[New]];
+    OldToNew[Order[New]] = New;
   }
-  for (auto &KV : Uses) {
-    unsigned Old = KV.second.EntryIndex;
-    for (unsigned New = 0; New < Remap.size(); ++New)
-      if (Remap[New] == Old) {
-        KV.second.EntryIndex = New;
-        break;
-      }
-  }
+  for (auto &KV : Uses)
+    KV.second.EntryIndex = OldToNew[KV.second.EntryIndex];
 
   // DEC counts the leading 8-byte entries. The final table size is the sum
   // of their slot widths and those of the remaining entries.
