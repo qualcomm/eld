@@ -1,99 +1,86 @@
 name: Benchmark PR
 
+# Triggered when a maintainer applies the "run-benchmark" label to a PR.
+# Builds ELD from the PR branch (standalone, against pre-built LLVM on bot02),
+# runs the benchmark, compares against the stored baseline, and posts a comment.
+#
+# Self-hosted runner on llvm-main-bot02 (label: eld-benchmark) is required
+# because the benchmark workloads need >7 GB RAM and a fast CPU.
+
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [labeled]
 
 permissions:
   pull-requests: write
   contents: read
-  actions: read
 
 jobs:
   benchmark:
     name: ELD linker performance benchmark
-    runs-on: ubuntu-latest
+    if: github.event.label.name == 'run-benchmark'
+    runs-on: [self-hosted, eld-benchmark]
+
+    env:
+      LLVM_CMAKE_DIR: /local/mnt/workspace/fankita/llvm-project/obj/lib/cmake/llvm
+      REPRODUCERS_DIR: /nix/store/7bnlb36ld38yj0yc7c9cgby8ph00sgj6-lld-speed-test
+      BASELINE_PATH: /local/mnt/workspace/fankita/eld-benchmark/baseline.json
+      BUILD_DIR: /tmp/eld-pr-build-${{ github.event.pull_request.number }}
 
     steps:
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y cmake ninja-build clang time python3
-
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           path: eld
 
-      - name: Checkout LLVM
-        uses: actions/checkout@v4
-        with:
-          repository: llvm/llvm-project
-          ref: main
-          path: llvm-project
-          fetch-depth: 1
-
-      - name: Build ELD (PR branch)
+      - name: Build ELD (PR branch, standalone)
         run: |
           cmake -G Ninja \
-            -S llvm-project/llvm \
-            -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_CXX_COMPILER=clang++ \
-            -DLLVM_ENABLE_PROJECTS="" \
-            -DLLVM_EXTERNAL_PROJECTS=eld \
-            -DLLVM_EXTERNAL_ELD_SOURCE_DIR=${{ github.workspace }}/eld \
-            -DLLVM_TARGETS_TO_BUILD="AArch64;ARM;Hexagon;RISCV;X86"
-          cmake --build build --target ld.eld -j$(nproc)
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@v27
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-
-      - name: Collect reproducers
-        run: nix-build eld/utils/benchmark/collect.nix -o reproducers
+            -S ${{ github.workspace }}/eld \
+            -B ${{ env.BUILD_DIR }} \
+            -DELD_USE_EXTERNAL_LLVM=ON \
+            -DLLVM_DIR=${{ env.LLVM_CMAKE_DIR }} \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build ${{ env.BUILD_DIR }} --target ld.eld -j$(nproc)
 
       - name: Run benchmark (PR branch)
         run: |
-          bash eld/utils/benchmark/run_benchmark.sh \
-            --eld build/bin/ld.eld \
-            --reproducers reproducers \
-            > results-pr.json
-
-      - name: Download baseline artifact
-        id: download-baseline
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: benchmark-baseline.yml
-          branch: main
-          name: benchmark-baseline
-          path: .
-        continue-on-error: true
+          bash ${{ github.workspace }}/eld/utils/benchmark/run_benchmark.sh \
+            --eld ${{ env.BUILD_DIR }}/bin/ld.eld \
+            --reproducers ${{ env.REPRODUCERS_DIR }} \
+            > /tmp/results-pr-${{ github.event.pull_request.number }}.json
 
       - name: Compare and post PR comment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_JSON: /tmp/results-pr-${{ github.event.pull_request.number }}.json
         run: |
-          if [ -f baseline.json ]; then
-            python3 eld/utils/benchmark/compare_results.py \
-              --pr results-pr.json \
-              --baseline baseline.json \
+          if [ -f "${{ env.BASELINE_PATH }}" ]; then
+            python3 ${{ github.workspace }}/eld/utils/benchmark/compare_results.py \
+              --pr "$PR_JSON" \
+              --baseline "${{ env.BASELINE_PATH }}" \
               --threshold 5 \
-              > comment.md
+              > /tmp/comment.md || true
           else
-            python3 eld/utils/benchmark/compare_results.py \
-              --pr results-pr.json \
+            python3 ${{ github.workspace }}/eld/utils/benchmark/compare_results.py \
+              --pr "$PR_JSON" \
               --threshold 5 \
-              > comment.md
+              > /tmp/comment.md || true
           fi
 
           gh pr comment "$PR_NUMBER" \
             --repo ${{ github.repository }} \
-            --body-file comment.md \
+            --body-file /tmp/comment.md \
             --edit-last || \
           gh pr comment "$PR_NUMBER" \
             --repo ${{ github.repository }} \
-            --body-file comment.md
+            --body-file /tmp/comment.md
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -rf ${{ env.BUILD_DIR }}
+          rm -f /tmp/results-pr-${{ github.event.pull_request.number }}.json \
+                /tmp/comment.md

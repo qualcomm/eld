@@ -1,71 +1,64 @@
 name: Benchmark Baseline (main)
 
+# Runs on bot02 self-hosted runner whenever main advances.
+# Builds ELD from main (standalone, against pre-built LLVM on bot02),
+# runs the benchmark, and writes baseline.json to a persistent path on bot02
+# so benchmark-pr.yml can compare against it without any third-party actions.
+
 on:
   push:
     branches: [main]
-  schedule:
-    - cron: '0 2 * * *'  # daily at 2am UTC
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# Serialise baseline runs so we never write baseline.json concurrently.
+concurrency:
+  group: eld-benchmark-baseline
+  cancel-in-progress: false
+
 jobs:
   baseline:
     name: Build and benchmark ELD on main
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, eld-benchmark]
+
+    env:
+      LLVM_CMAKE_DIR: /local/mnt/workspace/fankita/llvm-project/obj/lib/cmake/llvm
+      REPRODUCERS_DIR: /nix/store/7bnlb36ld38yj0yc7c9cgby8ph00sgj6-lld-speed-test
+      BASELINE_PATH: /local/mnt/workspace/fankita/eld-benchmark/baseline.json
+      BUILD_DIR: /tmp/eld-baseline-build
 
     steps:
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y cmake ninja-build clang time python3
-
       - name: Checkout main
         uses: actions/checkout@v4
         with:
           path: eld
 
-      - name: Checkout LLVM
-        uses: actions/checkout@v4
-        with:
-          repository: llvm/llvm-project
-          ref: main
-          path: llvm-project
-          fetch-depth: 1
-
-      - name: Build ELD (main)
+      - name: Build ELD (main, standalone)
         run: |
           cmake -G Ninja \
-            -S llvm-project/llvm \
-            -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_CXX_COMPILER=clang++ \
-            -DLLVM_ENABLE_PROJECTS="" \
-            -DLLVM_EXTERNAL_PROJECTS=eld \
-            -DLLVM_EXTERNAL_ELD_SOURCE_DIR=${{ github.workspace }}/eld \
-            -DLLVM_TARGETS_TO_BUILD="AArch64;ARM;Hexagon;RISCV;X86"
-          cmake --build build --target ld.eld -j$(nproc)
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@v27
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-
-      - name: Collect reproducers
-        run: nix-build eld/utils/benchmark/collect.nix -o reproducers
+            -S ${{ github.workspace }}/eld \
+            -B ${{ env.BUILD_DIR }} \
+            -DELD_USE_EXTERNAL_LLVM=ON \
+            -DLLVM_DIR=${{ env.LLVM_CMAKE_DIR }} \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build ${{ env.BUILD_DIR }} --target ld.eld -j$(nproc)
 
       - name: Run benchmark (main baseline)
         run: |
-          bash eld/utils/benchmark/run_benchmark.sh \
-            --eld build/bin/ld.eld \
-            --reproducers reproducers \
-            > baseline.json
+          bash ${{ github.workspace }}/eld/utils/benchmark/run_benchmark.sh \
+            --eld ${{ env.BUILD_DIR }}/bin/ld.eld \
+            --reproducers ${{ env.REPRODUCERS_DIR }} \
+            > /tmp/baseline.json
 
-      - name: Upload baseline artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-baseline
-          path: baseline.json
-          retention-days: 30
+      - name: Save baseline
+        run: |
+          mkdir -p $(dirname ${{ env.BASELINE_PATH }})
+          cp /tmp/baseline.json ${{ env.BASELINE_PATH }}
+          echo "Baseline saved to ${{ env.BASELINE_PATH }}"
+          cat ${{ env.BASELINE_PATH }}
+
+      - name: Cleanup build dir
+        if: always()
+        run: rm -rf ${{ env.BUILD_DIR }}
