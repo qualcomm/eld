@@ -7,14 +7,11 @@ on:
 permissions:
   pull-requests: write
   contents: read
-  actions: write  # needed to delete old PR artifacts
+  actions: write
 
 concurrency:
   group: benchmark-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
-
-env:
-  LLVM_VERSION: llvmorg-18.1.8
 
 jobs:
   benchmark:
@@ -27,44 +24,39 @@ jobs:
         with:
           path: eld
 
-      - name: Delete old PR benchmark artifact
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Read LLVM version
         run: |
-          ARTIFACT_NAME="benchmark-pr-${{ github.event.pull_request.number }}"
-          gh api repos/${{ github.repository }}/actions/artifacts \
-            --jq ".artifacts[] | select(.name == \"$ARTIFACT_NAME\") | .id" | \
-          xargs -I{} gh api --method DELETE repos/${{ github.repository }}/actions/artifacts/{} || true
+          LLVM_VER=$(cat eld/utils/benchmark/llvm-version.txt | tr -d '[:space:]')
+          echo "LLVM_VER=$LLVM_VER" >> $GITHUB_ENV
 
-      - name: Cache pre-built LLVM
-        id: cache-llvm
-        uses: actions/cache@v4
-        with:
-          path: llvm-install
-          key: llvm-${{ env.LLVM_VERSION }}-x86_64-linux-gnu
-
-      - name: Download pre-built LLVM
-        if: steps.cache-llvm.outputs.cache-hit != 'true'
+      - name: Install LLVM from apt
         run: |
-          wget -q https://github.com/llvm/llvm-project/releases/download/${{ env.LLVM_VERSION }}/clang+llvm-18.1.8-x86_64-linux-gnu.tar.xz
-          mkdir -p llvm-install
-          tar -xf clang+llvm-18.1.8-x86_64-linux-gnu.tar.xz --strip-components=1 -C llvm-install
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@v27
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | sudo tee /usr/share/keyrings/llvm-archive-keyring.gpg >/dev/null
+          CODENAME=$(. /etc/os-release && echo $VERSION_CODENAME)
+          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] \
+            https://apt.llvm.org/${CODENAME}/ llvm-toolchain-${CODENAME}-${LLVM_VER} main" \
+            | sudo tee /etc/apt/sources.list.d/llvm.list >/dev/null
+          sudo apt-get update -q
+          sudo apt-get install -y llvm-${LLVM_VER}-dev clang-${LLVM_VER} \
+            ninja-build cmake time
+          echo "LLVM_DIR=/usr/lib/llvm-${LLVM_VER}/lib/cmake/llvm" >> $GITHUB_ENV
 
       - name: Cache reproducers
         id: cache-reproducers
         uses: actions/cache@v4
         with:
           path: reproducers
-          key: lld-speed-test-${{ env.LLVM_VERSION }}
+          key: lld-speed-test-llvm${{ env.LLVM_VER }}-${{ hashFiles('eld/utils/benchmark/workloads.txt') }}
 
       - name: Collect reproducers
         if: steps.cache-reproducers.outputs.cache-hit != 'true'
-        run: nix-build eld/utils/benchmark/collect.nix -o reproducers
+        run: |
+          git clone --depth=1 --filter=blob:none --sparse \
+            https://github.com/llvm/llvm-project.git llvm-src
+          cd llvm-src
+          git sparse-checkout set lld/utils/speed-test-reproducers
+          mv lld/utils/speed-test-reproducers ../reproducers
 
       - name: Build ELD (PR branch)
         run: |
@@ -72,24 +64,25 @@ jobs:
             -S "$GITHUB_WORKSPACE/eld" \
             -B build \
             -DELD_USE_EXTERNAL_LLVM=ON \
-            -DLLVM_DIR="$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm" \
-            -DCMAKE_BUILD_TYPE=Release
+            -DLLVM_DIR="$LLVM_DIR" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang-${LLVM_VER} \
+            -DCMAKE_CXX_COMPILER=clang++-${LLVM_VER}
           cmake --build build --target ld.eld -j$(nproc)
 
-      - name: Filter reproducers (ubuntu-latest is 7 GB — skip large workloads)
+      - name: Filter workloads
         run: |
-          mkdir reproducers-small
+          mkdir reproducers-filtered
           WORKLOADS=$(grep -v '^\s*#' eld/utils/benchmark/workloads.txt | xargs)
           for wl in $WORKLOADS; do
-            [ -d "reproducers/$wl" ] && ln -s "$PWD/reproducers/$wl" "reproducers-small/$wl"
+            [ -d "reproducers/$wl" ] && ln -s "$PWD/reproducers/$wl" "reproducers-filtered/$wl"
           done
 
       - name: Run benchmark (PR branch)
         run: |
-          sudo apt-get install -y time
           bash eld/utils/benchmark/run_benchmark.sh \
             --eld build/bin/ld.eld \
-            --reproducers reproducers-small \
+            --reproducers reproducers-filtered \
             > results-pr.json
 
       - name: Download baseline artifact
@@ -99,7 +92,7 @@ jobs:
           workflow: benchmark-baseline.yml
           branch: main
           name: benchmark-baseline
-          path: .
+          path: baseline-artifact
         continue-on-error: true
 
       - name: Compare and post PR comment
@@ -107,11 +100,21 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          # Check if LLVM version changed between PR and baseline
+          NOTICE=""
+          if [ -f baseline-artifact/llvm-version.txt ]; then
+            BASELINE_VER=$(cat baseline-artifact/llvm-version.txt | tr -d '[:space:]')
+            if [ "$BASELINE_VER" != "$LLVM_VER" ]; then
+              NOTICE="> ⚠️ **LLVM version changed: baseline used LLVM ${BASELINE_VER}, this PR uses LLVM ${LLVM_VER}.**"
+              NOTICE="$NOTICE Results are not directly comparable — a new baseline needs to be established."
+            fi
+          fi
+
           REGRESSION=0
-          if [ -f baseline.json ]; then
+          if [ -f baseline-artifact/baseline.json ]; then
             python3 eld/utils/benchmark/compare_results.py \
               --pr results-pr.json \
-              --baseline baseline.json \
+              --baseline baseline-artifact/baseline.json \
               --threshold 15 \
               > comment.md || REGRESSION=$?
           else
@@ -120,6 +123,15 @@ jobs:
               --threshold 15 \
               > comment.md || REGRESSION=$?
           fi
+
+          # Prepend LLVM version notice if present
+          if [ -n "$NOTICE" ]; then
+            echo -e "${NOTICE}\n\n$(cat comment.md)" > comment.md
+          fi
+
+          # Always append which LLVM version was used
+          echo "" >> comment.md
+          echo "_Benchmarked with LLVM ${LLVM_VER}_" >> comment.md
 
           gh pr comment "$PR_NUMBER" \
             --repo "$GITHUB_REPOSITORY" \
