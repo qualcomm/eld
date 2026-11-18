@@ -2,6 +2,18 @@
 // Part of the eld Project, under the BSD License
 // See https://github.com/qualcomm/eld/LICENSE.txt for license information.
 // SPDX-License-Identifier: BSD-3-Clause
+//
+// Builds and emits the RISC-V instruction lookup table (ILUT). Candidate
+// discovery scans code regions for repeated, safe instruction sequences and
+// excludes relocated bytes, existing ILUT instructions, and sequences whose
+// deleted bytes are branch targets. Profitable sequences become fixed-size
+// table entries, and each selected use is replaced by a qc.cm.ilut reference.
+//
+// ILUT replacements are queued as deferred relaxation edits so they can be
+// combined with ordinary RISC-V relaxations. Before each edited region is
+// compacted, surviving direct PC-relative branches are repaired against the
+// combined edits. The finalized, 64-byte-aligned table is then emitted with
+// its entries placed in fixed-size slots.
 //===----------------------------------------------------------------------===//
 
 #include "RISCVILUT.h"
@@ -27,6 +39,8 @@ using namespace eld;
 namespace {
 
 struct Instruction {
+  // An ILUT-eligible instruction decoded from fragment F. Offset is relative
+  // to F and Bytes contains the original little-endian encoding.
   const Fragment *F = nullptr;
   uint64_t Offset = 0;
   unsigned Length = 0;
@@ -34,14 +48,22 @@ struct Instruction {
 };
 
 struct Pattern {
+  // The key includes instruction lengths and bytes. This distinguishes
+  // sequences with different instruction boundaries but identical byte runs.
   std::string Key;
   std::vector<uint8_t> Bytes;
+  // EntrySize is the table cost. SourceSize is the source span replaced at
+  // each occurrence. Each use retains a 2-byte qc.cm.ilut, so Saving is the
+  // source size minus two bytes.
   unsigned EntrySize = 0;
   unsigned SourceSize = 0;
   unsigned Saving = 0;
   std::vector<Instruction> Occurrences;
 };
 
+// Examine the instruction prefix and return its encoded length. Recognize
+// 16,32 and 48-bit instructions as well as longer encodings. The scanner
+// can skip unsupported longer encodings without losing instruction alignment.
 static unsigned getInstructionLength(llvm::StringRef Bytes) {
   if (Bytes.size() < 2)
     return 0;
@@ -67,6 +89,10 @@ static unsigned getInstructionLength(llvm::StringRef Bytes) {
   }
 }
 
+// Reject instructions whose meaning would change when executed from the table
+// instead of their original address. This includes compressed control
+// transfers, standard branches and jumps, auipc, Xqci branch forms, and
+// unsupported instruction lengths.
 static bool isUnsafeForILUT(llvm::StringRef Bytes, unsigned Length) {
   uint16_t Half = llvm::support::endian::read16le(Bytes.data());
   if (Length == 2) {
@@ -80,8 +106,8 @@ static bool isUnsafeForILUT(llvm::StringRef Bytes, unsigned Length) {
       unsigned Rs1 = (Half >> 7) & 0x1f;
       unsigned Rs2 = (Half >> 2) & 0x1f;
       // c.jr and c.jalr have a non-zero rs1 and rs2 == 0. The other
-      // encodings in these funct4 groups are c.mv, c.add, and c.ebreak;
-      // only the jump forms reference PC.
+      // encodings in these funct4 groups are c.mv, c.add, and c.ebreak.
+      // Only the jump forms reference PC.
       if (Rs1 != 0 && Rs2 == 0 && (Funct4 == 8 || Funct4 == 9))
         return true;
       unsigned ReturnForm = (Half >> 8) & 0xff;
@@ -116,9 +142,7 @@ static bool isUnsafeForILUT(llvm::StringRef Bytes, unsigned Length) {
   }
 
   if (Length == 6 && (Word & 0x1f) == 0x1f) {
-    // Xqci 48-bit conditional branches use bits 14:12 as funct3.
-    // Other instructions, including qc.e.orai, must remain legal ILUT
-    // payloads.
+    // Xqci 48-bit conditional branches use bits 14:12 as funct3 set to 4.
     unsigned Funct3 = (Word >> 12) & 7;
     return Funct3 == 4;
   }
@@ -126,10 +150,13 @@ static bool isUnsafeForILUT(llvm::StringRef Bytes, unsigned Length) {
 }
 
 static bool isIlutInstruction(uint16_t Half) {
-  // qc.cm.ilut itself must not be copied into the table.
+  // Existing qc.cm.ilut instructions must not be copied into the table.
   return (Half & 0xe003) == 0x2000;
 }
 
+// Find a non-marker relocation overlapping the instruction. Relocated bytes
+// can be placeholders or need an address-specific fixup makin them unsafe
+// table payloads. Ignore RELAX, NONE, and vendor marker records.
 static const Relocation *getRelocationAt(ELFSection &Sec, const Fragment *F,
                                          uint64_t Offset, unsigned Size) {
   for (const Relocation *R : Sec.getRelocations()) {
@@ -146,6 +173,10 @@ static const Relocation *getRelocationAt(ELFSection &Sec, const Fragment *F,
   return nullptr;
 }
 
+// Search the prebuilt fragment and offset index for a non-marker relocation
+// overlapping the instruction. The half-open range keeps relocations on an
+// adjacent instruction from being treated as overlapping. Ignore RELAX, NONE,
+// and vendor marker records.
 static const Relocation *
 getRelocationAt(const RISCVILUTFragment::RelocationIndex &Relocations,
                 const Fragment *F, uint64_t Offset, unsigned Size) {
@@ -167,6 +198,8 @@ getRelocationAt(const RISCVILUTFragment::RelocationIndex &Relocations,
   return nullptr;
 }
 
+// Convenience wrapper for candidate scanning when only relocation presence
+// matters.
 static bool
 hasRelocationAt(const RISCVILUTFragment::RelocationIndex &Relocations,
                 const Fragment *F, uint64_t Offset, unsigned Size) {
@@ -218,6 +251,10 @@ static void writeInstruction(uint8_t *Bytes, uint64_t Instruction,
   }
 }
 
+// Decode direct PC-relative branches and jumps into a signed byte displacement
+// from the instruction address. Supported forms include compressed branches
+// and jumps, standard 32-bit branches and jal, Xqcibi 32-bit branches, and the
+// 48-bit QC_E branch. Reassemble and sign-extend each format immediate.
 static bool decodeDirectPCRelative(uint64_t Instruction, unsigned Size,
                                    DirectPCRelativeKind &Kind,
                                    int64_t &Immediate) {
@@ -306,12 +343,15 @@ static bool decodeDirectPCRelative(uint64_t Instruction, unsigned Size,
 }
 
 static bool isUnsupportedPCRelative(uint64_t Instruction, unsigned Size) {
-  // AUIPC encodes a PC-relative value rather than a branch displacement. If
-  // it has no relocation and moves after the deletion, its immediate cannot
-  // be repaired by the direct-branch fixup below.
+  // auipc encodes a PC-relative value, not a direct branch displacement, so
+  // this code cannot re-encode it. If it moves, the normal relocation pass can
+  // repair it only when a relocation describes the value.
   return Size == 4 && (Instruction & 0x7f) == 0x17;
 }
 
+// Inverse of decodeDirectPCRelative(). Require an aligned displacement that
+// fits the instruction range, then replace only its immediate bits. Return
+// failure instead of truncating an out-of-range branch.
 static bool encodeDirectPCRelative(DirectPCRelativeKind Kind, int64_t Immediate,
                                    uint64_t &Instruction) {
   switch (Kind) {
@@ -364,6 +404,12 @@ static bool encodeDirectPCRelative(DirectPCRelativeKind Kind, int64_t Immediate,
   llvm_unreachable("unknown direct PC-relative instruction");
 }
 
+// Repair direct branches for one deletion in the current uncompacted buffer.
+// Skip the preserved replacement prefix and the bytes being deleted. Map
+// surviving sources and targets across this edit, then apply collected patches
+// after the scan so instruction offsets remain those of the original buffer.
+// Report incomplete repair when a target is deleted or the new displacement
+// cannot be represented by the branch encoding.
 static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region,
                                             uint32_t DeleteOffset,
                                             uint32_t DeleteSize,
@@ -398,10 +444,10 @@ static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region,
       break;
     }
 
-    // Keep relocated direct branches in this pass. Prefer their same-region
-    // symbol target below; the instruction immediate is only a fallback for
-    // relocations whose target cannot be resolved locally. The later
-    // relocation application writes the final symbol-based value.
+    // Keep relocated direct branches in this pass. Prefer a resolved
+    // same-region relocation target below. Otherwise use the encoded immediate
+    // as a fallback. Later relocation application writes the final symbol
+    // value.
 
     uint64_t Instruction = readInstruction(Data, Offset, Length);
 
@@ -471,10 +517,12 @@ static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region,
   return Complete;
 }
 
-// Apply the same repair after deferred relaxation has selected its complete
-// set of deletions. Working from the original buffer is important: offsets
-// and branch targets must be translated through every pending edit together,
-// rather than through whichever deletion happened to be considered first.
+// Repair direct branches after deferred relaxation has selected all edits for
+// this region. Merge deleted ranges and ranges that must not be decoded as the
+// original instruction stream, then map surviving sources and targets through
+// Region.mapOffset. Handling edits together avoids results that depend on edit
+// order. Report incomplete repairs when a target is deleted or a new
+// displacement cannot be encoded.
 static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region) {
   llvm::ArrayRef<RelaxEdit> Edits = Region.pendingRelaxEdits();
   if (Edits.empty())
@@ -489,6 +537,8 @@ static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region) {
   std::vector<OffsetRange> Deleted;
   std::vector<OffsetRange> Skipped;
   std::vector<uint32_t> Boundaries;
+  // Boundaries is currently not populated here, so the crossing check below
+  // does not reject any instruction boundary crossings.
   for (const RelaxEdit &E : Edits) {
     if (E.DeleteBytes) {
       Deleted.push_back({E.DeleteOffset, E.DeleteOffset + E.DeleteBytes});
@@ -635,6 +685,8 @@ static bool fixupPCRelativeInstructionsImpl(RegionFragmentEx &Region) {
   return Complete;
 }
 
+// Accept one 32 or 48-bit instruction, or a supported pair of 16, 32, and
+// 48-bit instructions. Assign each payload a fixed 4 or 8-byte table slot.
 static bool isLegalPayload(const std::vector<unsigned> &Lengths,
                            unsigned &EntrySize) {
   if (Lengths.size() == 1 && Lengths[0] == 4) {
@@ -659,6 +711,8 @@ static bool isLegalPayload(const std::vector<unsigned> &Lengths,
   return false;
 }
 
+// Include instruction lengths as well as payload bytes in the pattern key.
+// Equal byte runs with different instruction boundaries remain distinct.
 static std::string makeKey(const std::vector<uint8_t> &Bytes,
                            const std::vector<unsigned> &Lengths) {
   std::string Key;
@@ -670,6 +724,7 @@ static std::string makeKey(const std::vector<uint8_t> &Bytes,
 
 } // namespace
 
+// Check whether deferred edits for this region include an ILUT replacement.
 bool RISCVILUTFragment::hasPendingILUTEdit(class RegionFragmentEx &Region) {
   for (const RelaxEdit &Edit : Region.pendingRelaxEdits())
     if (Edit.NewType &&
@@ -678,6 +733,8 @@ bool RISCVILUTFragment::hasPendingILUTEdit(class RegionFragmentEx &Region) {
   return false;
 }
 
+// Expose single-deletion repair for callers that know the deletion range and
+// the replacement prefix to preserve.
 bool RISCVILUTFragment::fixupPCRelativeInstructions(
     class RegionFragmentEx &Region, uint32_t DeleteOffset, uint32_t DeleteSize,
     uint32_t PreservedPrefix) {
@@ -687,21 +744,25 @@ bool RISCVILUTFragment::fixupPCRelativeInstructions(
 
 bool RISCVILUTFragment::fixupPCRelativeInstructions(
     class RegionFragmentEx &Region) {
-  // This entry point is used at commit time. Keep the branch repair strictly
-  // tied to ILUT edits so an accidental caller cannot change ordinary or
-  // RV64 relaxation output.
+  // Deferred commit uses this overload. Repair only regions with a pending
+  // ILUT replacement so ordinary and RV64 relaxation output is not changed.
   if (!hasPendingILUTEdit(Region))
     return true;
   return fixupPCRelativeInstructionsImpl(Region);
 }
 
+// The target-specific table fragment is 64-byte aligned and retains a
+// reference to the backend for registering deferred edits during relaxation.
 RISCVILUTFragment::RISCVILUTFragment(RISCVLDBackend &B, ELFSection *O)
     : TargetFragment(TargetFragment::Kind::TargetSpecific, O, nullptr,
                      /*Align=*/64, /*Size=*/0),
       Backend(B) {}
 
+// Return the table size calculated by finalizeContents().
 size_t RISCVILUTFragment::size() const { return ThisSize; }
 
+// Emit nothing for an empty table. Otherwise clear the reserved table bytes
+// at the assigned output offset before serializing the entries.
 eld::Expected<void> RISCVILUTFragment::emit(MemoryRegion &Mr, Module &M) {
   if (size() == 0)
     return {};
@@ -711,6 +772,10 @@ eld::Expected<void> RISCVILUTFragment::emit(MemoryRegion &Mr, Module &M) {
   return {};
 }
 
+// Record direct branch destinations before candidate selection. Prefer a
+// resolved relocation target and addend. If no target is available, decode the
+// instruction immediate. scanCodeSection uses these destinations to protect
+// bytes that a replacement would delete.
 void RISCVILUTFragment::collectBranchTargets(
     ELFSection &Sec, const RelocationIndex &Relocations) {
   if (!Sec.isCode())
@@ -772,6 +837,13 @@ void RISCVILUTFragment::collectBranchTargets(
   }
 }
 
+// Discover and select table payloads in each code region. Keep supported,
+// safe, unrelocated instructions and form legal single-instruction patterns
+// or physically adjacent instruction pairs. Estimate savings per use from
+// its source span minus the 2-byte replacement. Rank patterns by estimated net
+// savings with a deterministic key tie-break. Filter targets inside deleted
+// bytes and overlapping source spans, then recheck profitability. Reuse
+// identical entries and record each surviving use.
 void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
                                         const RelocationIndex &Relocations) {
   if (!Sec.isCode())
@@ -799,6 +871,8 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
         Valid = false;
       if (Length != 2 && Length != 4 && Length != 6)
         Valid = false;
+      // Relocated bytes may be placeholders or need address-dependent fixups.
+      // Copying them would lose or misapply the relocation.
       if (hasRelocationAt(Relocations, F, Offset, Length))
         Valid = false;
       if (Valid)
@@ -824,6 +898,8 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
       if (I + 1 >= Instructions.size())
         continue;
       const Instruction &B = Instructions[I + 1];
+      // A pair must be physically adjacent in the same fragment. Skipped or
+      // unsafe instructions therefore break a candidate sequence.
       if (A.F != B.F || A.Offset + A.Length != B.Offset)
         continue;
       Lengths = {A.Length, B.Length};
@@ -841,6 +917,8 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
     }
 
     llvm::SmallVector<Pattern *, 0> Ordered;
+    // Discard patterns whose estimated repeated savings do not exceed the
+    // table slot cost. Check profitability again after filtering occurrences.
     for (auto &KV : Patterns)
       if (KV.second.Occurrences.size() * KV.second.Saving > KV.second.EntrySize)
         Ordered.push_back(&KV.second);
@@ -853,6 +931,7 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
     });
 
     std::set<std::pair<const Fragment *, uint64_t>> Occupied;
+    // qc.cm.ilut has an 11-bit index, limiting the table to 2048 entries.
     for (Pattern *P : Ordered) {
       if (Entries.size() >= 2048)
         break;
@@ -860,6 +939,8 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
       std::set<std::pair<const Fragment *, uint64_t>> CandidateOccupied;
       for (const Instruction &I : P->Occurrences) {
         if (P->SourceSize > I.Length) {
+          // The replacement occupies the first two bytes. A branch into the
+          // rest of this source span would target bytes that are deleted.
           const uint64_t InternalBegin = I.Offset + I.Length;
           const uint64_t InternalEnd = I.Offset + P->SourceSize;
           bool HasInternalTarget = false;
@@ -872,6 +953,8 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
           if (HasInternalTarget)
             continue;
         }
+        // Track ownership by byte so selected patterns cannot delete
+        // overlapping source ranges.
         bool Conflict = false;
         for (unsigned Byte = 0; Byte < P->SourceSize; ++Byte) {
           auto Key = std::make_pair(I.F, I.Offset + Byte);
@@ -886,6 +969,8 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
         for (unsigned Byte = 0; Byte < P->SourceSize; ++Byte)
           CandidateOccupied.insert({I.F, I.Offset + Byte});
       }
+      // Reserve bytes only after safety and overlap filtering, and after a
+      // fresh profitability check on the surviving occurrences.
       if (Selected.size() * P->Saving <= P->EntrySize)
         continue;
       Occupied.insert(CandidateOccupied.begin(), CandidateOccupied.end());
@@ -897,6 +982,8 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
           break;
       if (EntryIndex == Entries.size())
         Entries.push_back({P->Bytes, P->EntrySize});
+      // Each use records its source fragment, starting offset, source span,
+      // and table entry index.
       for (const Instruction &I : Selected) {
         Uses.insert(
             {{I.F, I.Offset}, {I.F, I.Offset, P->SourceSize, EntryIndex}});
@@ -906,13 +993,14 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
 }
 
 void RISCVILUTFragment::finalizeContents() {
-  // Put all double entries first so qc.itdec directly describes their count.
+  // Put 8-byte entries first because qc.itdec represents their count as a
+  // leading run. Remap every selected use to the reordered entry indices.
   std::vector<Entry> OldEntries = Entries;
   llvm::stable_sort(
       Entries, [](const Entry &A, const Entry &B) { return A.Size > B.Size; });
 
-  // Rebuild source indices after the size-based ordering. Payloads are
-  // deduplicated, making the old index unambiguous.
+  // Rebuild old-to-new indices after sorting. Entries are deduplicated by
+  // size and payload, so each old entry has one matching sorted entry.
   std::vector<unsigned> Remap;
   for (const Entry &E : Entries) {
     unsigned Old = 0;
@@ -930,12 +1018,16 @@ void RISCVILUTFragment::finalizeContents() {
       }
   }
 
+  // DEC counts the leading 8-byte entries. The final table size is the sum
+  // of their slot widths and those of the remaining entries.
   DEC = 0;
   while (DEC < Entries.size() && Entries[DEC].Size == 8)
     ++DEC;
   ThisSize = DEC * 8 + (Entries.size() - DEC) * 4;
 }
 
+// Look up a selected use by its exact fragment and starting offset. Return
+// its reordered table index and the number of source bytes to replace.
 bool RISCVILUTFragment::getRelaxation(const Fragment *F, uint64_t Offset,
                                       unsigned &Index,
                                       unsigned &SourceSize) const {
@@ -947,16 +1039,18 @@ bool RISCVILUTFragment::getRelaxation(const Fragment *F, uint64_t Offset,
   return true;
 }
 
+// Convert selected uses into deferred region edits. This queues the work and
+// does not compact the buffer here. Ordinary relaxations can join the same
+// edit set before branch repair and final compaction.
 bool RISCVILUTFragment::applyRelaxations() {
   if (Applied)
     return false;
   Applied = true;
   bool Changed = false;
 
-  // The uses are collected from the original instruction stream. Grouping
-  // them by region lets us build one RelaxPlan and perform one branch-fixup
-  // and compaction per region instead of doing all three operations once per
-  // use.
+  // Uses refer to the original instruction stream. Group them by region so
+  // each region receives one combined edit set and one later branch repair and
+  // compaction.
   std::map<eld::RegionFragmentEx *, std::vector<Use>> UsesByRegion;
   for (const auto &KV : Uses) {
     auto *Region = const_cast<eld::RegionFragmentEx *>(
@@ -978,6 +1072,8 @@ bool RISCVILUTFragment::applyRelaxations() {
 
     std::vector<std::pair<uint32_t, uint32_t>> DeletedRanges;
     for (const Use &U : UsesInRegion) {
+      // Retain the first halfword for qc.cm.ilut and queue deletion of the
+      // remaining source bytes. Encode this use table index in the replacement.
       uint16_t Ilut = static_cast<uint16_t>(0x2000 | (U.EntryIndex << 2));
       uint32_t DeleteOffset = U.Offset + 2;
       uint32_t DeleteSize = U.SourceSize - 2;
@@ -997,9 +1093,9 @@ bool RISCVILUTFragment::applyRelaxations() {
           break;
         }
       }
-      // Most ordinary instructions have no R_RISCV_RELAX relocation. RelaxPlan
-      // uses a relocation as a stable edit key, so create a private,
-      // non-emitted key for those ILUT-only edits.
+      // Reuse an R_RISCV_RELAX relocation as the stable edit key when one is
+      // present. Otherwise create a private, non-emitted key for this ILUT
+      // edit.
       if (!IlutReloc)
         IlutReloc = Relocation::Create(llvm::ELF::R_RISCV_RELAX, 16,
                                        FragmentRef::null());
@@ -1010,6 +1106,8 @@ bool RISCVILUTFragment::applyRelaxations() {
 
     llvm::sort(DeletedRanges);
     for (Relocation *R : Relocations) {
+      // A relocation placed in deleted bytes must not be applied to the
+      // compacted buffer. Convert it to a NONE marker.
       uint32_t Offset = R->targetRef()->offset();
       auto It = llvm::upper_bound(
           DeletedRanges, Offset,
@@ -1023,16 +1121,18 @@ bool RISCVILUTFragment::applyRelaxations() {
       }
     }
 
-    // Keep ILUT edits deferred until postRelax(). Ordinary RISC-V
-    // relaxations are selected after the ILUT pass and may delete additional
-    // bytes in this region. postRelax() repairs direct branches against the
-    // complete combined edit set before compacting the buffer.
+    // Keep ILUT edits deferred until postRelax(). Ordinary RISC-V relaxations
+    // may add more deletions after the ILUT pass. postRelax() repairs direct
+    // branches against the complete edit set before compacting the region.
     Backend.notePendingRelaxation(*Region);
     Changed = true;
   }
   return Changed;
 }
 
+// Serialize entries into fixed-size slots. Clear each slot, copy its payload,
+// and fill the unused halfword of an 8-byte slot containing a 48-bit
+// instruction with c.nop.
 void RISCVILUTFragment::writeTo(uint8_t *Buf) {
   size_t Offset = 0;
   for (const Entry &E : Entries) {
@@ -1047,6 +1147,7 @@ void RISCVILUTFragment::writeTo(uint8_t *Buf) {
   }
 }
 
+// Print no listing for an empty table. Otherwise report each payload and DEC.
 void RISCVILUTFragment::dump(llvm::raw_ostream &OS) {
   if (Entries.empty())
     return;
