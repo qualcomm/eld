@@ -8,6 +8,7 @@
 #include "RISCV.h"
 #include "RISCVAttributeFragment.h"
 #include "RISCVGOT.h"
+#include "RISCVILUT.h"
 #include "RISCVLLVMExtern.h"
 #include "RISCVPLT.h"
 #include "RISCVRelaxationStats.h"
@@ -24,7 +25,10 @@
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Object/ObjectBuilder.h"
 #include "eld/Object/ObjectLinker.h"
+#include "eld/Object/OutputSectionEntry.h"
+#include "eld/Object/RuleContainer.h"
 #include "eld/Readers/ELFSection.h"
+#include "eld/Readers/Relocation.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MemoryArea.h"
 #include "eld/Support/MsgHandling.h"
@@ -120,6 +124,18 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
       layoutInfo->recordFragment(m_pRISCVTableJumpSection->getInputFile(),
                                  m_pRISCVTableJumpSection, TableJumpFragment);
   }
+
+  if (config().options().getRISCVRelaxIlut() && config().targets().is32Bits()) {
+    m_pRISCVILUTSection = m_Module.createInternalSection(
+        Module::InternalInputType::ILUT, LinkerSectionKind::Internal,
+        ".riscv.ilut", llvm::ELF::SHT_PROGBITS,
+        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, /*Align=*/64);
+    ILUTFragment = make<RISCVILUTFragment>(*this, m_pRISCVILUTSection);
+    m_pRISCVILUTSection->addFragmentAndUpdateSize(ILUTFragment);
+    if (layoutInfo)
+      layoutInfo->recordFragment(m_pRISCVILUTSection->getInputFile(),
+                                 m_pRISCVILUTSection, ILUTFragment);
+  }
 }
 
 void RISCVLDBackend::initTargetSymbols() {
@@ -156,6 +172,30 @@ void RISCVLDBackend::initTargetSymbols() {
         make<FragmentRef>(*TableJumpFragment, 0x0), ResolveInfo::Default);
   }
 
+  if (ILUTFragment) {
+    std::string IlutName = "__ilut_base$";
+    m_pIlutBase =
+        m_Module.getIRBuilder()
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+                m_Module.getInternalInput(Module::InternalInputType::ILUT),
+                IlutName, ResolveInfo::NoType, ResolveInfo::Define,
+                ResolveInfo::Global, /*Size=*/0, /*Value=*/0,
+                make<FragmentRef>(*ILUTFragment, 0), ResolveInfo::Hidden);
+    if (m_pIlutBase)
+      m_pIlutBase->setShouldIgnore(false);
+
+    std::string DecName = "__ilut_dec$";
+    m_pIlutDec =
+        m_Module.getIRBuilder()
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+                m_Module.getInternalInput(Module::InternalInputType::ILUT),
+                DecName, ResolveInfo::Object, ResolveInfo::Define,
+                ResolveInfo::Absolute, /*Size=*/0, /*Value=*/0,
+                FragmentRef::null(), ResolveInfo::Hidden);
+    if (m_pIlutDec)
+      m_pIlutDec->setShouldIgnore(false);
+  }
+
   if (m_Module.getScript().linkerScriptHasSectionsCommand()) {
     m_pGlobalPointer = m_Module.getNamePool().findSymbol("__global_pointer$");
     return;
@@ -173,6 +213,73 @@ void RISCVLDBackend::initTargetSymbols() {
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
     config().raise(Diag::target_specific_symbol) << SymbolName;
+}
+
+void RISCVLDBackend::initILUT() {
+  if (ILUTInitialized || !ILUTFragment)
+    return;
+
+  if (m_pRISCVILUTSection &&
+      (m_pRISCVILUTSection->isIgnore() || m_pRISCVILUTSection->isDiscard())) {
+    m_pRISCVILUTSection->setSize(0);
+    ILUTInitialized = true;
+    return;
+  }
+
+  llvm::DenseSet<const ELFSection *> Visited;
+  llvm::DenseSet<const Relocation *> SeenRelocations;
+  std::vector<ELFSection *> CodeSections;
+  std::vector<const Relocation *> CodeRelocations;
+  auto ScanOutput = [&](OutputSectionEntry *O) {
+    if (!O || !O->getSection() || !O->getSection()->isCode())
+      return;
+    for (RuleContainer *R : *O) {
+      ELFSection *Code = R->getSection();
+      if (!Code || Code == m_pRISCVILUTSection || !Code->isCode() ||
+          Code->isIgnore() || Code->isDiscard())
+        continue;
+      for (const Relocation *Reloc : Code->getRelocations())
+        if (SeenRelocations.insert(Reloc).second)
+          CodeRelocations.push_back(Reloc);
+      for (ELFSection *InputCode : R->getMatchedInputSections()) {
+        if (!InputCode || !InputCode->isCode())
+          continue;
+        for (const Relocation *Reloc : InputCode->getRelocations())
+          if (SeenRelocations.insert(Reloc).second)
+            CodeRelocations.push_back(Reloc);
+      }
+      if (Visited.insert(Code).second)
+        CodeSections.push_back(Code);
+    }
+  };
+
+  for (ELFSection *S : m_Module)
+    if (S->getOutputSection())
+      ScanOutput(S->getOutputSection());
+  for (OutputSectionEntry *O : m_Module.getScript().sectionMap())
+    ScanOutput(O);
+  // Relocations can target a different RegionFragmentEx or input section.
+  // Collect every direct target before selecting any paired payloads so a
+  // branch into the second instruction prevents that occurrence being packed.
+  RISCVILUTFragment::RelocationIndex RelocationIndex;
+  for (const Relocation *Reloc : CodeRelocations) {
+    if (!Reloc || !Reloc->targetRef() || !Reloc->targetRef()->frag())
+      continue;
+    RelocationIndex[Reloc->targetRef()->frag()][Reloc->targetRef()->offset()]
+        .push_back(Reloc);
+  }
+  for (ELFSection *Code : CodeSections)
+    ILUTFragment->collectBranchTargets(*Code, RelocationIndex);
+  for (ELFSection *Code : CodeSections)
+    ILUTFragment->scanCodeSection(*Code, RelocationIndex);
+  ILUTFragment->finalizeContents();
+  if (m_pRISCVILUTSection)
+    m_pRISCVILUTSection->setSize(ILUTFragment->size());
+  if (m_pIlutBase)
+    m_pIlutBase->setSize(ILUTFragment->size());
+  if (m_pIlutDec)
+    m_pIlutDec->setValue(ILUTFragment->getDEC());
+  ILUTInitialized = true;
 }
 
 void RISCVLDBackend::initTableJump() {
@@ -1633,6 +1740,7 @@ void RISCVLDBackend::translatePseudoRelocation(Relocation *reloc) {
 }
 
 enum RelaxationPass {
+  RELAXATION_ILUT, // Must start at zero
   RELAXATION_CALL, // Must start at zero
   RELAXATION_PC,
   RELAXATION_LUI,
@@ -1645,10 +1753,20 @@ void RISCVLDBackend::preRelaxation() {
   // Table-jump candidates require full relocation/symbol state, so defer this
   // initialization until just before the relaxation pass.
   initTableJump();
+  initILUT();
 }
 
 void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
   pFinished = true;
+
+  if (relaxation_pass == RELAXATION_ILUT) {
+    if (ILUTFragment && !ILUTApplied) {
+      ILUTApplied = true;
+      ILUTFragment->applyRelaxations();
+    }
+    pFinished = false;
+    return;
+  }
 
   // TLSDESC relaxations only apply to executables.
   if (relaxation_pass == RELAXATION_TLSDESC && !config().isBuildingExecutable())
@@ -1949,8 +2067,15 @@ void RISCVLDBackend::postRelax(bool &pFinished) {
     return;
   }
 
-  for (RegionFragmentEx *Frag : m_FragmentsWithPendingRelaxEdits)
+  for (RegionFragmentEx *Frag : m_FragmentsWithPendingRelaxEdits) {
+    // Branch immediates are not relocations and therefore are not adjusted by
+    // the generic relocation-shift code. The direct-branch repair is needed
+    // only for ILUT deletions: ordinary RISC-V relaxations retain their
+    // existing relocation-driven behavior, and RV64 cannot create ILUT edits.
+    if (RISCVILUTFragment::hasPendingILUTEdit(*Frag))
+      RISCVILUTFragment::fixupPCRelativeInstructions(*Frag);
     Frag->commitRelaxEdits();
+  }
   m_FragmentsWithPendingRelaxEdits.clear();
 }
 
