@@ -31,7 +31,9 @@ jobs:
 
       - name: Install LLVM from apt
         run: |
+          sudo install -d -m 0755 /usr/share/keyrings
           wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | gpg --dearmor \
             | sudo tee /usr/share/keyrings/llvm-archive-keyring.gpg >/dev/null
           CODENAME=$(. /etc/os-release && echo $VERSION_CODENAME)
           echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] \
