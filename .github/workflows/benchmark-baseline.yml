@@ -1,33 +1,28 @@
 name: Benchmark Baseline (main)
 
-# Runs on bot02 self-hosted runner whenever main advances.
-# Builds ELD from main (standalone, against pre-built LLVM on bot02),
-# runs the benchmark, and writes baseline.json to a persistent path on bot02
-# so benchmark-pr.yml can compare against it without any third-party actions.
-
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '0 2 * * *'
   workflow_dispatch:
+    inputs:
+      clean_build:
+        description: 'Wipe cached LLVM and reproducers (use after LLVM version bump)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
+  actions: write  # needed to delete old artifacts and caches
 
-# Serialise baseline runs so we never write baseline.json concurrently.
-concurrency:
-  group: eld-benchmark-baseline
-  cancel-in-progress: false
+env:
+  LLVM_VERSION: llvmorg-18.1.8
 
 jobs:
   baseline:
     name: Build and benchmark ELD on main
-    runs-on: [self-hosted, eld-benchmark]
-
-    env:
-      LLVM_CMAKE_DIR: /local/mnt/workspace/fankita/llvm-project/obj/lib/cmake/llvm
-      REPRODUCERS_DIR: /nix/store/7bnlb36ld38yj0yc7c9cgby8ph00sgj6-lld-speed-test
-      BASELINE_PATH: /local/mnt/workspace/fankita/eld-benchmark/baseline.json
-      BUILD_DIR: /tmp/eld-baseline-build
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout main
@@ -35,30 +30,93 @@ jobs:
         with:
           path: eld
 
-      - name: Build ELD (main, standalone)
+      - name: Delete old baseline artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Remove any existing benchmark-baseline artifacts so storage doesn't pile up
+          gh api repos/${{ github.repository }}/actions/artifacts \
+            --jq '.artifacts[] | select(.name == "benchmark-baseline") | .id' | \
+          xargs -I{} gh api --method DELETE repos/${{ github.repository }}/actions/artifacts/{} || true
+
+      - name: Delete old LLVM cache
+        if: inputs.clean_build == true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/caches \
+            --jq '.actions_caches[] | select(.key | startswith("llvm-")) | .id' | \
+          xargs -I{} gh api --method DELETE repos/${{ github.repository }}/actions/caches/{} || true
+
+      - name: Delete old reproducers cache
+        if: inputs.clean_build == true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/caches \
+            --jq '.actions_caches[] | select(.key | startswith("lld-speed-test-")) | .id' | \
+          xargs -I{} gh api --method DELETE repos/${{ github.repository }}/actions/caches/{} || true
+
+      - name: Cache pre-built LLVM
+        id: cache-llvm
+        uses: actions/cache@v4
+        with:
+          path: llvm-install
+          key: llvm-${{ env.LLVM_VERSION }}-x86_64-linux-gnu
+
+      - name: Download pre-built LLVM
+        if: steps.cache-llvm.outputs.cache-hit != 'true'
+        run: |
+          wget -q https://github.com/llvm/llvm-project/releases/download/${{ env.LLVM_VERSION }}/clang+llvm-18.1.8-x86_64-linux-gnu.tar.xz
+          mkdir -p llvm-install
+          tar -xf clang+llvm-18.1.8-x86_64-linux-gnu.tar.xz --strip-components=1 -C llvm-install
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Cache reproducers
+        id: cache-reproducers
+        uses: actions/cache@v4
+        with:
+          path: reproducers
+          key: lld-speed-test-${{ env.LLVM_VERSION }}
+
+      - name: Collect reproducers
+        if: steps.cache-reproducers.outputs.cache-hit != 'true'
+        run: nix-build eld/utils/benchmark/collect.nix -o reproducers
+
+      - name: Build ELD (main)
         run: |
           cmake -G Ninja \
-            -S ${{ github.workspace }}/eld \
-            -B ${{ env.BUILD_DIR }} \
+            -S "$GITHUB_WORKSPACE/eld" \
+            -B build \
             -DELD_USE_EXTERNAL_LLVM=ON \
-            -DLLVM_DIR=${{ env.LLVM_CMAKE_DIR }} \
+            -DLLVM_DIR="$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm" \
             -DCMAKE_BUILD_TYPE=Release
-          cmake --build ${{ env.BUILD_DIR }} --target ld.eld -j$(nproc)
+          cmake --build build --target ld.eld -j$(nproc)
+
+      - name: Filter reproducers (ubuntu-latest is 7 GB — skip large workloads)
+        run: |
+          mkdir reproducers-small
+          WORKLOADS=$(grep -v '^\s*#' eld/utils/benchmark/workloads.txt | xargs)
+          for wl in $WORKLOADS; do
+            [ -d "reproducers/$wl" ] && ln -s "$PWD/reproducers/$wl" "reproducers-small/$wl"
+          done
 
       - name: Run benchmark (main baseline)
         run: |
-          bash ${{ github.workspace }}/eld/utils/benchmark/run_benchmark.sh \
-            --eld ${{ env.BUILD_DIR }}/bin/ld.eld \
-            --reproducers ${{ env.REPRODUCERS_DIR }} \
-            > /tmp/baseline.json
+          sudo apt-get install -y time
+          bash eld/utils/benchmark/run_benchmark.sh \
+            --eld build/bin/ld.eld \
+            --reproducers reproducers-small \
+            > baseline.json
 
-      - name: Save baseline
-        run: |
-          mkdir -p $(dirname ${{ env.BASELINE_PATH }})
-          cp /tmp/baseline.json ${{ env.BASELINE_PATH }}
-          echo "Baseline saved to ${{ env.BASELINE_PATH }}"
-          cat ${{ env.BASELINE_PATH }}
-
-      - name: Cleanup build dir
-        if: always()
-        run: rm -rf ${{ env.BUILD_DIR }}
+      - name: Upload baseline artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-baseline
+          path: baseline.json
+          retention-days: 30
+          overwrite: true

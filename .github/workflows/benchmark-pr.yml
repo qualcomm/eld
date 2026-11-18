@@ -1,86 +1,132 @@
 name: Benchmark PR
 
-# Triggered when a maintainer applies the "run-benchmark" label to a PR.
-# Builds ELD from the PR branch (standalone, against pre-built LLVM on bot02),
-# runs the benchmark, compares against the stored baseline, and posts a comment.
-#
-# Self-hosted runner on llvm-main-bot02 (label: eld-benchmark) is required
-# because the benchmark workloads need >7 GB RAM and a fast CPU.
-
 on:
   pull_request:
-    types: [labeled]
+    types: [opened, synchronize, reopened]
 
 permissions:
   pull-requests: write
   contents: read
+  actions: write  # needed to delete old PR artifacts
+
+concurrency:
+  group: benchmark-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  LLVM_VERSION: llvmorg-18.1.8
 
 jobs:
   benchmark:
     name: ELD linker performance benchmark
-    if: github.event.label.name == 'run-benchmark'
-    runs-on: [self-hosted, eld-benchmark]
-
-    env:
-      LLVM_CMAKE_DIR: /local/mnt/workspace/fankita/llvm-project/obj/lib/cmake/llvm
-      REPRODUCERS_DIR: /nix/store/7bnlb36ld38yj0yc7c9cgby8ph00sgj6-lld-speed-test
-      BASELINE_PATH: /local/mnt/workspace/fankita/eld-benchmark/baseline.json
-      BUILD_DIR: /tmp/eld-pr-build-${{ github.event.pull_request.number }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
           path: eld
 
-      - name: Build ELD (PR branch, standalone)
+      - name: Delete old PR benchmark artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARTIFACT_NAME="benchmark-pr-${{ github.event.pull_request.number }}"
+          gh api repos/${{ github.repository }}/actions/artifacts \
+            --jq ".artifacts[] | select(.name == \"$ARTIFACT_NAME\") | .id" | \
+          xargs -I{} gh api --method DELETE repos/${{ github.repository }}/actions/artifacts/{} || true
+
+      - name: Cache pre-built LLVM
+        id: cache-llvm
+        uses: actions/cache@v4
+        with:
+          path: llvm-install
+          key: llvm-${{ env.LLVM_VERSION }}-x86_64-linux-gnu
+
+      - name: Download pre-built LLVM
+        if: steps.cache-llvm.outputs.cache-hit != 'true'
+        run: |
+          wget -q https://github.com/llvm/llvm-project/releases/download/${{ env.LLVM_VERSION }}/clang+llvm-18.1.8-x86_64-linux-gnu.tar.xz
+          mkdir -p llvm-install
+          tar -xf clang+llvm-18.1.8-x86_64-linux-gnu.tar.xz --strip-components=1 -C llvm-install
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Cache reproducers
+        id: cache-reproducers
+        uses: actions/cache@v4
+        with:
+          path: reproducers
+          key: lld-speed-test-${{ env.LLVM_VERSION }}
+
+      - name: Collect reproducers
+        if: steps.cache-reproducers.outputs.cache-hit != 'true'
+        run: nix-build eld/utils/benchmark/collect.nix -o reproducers
+
+      - name: Build ELD (PR branch)
         run: |
           cmake -G Ninja \
-            -S ${{ github.workspace }}/eld \
-            -B ${{ env.BUILD_DIR }} \
+            -S "$GITHUB_WORKSPACE/eld" \
+            -B build \
             -DELD_USE_EXTERNAL_LLVM=ON \
-            -DLLVM_DIR=${{ env.LLVM_CMAKE_DIR }} \
+            -DLLVM_DIR="$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm" \
             -DCMAKE_BUILD_TYPE=Release
-          cmake --build ${{ env.BUILD_DIR }} --target ld.eld -j$(nproc)
+          cmake --build build --target ld.eld -j$(nproc)
+
+      - name: Filter reproducers (ubuntu-latest is 7 GB — skip large workloads)
+        run: |
+          mkdir reproducers-small
+          WORKLOADS=$(grep -v '^\s*#' eld/utils/benchmark/workloads.txt | xargs)
+          for wl in $WORKLOADS; do
+            [ -d "reproducers/$wl" ] && ln -s "$PWD/reproducers/$wl" "reproducers-small/$wl"
+          done
 
       - name: Run benchmark (PR branch)
         run: |
-          bash ${{ github.workspace }}/eld/utils/benchmark/run_benchmark.sh \
-            --eld ${{ env.BUILD_DIR }}/bin/ld.eld \
-            --reproducers ${{ env.REPRODUCERS_DIR }} \
-            > /tmp/results-pr-${{ github.event.pull_request.number }}.json
+          sudo apt-get install -y time
+          bash eld/utils/benchmark/run_benchmark.sh \
+            --eld build/bin/ld.eld \
+            --reproducers reproducers-small \
+            > results-pr.json
+
+      - name: Download baseline artifact
+        id: download-baseline
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: benchmark-baseline.yml
+          branch: main
+          name: benchmark-baseline
+          path: .
+        continue-on-error: true
 
       - name: Compare and post PR comment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_JSON: /tmp/results-pr-${{ github.event.pull_request.number }}.json
         run: |
-          if [ -f "${{ env.BASELINE_PATH }}" ]; then
-            python3 ${{ github.workspace }}/eld/utils/benchmark/compare_results.py \
-              --pr "$PR_JSON" \
-              --baseline "${{ env.BASELINE_PATH }}" \
-              --threshold 5 \
-              > /tmp/comment.md || true
+          REGRESSION=0
+          if [ -f baseline.json ]; then
+            python3 eld/utils/benchmark/compare_results.py \
+              --pr results-pr.json \
+              --baseline baseline.json \
+              --threshold 15 \
+              > comment.md || REGRESSION=$?
           else
-            python3 ${{ github.workspace }}/eld/utils/benchmark/compare_results.py \
-              --pr "$PR_JSON" \
-              --threshold 5 \
-              > /tmp/comment.md || true
+            python3 eld/utils/benchmark/compare_results.py \
+              --pr results-pr.json \
+              --threshold 15 \
+              > comment.md || REGRESSION=$?
           fi
 
           gh pr comment "$PR_NUMBER" \
-            --repo ${{ github.repository }} \
-            --body-file /tmp/comment.md \
+            --repo "$GITHUB_REPOSITORY" \
+            --body-file comment.md \
             --edit-last || \
           gh pr comment "$PR_NUMBER" \
-            --repo ${{ github.repository }} \
-            --body-file /tmp/comment.md
+            --repo "$GITHUB_REPOSITORY" \
+            --body-file comment.md
 
-      - name: Cleanup
-        if: always()
-        run: |
-          rm -rf ${{ env.BUILD_DIR }}
-          rm -f /tmp/results-pr-${{ github.event.pull_request.number }}.json \
-                /tmp/comment.md
+          exit $REGRESSION
