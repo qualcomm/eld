@@ -1,0 +1,65 @@
+#---WrapSymbolWeakUndefinedLTO.test------ Executable,SharedLibrary,PartialLink,LTO ---#
+#BEGIN_COMMENT
+# A native weak reference to a wrapped symbol must stay weak when an unrelated
+# LTO input is present. It must not synthesize a strong __wrap_<sym> reference
+# or pull an optional wrapper from an archive, regardless of input order.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -fPIC -c %p/Inputs/WeakCaller.c -o %t.weak.o
+RUN: %clang %clangopts -fPIC -flto -c %p/Inputs/WeakCaller.c -o %t.weak.full.o
+RUN: %clang %clangopts -flto -c %p/Inputs/Unrelated.c -o %t.unrelated.full.o
+RUN: %clang %clangopts -flto=thin -c %p/Inputs/Unrelated.c -o %t.unrelated.thin.o
+RUN: %clang %clangopts -c %p/Inputs/OptionalWrapper.c -o %t.wrapper.o
+RUN: %ar cr %aropts %t.liboptional.a %t.wrapper.o
+
+# Without the wrapper archive, both orders must link successfully.
+RUN: %link %linkopts %t.weak.o %t.unrelated.full.o --wrap=add -e main -o %t.full.noarchive.native-first.out
+RUN: %link %linkopts %t.unrelated.full.o %t.weak.o --wrap=add -e main -o %t.full.noarchive.lto-first.out
+RUN: %link %linkopts %t.weak.o %t.unrelated.thin.o --wrap=add -e main -o %t.thin.noarchive.native-first.out
+RUN: %link %linkopts %t.unrelated.thin.o %t.weak.o --wrap=add -e main -o %t.thin.noarchive.lto-first.out
+
+# With an optional wrapper archive, neither order may extract its member.
+RUN: %link %linkopts %t.weak.o %t.unrelated.full.o %t.liboptional.a --wrap=add -e main -t --trace=wrap-symbols -o %t.full.archive.native-first.out 2>&1 | %filecheck %s --check-prefix=FULL-NATIVE-FIRST
+RUN: %link %linkopts %t.unrelated.full.o %t.weak.o %t.liboptional.a --wrap=add -e main -t --trace=wrap-symbols -o %t.full.archive.lto-first.out 2>&1 | %filecheck %s --check-prefix=FULL-LTO-FIRST
+RUN: %link %linkopts %t.weak.o %t.unrelated.thin.o %t.liboptional.a --wrap=add -e main -t --trace=wrap-symbols -o %t.thin.archive.native-first.out 2>&1 | %filecheck %s --check-prefix=THIN-NATIVE-FIRST
+RUN: %link %linkopts %t.unrelated.thin.o %t.weak.o %t.liboptional.a --wrap=add -e main -t --trace=wrap-symbols -o %t.thin.archive.lto-first.out 2>&1 | %filecheck %s --check-prefix=THIN-LTO-FIRST
+
+# A weak reference originating in bitcode must also stay weak when the
+# BitcodeReader synthesizes its wrapped reference.
+RUN: %link %linkopts %t.weak.full.o %t.liboptional.a --wrap=add -e main -t --trace=wrap-symbols -o %t.bitcode-weak.out 2>&1 | %filecheck %s --check-prefix=BITCODE-WEAK
+RUN: %link %linkopts -shared %t.weak.full.o --wrap=add -o %t.bitcode-weak.shared.out
+RUN: %readelf -s %t.bitcode-weak.shared.out | %filecheck %s --check-prefix=BITCODE-WEAK-SHARED
+RUN: %link %linkopts -r %t.weak.full.o --wrap=add -o %t.bitcode-weak.partial.o
+RUN: %readelf -s %t.bitcode-weak.partial.o | %filecheck %s --check-prefix=BITCODE-WEAK-PARTIAL
+
+# Weak undefined binding must also survive shared and partial links.
+RUN: %link %linkopts -shared %t.weak.o %t.unrelated.full.o --wrap=add -o %t.shared.out
+RUN: %readelf -s %t.shared.out | %filecheck %s --check-prefix=SHARED
+RUN: %link %linkopts -r %t.weak.o %t.unrelated.full.o --wrap=add -o %t.partial.out
+RUN: %readelf -s %t.partial.out | %filecheck %s --check-prefix=PARTIAL
+#END_TEST
+
+FULL-NATIVE-FIRST: {{.*}}weak.o
+FULL-NATIVE-FIRST-NOT: Inserting wrapper `__wrap_add'
+FULL-NATIVE-FIRST-NOT: {{.*}}liboptional.a{{.*}}wrapper.o
+
+FULL-LTO-FIRST: {{.*}}weak.o
+FULL-LTO-FIRST-NOT: Inserting wrapper `__wrap_add'
+FULL-LTO-FIRST-NOT: {{.*}}liboptional.a{{.*}}wrapper.o
+
+THIN-NATIVE-FIRST: {{.*}}weak.o
+THIN-NATIVE-FIRST-NOT: Inserting wrapper `__wrap_add'
+THIN-NATIVE-FIRST-NOT: {{.*}}liboptional.a{{.*}}wrapper.o
+
+THIN-LTO-FIRST: {{.*}}weak.o
+THIN-LTO-FIRST-NOT: Inserting wrapper `__wrap_add'
+THIN-LTO-FIRST-NOT: {{.*}}liboptional.a{{.*}}wrapper.o
+
+SHARED: {{.*}}WEAK {{.*}}UND {{.*}}__wrap_add
+PARTIAL: {{.*}}WEAK {{.*}}UND {{.*}}__wrap_add
+
+BITCODE-WEAK: Inserting wrapper `__wrap_add'
+BITCODE-WEAK-NOT: {{.*}}liboptional.a{{.*}}wrapper.o
+BITCODE-WEAK-SHARED: {{.*}}WEAK {{.*}}UND {{.*}}__wrap_add
+BITCODE-WEAK-PARTIAL: {{.*}}WEAK {{.*}}UND {{.*}}__wrap_add
