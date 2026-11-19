@@ -8,9 +8,7 @@
 #include "OutputSectionIteratorPlugin.h"
 #include "PluginVersion.h"
 #include "PointerReloc.h"
-#include <mutex>
 #include <string>
-#include <thread>
 #include <vector>
 
 using namespace eld::plugin;
@@ -37,14 +35,6 @@ public:
   void collect(Use U) {
     if (U.getName() != "data")
       return;
-    std::lock_guard<std::mutex> Guard(Mutex);
-    if (CallbackThread == std::thread::id())
-      CallbackThread = std::this_thread::get_id();
-    else if (CallbackThread != std::this_thread::get_id()) {
-      getLinker()->getDiagnosticBuilder(
-          getLinker()->getErrorDiagID("relocation callbacks are not serial"));
-      return;
-    }
     if (Mode == "unclaimed-data" || Mode == "claimed-data") {
       if (Mode == "claimed-data") {
         auto Result = getLinker()->claimUse(U);
@@ -99,8 +89,6 @@ public:
   void Destroy() override {}
 
 private:
-  std::mutex Mutex;
-  std::thread::id CallbackThread;
   std::string Mode;
   std::vector<Use> Uses;
   Use Previous{nullptr};
