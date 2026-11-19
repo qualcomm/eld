@@ -14,3 +14,4 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
 endif()
 
 add_plugin(DWARFInfo)
+add_subdirectory(Retry)

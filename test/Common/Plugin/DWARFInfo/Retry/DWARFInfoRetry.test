@@ -1,0 +1,14 @@
+#---DWARFInfoRetry.test------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Query DWARF before and after the input's section headers are parsed. The
+# first query must not cache the temporary absence of sections.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -g -c %p/Inputs/retry.c -o %t.o
+RUN: %link %linkopts -e main %t.o -L%libsdir/test --plugin-config %p/Inputs/RetryPluginConfig.yaml -o %t.out 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: DWARF: VisitInput hasContext=0
+CHECK: DWARF: VisitSections hasContext=1
+CHECK: DWARF: VisitSections deleted=1
+CHECK: DWARF: ActBeforePerformingLayout hasContext=1

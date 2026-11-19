@@ -62,6 +62,8 @@ DIAG(created_mapping_file, DiagnosticEngine::Verbose,
 DIAG(function_has_error, DiagnosticEngine::Verbose, "Function %0 has error")
 DIAG(reproduce_signal_handler, DiagnosticEngine::Verbose,
      "Registered reproduce signal handler")
+DIAG(verbose_dwarf_object_unavailable, DiagnosticEngine::Verbose,
+     "Cannot inspect DWARF information in input file '%0': %1")
 DIAG(keeping_section, DiagnosticEngine::Verbose,
      "Keeping section %0 from file %1")
 DIAG(retaining_section, DiagnosticEngine::Trace,
