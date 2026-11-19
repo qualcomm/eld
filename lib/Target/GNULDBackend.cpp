@@ -135,6 +135,16 @@ GNULDBackend::GNULDBackend(Module &pModule, TargetInfo *pInfo)
 
 GNULDBackend::~GNULDBackend() {}
 
+uint64_t
+GNULDBackend::getValueForDiscardedRelocations(const Relocation *R) const {
+  llvm::StringRef SectionName =
+      R->targetRef()->frag()->getOwningSection()->name();
+  // Legacy range and location lists reserve (0,0) for the end of the list.
+  if (SectionName == ".debug_loc" || SectionName == ".debug_ranges")
+    return 1;
+  return 0;
+}
+
 size_t GNULDBackend::sectionStartOffset() const {
   if (LinkerConfig::Binary == config().codeGenType())
     return 0x0;
