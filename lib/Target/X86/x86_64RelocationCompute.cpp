@@ -98,7 +98,7 @@ bool isTruncatedX86_64(const RelocationDescriptor &Desc, uint64_t Value) {
   if (Desc.IsSigned)
     return false;
   unsigned N = Desc.Size;
-  return Value & (~0U >> (64 - N));
+  return N < 64 && (Value >> N) != 0;
 }
 
 } // namespace x86_64
