@@ -3577,8 +3577,10 @@ bool ObjectLinker::createLTOObject(void) {
   }
 
   Conf.LibraryOptions = &libraryOptions;
-  Conf.Options = llvm::codegen::getTargetOptions(libraryOptions,
-                                                 ThisConfig.targets().triple());
+  // InitTargetOptionsFromCodeGenFlags replaces the LLVM <24 API
+  // getTargetOptions(libraryOptions, triple) which depended on
+  // RegisterCodeGenFlags — removed in LLVM 24.
+  Conf.Options = llvm::codegen::InitTargetOptionsFromCodeGenFlags(ThisConfig.targets().triple());
 
   if (ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly() &&
       Conf.CGFileType == CodeGenFileType::AssemblyFile)
