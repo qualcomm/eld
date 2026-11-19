@@ -115,8 +115,6 @@ public:
 
   bool addSymbolToOutput(ResolveInfo *pInfo) override;
 
-  uint64_t getValueForDiscardedRelocations(const Relocation *R) const override;
-
   // ----------------------- GC override ----------------------------
   std::optional<bool>
   shouldProcessSectionForGC(const ELFSection &pSec) const override;
