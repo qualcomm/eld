@@ -104,7 +104,7 @@ ELFSection *Module::createOutputSection(const std::string &Name,
   addOutputSection(OutputSect);
   if (getPrinter()->isVerbose())
     ThisConfig.raise(Diag::creating_output_section)
-        << Name << ELFSection::getELFTypeStr(Name, Type)
+        << Name << getBackend().getSectionTypeName(Type)
         << ELFSection::getELFPermissionsStr(PFlag) << PAlign;
   return OutputSect;
 }
@@ -296,7 +296,7 @@ ELFSection *Module::createInternalSection(InputFile &I, LinkerSectionKind K,
     InputSect->setHasNoFragments();
   if (getPrinter()->isVerbose())
     ThisConfig.raise(Diag::created_internal_section)
-        << Name << ELFSection::getELFTypeStr(Name, Type)
+        << Name << getBackend().getSectionTypeName(Type)
         << ELFSection::getELFPermissionsStr(PFlag) << PAlign << EntSize;
   return InputSect;
 }
@@ -315,7 +315,7 @@ EhFrameHdrSection *Module::createEhFrameHdrSection(InternalInputType IType,
       ->addSection(InputSect);
   if (getPrinter()->isVerbose())
     ThisConfig.raise(Diag::created_eh_frame_hdr)
-        << Name << ELFSection::getELFTypeStr(Name, Type)
+        << Name << getBackend().getSectionTypeName(Type)
         << ELFSection::getELFPermissionsStr(PFlag) << PAlign;
   return InputSect;
 }

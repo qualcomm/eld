@@ -82,51 +82,6 @@ void ELFSection::addFragmentAndUpdateSize(Fragment *F) {
   m_Size += F->size();
 }
 
-#define INTTOELFTSTR(ns, enum)                                                 \
-  case ns::enum:                                                               \
-    return #enum;
-
-llvm::StringRef ELFSection::getELFTypeStr(llvm::StringRef Name, uint32_t Type) {
-  switch (Type) {
-    INTTOELFTSTR(llvm::ELF, SHT_NULL);
-    INTTOELFTSTR(llvm::ELF, SHT_PROGBITS);
-    INTTOELFTSTR(llvm::ELF, SHT_SYMTAB);
-    INTTOELFTSTR(llvm::ELF, SHT_STRTAB);
-    INTTOELFTSTR(llvm::ELF, SHT_RELA);
-    INTTOELFTSTR(llvm::ELF, SHT_HASH);
-    INTTOELFTSTR(llvm::ELF, SHT_DYNAMIC);
-    INTTOELFTSTR(llvm::ELF, SHT_NOTE);
-    INTTOELFTSTR(llvm::ELF, SHT_NOBITS);
-    INTTOELFTSTR(llvm::ELF, SHT_REL);
-    INTTOELFTSTR(llvm::ELF, SHT_SHLIB);
-    INTTOELFTSTR(llvm::ELF, SHT_DYNSYM);
-    INTTOELFTSTR(llvm::ELF, SHT_INIT_ARRAY);
-    INTTOELFTSTR(llvm::ELF, SHT_FINI_ARRAY);
-    INTTOELFTSTR(llvm::ELF, SHT_PREINIT_ARRAY);
-    INTTOELFTSTR(llvm::ELF, SHT_GROUP);
-    INTTOELFTSTR(llvm::ELF, SHT_SYMTAB_SHNDX);
-    INTTOELFTSTR(llvm::ELF, SHT_GNU_ATTRIBUTES);
-    INTTOELFTSTR(llvm::ELF, SHT_GNU_HASH);
-    INTTOELFTSTR(llvm::ELF, SHT_GNU_verdef);
-    INTTOELFTSTR(llvm::ELF, SHT_GNU_verneed);
-    INTTOELFTSTR(llvm::ELF, SHT_GNU_versym);
-    INTTOELFTSTR(llvm::ELF, SHT_ARM_EXIDX);
-    INTTOELFTSTR(llvm::ELF, SHT_ARM_PREEMPTMAP);
-    INTTOELFTSTR(llvm::ELF, SHT_ARM_DEBUGOVERLAY);
-    INTTOELFTSTR(llvm::ELF, SHT_ARM_OVERLAYSECTION);
-  default:
-    break;
-  }
-  // The attribute type is overloaded.
-  if (Type == llvm::ELF::SHT_RISCV_ATTRIBUTES && Name.starts_with(".riscv"))
-    return "SHT_RISCV_ATTRIBUTES";
-  if (Type == llvm::ELF::SHT_ARM_ATTRIBUTES && Name.starts_with(".ARM"))
-    return "SHT_ARM_ATTRIBUTES";
-  if (Type == llvm::ELF::SHT_HEXAGON_ATTRIBUTES && Name.starts_with(".hexagon"))
-    return "SHT_HEXAGON_ATTRIBUTES";
-  return "Not Defined";
-}
-
 std::string ELFSection::getELFPermissionsStr(uint32_t permissions) {
 #define INTOPERMISSIONSSTR(ns, enum)                                           \
   if (permissions & ns::enum) {                                                \

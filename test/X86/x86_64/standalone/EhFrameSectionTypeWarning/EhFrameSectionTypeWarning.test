@@ -1,0 +1,5 @@
+# A linker script that sets .eh_frame to PROGBITS warns with the x86-64 type.
+RUN: %clang %clangopts -funwind-tables -c %p/Inputs/foo.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/progbits.t -e foo %t.o -o %t.out 2>&1 | %filecheck %s
+
+# CHECK: Warning: Changing section type to SHT_PROGBITS from SHT_X86_64_UNWIND for section .eh_frame
