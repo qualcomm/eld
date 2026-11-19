@@ -2,7 +2,7 @@ name: Nightly check
 # owner: quic-seaswara
 
 on:
-  # pull_request: {} # Uncomment to build ELD PR branch.
+  pull_request: {} # Uncomment to build ELD PR branch.
   schedule:
     - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
   workflow_dispatch: {}
@@ -14,7 +14,7 @@ permissions:
 jobs:
   build-and-runtest-nightly:
     if: github.repository == 'qualcomm/eld'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
       ELD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
@@ -36,7 +36,7 @@ jobs:
         id: install_dependencies
         run: |
           sudo apt update
-          sudo apt install -y clang-23 lld-23 ninja-build libc++-23-dev libc++abi-23-dev ccache libclang-rt-23-dev libunwind-23-dev
+          sudo apt install -y clang-23 lld-23 ninja-build libc++-23-dev libc++abi-23-dev ccache libclang-rt-23-dev libunwind-23-dev zlib1g-dev libzstd-dev
           printf 'PATH=/usr/lib/llvm-23/bin:%s\nLD_LIBRARY_PATH=/usr/lib/llvm-23/lib:%s\n' \
             "$PATH" "$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
 
@@ -115,8 +115,9 @@ jobs:
           mkdir -p obj
           cd obj
           cat > distribution-components.cmake <<'EOF'
-          set(LLVM_INSTALL_TOOLCHAIN_ONLY ON CACHE BOOL "")
+          set(LLVM_INSTALL_TOOLCHAIN_ONLY OFF CACHE BOOL "")
           set(LLVM_TOOLCHAIN_TOOLS
+            llvm-config
             llvm-ar
             llvm-cov
             llvm-cxxfilt
@@ -144,6 +145,9 @@ jobs:
             opt
             CACHE STRING "")
           set(LLVM_DISTRIBUTION_COMPONENTS
+            llvm-headers
+            llvm-libraries
+            cmake-exports
             clang
             lld
             LTO
@@ -164,6 +168,9 @@ jobs:
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra;lld" \
             -DCLANG_ENABLE_CIR=OFF \
             -DLLVM_ENABLE_RUNTIMES="compiler-rt;libcxx;libcxxabi;libunwind" \
+            -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF \
+            -DLLVM_ENABLE_LIBEDIT=OFF \
+            -DLLVM_ENABLE_LIBXML2=OFF \
             -DCMAKE_C_COMPILER:STRING="$(command -v clang)" \
             -DCMAKE_CXX_COMPILER:STRING="$(command -v clang++)" \
             -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
@@ -183,6 +190,13 @@ jobs:
         run: |
           cd obj
           ninja -j11 install-distribution
+          INSTALL_DIR="${{ github.workspace }}/install-nightly-toolchain"
+          {
+            echo "LLVM revision: $(git -C ../llvm-project rev-parse HEAD)"
+            echo "ELD revision: $(git -C ../llvm-project/llvm/tools/eld rev-parse HEAD)"
+            echo "Build platform: $(. /etc/os-release && echo "${PRETTY_NAME}")"
+            echo "C++ standard library: libc++"
+          } > "${INSTALL_DIR}/BUILD-METADATA.txt"
 
       - name: Install testing utilities into toolchain
         shell: bash
@@ -265,6 +279,7 @@ jobs:
         run: |
           tar -C ${{ github.workspace }}/ \
               -Jcvf install-nightly-toolchain.tar.xz install-nightly-toolchain
+          sha256sum install-nightly-toolchain.tar.xz > install-nightly-toolchain.tar.xz.sha256
 
       - name: Pack ELD-only tarball
         run: |
@@ -297,7 +312,10 @@ jobs:
           tag_name: nightly
           name: Nightly ELD Release
           prerelease: true
-          files: eld-unstable.tar.xz
+          files: |
+            eld-unstable.tar.xz
+            install-nightly-toolchain.tar.xz
+            install-nightly-toolchain.tar.xz.sha256
 
       - name: Run ELD extended tests
         run: |
