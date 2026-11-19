@@ -1,0 +1,20 @@
+REQUIRES: run_cxx_test
+UNSUPPORTED: arm
+#---EhFrameDeduplication.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Both inputs have a CIE with a personality routine and an LSDA, so the link
+# must keep only one of them. The exception is thrown in one input and caught in
+# the other, so the program runs only if the remaining CIE is correct.
+#END_COMMENT
+#START_TEST
+RUN: %run_cxx -o %t.main.o %p/Inputs/main.cpp -c -fPIC
+RUN: %run_cxx -o %t.thrower.o %p/Inputs/thrower.cpp -c -fPIC
+RUN: %run_cxx -o %t.out %t.main.o %t.thrower.o -Wl,-dy
+RUN: %dwarfdump --eh-frame %t.out | %filecheck %s --check-prefix=CIE
+RUN: %run %t.out | %filecheck %s --check-prefix=OUTPUT
+#END_TEST
+
+CIE: Augmentation: {{.*}}"zP
+CIE-NOT: Augmentation: {{.*}}"zP
+
+OUTPUT: caught 42

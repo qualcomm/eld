@@ -1010,6 +1010,26 @@ void addEhFrameTerminator(GNULDBackend &Backend, ObjectBuilder &Builder,
   if (ELFSection *OutSect = Builder.mergeSection(Backend, Terminator))
     Builder.updateSectionFlags(OutSect, Terminator);
 }
+
+// Final-link CIE deduplication requires one output section for all .eh_frame
+// inputs. An input with no output section was not merged, so it is skipped.
+bool hasSingleEhFrameOutput(LinkerConfig &Config,
+                            llvm::ArrayRef<EhFrameFragment *> EhFrames) {
+  OutputSectionEntry *First = nullptr;
+  for (const EhFrameFragment *F : EhFrames) {
+    OutputSectionEntry *Output = F->getOwningSection()->getOutputSection();
+    if (!Output)
+      continue;
+    if (!First) {
+      First = Output;
+    } else if (Output != First) {
+      Config.raise(Diag::multiple_eh_frame_output_sections)
+          << First->name() << Output->name();
+      return false;
+    }
+  }
+  return true;
+}
 } // namespace
 
 bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
@@ -1049,7 +1069,8 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
         auto *EhFrame = llvm::cast<eld::EhFrameSection>(Sect);
         if (!EhFrame->splitEhFrameSection())
           return false;
-        if (!EhFrame->createCIEAndFDEFragments())
+        // Only a final link deduplicates CIEs. A partial link keeps them all.
+        if (!EhFrame->createCIEAndFDEFragments(!IsPartialLink))
           return false;
         EhFrame->finishAddingFragments(*ThisModule);
         if (!IsPartialLink && EhFrame->getEhFrameFragment()) {
@@ -1090,7 +1111,7 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
     } // end of switch
   } // for each section
   addEhFrameTerminator(getTargetBackend(), Builder, EhFrameFragments);
-  return true;
+  return hasSingleEhFrameOutput(ThisConfig, EhFrameFragments);
 }
 
 void ObjectLinker::sortByName(RuleContainer *I, bool SortRule) {
