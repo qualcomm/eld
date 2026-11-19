@@ -28,6 +28,9 @@ public:
 
   size_t getSize() const { return ThisSize; }
 
+  // A record of only the 4-byte length field is a zero-length terminator.
+  bool isTerminator() const { return ThisSize == 4; }
+
   size_t getOffset() const { return MOffset; }
 
   bool hasOutputOffset() const { return MOutputOffset != (size_t)-1; };
@@ -114,6 +117,9 @@ public:
   const std::vector<EhFrameCIE *> &getCIEs() const { return CIEs; }
 
   size_t size() const override;
+
+  // Whether the input section has its own zero-length terminator record.
+  bool hasTerminator() const;
 
   void setOffset(uint32_t O) override;
 

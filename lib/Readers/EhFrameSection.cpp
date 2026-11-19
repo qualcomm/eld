@@ -116,7 +116,7 @@ bool EhFrameSection::createCIEAndFDEFragments() {
     return true;
   llvm::StringRef Region = m_EhFrame->getRegion();
   for (auto &Piece : m_EhFrame->getPieces()) {
-    if (Piece.getSize() == 4)
+    if (Piece.isTerminator())
       return true;
     size_t Offset = Piece.getOffset();
     uint32_t ID =
@@ -166,17 +166,9 @@ EhFrameCIE *EhFrameSection::addCie(EhFramePiece &P) {
   return E;
 }
 
-// Handle fake eh_frame sections.
 void EhFrameSection::finishAddingFragments(Module &ThisModule) {
   if (!size()) {
     setKind(LinkerSectionKind::Regular);
-    return;
-  }
-  if (m_EhFrame->getCIEs().empty()) {
-    setKind(LinkerSectionKind::Regular);
-    Fragments.push_back(m_EhFrame);
-    if (ThisModule.getLayoutInfo())
-      ThisModule.getLayoutInfo()->recordFragment(getInputFile(), this, m_EhFrame);
     return;
   }
   if (ThisModule.getLayoutInfo())

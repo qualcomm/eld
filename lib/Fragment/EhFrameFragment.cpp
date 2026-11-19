@@ -17,6 +17,7 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/Relocation.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/Dwarf.h"
@@ -87,18 +88,19 @@ uint8_t EhFrameCIE::getFdeEncoding(const EhFrameFragment &F, bool Is64Bit,
 }
 
 size_t EhFrameFragment::size() const {
-  if (CIEs.empty())
-    return RegionFragment::size();
   size_t Total = 0;
   for (auto *C : CIEs)
     Total += C->size();
   return Total;
 }
 
+bool EhFrameFragment::hasTerminator() const {
+  return llvm::any_of(Pieces,
+                      [](const EhFramePiece &P) { return P.isTerminator(); });
+}
+
 void EhFrameFragment::setOffset(uint32_t O) {
   Fragment::setOffset(O);
-  if (CIEs.empty())
-    return;
   uint32_t Off = O;
   for (auto *C : CIEs) {
     if (!C->size())
@@ -106,11 +108,14 @@ void EhFrameFragment::setOffset(uint32_t O) {
     C->setOffset(Off);
     Off += C->size();
   }
+  // This input terminator is not copied into this fragment. Its Piece still
+  // needs an output offset for references such as __FRAME_END__.
+  for (EhFramePiece &Piece : Pieces)
+    if (Piece.isTerminator())
+      Piece.setOutputOffset(Off);
 }
 
 eld::Expected<void> EhFrameFragment::emit(MemoryRegion &Mr, Module &M) {
-  if (CIEs.empty())
-    return RegionFragment::emit(Mr, M);
   uint32_t Off = getOffset(M.getConfig().getDiagEngine());
   for (auto *C : CIEs) {
     if (!C->size())
@@ -186,7 +191,7 @@ void EhFrameFragment::dump(llvm::raw_ostream &OS) {
     OS << "\tin=0x";
     OS.write_hex(P.getOffset());
 
-    if (P.getSize() == 4) {
+    if (P.isTerminator()) {
       OS << "\tEND";
       PrintRelocSym(P);
       OS << "\n";
