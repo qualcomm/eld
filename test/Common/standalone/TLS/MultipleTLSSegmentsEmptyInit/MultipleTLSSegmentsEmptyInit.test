@@ -1,0 +1,51 @@
+#---MultipleTLSSegmentsEmptyInit.test---------------- Executable,LS ------------#
+#BEGIN_COMMENT
+# An empty PT_TLS segment (e.g. an empty .tdata assigned to its own tls_init
+# PT_TLS, as picolibc's Linux linker script does) must not change the TLS
+# template size. The template size is the memory span of the non-empty PT_TLS
+# segments, and TP-relative accesses are encoded relative to it.
+#
+# The same object is linked twice:
+#   script-empty-tls.t    has an empty tls_init PT_TLS plus the non-empty tls
+#                         PT_TLS
+#   script-no-empty-tls.t has only the non-empty tls PT_TLS
+# Both place .data at 0x200000 and .tbss at 0x200004, so the non-empty TLS
+# segment is identical in both. The only allowed difference is the extra empty
+# program header. Code and data bytes, symbol addresses, and the non-empty
+# TLS segment must match exactly. Because get() reads b through a TP-relative
+# access, a template size that counts the empty segment changes the encoded
+# offset, and the diff catches it. This works on every target, so no
+# per-architecture expected values are needed.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c -ftls-model=local-exec %p/Inputs/tls.c -o %t.o
+RUN: %link %linkopts %linkg0opts %t.o -T %p/Inputs/script-empty-tls.t -o %t.empty --defsym __aeabi_read_tp=0
+RUN: %link %linkopts %linkg0opts %t.o -T %p/Inputs/script-no-empty-tls.t -o %t.noempty --defsym __aeabi_read_tp=0
+
+# The empty build emits two TLS headers, one empty and one non-empty.
+RUN: %readelf -l -W %t.empty | %filecheck %s -check-prefix=EMPTY
+#EMPTY-COUNT-2: TLS
+
+# The other build emits only the non-empty TLS header.
+RUN: %readelf -l -W %t.noempty | %filecheck %s -check-prefix=NOEMPTY
+#NOEMPTY-COUNT-1: TLS
+
+# The non-empty TLS segment is at 0x200004, size 4, in both builds.
+RUN: %readelf -l -W %t.empty | %filecheck %s -check-prefix=TLSADDR
+RUN: %readelf -l -W %t.noempty | %filecheck %s -check-prefix=TLSADDR
+#TLSADDR: TLS {{.*}} {{0x0*}}200004 {{.*}} {{0x0*}}4 
+
+# Code and data must be byte-identical between the two images.
+RUN: %objdump -s -j .text %t.empty | grep -v 'file format' > %t.empty.text
+RUN: %objdump -s -j .text %t.noempty | grep -v 'file format' > %t.noempty.text
+RUN: %diff %t.empty.text %t.noempty.text
+
+RUN: %objdump -s -j .data %t.empty | grep -v 'file format' > %t.empty.data
+RUN: %objdump -s -j .data %t.noempty | grep -v 'file format' > %t.noempty.data
+RUN: %diff %t.empty.data %t.noempty.data
+
+# Symbol addresses must match.
+RUN: %nm -n %t.empty > %t.empty.nm
+RUN: %nm -n %t.noempty > %t.noempty.nm
+RUN: %diff %t.empty.nm %t.noempty.nm
+#END_TEST
