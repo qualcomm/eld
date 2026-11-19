@@ -8,7 +8,6 @@
 #include "LinkerWrapper.h"
 #include "PluginVersion.h"
 #include <string>
-#include <thread>
 #include <vector>
 
 using namespace eld::plugin;
@@ -32,16 +31,8 @@ public:
       }
     if (Mode == "late-claim")
       return;
-    if (Mode == "worker") {
-      std::vector<std::thread> Workers;
-      for (Use U : Uses)
-        Workers.emplace_back([this, U] { claim(U); });
-      for (auto &Worker : Workers)
-        Worker.join();
-    } else {
-      for (Use U : Uses)
-        claim(U);
-    }
+    for (Use U : Uses)
+      claim(U);
   }
   void ActBeforePerformingLayout() override {
     for (Use U : Uses) {

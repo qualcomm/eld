@@ -1,6 +1,6 @@
 # REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
 # Claims from an early hook need no relocation callback or registration.
-# Joined worker tasks may claim uses; scanning itself can remain parallel.
+# Plugin claims are serial; scanning itself can remain parallel.
 RUN: %clang %clangopts -fPIC -c %p/Inputs/pointer.c -o %t.o
 RUN: echo 'GlobalPlugins: [{Type: LinkerPlugin, Name: EarlyClaimUse, Library: EarlyClaimUse, Options: early}]' > %t.yaml
 RUN: %link %linkopts --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.out
@@ -11,12 +11,11 @@ RUN: %readelf -x .data %t.so | %filecheck %s --check-prefix=DATA
 RUN: %readelf -r %t.so | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
 RUN: %link %linkopts -pie --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.pie
 RUN: %readelf -x .data %t.pie | %filecheck %s --check-prefix=DATA
-RUN: sed 's/Options: early/Options: worker/' %t.yaml > %t.worker.yaml
-RUN: %link %linkopts --threads --thread-count=8 --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.worker.yaml -o %t.worker.out
-RUN: %readelf -x .data %t.worker.out | %filecheck %s --check-prefix=DATA
-RUN: %readelf -r %t.worker.out | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
-RUN: %link %linkopts --shared --threads --thread-count=8 %t.o -L%libsdir -L%libsdir/test --plugin-config %t.worker.yaml -o %t.worker.so
-RUN: %readelf -x .data %t.worker.so | %filecheck %s --check-prefix=DATA
+RUN: %link %linkopts --threads --thread-count=8 --emit-relocs %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.threads.out
+RUN: %readelf -x .data %t.threads.out | %filecheck %s --check-prefix=DATA
+RUN: %readelf -r %t.threads.out | %filecheck %s --check-prefix=RELOC --implicit-check-not=" data "
+RUN: %link %linkopts --shared --threads --thread-count=8 %t.o -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.threads.so
+RUN: %readelf -x .data %t.threads.so | %filecheck %s --check-prefix=DATA
 # The cutoff must also run when no plugin has registered relocation callbacks.
 RUN: sed 's/Options: early/Options: late-claim/' %t.yaml > %t.late.yaml
 RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.late.yaml -o %t.late.out 2>&1 | %filecheck %s --check-prefix=LATE
