@@ -24,7 +24,7 @@ jobs:
 
       - name: Read LLVM version
         run: |
-          LLVM_VER=$(cat eld/utils/benchmark/llvm-version.txt | tr -d '[:space:]')
+          LLVM_VER=$(cat eld/.github/llvm-version.txt | tr -d '[:space:]')
           echo "LLVM_VER=$LLVM_VER" >> $GITHUB_ENV
 
       - name: Install LLVM from apt
@@ -46,7 +46,7 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/llvm.list >/dev/null
           sudo apt-get update -q
           sudo apt-get install -y llvm-${LLVM_VER}-dev clang-${LLVM_VER} \
-            lld-${LLVM_VER} ninja-build cmake time
+            lld-${LLVM_VER} ninja-build cmake time hyperfine
           echo "LLVM_DIR=/usr/lib/llvm-${LLVM_VER}/lib/cmake/llvm" >> $GITHUB_ENV
           echo "LD_LIBRARY_PATH=/usr/lib/llvm-${LLVM_VER}/lib" >> $GITHUB_ENV
           printf 'PATH=/usr/lib/llvm-%s/bin:%s\n' "${LLVM_VER}" "$PATH" >> $GITHUB_ENV

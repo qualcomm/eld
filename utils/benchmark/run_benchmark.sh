@@ -41,30 +41,14 @@ mkdir -p "$TMPDIR_BENCH"
 # Apply fixes to response.txt so ELD can parse options that lld accepts
 # but ELD does not yet recognize:
 #   1. --compress-debug-sections zlib  -> --compress-debug-sections=zlib
-#   2. --chroot .                      -> (removed)
-#   3. --dependency-file <path>        -> (removed, two-line form)
+#   2. --dependency-file <path>        -> (removed, two-line form)
 fix_response() {
   local src="$1" dst="$2"
   cp "$src" "$dst"
   sed -i 's/--compress-debug-sections zlib/--compress-debug-sections=zlib/' "$dst"
-  sed -i '/^--chroot \./d' "$dst"
   sed -i '/^--dependency-file/{N;d}' "$dst"
 }
 
-# Parse /usr/bin/time -v output
-parse_wall_seconds() {
-  # Input: "0:17.23" or "5:30.97" or "1:08:54" (h:mm:ss)
-  local raw="$1"
-  local h=0 m=0 s=0
-  if [[ "$raw" =~ ^([0-9]+):([0-9]+):([0-9.]+)$ ]]; then
-    h="${BASH_REMATCH[1]}"; m="${BASH_REMATCH[2]}"; s="${BASH_REMATCH[3]}"
-  elif [[ "$raw" =~ ^([0-9]+):([0-9.]+)$ ]]; then
-    m="${BASH_REMATCH[1]}"; s="${BASH_REMATCH[2]}"
-  else
-    echo "0"; return
-  fi
-  python3 -c "print(round($h*3600 + $m*60 + $s, 2))"
-}
 
 echo "["
 first=1
@@ -84,12 +68,17 @@ for WORKLOAD_DIR in "$REPRODUCERS_DIR"/*/; do
   OUTPUT_FILE="$TMPDIR_BENCH/${WORKLOAD}-out"
   TIME_LOG="$TMPDIR_BENCH/${WORKLOAD}-time.txt"
   ELD_LOG="$TMPDIR_BENCH/${WORKLOAD}-eld.txt"
+  HYPERFINE_JSON="$TMPDIR_BENCH/${WORKLOAD}-hyperfine.json"
 
   echo "  Running $WORKLOAD ..." >&2
 
   cd "$WORKLOAD_DIR"
+
+  # Use hyperfine for statistically sound wall-time measurement (1 warmup + 3 timed runs).
   EXIT_STATUS=0
-  /usr/bin/time -v -o "$TIME_LOG" "$ELD_BINARY" "@$FIXED_RESPONSE" -o "$OUTPUT_FILE" \
+  hyperfine --warmup 1 --runs 3 \
+    --export-json "$HYPERFINE_JSON" \
+    -- "$ELD_BINARY @$FIXED_RESPONSE -o $OUTPUT_FILE" \
     2>"$ELD_LOG" || EXIT_STATUS=$?
 
   if [[ $EXIT_STATUS -ne 0 ]]; then
@@ -97,8 +86,15 @@ for WORKLOAD_DIR in "$REPRODUCERS_DIR"/*/; do
     grep -i "fatal\|error:" "$ELD_LOG" | head -5 >&2 || true
   fi
 
-  WALL_RAW=$(grep "Elapsed (wall clock)" "$TIME_LOG" | grep -oP '[\d:]+\.[\d]+' || echo "0")
-  WALL_SEC=$(parse_wall_seconds "$WALL_RAW")
+  WALL_SEC=$(python3 -c "
+import json, sys
+d = json.load(open('$HYPERFINE_JSON'))
+print(round(d['results'][0]['mean'], 2))
+" 2>/dev/null || echo "0")
+
+  # Use /usr/bin/time only for peak memory (hyperfine does not measure RSS).
+  /usr/bin/time -v -o "$TIME_LOG" "$ELD_BINARY" "@$FIXED_RESPONSE" -o "$OUTPUT_FILE" \
+    2>/dev/null || true
   PEAK_KB=$(grep "Maximum resident" "$TIME_LOG" | grep -oP '\d+' | tail -1 || echo "0")
   PEAK_MB=$(python3 -c "print(round($PEAK_KB / 1024, 1))")
 
