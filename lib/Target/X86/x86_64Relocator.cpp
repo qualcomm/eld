@@ -447,12 +447,17 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     // Create GD GOT pair (x86_64GDGOT creates both entries)
     x86_64GOT *G = m_Target.createGOT(GOT::TLS_GD, rsym);
 
-    // Always emit DTPMOD64 for first entry (module ID unknown for DSO)
-    helper_DynRel_init(Obj, &pReloc, rsym, G->getFirst(), 0x0,
-                       llvm::ELF::R_X86_64_DTPMOD64, m_Target);
+    // The module ID is known only at load time. A non-preemptible symbol is
+    // bound in this output, so its module is the one containing this GOT
+    // entry: the DTPMOD64 names no symbol, so the loader does no lookup and
+    // uses this module itself. A preemptible symbol keeps its name, so the
+    // loader looks it up and a definition in another module can preempt it.
+    const bool isPreemptible = m_Target.isSymbolPreemptible(*rsym);
+    helper_DynRel_init(Obj, &pReloc, isPreemptible ? rsym : nullptr,
+                       G->getFirst(), 0x0, llvm::ELF::R_X86_64_DTPMOD64,
+                       m_Target);
 
-    // Check if symbol is preemptible to decide on second entry
-    if (m_Target.isSymbolPreemptible(*rsym)) {
+    if (isPreemptible) {
       // Preemptible: emit DTPOFF64 (dynamic loader fills it)
       helper_DynRel_init(Obj, &pReloc, rsym, G->getNext(), 0x0,
                          llvm::ELF::R_X86_64_DTPOFF64, m_Target);
