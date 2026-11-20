@@ -62,9 +62,9 @@ struct Pattern {
   std::vector<Instruction> Occurrences;
 };
 
-// Examine the instruction prefix and return its encoded length. Recognize
-// 16,32 and 48-bit instructions as well as longer encodings. The scanner
-// can skip unsupported longer encodings without losing instruction alignment.
+// Examine the instruction prefix and return its encoded length. The ILUT
+// scanner supports 16, 32, and 48-bit instructions. Unsupported longer
+// encodings stop the scan rather than being treated as 32-bit instructions.
 static unsigned getInstructionLength(llvm::StringRef Bytes) {
   if (Bytes.size() < 2)
     return 0;
@@ -74,20 +74,12 @@ static unsigned getInstructionLength(llvm::StringRef Bytes) {
   if (Bytes.size() < 4)
     return 0;
   uint32_t Word = llvm::support::endian::read32le(Bytes.data());
-  // RISC-V 48-bit encodings have bits[4:2] set and opcode 0x1f.
-  if ((Word & 0x1f) == 0x1f)
-    return 6;
-  // Do not walk through longer encodings as if they were 32-bit ones.
-  switch (Word & 0x7f) {
-  case 0x3f:
-    return 8;
-  case 0x5f:
-    return 10;
-  case 0x7f:
-    return 12;
-  default:
+  if ((Word & 0x1f) != 0x1f)
     return 4;
-  }
+  // RISC-V 48-bit encodings have bits[5:0] equal to 0b011111.
+  if ((Word & 0x3f) == 0x1f)
+    return 6;
+  return 0;
 }
 
 // Reject instructions whose meaning would change when executed from the table
@@ -142,7 +134,7 @@ static bool isUnsafeForILUT(llvm::StringRef Bytes, unsigned Length) {
     }
   }
 
-  if (Length == 6 && (Word & 0x1f) == 0x1f) {
+  if (Length == 6 && (Word & 0x3f) == 0x1f) {
     // Xqci 48-bit conditional branches use bits 14:12 as funct3 set to 4.
     unsigned Funct3 = (Word >> 12) & 7;
     return Funct3 == 4;
