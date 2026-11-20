@@ -7,14 +7,12 @@
 # RUN: %not %link %linkopts -r --icf=all %t/input.o -o %t/partial.o 2>&1 | %filecheck %s --check-prefix=PARTIAL
 # RUN: %not %link %linkopts -r --icf=safe %t/input.o -o %t/partial-safe.o 2>&1 | %filecheck %s --check-prefix=PARTIAL
 # RUN: %not %link %linkopts -r --icf=invalid %t/input.o -o %t/partial-invalid.o 2>&1 | %filecheck %s --check-prefix=INVALID-ICF
-# RUN: %link %linkopts -r --icf=none --print-icf-sections %t/input.o -o %t/partial-none.o 2>&1 | %filecheck %s --check-prefix=PRINT
 # RUN: %not %link %linkopts --icf=invalid %t/input.o -o %t/invalid.o 2>&1 | %filecheck %s --check-prefix=INVALID-ICF
 
 # NONE-NOT: ICF folding
 # SAFE: ICF folding {{.*}}:(.text.bar) into {{.*}}:(.text.foo)
 # PARTIAL: --icf={{(all|safe)}} cannot be used with -r (partial link); use --icf=none or omit --icf
 # INVALID-ICF: Invalid value for --icf: invalid
-# PRINT: Option `--print-icf-sections' is disabled
 # PARTIAL-NOT: ICF folding
 
 #--- input.c

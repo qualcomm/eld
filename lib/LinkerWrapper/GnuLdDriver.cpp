@@ -193,17 +193,193 @@ void GnuLdDriver::printVersionInfo() const {
 }
 
 // Some command line options or some combinations of them are not allowed.
-// This function checks for such errors.
+// This function checks for such issues and generate warnings or errors.
 template <class T>
 bool GnuLdDriver::checkOptions(llvm::opt::InputArgList &Args) const {
-  // TODO: Disabled since this will get replaced with a warning.
-  // check --thread-count and if threads are disabled.
-  // if (Args.getLastArg(T::thread_count)) {
-  //   if (!Config.options().threadsEnabled()) {
-  //     Config.raise(Diag::thread_count_with_no_threads);
-  //     return false;
-  //   }
-  // }
+  if (!Config.showConflictingOptionsWarnings())
+    return true;
+
+  using OptionKey = std::pair<unsigned, StringRef>;
+  // Identify an option by its canonical ID and, for options such as -W and
+  // -z, its argument value. These StringRefs refer to Args storage or string
+  // literals, which both outlive this function's map.
+  struct ConflictOption {
+    OptionKey Key;
+  };
+  // Retain the parsed argument so warnings can use its original spelling.
+  struct SeenOption {
+    unsigned Index;
+    const llvm::opt::Arg *Argument;
+  };
+  // Some conflicts follow command-line order; others have a fixed precedence
+  // because one option always disables the other.
+  enum class Winner {
+    // The option that appears later in the command line wins.
+    Last,
+    // The second option in the rule wins regardless of command-line order.
+    Second,
+    // The second option wins when threads are disabled. If threads are
+    // enabled, both options remain effective and no warning is issued.
+    SecondIfNoThreads,
+  };
+  // First and Second name the options in a conflict rule. Policy determines
+  // which one is reported as effective when both are present.
+  struct ConflictRule {
+    ConflictOption First;
+    ConflictOption Second;
+    Winner Policy;
+  };
+
+  // Match options identified by their ID alone or by both ID and value.
+  auto opt = [](unsigned ID) { return ConflictOption{{ID, ""}}; };
+  auto valOpt = [](unsigned ID, StringRef Value) {
+    return ConflictOption{{ID, Value}};
+  };
+  // Use the spelling the user passed for diagnostics. For options with an
+  // operand, report only the flag (for example, -T), not its operand. -W and
+  // -z use their values as their user-visible suboption names.
+  auto getDisplayName = [&](const llvm::opt::Arg *Arg) {
+    unsigned ID = Arg->getOption().getUnaliasedOption().getID();
+    if (ID == T::W || ID == T::dash_z)
+      return StringRef(Arg->getValue());
+
+    const llvm::opt::Arg *OriginalArg = Arg->getAlias();
+    StringRef Spelling =
+        OriginalArg ? OriginalArg->getSpelling() : Arg->getSpelling();
+    if (Spelling.ends_with("="))
+      Spelling = Spelling.drop_back();
+    return Spelling;
+  };
+
+  // Aliases are represented by their canonical option ID. -W and -z share an
+  // option ID, so include their argument value in the key.
+  std::map<OptionKey, SeenOption> SeenOpts;
+  unsigned OptIndex = 0;
+  for (llvm::opt::Arg *Arg : Args) {
+    unsigned ID = Arg->getOption().getUnaliasedOption().getID();
+    StringRef Value;
+    if (ID == T::W || ID == T::dash_z)
+      Value = Arg->getValue();
+    SeenOpts[{ID, Value}] = {OptIndex++, Arg};
+  }
+
+  // Each rule declares both the conflicting options and which one wins.
+  const ConflictRule ConflictingOpts[] = {
+      {opt(T::fatal_warnings), opt(T::no_fatal_warnings), Winner::Last},
+      {opt(T::pie), opt(T::no_pie), Winner::Last},
+      {opt(T::export_dynamic), opt(T::no_export_dynamic), Winner::Last},
+      {opt(T::warn_shared_textrel), opt(T::no_warn_shared_textrel),
+       Winner::Last},
+      {opt(T::enable_newdtags), opt(T::disable_newdtags), Winner::Last},
+      {opt(T::enable_linker_version), opt(T::disable_linker_version),
+       Winner::Last},
+      {opt(T::record_command_line), opt(T::no_record_command_line),
+       Winner::Last},
+      {opt(T::warn_mismatch), opt(T::no_warn_mismatch), Winner::Last},
+      {opt(T::fat_lto_objects), opt(T::no_fat_lto_objects), Winner::Last},
+      {opt(T::align_segments), opt(T::no_align_segments), Winner::Last},
+      {opt(T::align_segments), opt(T::omagic), Winner::Second},
+      {opt(T::align_segments), opt(T::T), Winner::Second},
+      {opt(T::fatal_internal_errors), opt(T::no_fatal_internal_errors),
+       Winner::Last},
+      {opt(T::gc_sections), opt(T::no_gc_sections), Winner::Last},
+      {opt(T::enable_overlap_checks), opt(T::disable_overlap_checks),
+       Winner::Last},
+      {opt(T::omagic), opt(T::no_omagic), Winner::Last},
+      {opt(T::threads), opt(T::no_threads), Winner::Last},
+      {opt(T::enable_threads), opt(T::no_threads), Winner::Last},
+      {opt(T::enable_threads), opt(T::threads), Winner::Last},
+      {opt(T::thread_count), opt(T::no_threads), Winner::SecondIfNoThreads},
+      {opt(T::demangle), opt(T::no_demangle), Winner::Last},
+      {opt(T::demangle_style), opt(T::demangle), Winner::Last},
+      {opt(T::demangle_style), opt(T::no_demangle), Winner::Last},
+      {opt(T::emit_relocs), opt(T::no_emit_relocs), Winner::Last},
+      {opt(T::emit_relocs_llvm), opt(T::no_emit_relocs), Winner::Last},
+      {opt(T::emit_relocs_llvm), opt(T::shared), Winner::Second},
+      {opt(T::emit_relocs_llvm), opt(T::pie), Winner::Second},
+      {opt(T::emit_relocs_llvm), opt(T::relocatable), Winner::Second},
+      {opt(T::emit_relocs), opt(T::emit_relocs_llvm), Winner::Last},
+      {opt(T::emit_relocs), opt(T::shared), Winner::Second},
+      {opt(T::emit_relocs), opt(T::pie), Winner::Second},
+      {opt(T::emit_relocs), opt(T::relocatable), Winner::Second},
+      {opt(T::print_icf_sections), opt(T::relocatable), Winner::Second},
+      {opt(T::symdef), opt(T::shared), Winner::Second},
+      {opt(T::symdef), opt(T::pie), Winner::Second},
+      {opt(T::symdef), opt(T::relocatable), Winner::Second},
+      {opt(T::symdef_file), opt(T::shared), Winner::Second},
+      {opt(T::symdef_file), opt(T::pie), Winner::Second},
+      {opt(T::symdef_file), opt(T::relocatable), Winner::Second},
+      {opt(T::static_link), opt(T::Bdynamic), Winner::Last},
+      {opt(T::static_link), opt(T::dynamic), Winner::Last},
+      {opt(T::static_link), opt(T::shared), Winner::Last},
+      {opt(T::static_link), opt(T::relocatable), Winner::Last},
+      {opt(T::Bdynamic), opt(T::dynamic), Winner::Last},
+      {opt(T::Bdynamic), opt(T::shared), Winner::Last},
+      {opt(T::Bdynamic), opt(T::relocatable), Winner::Last},
+      {opt(T::dynamic), opt(T::shared), Winner::Last},
+      {opt(T::dynamic), opt(T::relocatable), Winner::Last},
+      {opt(T::shared), opt(T::relocatable), Winner::Last},
+      {opt(T::Bsymbolic), opt(T::static_link), Winner::Second},
+      {opt(T::Bsymbolic_functions), opt(T::static_link), Winner::Second},
+      {valOpt(T::dash_z, "combreloc"), valOpt(T::dash_z, "nocombreloc"),
+       Winner::Last},
+      {valOpt(T::dash_z, "relro"), valOpt(T::dash_z, "norelro"), Winner::Last},
+      {valOpt(T::dash_z, "lazy"), valOpt(T::dash_z, "now"), Winner::Last},
+      {valOpt(T::dash_z, "lazy"), opt(T::static_link), Winner::Second},
+      {valOpt(T::dash_z, "now"), opt(T::static_link), Winner::Second},
+      {valOpt(T::dash_z, "text"), valOpt(T::dash_z, "notext"), Winner::Last},
+      {valOpt(T::dash_z, "execstack"), valOpt(T::dash_z, "noexecstack"),
+       Winner::Last},
+      {valOpt(T::dash_z, "separate-code"), valOpt(T::dash_z, "noseparate-code"),
+       Winner::Last},
+      {valOpt(T::dash_z, "separate-code"),
+       valOpt(T::dash_z, "separate-loadable-segments"), Winner::Last},
+      {valOpt(T::dash_z, "noseparate-code"),
+       valOpt(T::dash_z, "separate-loadable-segments"), Winner::Last},
+      {valOpt(T::W, "linker-script"), valOpt(T::W, "no-linker-script"),
+       Winner::Last},
+      {valOpt(T::W, "error"), valOpt(T::W, "no-error"), Winner::Last},
+      {valOpt(T::W, "attribute-mix"), valOpt(T::W, "no-attribute-mix"),
+       Winner::Last},
+      {valOpt(T::W, "archive-file"), valOpt(T::W, "no-archive-file"),
+       Winner::Last},
+      {valOpt(T::W, "linker-script-memory"),
+       valOpt(T::W, "no-linker-script-memory"), Winner::Last},
+      {valOpt(T::W, "bad-dot-assignments"),
+       valOpt(T::W, "no-bad-dot-assignments"), Winner::Last},
+      {valOpt(T::W, "whole-archive"), valOpt(T::W, "no-whole-archive"),
+       Winner::Last},
+      {valOpt(T::W, "osabi"), valOpt(T::W, "no-osabi"), Winner::Last},
+      {valOpt(T::W, "conflicting-options"),
+       valOpt(T::W, "no-conflicting-options"), Winner::Last},
+  };
+  for (const ConflictRule &Rule : ConflictingOpts) {
+    auto It1 = SeenOpts.find(Rule.First.Key);
+    auto It2 = SeenOpts.find(Rule.Second.Key);
+    if (It1 == SeenOpts.end() || It2 == SeenOpts.end())
+      continue;
+
+    bool FirstWins = false;
+    switch (Rule.Policy) {
+    case Winner::Last:
+      FirstWins = It1->second.Index > It2->second.Index;
+      break;
+    case Winner::Second:
+      break;
+    case Winner::SecondIfNoThreads:
+      if (Config.options().threadsEnabled())
+        continue;
+      break;
+    }
+
+    const llvm::opt::Arg *EnabledArg =
+        FirstWins ? It1->second.Argument : It2->second.Argument;
+    const llvm::opt::Arg *DisabledArg =
+        FirstWins ? It2->second.Argument : It1->second.Argument;
+    StringRef Enabled = getDisplayName(EnabledArg);
+    StringRef Disabled = getDisplayName(DisabledArg);
+    Config.raise(Diag::warn_incompatible_option) << Disabled << Enabled;
+  }
   return true;
 }
 
@@ -1057,15 +1233,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
       Config.raise(Diag::err_icf_relocatable) << ICFArg->getValue();
       return false;
     }
-    if (Args.hasArg(T::print_icf_sections))
-      Config.raise(Diag::warn_incompatible_option)
-          << "-print-icf-sections" << "relocatable";
   }
 
   // Disable emit relocs if -shared/-pie/relocatable
   if (Config.options().emitRelocs() && !conflictingOption.empty()) {
-    Config.raise(Diag::warn_incompatible_option)
-        << "-emit-relocs" << conflictingOption;
     Config.options().setEmitRelocs(false);
     Config.options().setEmitGNUCompatRelocs(false);
   }
@@ -1143,11 +1314,8 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   }
 
   // Disable symdef if -shared/-pie/-relocatable
-  if (Config.options().symDef() && !conflictingOption.empty()) {
-    Config.raise(Diag::warn_incompatible_option)
-        << "-symdef/--symdef-file" << conflictingOption;
+  if (Config.options().symDef() && !conflictingOption.empty())
     Config.options().setSymDef(false);
-  }
 
   // --unresolved-symbols=ignore-all,report-all,ignore-in-object-files,
   //                      ignore-in-shared-libs
