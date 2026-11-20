@@ -1,0 +1,32 @@
+#---MultipleTLSSegmentsEmptyInit.test---------------- Executable,LS ------------#
+#BEGIN_COMMENT
+# When one of the PT_TLS segments is empty (e.g. an empty .tdata assigned to
+# its own tls_init PT_TLS, as picolibc's Linux linker script does), that empty
+# segment must not contribute to the TLS template size. The template size is
+# the memory span of the non-empty PT_TLS segments, and a TPREL relocation
+# resolves to (sym_tls_offset - TLS_template_size).
+#
+# Layout produced by script.t (.tdata is empty, b is in .tbss):
+#   .tdata (empty PT_TLS): vaddr 0x200000, memsz 0
+#   .data  : refs at vaddr 0x200000 (4 bytes)
+#   .tbss  : b at vaddr 0x200004, memsz 4
+#   TLS template size = 0x4 (only the non-empty segment counts)
+# Hence:
+#   b@TPREL = 0x00 - 0x04 = -0x04 = 0xfffffffc
+#
+# If the empty segment is included in the span (lo = 0x200000), the template
+# size becomes (0x200004 + 4) - 0x200000 = 0x8, giving b@TPREL = -0x8 instead.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/a.s -o %t.o
+RUN: %link %linkopts %t.o -T %p/Inputs/script.t -o %t.out
+RUN: %readelf -l -W %t.out | %filecheck %s -check-prefix=SEGMENT
+RUN: %objdump -s -j .data %t.out | %filecheck %s -check-prefix=TPREL
+
+# Both PT_TLS segments are emitted, even though the first is empty.
+#SEGMENT-COUNT-2: TLS
+
+# refs holds b@TPREL, which must be -4 (0xfffffffc): the empty tls_init segment
+# must not change the TLS template size.
+#TPREL: 200000 fcffffff
+#END_TEST
