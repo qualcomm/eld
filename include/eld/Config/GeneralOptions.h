@@ -64,8 +64,6 @@ public:
 
   enum ErrorStyleType { gnu, llvm };
 
-  enum ScriptOptionType { MatchGNU, MatchLLVM };
-
   enum HashStyle { SystemV = 0x1, GNU = 0x2, Both = 0x3 };
 
   enum class RISCVRelaxTbljalMode { None, Zcmt, Xqccmt };
@@ -578,10 +576,6 @@ public:
 
   bool hasDynamicList() const { return BDynamicList; }
 
-  void setVersionScript() { BVersionScript = true; }
-
-  bool hasVersionScript() const { return BVersionScript; }
-
   void setAllowUndefinedVersion(bool Enable) { AllowUndefinedVersion = Enable; }
 
   bool allowUndefinedVersion() const { return AllowUndefinedVersion; }
@@ -760,10 +754,6 @@ public:
   ErrorStyleType getErrorStyle() const;
 
   bool setErrorStyle(std::string ErrorStyle);
-
-  ScriptOptionType getScriptOption() const;
-
-  bool setScriptOption(std::string ScriptOptions);
 
   bool useOldRuleMatching() const { return BUseOldRuleMatching; }
 
@@ -1313,7 +1303,6 @@ private:
   bool BGenUnwindInfo = true;        // --ld-generated-unwind-info
   bool BForceDynamic = false;        // --force-dynamic
   bool BDynamicList = false;         // --dynamic-list flag
-  bool BVersionScript = false;       // --version-script
   bool AllowUndefinedVersion = true; // --[no-]undefined-version
   bool BDefaultSymver = false;       // --default-symver
   bool BHasDyld = false;             // user set dynamic linker ?
@@ -1445,7 +1434,6 @@ private:
   std::string SoName;
   ExcludeLIBSType ExcludeLIBS;
   ErrorStyleType ErrorStyle = gnu;
-  ScriptOptionType ScriptOption = MatchLLVM;
   std::vector<std::string> LTOAsmFile;
   std::vector<std::string> LTOOutputFile;
   std::optional<uint64_t> ImageBase; // --image-base=value

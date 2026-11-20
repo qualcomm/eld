@@ -153,7 +153,7 @@ jobs:
           record-mode: "record"
           status: "fail"
           run-id: ${{github.run_id}}
-          arch-name: ${{ matrix.target.arch }}
+          arch-name: ${{ matrix.target.board }}
           branch-name: "main"
 
       - name: Fetch nightly toolset
@@ -379,6 +379,8 @@ jobs:
           record-mode: "update"
           status: "pass"
           run-id: ${{github.run_id}}
+          arch-name: ${{ matrix.target.board }}
+          branch-name: "main"
 
       - name: Delete older Zephyr results
         if: success() && inputs.pr_sha == ''

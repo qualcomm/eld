@@ -222,8 +222,17 @@ def emitAllJSData():
 
 
 def validateArgs(args):
-    if not args.emit_all_data and args.workflow_build is None:
+    if args.emit_all_data:
+        return
+
+    if args.workflow_build is None:
         sys.exit("Build workflow must be specified! E.g. --workflow <workflow>")
+
+    if args.workflow_arch is None:
+        sys.exit("Build architecture must be specified! E.g. --arch <arch>")
+
+    if args.build_branch is None:
+        sys.exit("Build branch must be specified! E.g. --branch <branch>")
 
     # Record/update mode must have a run_id.
     if args.record_mode or args.update_mode:
