@@ -19,6 +19,8 @@ DIAG(multiple_definitions, DiagnosticEngine::Error,
      "multiple definition of symbol `%0' in file %1 and %2")
 DIAG(multiple_absolute_definitions, DiagnosticEngine::Error,
      "inconsistent definitions of absolute symbol `%0': old(%1) -> new(%2)")
+DIAG(error_redefine_linker_defined_symbol, DiagnosticEngine::Error,
+     "%0 cannot redefine linker defined symbol `%1'")
 DIAG(add_new_symbol, DiagnosticEngine::Note,
      "Symbol `%0' from Input file `%1' with info `%2' being added to Namepool")
 DIAG(resolve_new_symbol, DiagnosticEngine::Note,
