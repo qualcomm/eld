@@ -126,8 +126,9 @@ private:
 
   /// Determines if a symbol should be included or not.
   ArchiveFile::Symbol::SymbolStatus
-  shouldIncludeSymbol(llvm::StringRef SymName, const ResolveInfo *info,
-                      const ArchiveFile::Symbol &S, InputFile **F) const;
+  shouldIncludeSymbol(const ArchiveFile &archiveFile, llvm::StringRef SymName,
+                      const ResolveInfo *info, const ArchiveFile::Symbol &S,
+                      InputFile **F, llvm::StringRef *WrappedSymbol) const;
 
   /// Returns true if both info and type represents the same type of
   /// information.
