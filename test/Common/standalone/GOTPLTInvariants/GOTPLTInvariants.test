@@ -1,7 +1,7 @@
 ## Checks GOT/PLT invariants that must hold no matter how many input files
 ## contribute slots:
-##  - Every slot lands in one .got and one .got.plt.
-##  - DT_PLTGOT points at GOTPLT0 at the start of .got.plt.
+##  - Every slot lands in one .got.
+##  - DT_PLTGOT points at GOTPLT0 at the start of .got.plt, on a link that has PLT entries.
 ##  - A symbol referenced from many files shares one slot.
 ##  - .rela.plt is index-parallel with .plt, which lazy binding depends on.
 
@@ -20,13 +20,6 @@
 # RUN: %filecheck %s --check-prefix=SECT --input-file=%t/sect.txt
 # SECT-COUNT-1: ] .got {{ *}}PROGBITS
 # SECT-NOT:     ] .got {{ *}}PROGBITS
-# SECT-COUNT-1: ] .got.plt {{ *}}PROGBITS
-# SECT-NOT:     ] .got.plt {{ *}}PROGBITS
-
-# RUN: %readelf -SW --dynamic %t/out.so > %t/dyn.txt
-# RUN: %filecheck %s --check-prefix=PLTGOT --input-file=%t/dyn.txt
-# PLTGOT-DAG: ] .got.plt {{ *}}PROGBITS {{0*}}[[GOTPLT:[0-9a-f]+]]
-# PLTGOT-DAG: (PLTGOT) {{ *}}0x[[GOTPLT]]
 
 ## shared_g is referenced through the GOT from three files,
 ## but it should get one slot and appear in exactly one dynamic relocation.
@@ -46,6 +39,13 @@
 
 # RUN: %link %linkopts -shared %t/lib.o -o %t/lib.so
 # RUN: %link %linkopts -shared %t/callsa.o %t/callsb.o %t/lib.so -o %t/plt.so
+
+## plt.so has PLT entries, so .got.plt exists and DT_PLTGOT points at its start.
+# RUN: %readelf -SW --dynamic %t/plt.so > %t/dyn.txt
+# RUN: %filecheck %s --check-prefix=PLTGOT --input-file=%t/dyn.txt
+# PLTGOT-DAG: ] .got.plt {{ *}}PROGBITS {{0*}}[[GOTPLT:[0-9a-f]+]]
+# PLTGOT-DAG: (PLTGOT) {{ *}}0x[[GOTPLT]]
+
 # RUN: %readelf -rW %t/plt.so > %t/pltidx.txt
 # RUN: %objdump -d --section=.plt %t/plt.so >> %t/pltidx.txt
 # RUN: %filecheck %s --check-prefix=PLTIDX --input-file=%t/pltidx.txt
