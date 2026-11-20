@@ -323,7 +323,18 @@ public:
   ~LinkerWrapper();
 
 
-  /// Return true if the linker is processing post LTO objects.
+  /// Return true if LTO was explicitly requested or inputs require LTO.
+  /// Before input discovery finishes, this reflects inputs discovered so far.
+  bool isLTOEnabled() const;
+
+  /// Return true if bitcode inputs have been selected for LTO.
+  /// This remains true after LTO and does not indicate compilation completion.
+  /// Before input discovery finishes, this reflects inputs discovered so far.
+  bool hasLTOInputs() const;
+
+  /// Return true if the linker has transitioned to post-LTO processing.
+  /// This can be true with no bitcode inputs when LTO was explicitly requested.
+  /// False also includes non-LTO links and LTO compilation in progress.
   bool isPostLTOPhase() const;
 
   /// Adds a local symbol Symbol to the chunk C.
