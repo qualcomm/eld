@@ -30,6 +30,7 @@
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/MathExtras.h"
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <map>
 #include <numeric>
@@ -40,12 +41,13 @@ using namespace eld;
 namespace {
 
 struct Instruction {
-  // An ILUT-eligible instruction decoded from fragment F. Offset is relative
-  // to F and Bytes contains the original little-endian encoding.
+  // An ILUT-eligible instruction from fragment F. Bytes holds its original
+  // little-endian encoding inline, so decoded instructions need no separate
+  // payload allocation.
   const Fragment *F = nullptr;
   uint64_t Offset = 0;
   unsigned Length = 0;
-  std::vector<uint8_t> Bytes;
+  std::array<uint8_t, 6> Bytes{};
 };
 
 struct Pattern {
@@ -706,7 +708,7 @@ static bool isLegalPayload(const std::vector<unsigned> &Lengths,
 
 // Include instruction lengths as well as payload bytes in the pattern key.
 // Equal byte runs with different instruction boundaries remain distinct.
-static std::string makeKey(const std::vector<uint8_t> &Bytes,
+static std::string makeKey(llvm::ArrayRef<uint8_t> Bytes,
                            const std::vector<unsigned> &Lengths) {
   std::string Key;
   for (unsigned Length : Lengths)
@@ -853,14 +855,10 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
       unsigned Length = getInstructionLength(Data.substr(Offset));
       if (!Length || Offset + Length > Data.size())
         break;
-      std::vector<uint8_t> Bytes(Length);
-      std::memcpy(Bytes.data(), Data.data() + Offset, Length);
-      bool Valid = !isUnsafeForILUT(
-          llvm::StringRef(reinterpret_cast<const char *>(Bytes.data()),
-                          Bytes.size()),
-          Length);
-      if (Length == 2 &&
-          isIlutInstruction(llvm::support::endian::read16le(Bytes.data())))
+      llvm::StringRef InstructionBytes = Data.substr(Offset, Length);
+      bool Valid = !isUnsafeForILUT(InstructionBytes, Length);
+      if (Length == 2 && isIlutInstruction(llvm::support::endian::read16le(
+                             InstructionBytes.data())))
         Valid = false;
       if (Length != 2 && Length != 4 && Length != 6)
         Valid = false;
@@ -868,8 +866,14 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
       // Copying them would lose or misapply the relocation.
       if (hasRelocationAt(Relocations, F, Offset, Length))
         Valid = false;
-      if (Valid)
-        Instructions.push_back({F, Offset, Length, std::move(Bytes)});
+      if (Valid) {
+        Instruction Decoded;
+        Decoded.F = F;
+        Decoded.Offset = Offset;
+        Decoded.Length = Length;
+        std::memcpy(Decoded.Bytes.data(), InstructionBytes.data(), Length);
+        Instructions.push_back(Decoded);
+      }
       Offset += Length;
     }
 
@@ -879,9 +883,10 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
       std::vector<unsigned> Lengths = {A.Length};
       unsigned EntrySize = 0;
       if (isLegalPayload(Lengths, EntrySize)) {
-        Pattern &P = Patterns[makeKey(A.Bytes, Lengths)];
-        P.Key = makeKey(A.Bytes, Lengths);
-        P.Bytes = A.Bytes;
+        llvm::ArrayRef<uint8_t> ABytes(A.Bytes.data(), A.Length);
+        Pattern &P = Patterns[makeKey(ABytes, Lengths)];
+        P.Key = makeKey(ABytes, Lengths);
+        P.Bytes.assign(ABytes.begin(), ABytes.end());
         P.EntrySize = EntrySize;
         P.SourceSize = A.Length;
         P.Saving = A.Length - 2;
@@ -898,8 +903,8 @@ void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
       Lengths = {A.Length, B.Length};
       if (!isLegalPayload(Lengths, EntrySize))
         continue;
-      std::vector<uint8_t> Bytes = A.Bytes;
-      Bytes.insert(Bytes.end(), B.Bytes.begin(), B.Bytes.end());
+      std::vector<uint8_t> Bytes(A.Bytes.begin(), A.Bytes.begin() + A.Length);
+      Bytes.insert(Bytes.end(), B.Bytes.begin(), B.Bytes.begin() + B.Length);
       Pattern &P = Patterns[makeKey(Bytes, Lengths)];
       P.Key = makeKey(Bytes, Lengths);
       P.Bytes = std::move(Bytes);
