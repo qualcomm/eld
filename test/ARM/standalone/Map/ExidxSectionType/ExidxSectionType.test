@@ -1,0 +1,7 @@
+# The map names .ARM.exidx by its ARM section type.
+RUN: %clang %clangopts -funwind-tables -c %p/Inputs/foo.c -o %t.o
+RUN: %link %linkopts -shared %t.o -o %t.out -Map %t.map
+RUN: %filecheck %s < %t.map
+
+# CHECK: .ARM.exidx {{.*}}Type: SHT_ARM_EXIDX
+# CHECK: .ARM.exidx {{.*}}#SHT_ARM_EXIDX,

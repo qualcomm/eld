@@ -93,6 +93,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/Object/ELF.h"
 #include "llvm/Object/ELFTypes.h"
 #include "llvm/Support/BinaryStreamWriter.h"
 #include "llvm/Support/FileOutputBuffer.h"
@@ -207,6 +208,10 @@ void GNULDBackend::insertTimingFragmentStub() {
     layoutInfo->recordFragment(F->getOwningSection()->getInputFile(),
                                F->getOwningSection(), F);
   m_pTimingFragment = F;
+}
+
+llvm::StringRef GNULDBackend::getSectionTypeName(uint32_t Type) const {
+  return llvm::object::getELFSectionTypeName(getInfo().machine(), Type);
 }
 
 eld::Expected<void> GNULDBackend::initStdSections() {
@@ -2423,10 +2428,8 @@ GNULDBackend::setupSegmentOffset(ELFSegment *Seg, ELFSection *P,
           // reset all nobits sections to section type PROGBITS
           for (auto &S : NoBitsSections) {
             config().raise(Diag::promoting_bss_to_progbits)
-                << S->name()
-                << ELFSection::getELFTypeStr(S->name(), S->getType())
-                << ELFSection::getELFTypeStr(next->name(), next->getType())
-                << next->name();
+                << S->name() << getSectionTypeName(S->getType())
+                << getSectionTypeName(next->getType()) << next->name();
             S->setType(llvm::ELF::SHT_PROGBITS);
           }
           NoBitsSections.clear();
@@ -3167,9 +3170,8 @@ bool GNULDBackend::placeOutputSections() {
       else if (type == OutputSectDesc::PROGBITS) {
         if (!cur->isProgBits()) {
           config().raise(Diag::change_section_type)
-              << ELFSection::getELFTypeStr("", llvm::ELF::SHT_PROGBITS)
-              << ELFSection::getELFTypeStr(cur->name(), cur->getType())
-              << cur->name();
+              << getSectionTypeName(llvm::ELF::SHT_PROGBITS)
+              << getSectionTypeName(cur->getType()) << cur->name();
           cur->setType(llvm::ELF::SHT_PROGBITS);
         }
         (*out)->prolog().setType(OutputSectDesc::LOAD);

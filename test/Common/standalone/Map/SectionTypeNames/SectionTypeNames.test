@@ -1,0 +1,12 @@
+# Section types the linker creates or copies keep their names in the map.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/foo.c -o %t.o
+RUN: %link %linkopts -shared %t.o -o %t.out -Map %t.map
+RUN: %filecheck %s < %t.map
+
+# CHECK-DAG: .dynsym {{.*}}Type: SHT_DYNSYM
+# CHECK-DAG: .dynamic {{.*}}Type: SHT_DYNAMIC
+# CHECK-DAG: .hash {{.*}}Type: SHT_HASH
+# CHECK-DAG: .symtab {{.*}}Type: SHT_SYMTAB
+# CHECK-DAG: .strtab {{.*}}Type: SHT_STRTAB
+# CHECK-DAG: .shstrtab {{.*}}Type: SHT_STRTAB
+# CHECK-DAG: .text {{.*}}Type: SHT_PROGBITS

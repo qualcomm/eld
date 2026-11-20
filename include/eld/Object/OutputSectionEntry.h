@@ -167,8 +167,6 @@ public:
     return Hash;
   }
 
-  std::string getSectionTypeStr() const;
-
   uint64_t pAddr() const { return PAddr; }
   void setPaddr(uint64_t A) { PAddr = A; }
 
