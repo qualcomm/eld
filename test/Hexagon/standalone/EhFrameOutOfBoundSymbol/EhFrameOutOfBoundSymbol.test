@@ -10,5 +10,6 @@ RUN: %link %linkopts -o %t1.21.o %t1.2.o %t1.1.o -r
 RUN: %link %linkopts -o %t1.21.out %t1.21.o
 RUN: %readelf -Ss %t1.21.out | %filecheck %s
 #END_TEST
-CHECK: .eh_frame {{.*}}0c {{.*}}30
+# The final .eh_frame includes its 4-byte zero terminator after the marker.
+CHECK: .eh_frame {{.*}}0c {{.*}}34
 CHECK: 3c {{.*}} EH_FRAME_BEGIN

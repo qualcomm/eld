@@ -11,4 +11,5 @@ RUN: %link %linkopts -o %t1.21.out %t1.21.o
 RUN: %readelf -Ss %t1.21.out | %filecheck %s
 #END_TEST
 CHECK: .eh_frame PROGBITS [[#%x,ADDRESS:]] {{[0-9a-f]+}} [[#%x,SIZE:]]
-CHECK: [[#ADDRESS + SIZE]] {{.*}} EH_FRAME_BEGIN
+# The marker follows the input records; the 4-byte zero terminator is last.
+CHECK: [[#ADDRESS + SIZE - 4]] {{.*}} EH_FRAME_BEGIN

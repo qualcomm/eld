@@ -74,6 +74,7 @@
 #include "eld/Target/GNULDBackend.h"
 #include "eld/Target/Relocator.h"
 #include "llvm/ADT/MapVector.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/StringSwitch.h"
@@ -994,9 +995,48 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
         << (int)std::chrono::duration<double, std::milli>(End - Start).count();
 }
 
+namespace {
+// A final .eh_frame ends with one zero record. It is created when a CIE/FDE
+// survives or an input has its own zero record.
+void addEhFrameTerminator(GNULDBackend &Backend, ObjectBuilder &Builder,
+                          llvm::ArrayRef<EhFrameFragment *> EhFrames) {
+  if (!llvm::any_of(EhFrames, [](const EhFrameFragment *F) {
+        return F->size() || F->hasTerminator();
+      }))
+    return;
+  // The merge loop skipped this section because it had no data yet, so merge
+  // it here, after every other input. That puts the zero record last.
+  ELFSection *Terminator = Backend.createEhFrameTerminator();
+  if (ELFSection *OutSect = Builder.mergeSection(Backend, Terminator))
+    Builder.updateSectionFlags(OutSect, Terminator);
+}
+
+// Final-link CIE deduplication requires one output section for all .eh_frame
+// inputs. An input with no output section was not merged, so it is skipped.
+bool hasSingleEhFrameOutput(LinkerConfig &Config,
+                            llvm::ArrayRef<EhFrameFragment *> EhFrames) {
+  OutputSectionEntry *First = nullptr;
+  for (const EhFrameFragment *F : EhFrames) {
+    OutputSectionEntry *Output = F->getOwningSection()->getOutputSection();
+    if (!Output)
+      continue;
+    if (!First) {
+      First = Output;
+    } else if (Output != First) {
+      Config.raise(Diag::multiple_eh_frame_output_sections)
+          << First->name() << Output->name();
+      return false;
+    }
+  }
+  return true;
+}
+} // namespace
+
 bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
                                       std::vector<Section *> &Sections) {
   bool IsPartialLink = ThisConfig.isLinkPartial();
+  // Final-link .eh_frame fragments, used by the steps after the loop.
+  std::vector<EhFrameFragment *> EhFrameFragments;
   for (auto &Section : Sections) {
     if (Section->isBitcode())
       continue;
@@ -1026,21 +1066,19 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
       LLVM_FALLTHROUGH;
     case LinkerSectionKind::EhFrame: {
       if (Sect->getKind() == LinkerSectionKind::EhFrame) {
-        if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)->splitEhFrameSection())
+        auto *EhFrame = llvm::cast<eld::EhFrameSection>(Sect);
+        if (!EhFrame->splitEhFrameSection())
           return false;
-        if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)
-                 ->createCIEAndFDEFragments())
+        // Only a final link deduplicates CIEs. A partial link keeps them all.
+        if (!EhFrame->createCIEAndFDEFragments(!IsPartialLink))
           return false;
-        llvm::dyn_cast<eld::EhFrameSection>(Sect)->finishAddingFragments(
-            *ThisModule);
-        if (getTargetBackend().getEhFrameHdr() &&
-            Sect->getKind() == LinkerSectionKind::EhFrame) {
-          getTargetBackend().getEhFrameHdr()->addEhFrame(
-              *llvm::dyn_cast<eld::EhFrameSection>(Sect)->getEhFrameFragment());
-          // Since we found an EhFrame section, lets go ahead and start creating
-          // the fragments necessary to create the .eh_frame_hdr section and
-          // the filler eh_frame section.
-          getTargetBackend().createEhFrameFillerAndHdrFragment();
+        EhFrame->finishAddingFragments(*ThisModule);
+        if (!IsPartialLink && EhFrame->getEhFrameFragment()) {
+          EhFrameFragments.push_back(EhFrame->getEhFrameFragment());
+          if (auto *EhFrameHdr = getTargetBackend().getEhFrameHdr()) {
+            EhFrameHdr->addEhFrame(*EhFrame->getEhFrameFragment());
+            getTargetBackend().createEhFrameHdrFragment();
+          }
         }
       }
     }
@@ -1072,7 +1110,8 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
     }
     } // end of switch
   } // for each section
-  return true;
+  addEhFrameTerminator(getTargetBackend(), Builder, EhFrameFragments);
+  return hasSingleEhFrameOutput(ThisConfig, EhFrameFragments);
 }
 
 void ObjectLinker::sortByName(RuleContainer *I, bool SortRule) {

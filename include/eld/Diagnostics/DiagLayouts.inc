@@ -50,6 +50,9 @@ DIAG(offset_not_assigned_with_rule, DiagnosticEngine::Error,
 DIAG(incompatible_sections, DiagnosticEngine::Error,
      "Incompatible sections %0 from input file %1 being merged into output "
      "section %2")
+DIAG(multiple_eh_frame_output_sections, DiagnosticEngine::Error,
+     "Multiple output sections containing .eh_frame are not supported: '%0' "
+     "and '%1'")
 DIAG(note_incompatible_sections, DiagnosticEngine::Note,
      "Incompatible sections %0 from input file %1 being merged into output "
      "section %2")

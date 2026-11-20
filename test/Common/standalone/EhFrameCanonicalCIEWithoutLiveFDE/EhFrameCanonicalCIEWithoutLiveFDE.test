@@ -1,0 +1,20 @@
+UNSUPPORTED: arm
+# The first input holding the shared CIE has no live FDE, because its function is
+# garbage collected. The CIE is still canonical and receives the FDE of the next
+# input. The final output must keep that FDE, the zero terminator and the
+# .eh_frame_hdr entry, even though no input fragment owns a record when the
+# first input is merged.
+RUN: %clang %clangopts -funwind-tables -ffunction-sections -c %p/Inputs/dead.c -o %t.dead.o
+RUN: %clang %clangopts -funwind-tables -ffunction-sections -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %link %linkopts --gc-sections --eh-frame-hdr -e foo %t.dead.o %t.foo.o -o %t.out
+RUN: %readelf -s %t.out > %t.dump
+RUN: %dwarfdump --eh-frame %t.out >> %t.dump
+RUN: %filecheck %s --input-file=%t.dump --implicit-check-not=" CIE" --implicit-check-not=" FDE cie="
+RUN: %readelf --unwind %t.out | %filecheck %s --check-prefix=HDR
+
+# CHECK: [[#%x,FOO:]] [[#FOO_SIZE:]] FUNC {{.*}} foo
+# CHECK: [[#%x,CIE:]] {{.*}} CIE
+# CHECK: FDE cie=[[#%.8x,CIE]] pc=[[#%.8x,FOO]]...[[#%.8x,FOO + FOO_SIZE]]
+# CHECK: ZERO terminator
+
+# HDR: fde_count: 1{{$}}
