@@ -19,8 +19,11 @@
 #include "eld/Input/InputTree.h"
 #include "eld/Support/MappingFile.h"
 #include "eld/Support/MsgHandling.h"
+#include "eld/Support/Path.h"
 #include "eld/Support/StringUtils.h"
 #include "eld/Target/GNULDBackend.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Path.h"
 #include <string>
 
 using namespace eld;
@@ -38,6 +41,39 @@ LinkerConfig::LinkerConfig(DiagnosticEngine *DiagEngine,
       CodePos(Unset), DiagEngine(DiagEngine), searchDirs(DiagEngine) {}
 
 LinkerConfig::~LinkerConfig() {}
+
+void LinkerConfig::setChroot(llvm::StringRef C) {
+  options().setChroot(C);
+  raise(Diag::verbose_setting_chroot) << C;
+}
+
+std::string LinkerConfig::applyChroot(llvm::StringRef Path) const {
+  llvm::StringRef Root = options().getChroot();
+  if (!Root.empty() && !Path.empty() &&
+      llvm::sys::path::is_separator(Path.front())) {
+    while (Root.size() > 1 && llvm::sys::path::is_separator(Root.back()))
+      Root = Root.drop_back();
+    if (Root == "/" || Root == "\\")
+      return Path.str();
+    return (Root + Path).str();
+  }
+  return Path.str();
+}
+
+bool LinkerConfig::existsInChroot(llvm::StringRef Path) const {
+  return llvm::sys::fs::exists(applyChroot(Path));
+}
+
+const sys::fs::Path *
+LinkerConfig::findPluginConfigFile(llvm::StringRef Type,
+                                   const std::string &Name,
+                                   const std::string &PluginName) const {
+  std::string ResolvedName = applyChroot(Name);
+  // A missing rooted absolute config must not fall back to host search paths.
+  if (ResolvedName != Name && !llvm::sys::fs::exists(ResolvedName))
+    return nullptr;
+  return directories().findFile(Type, ResolvedName, PluginName);
+}
 
 void LinkerConfig::addCommandLine(llvm::StringRef Option, bool Flag) {
   CommandLineVector.push_back(eld::make<Flags>(Option.str(), Flag));
