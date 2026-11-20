@@ -1,0 +1,49 @@
+#---ArchiveInputInStartLib.test------------------- Executable --------------------#
+#BEGIN_COMMENT
+# Regular and thin archives inside --start-lib, directly or through
+# implicit/explicit scripts, must preserve lazy member selection.
+# Genuine nested archives are outside this test's scope.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/main_ref.c -o %t.ref.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/extra.c -o %t.extra.o
+RUN: %clang %clangopts -c %p/Inputs/unused.c -o %t.unused.o
+
+RUN: rm -f %t.regular.a %t.thin.a
+RUN: %ar rcs %t.regular.a %t.extra.o %t.unused.o
+RUN: %ar rcsT %t.thin.a %t.extra.o %t.unused.o
+RUN: echo "INPUT(%t.regular.a)" > %t.regular.t
+RUN: echo "INPUT(%t.thin.a)" > %t.thin.t
+
+# Regular archive: implicit script, explicit script, and direct input.
+RUN: %link %linkopts %t.ref.o --start-lib %t.foo.o %t.regular.t --end-lib -o %t.out
+RUN: %nm %t.out | %filecheck %s --check-prefixes=BASE,REF --implicit-check-not=unused_marker
+RUN: %link %linkopts %t.ref.o --start-lib %t.foo.o -T %t.regular.t --end-lib -o %t.out
+RUN: %nm %t.out | %filecheck %s --check-prefixes=BASE,REF --implicit-check-not=unused_marker
+RUN: %link %linkopts %t.ref.o --start-lib %t.foo.o %t.regular.a --end-lib -o %t.out
+RUN: %nm %t.out | %filecheck %s --check-prefixes=BASE,REF --implicit-check-not=unused_marker
+
+# Thin archive: implicit script, explicit script, and direct input.
+RUN: %link %linkopts %t.ref.o --start-lib %t.foo.o %t.thin.t --end-lib -o %t.out
+RUN: %nm %t.out | %filecheck %s --check-prefixes=BASE,REF --implicit-check-not=unused_marker
+RUN: %link %linkopts %t.ref.o --start-lib %t.foo.o -T %t.thin.t --end-lib -o %t.out
+RUN: %nm %t.out | %filecheck %s --check-prefixes=BASE,REF --implicit-check-not=unused_marker
+RUN: %link %linkopts %t.ref.o --start-lib %t.foo.o %t.thin.a --end-lib -o %t.out
+RUN: %nm %t.out | %filecheck %s --check-prefixes=BASE,REF --implicit-check-not=unused_marker
+
+# Without references into either archive, no archive member is selected.
+RUN: %link %linkopts %t.main.o --start-lib %t.foo.o %t.regular.t --end-lib -o %t.out
+RUN: %nm %t.out | %filecheck %s --check-prefix=BASE \
+RUN:   --implicit-check-not=extra_marker --implicit-check-not=unused_marker
+RUN: %link %linkopts %t.main.o --start-lib %t.foo.o %t.thin.t --end-lib -o %t.out
+RUN: %nm %t.out | %filecheck %s --check-prefix=BASE \
+RUN:   --implicit-check-not=extra_marker --implicit-check-not=unused_marker
+
+BASE-DAG: {{[Tt]}} foo{{$}}
+BASE-DAG: {{[Tt]}} main{{$}}
+REF-DAG: {{[Tt]}} extra_marker{{$}}
+
+#END_TEST
