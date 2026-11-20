@@ -1,0 +1,39 @@
+# RUN: rm -rf %t && split-file %s %t
+# RUN: %opt -mtriple=%triple %t/1.ll -o %t/1.o
+# RUN: %opt -mtriple=%triple %t/2.ll -o %t/2.o
+# RUN: %llvm-mc -filetype=obj -triple=%triple %t/3.s -o %t/3.o
+# RUN: %link %linkopts --lto-linker-scripts %t/1.o %t/2.o %t/3.o -T %t/script.t -o %t/out
+# RUN: %readelf -S -W %t/out | %filecheck %s
+
+# CHECK: .myfoo
+# CHECK: .mybar
+
+#--- 1.ll
+
+define i32 @foo() nounwind section ".foo" {
+  ret i32 0
+}
+
+#--- 2.ll
+
+define i32 @bar() nounwind section ".foo" {
+  ret i32 0
+}
+
+#--- 3.s
+.text
+.section .text,"ax",%progbits
+.globl main
+.type main,%function
+main:
+  .long foo
+  .long bar
+  .byte 0
+.size main, .-main
+
+#--- script.t
+SECTIONS {
+.myfoo : { *1.o*(.foo) }
+.mybar : { *2.o*(.foo) }
+.main : { *(.text) }
+}

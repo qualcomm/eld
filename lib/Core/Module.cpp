@@ -23,6 +23,7 @@
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/EhFrameHdrSection.h"
+#include "eld/Script/Plugin.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/RegisterTimer.h"
@@ -40,6 +41,21 @@
 #include "llvm/Support/ThreadPool.h"
 
 using namespace eld;
+
+namespace {
+
+constexpr llvm::StringRef AdvancedLTOPluginName = "AdvancedLTO";
+
+bool hasAdvancedLTOPlugin(const LinkerScript &Script) {
+  for (const Plugin *P : Script.getPlugins()) {
+    if (P->getType() == plugin::PluginBase::LinkerPlugin &&
+        P->getPluginType() == AdvancedLTOPluginName)
+      return true;
+  }
+  return false;
+}
+
+} // namespace
 
 //===----------------------------------------------------------------------===//
 // Module
@@ -418,6 +434,15 @@ bool Module::readPluginConfig() {
     if (!readOnePluginConfig(Cfg, /*IsDefaultConfig=*/false))
       return false;
   }
+  if (ThisConfig.options().useDefaultPlugins() &&
+      ThisConfig.options().hasLTOLinkerScripts() &&
+      !hasAdvancedLTOPlugin(getScript())) {
+    getScript().addPlugin(plugin::PluginBase::LinkerPlugin,
+                          AdvancedLTOPluginName.str(),
+                          AdvancedLTOPluginName.str(), /*PluginOpts=*/"",
+                          ThisConfig.options().printTimingStats("Plugin"),
+                          /*IsDefaultPlugin=*/true, *this);
+  }
   return true;
 }
 
@@ -646,7 +671,7 @@ void Module::addSymbol(ResolveInfo *R) {
 }
 
 LDSymbol *Module::addSymbolFromBitCode(
-    ObjectFile &CurInput, const std::string &Name, ResolveInfo::Type Type,
+    BitcodeFile &CurInput, const std::string &Name, ResolveInfo::Type Type,
     ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
     ResolveInfo::SizeType Size, ResolveInfo::Visibility Visibility,
     unsigned int PIdx) {
@@ -676,6 +701,8 @@ LDSymbol *Module::addSymbolFromBitCode(
 
   if (!ResolvedResult.Info)
     return nullptr;
+
+  CurInput.setResolveInfoForLTOSymbol(PIdx, *ResolvedResult.Info);
 
   if (ThisConfig.options().cref())
     getIRBuilder()->addToCref(CurInput, ResolvedResult);

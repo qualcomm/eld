@@ -1671,6 +1671,10 @@ bool plugin::LinkerConfig::hasUniqueOutputSections() const {
   return Config.options().shouldEmitUniqueOutputSections();
 }
 
+bool plugin::LinkerConfig::hasLTOLinkerScripts() const {
+  return Config.options().hasLTOLinkerScripts();
+}
+
 const std::vector<std::string> &plugin::LinkerConfig::getLTOOptions() const {
   return Config.options().getUnparsedLTOOptions();
 }

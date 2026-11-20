@@ -1,0 +1,19 @@
+# RUN: rm -rf %t && split-file %s %t
+# RUN: %opt -mtriple=%triple %t/foo.ll -o %t/foo.foo.o
+# RUN: %link %linkopts --lto-linker-scripts -T %t/script.t %t/foo.foo.o -e foo \
+# RUN:   -plugin-opt=-function-sections -o %t/out
+# RUN: %readelf -S -s -W %t/out | %filecheck %s --check-prefix=ELF
+
+# ELF: [ [[S:[0-9]+]]] .myfoo PROGBITS
+# ELF: FUNC GLOBAL DEFAULT [[S]] foo
+
+#--- foo.ll
+
+define i32 @foo() nounwind section ".text.foo" {
+  ret i32 0
+}
+
+#--- script.t
+SECTIONS {
+  .myfoo : { *.foo.o(.text.foo) }
+}

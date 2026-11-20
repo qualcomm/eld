@@ -1,0 +1,16 @@
+# RUN: rm -rf %t && split-file %s %t
+# RUN: %opt -mtriple=%triple %t/used.ll -o %t/used.o
+# RUN: %link %linkopts --lto-linker-scripts %t/used.o -e foo -o %t/out
+# RUN: %readelf -s -W %t/out | %filecheck %s
+
+# CHECK: val
+
+#--- used.ll
+
+@val = global i32 2, section ".data.val", align 4
+@llvm.used = appending global [1 x ptr] [ptr @val], section "llvm.metadata"
+
+define i32 @foo() nounwind section ".text.foo" {
+  %v = load volatile i32, ptr @val
+  ret i32 %v
+}
