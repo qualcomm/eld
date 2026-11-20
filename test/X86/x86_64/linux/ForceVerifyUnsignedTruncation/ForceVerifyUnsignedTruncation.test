@@ -1,0 +1,17 @@
+#--ForceVerifyUnsignedTruncation.test----------Executable--------#
+#BEGIN_COMMENT
+# --verify-options=reloc= must warn about an unsigned absolute relocation
+# (R_X86_64_8, R_X86_64_16) only when the value does not fit in the relocation
+# field. Values that fit must not warn.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/fits.s -o %t.fits.o
+RUN: %link %linkopts --verify-options=reloc=R_X86_64_8 --verify-options=reloc=R_X86_64_16 %t.fits.o -o %t.fits.out 2>&1 | %filecheck %s --check-prefix=FITS --allow-empty
+RUN: %clang %clangopts -c %p/Inputs/truncated.s -o %t.truncated.o
+RUN: %link %linkopts --verify-options=reloc=R_X86_64_8 --verify-options=reloc=R_X86_64_16 %t.truncated.o -o %t.truncated.out 2>&1 | %filecheck %s --check-prefix=TRUNC
+#END_TEST
+
+FITS-NOT: truncated to fit relocation field
+
+TRUNC-DAG: Relocation `R_X86_64_8' for symbol {{.*}}is truncated to fit relocation field
+TRUNC-DAG: Relocation `R_X86_64_16' for symbol {{.*}}is truncated to fit relocation field

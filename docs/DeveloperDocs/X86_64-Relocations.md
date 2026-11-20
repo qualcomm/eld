@@ -87,8 +87,9 @@ Two distinct checks are applied, depending on the relocation:
 Signed relocations use `llvm::isInt<N>`, unsigned use `llvm::isUInt<N>`.
 
 **Truncation check (`forceVerify`, diagnostic only):** Enabled when the
-user passes `--verify-reloc <name>`. Checks whether the unsigned result
-overflows the field width. No error is raised unless explicitly requested.
+user passes `--verify-options=reloc=<name>[,<name>...]`. Checks whether the
+unsigned result overflows the field width. No error is raised unless
+explicitly requested.
 
 The table below lists the exact bounds for each relocation.
 
@@ -120,8 +121,8 @@ The table below lists the exact bounds for each relocation.
 
 > **Implicit truncation for unsigned relocations:** `R_X86_64_32`,
 > `R_X86_64_16`, and `R_X86_64_8` silently truncate the result to the field
-> width. Use `--verify-reloc R_X86_64_32` (etc.) to promote truncation to a
-> diagnostic.
+> width. Use `--verify-options=reloc=R_X86_64_32` (etc.) to promote truncation
+> to a diagnostic.
 
 ---
 
