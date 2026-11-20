@@ -474,6 +474,38 @@ public:
   eld::Expected<void> registerReloc(uint32_t RelocType,
                                     const std::string &Name = "");
 
+  /// Take responsibility for the final bytes of U during a final link
+  /// (executable, shared library, or PIE), before target scanning starts.
+  /// Claims are allowed only during LinkerPlugin::ActBeforeRelocationScan(),
+  /// after the serial relocation callbacks and before target scanning.
+  /// Uses may be saved in RelocCallBack() or enumerated with getUses();
+  /// relocation callback registration is not required. All claim calls,
+  /// including joined worker tasks, must finish before the hook returns.
+  /// Earlier and later callbacks cannot claim uses. The source must
+  /// contain a complete, nonzero-width relocation storage field of at most
+  /// sizeof(uint64_t) bytes in a PROGBITS chunk. Partial links, duplicate
+  /// claims, and claims after replacement data was supplied are rejected.
+  /// Normal relocation scanning and application are skipped, so this Use does
+  /// not allocate GOT/PLT entries or dynamic relocations. GC dependencies and
+  /// the original Use metadata are retained. The owning plugin must supply data
+  /// before the output hooks return; LinkerPlugin may supply its first data or
+  /// updates in ActBeforeWritingOutput. Missing data for a surviving Use or
+  /// NOLOAD/NOBITS output storage is an error. Claimed Uses are omitted from
+  /// --emit-relocs because their final bytes no longer require relocation. The
+  /// plugin must validate the instruction pattern and account for target
+  /// relaxation. This claims only U; setSymbolAddress does not implicitly claim
+  /// any Uses. Conflicting claims cause a link error even if the returned error
+  /// is ignored. Plugin-created PROGBITS chunks are supported. Claimed source
+  /// sections cannot be consumed by file/memory-size plugins while replacement
+  /// writes remain open.
+  eld::Expected<void> claimUse(Use U);
+
+  /// Return whether S can be interposed under the current link configuration.
+  /// Uses the target backend's rules for binding, visibility, output type,
+  /// symbol versioning, and -Bsymbolic/-Bsymbolic-functions. Does not modify S.
+  /// A null Symbol conservatively returns true.
+  bool isSymbolPreemptible(Symbol S) const;
+
   /// Returns the relocation handler.
   RelocationHandler getRelocationHandler() const;
 
@@ -607,13 +639,25 @@ public:
   /// Return the value of the relocation target
   eld::Expected<void> getTargetDataForUse(Use &U, uint64_t &Data) const;
 
-  /// Supply the final relocation storage bytes as a uint64_t value. The first
-  /// value supplied for U is retained; later calls do not overwrite it.
-  /// Calls are thread-safe, including layout-map bookkeeping. All worker tasks
-  /// launched by an overridden plugin callback must finish before that
-  /// callback returns, for example OutputSectionIteratorPlugin::Run() during
-  /// AfterLayout. This guarantee does not extend to other plugin APIs or
-  /// concurrent layout-map reads.
+  /// Supply the final relocation storage bytes as a uint64_t value. Later
+  /// successful calls by the same plugin update U's replacement data; the last
+  /// accepted value is used. A different plugin's write is rejected, even
+  /// without a claim, and causes a link error even if the returned error is
+  /// ignored. For a claimed Use, only the owning plugin may supply replacement
+  /// data. Writes are allowed from ActBeforeRuleMatching through
+  /// ActBeforeWritingOutput, once a valid Use is available. In the output
+  /// state, writes require the owning LinkerPlugin to be running its output
+  /// hook. Without claimUse, normal relocation scanning and GOT/PLT/dynamic
+  /// relocation allocation still occur.
+  /// The value contains complete instruction/data bytes for the storage field,
+  /// not an unencoded operand for the linker to apply. Calls are thread-safe,
+  /// including layout-map bookkeeping. All calls must finish before
+  /// LinkerPlugin::ActBeforeWritingOutput() returns. Claimed Uses have the same
+  /// deadline for first data and updates. All worker tasks launched by an
+  /// overridden plugin callback must finish before that callback returns,
+  /// for example OutputSectionIteratorPlugin::Run() during AfterLayout.
+  /// This guarantee does not extend to other plugin APIs or concurrent
+  /// layout-map reads.
   eld::Expected<void> setTargetDataForUse(Use &U, uint64_t Data);
 
   /// Returns the 32-bit checksum of the image layout if this function is
@@ -763,9 +807,12 @@ public:
   eld::Expected<std::vector<Segment>> getSegmentTable() const;
 
   /// Applies relocations to an unrelocated buffer `Buf`.
+  /// Rejects surviving claims before final relocation validation, even if
+  /// replacement bytes have already been supplied and may still change.
   eld::Expected<void> applyRelocations(uint8_t *Buf);
 
   /// Apply all relocations or return an error.
+  /// Rejects surviving claims before final relocation validation.
   eld::Expected<void> doRelocation();
 
   /// Return a handle to the library `LibraryName` or an error.
@@ -894,6 +941,8 @@ public:
   bool isLinkStateActBeforeRuleMatching() const;
 
   bool isLinkStateBeforeLayout() const;
+
+  bool isLinkStateActBeforeRelocationScan() const;
 
   bool isLinkStateActBeforeSectionMerging() const;
 

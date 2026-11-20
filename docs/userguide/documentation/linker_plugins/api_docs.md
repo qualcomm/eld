@@ -18,12 +18,14 @@ Plugins interacts with the linker using LinkerWrapper.
 
 `LinkerWrapper::setTargetDataForUse(Use &U, uint64_t Data)` supplies complete
 instruction or data bytes for a relocation's storage field, not an unencoded
-operand. The first value supplied for a use is retained; subsequent successful
-calls do not overwrite it. A null use returns an error.
+operand. Later successful calls by the same plugin update the replacement;
+the last accepted value is used. A null use returns an error.
 
 Plugins may submit replacement data from worker threads, including when a
 layout map is enabled. Replacement insertion, allocation of the corresponding
 map operation, and updates to map bookkeeping are serialized together.
+Replacement writes are allowed from `ActBeforeRuleMatching` through
+`LinkerPlugin::ActBeforeWritingOutput()`, once a valid use is available.
 All worker tasks launched by an overridden plugin callback must finish before
 that callback returns, for example `OutputSectionIteratorPlugin::Run()`
 during `AfterLayout`. This does not require all tasks to finish before an
@@ -31,6 +33,98 @@ individual `setTargetDataForUse()` call returns. Other plugin APIs and
 concurrent layout-map reads are not covered by this guarantee.
 Replacing storage bytes does not suppress normal relocation scanning or
 allocation of GOT/PLT entries and dynamic relocations.
+
+### Plugin-owned relocations
+
+`LinkerWrapper::claimUse(Use U)` lets a plugin take responsibility for the
+final bytes at one relocation site. This is useful when a plugin replaces an
+address calculation or stored pointer with an absolute value: normal scanning
+could otherwise allocate a GOT or PLT slot or a dynamic relocation that would
+change the replacement at runtime.
+
+Call `claimUse` only from `LinkerPlugin::ActBeforeRelocationScan()`.
+ELD invokes this hook after the serial relocation callback prepass
+and before target scanning. Enumerate uses with `getUses` in the hook, or
+register relevant types with `registerReloc` in `LinkerPluginConfig::Init`
+and save uses in `RelocCallBack` for later claiming. Callback registration
+is not required. Joined plugin worker tasks may claim eligible uses, but
+all claim calls must finish before this hook returns. Claims from earlier
+or later callbacks are rejected.
+
+ELD uses `ActBeforeRelocationScan` only while dispatching the hook and
+restores the calling phase before scanning. In this hook,
+`isLinkStateBeforeLayout()` returns `false`.
+
+Claims are supported during final links for executables, shared libraries,
+and PIEs. The source must have a complete relocation storage field with a
+nonzero width of at most eight bytes in a PROGBITS chunk. Partial links,
+late claims, duplicate claims (including a second claim by the same plugin),
+and claims for uses with an existing replacement from `setTargetDataForUse`
+are rejected.
+Check each API result and report errors through the plugin diagnostic framework.
+Uses created with `createAndAddUse` in plugin-created PROGBITS chunks are
+supported under the same rules.
+
+For each claimed use that survives into the output, the owning plugin must
+supply final bytes with `setTargetDataForUse` before the output hooks return.
+A `LinkerPlugin` may supply its first replacement or update it in
+`ActBeforeWritingOutput()`. Other plugin types use earlier callbacks.
+For an output-section iterator this can be done in its `AfterLayout` run,
+when final addresses are available. The first accepted replacement belongs to
+its writing plugin, even without a claim. Later successful calls by that plugin
+update the replacement data, and the last accepted value is used. Writes by
+another plugin are rejected, even when the proposed bytes are identical.
+Conflicting claims and writes cause a link error even if the plugin ignores
+the returned error: the API wrapper diagnoses conflicts immediately.
+Check and report each API result through the plugin diagnostic framework.
+Replacement data and layout-map bookkeeping are serialized together.
+Finish all worker tasks before returning from the plugin hook. In
+`ActBeforeWritingOutput`, writes require the owning plugin to be running its
+output hook; the existing running marker rejects later calls without another
+link state. First replacements and updates have the same deadline. Missing
+data and NOLOAD/NOBITS output storage are diagnosed after the output hooks
+return, before remaining emission and final relocation synchronization;
+discarded claims do not require replacement data.
+
+File-size and memory-size plugins cannot consume output sections containing
+surviving claims while replacement writes remain open, even if data was
+already supplied. Unrelated sections and discarded claims remain usable.
+The global buffer APIs `doRelocation` and `applyRelocations` likewise reject
+surviving claims; these errors fail the link even if their results are ignored.
+
+ELD skips normal target scanning and application for claimed uses. Those uses
+do not reserve GOT/PLT entries or dynamic relocations and are omitted from
+`--emit-relocs`. Other references to the same symbol retain normal processing
+and may still allocate those entries. Existing garbage-collection dependencies
+and the use's symbol, type, and addend are retained. String and constant pools
+may still be merged, but claimed uses are not retargeted by that merging.
+Hexagon also skips trampoline creation for claimed branches. The plugin must
+validate the instruction sequence, encode complete instruction or data bytes
+within the original storage width, and handle any other target relaxation that
+affects its rewrite. Claiming does not validate the semantic correctness of
+those bytes.
+
+`setTargetDataForUse` alone replaces final storage bytes but does not suppress
+normal scanning or runtime relocation allocation. `setSymbolAddress` changes
+the symbol to an absolute value but does not claim its references. A plugin must
+identify the references it intends to rewrite, including references expressed
+as a section symbol plus an addend, and claim each relevant use explicitly.
+
+For example, a string-ID plugin can resolve a section-symbol-plus-addend use to
+its original containing object symbol, check local binding, and claim the use in
+`ActBeforeRelocationScan()`. After layout, it assigns the object's absolute ID using
+`setSymbolAddress` (introduced in [PR #1751](https://github.com/qualcomm/eld/pull/1751))
+and submits fully encoded instruction or pointer bytes with `setTargetDataForUse`.
+Section-relative attribution, instruction rewriting, and preservation of genuine
+interior offsets remain plugin policy, not target-specific behavior in ELD.
+
+`LinkerWrapper::isSymbolPreemptible(Symbol S)` queries the target backend's
+interposition rules for the current symbol and link configuration. It accounts
+for binding, visibility, output type, symbol versioning, and `-Bsymbolic` /
+`-Bsymbolic-functions`. The query does not change symbol binding or visibility;
+a null symbol conservatively returns `true`. Before replacing a reference
+with a fixed value, a plugin must decide whether doing so preserves required
+runtime interposition.
 
 ## Plugin Abstract Data Types
 

@@ -26,17 +26,21 @@ static inline bool
 isValidLinkState(const eld::plugin::LinkerWrapper &LW,
                  std::initializer_list<std::string_view> ValidLinkStates) {
   for (const auto &S : ValidLinkStates) {
-    [[maybe_unused]] bool b = S == "Initializing" || S == "ActBeforeRuleMatching" ||
-             S == "BeforeLayout" || S == "ActBeforeSectionMerging" ||
-             S == "CreatingSections" || S == "ActBeforePerformingLayout" ||
-             S == "CreatingSegments" || S == "AfterLayout" ||
-             S == "ActBeforeWritingOutput";
+    [[maybe_unused]] bool b =
+        S == "Initializing" || S == "ActBeforeRuleMatching" ||
+        S == "BeforeLayout" || S == "ActBeforeRelocationScan" ||
+        S == "ActBeforeSectionMerging" || S == "CreatingSections" ||
+        S == "ActBeforePerformingLayout" || S == "CreatingSegments" ||
+        S == "AfterLayout" || S == "ActBeforeWritingOutput";
     ASSERT(b, "Invalid link state: " + std::string(S));
     if (S == "Initializing" && LW.isLinkStateInitializing())
       return true;
     if (S == "ActBeforeRuleMatching" && LW.isLinkStateActBeforeRuleMatching())
       return true;
     if (S == "BeforeLayout" && LW.isLinkStateBeforeLayout())
+      return true;
+    if (S == "ActBeforeRelocationScan" &&
+        LW.isLinkStateActBeforeRelocationScan())
       return true;
     if (S == "ActBeforeSectionMerging" &&
         LW.isLinkStateActBeforeSectionMerging())

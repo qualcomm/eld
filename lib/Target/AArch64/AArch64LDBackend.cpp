@@ -37,6 +37,7 @@
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "eld/Target/TargetInfo.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Object/ELFTypes.h"
@@ -295,6 +296,8 @@ void AArch64LDBackend::mayBeRelax(int pass, bool &pFinished) {
       if (rs->isDiscard())
         continue;
       for (auto &reloc : rs->getLink()->getRelocations()) {
+        if (reloc->isPluginOwned())
+          continue;
         switch (reloc->type()) {
         case llvm::ELF::R_AARCH64_CALL26:
         case llvm::ELF::R_AARCH64_JUMP26: {
@@ -431,7 +434,20 @@ bool AArch64LDBackend::scanErrata843419() {
                   }
                 }
               }
-              if (do_report) {
+              // The replacement instruction belongs to the plugin when its
+              // relocation is claimed; do not move it into an erratum stub.
+              if (do_report &&
+                  llvm::none_of(frag->getOwningSection()->getRelocations(),
+                                [&](const Relocation *R) {
+                                  return R->isPluginOwned() &&
+                                         R->targetRef()->frag() == frag &&
+                                         R->targetRef()->offset() <
+                                             insn_offset +
+                                                 AArch64InsnHelpers::InsnSize &&
+                                         insn_offset <
+                                             R->targetRef()->offset() +
+                                                 R->size(*getRelocator()) / 8;
+                                })) {
                 createErratum843419Stub(frag, insn_offset);
                 // Now since a new fragment has been inserted, the fragment
                 // needs to be reset.

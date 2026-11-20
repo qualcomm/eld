@@ -475,6 +475,8 @@ void HexagonLDBackend::mayBeRelax(int, bool &pFinished) {
                          m_Module.getConfig().options().printTimingStats());
     for (auto &F : Frags) {
       for (auto &reloc : F->getOwningSection()->getRelocations()) {
+        if (reloc->isPluginOwned())
+          continue;
         switch (reloc->type()) {
         case llvm::ELF::R_HEX_B22_PCREL:
         case llvm::ELF::R_HEX_PLT_B22_PCREL:

@@ -1,0 +1,59 @@
+# REQUIRES: arm
+# ARM and Thumb calls owned by a plugin must not acquire trampolines.
+RUN: split-file %s %t
+RUN: %llvm-mc -filetype=obj -triple=armv7-none-eabi %t/main.s -o %t.o
+RUN: %link %linkopts %t.o -T %t/script.t -o %t.original
+RUN: %readelf -sW %t.original | %filecheck %s --check-prefix=ORIGINAL
+RUN: %link %linkopts %t.o -T %t/script.t -L%libsdir --plugin-config %t/plugin.yaml -o %t.claimed | %filecheck %s --check-prefix=COUNT
+RUN: %readelf -sW %t.claimed | %filecheck %s --check-prefix=CLAIMED --implicit-check-not=__claimed_far_
+RUN: %objdump -d --no-show-raw-insn --mattr=+v7 %t.claimed | %filecheck %s --check-prefix=CODE
+ORIGINAL: __claimed_far_
+COUNT: claimed uses: 2
+CLAIMED: __other_far_
+CODE-LABEL: <_start>:
+CODE-NEXT: {{.*}}mov r0, r0
+CODE-LABEL: <claimed_thumb_branch>:
+CODE-NEXT: {{.*}}nop
+CODE-NEXT: {{.*}}nop
+
+#--- main.s
+.syntax unified
+.arm
+.section .text.arm,"ax",%progbits
+.globl _start
+_start:
+  bl claimed_far
+.globl other_branch
+other_branch:
+  bl other_far
+.thumb
+.section .text.thumb,"ax",%progbits
+.globl claimed_thumb_branch
+.thumb_func
+claimed_thumb_branch:
+  bl claimed_far
+.globl other_thumb_branch
+.thumb_func
+other_thumb_branch:
+  bl other_far
+.arm
+.section .text.far,"ax",%progbits
+.globl claimed_far
+.hidden claimed_far
+claimed_far:
+  bx lr
+.globl other_far
+.hidden other_far
+other_far:
+  bx lr
+#--- script.t
+SECTIONS {
+  .text 0x10000 : { *(.text.arm) *(.text.thumb) }
+  .far 0x4000000 : { *(.text.far) }
+}
+#--- plugin.yaml
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: BackendClaimUse
+    Library: BackendClaimUse
+    Options: arm

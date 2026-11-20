@@ -57,6 +57,9 @@ public:
   /// type - relocation type
   Type type() const { return m_Type; }
 
+  bool isPluginOwned() const { return m_PluginOwned; }
+  void setPluginOwned() { m_PluginOwned = true; }
+
   /// symValue - S value - the symbol address
   Address symValue(Module &M) const;
 
@@ -155,6 +158,7 @@ private:
 
   /// m_Type - the type of the relocation entries
   Type m_Type;
+  bool m_PluginOwned = false;
 };
 
 } // namespace eld
