@@ -1,0 +1,17 @@
+.syntax unified
+.arm
+
+.global _start
+.global reloc_site
+.global v
+
+.text
+_start:
+  b .
+
+reloc_site:
+  {{usage}}
+
+.data
+v:
+  .word 42
