@@ -1,0 +1,13 @@
+#---DotAssignmentOverflow.test----------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test that ELD emits an error on 32-bit targets when dot assignment
+# creates padding that exceeds UINT32_MAX, both forward and backward.
+#END_COMMENT
+REQUIRES: arm || riscv32 || hexagon
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fdata-sections -ffunction-sections
+RUN: %not %link %emulation %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s
+RUN: %not %link %emulation %linkopts -o %t1.2.out %t1.1.o -T %p/Inputs/script_back.t 2>&1 | %filecheck %s --check-prefix=BACK
+#END_TEST
+CHECK: dot assignment creates padding that exceeds UINT32_MAX
+BACK: dot assignment creates padding that exceeds UINT32_MAX
