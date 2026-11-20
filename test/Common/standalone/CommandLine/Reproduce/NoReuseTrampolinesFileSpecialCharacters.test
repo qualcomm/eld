@@ -1,0 +1,18 @@
+#---NoReuseTrampolinesFileSpecialCharacters.test Executable -------------------#
+#BEGIN_COMMENT
+# Verify a no-reuse-trampolines input path with spaces and a quote survives replay.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.input.o
+RUN: %echo "{ foo; }" > "%t.no reuse's @file.txt"
+RUN: %link %linkopts %t.input.o --no-reuse-trampolines-file="%t.no reuse's @file.txt" -o %t.original.out --reproduce %t.tar
+RUN: %mkdir %t.replay
+RUN: cd %t.replay
+RUN: %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: %filecheck %s --check-prefix=RESPONSE < response.txt
+RUN: %link @response.txt -o replay.out
+RUN: %readelf -s replay.out | %filecheck %s
+
+CHECK: foo
+RESPONSE: --no-reuse-trampolines-file "{{.*}}no reuse's @file.txt{{.*}}"
+#END_TEST

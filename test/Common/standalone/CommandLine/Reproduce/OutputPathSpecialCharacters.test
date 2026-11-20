@@ -1,0 +1,19 @@
+#---OutputPathSpecialCharacters.test---------------- Executable ---------------#
+#BEGIN_COMMENT
+# Verify an output path with spaces and a quote survives replay.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.input.o
+RUN: %mkdir %t.replay
+RUN: %link %linkopts %t.input.o -o "%t.replay/@output's file.out" --reproduce %t.tar
+RUN: cd %t.replay
+RUN: %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: %filecheck %s --check-prefix=RESPONSE < response.txt
+# Replaying must treat this path as the output file and replace the sentinel.
+RUN: %echo "response-output --definitely-invalid-option" > "@output's file.out"
+RUN: %link @response.txt
+RUN: %readelf -s "@output's file.out" | %filecheck %s
+
+CHECK: foo
+RESPONSE: -o "./@output's file.out"
+#END_TEST

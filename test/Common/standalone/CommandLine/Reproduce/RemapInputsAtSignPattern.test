@@ -1,0 +1,18 @@
+#---RemapInputsAtSignPattern.test----------------- Executable ---------------#
+#BEGIN_COMMENT
+# A leading '@' in a --remap-inputs pattern must not be expanded as a nested
+# response file when reading the dumped response file.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.input.o
+RUN: %link %linkopts %t.input.o --remap-inputs=@foo=bar -o %t.original.out --reproduce %t.tar
+RUN: %mkdir %t.replay
+RUN: cd %t.replay
+RUN: %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: %echo "--definitely-invalid-option" > foo=bar
+RUN: %link @response.txt -o replay.out
+RUN: %filecheck %s --check-prefix=RESPONSE < response.txt
+
+RESPONSE: --remap-inputs=@foo=bar
+#END_TEST

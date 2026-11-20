@@ -1,0 +1,18 @@
+#---SonameAtSignNonPathArgument.test------------ Executable ------------------#
+#BEGIN_COMMENT
+# Verify reproduction preserves a separate-form soname beginning with '@'.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t.input.o
+RUN: %link %linkopts -shared %t.input.o -soname @libfoo.so -o %t.original.so --reproduce %t.tar
+RUN: %rm %t.replay
+RUN: %mkdir %t.replay
+RUN: cd %t.replay
+RUN: %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: %link @response.txt -o replay.so
+RUN: %readelf --dynamic replay.so | %filecheck %s --check-prefix=SONAME
+RUN: %filecheck %s --check-prefix=RESPONSE < response.txt
+
+SONAME: SONAME{{.*}}@libfoo.so
+RESPONSE: -soname @libfoo.so
+#END_TEST

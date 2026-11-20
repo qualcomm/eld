@@ -1,0 +1,18 @@
+#---DynamicListSpecialCharacters.test----------- Executable -------------------#
+#BEGIN_COMMENT
+# Verify a dynamic list path with spaces and a quote survives replay.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t.input.o
+RUN: %cp %p/Inputs/list1 "%t.dynamic @list's.txt"
+RUN: %link %linkopts -shared %t.input.o --dynamic-list="%t.dynamic @list's.txt" -o %t.original.so --reproduce %t.tar
+RUN: %mkdir %t.replay
+RUN: cd %t.replay
+RUN: %tar %gnutaropts -xf %t.tar --strip-components=1
+RUN: %filecheck %s --check-prefix=RESPONSE < response.txt
+RUN: %link @response.txt -o replay.so
+RUN: %readelf -s replay.so | %filecheck %s
+
+CHECK: foo
+RESPONSE: --dynamic-list "{{.*}}dynamic @list's.txt{{.*}}"
+#END_TEST
