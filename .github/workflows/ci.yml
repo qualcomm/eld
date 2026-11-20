@@ -9,10 +9,16 @@ on:
     paths:
       - '**'
       - '!**/configure_external_llvm.sh'
+      - '!CODEOWNERS'
+      - '!.github/dependabot.yml'
       - '!.github/pr-labeler.yml'
-      - '!.github/workflows/**'
+      - '!.github/release.yml'
+      - '!.clang-format'
+      - '!.clang-tidy'
+      - '!**/.gitignore'
+      - '!.licenseignore'
       - '!etc/**/*.sh'
-      - '.github/workflows/**'
+      - '!utils/relocation-testing-framework/**'
 
 jobs:
   changes:
