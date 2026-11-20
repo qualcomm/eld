@@ -26,7 +26,6 @@ class QCInputFileAdapter;
 
 namespace eld::plugin {
 class LinkerPlugin;
-class LTOModule;
 } // namespace eld::plugin
 
 namespace eld {
@@ -66,23 +65,15 @@ public:
 
   void addKeptComdat(int Index, bool Kept) { BCComdats[Index] = Kept; }
 
-  bool createPluginModule(plugin::LinkerPlugin &, uint64_t Hash);
-
-  // TODO: Used by BitcodeReader, may not be needed.
-  // TODO: class reference.
-  plugin::LTOModule *getPluginModule() { return PluginModule; }
-
   void createBitcodeFilePlugin(plugin::LinkerPlugin &LTOPlugin);
 
   void setInputSectionForSymbol(const ResolveInfo &, Section &);
 
   Section *getInputSectionForSymbol(const ResolveInfo &) const;
 
-  void setOverriddenModuleHash(uint64_t Hash) { OverriddenModuleHash = Hash; }
+  void setLTOModuleHash(uint64_t Hash) { LTOModuleHash = Hash; }
 
-  std::optional<uint64_t> getOverriddenModuleHash() const {
-    return OverriddenModuleHash;
-  }
+  std::optional<uint64_t> getLTOModuleHash() const { return LTOModuleHash; }
 
 private:
   void inferObjectInfo();
@@ -100,8 +91,7 @@ private:
   // Marked by comdat index in Module if accepted: (true if not rejected)
   llvm::DenseMap<int, bool> BCComdats;
   std::unordered_map<const ResolveInfo *, Section *> InputSectionForSymbol;
-  plugin::LTOModule *PluginModule;
-  std::optional<uint64_t> OverriddenModuleHash;
+  std::optional<uint64_t> LTOModuleHash;
 };
 
 } // namespace eld
