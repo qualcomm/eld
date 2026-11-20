@@ -1,0 +1,1 @@
+relocation_testing_build_states = [{"run_id": "44050974099", "state": "pass", "date": "2026-11-17", "time": "08:57", "arch": "all", "branch": "main"}, {"run_id": "44489579567", "state": "pass", "date": "2026-11-19", "time": "08:40", "arch": "all", "branch": "main"}, {"run_id": "44710951937", "state": "pass", "date": "2026-11-20", "time": "09:28", "arch": "all", "branch": "main"}]

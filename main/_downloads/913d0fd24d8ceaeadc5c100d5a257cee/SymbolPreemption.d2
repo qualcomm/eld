@@ -1,0 +1,135 @@
+...@common.d2
+
+direction: down
+
+start: Determine symbol preemption {
+  class: hook
+}
+
+local: "Defined symbol with local binding?" {
+  class: phase
+  shape: diamond
+}
+
+invisible: "Undefined symbol with\nnon-default visibility?" {
+  class: phase
+  shape: diamond
+}
+
+linker_defined: "Undefined linker-provided standard\nor section-boundary symbol?" {
+  class: phase
+  shape: diamond
+}
+
+weak: "Weak undefined symbol?" {
+  class: phase
+  shape: diamond
+}
+
+weak_mode: "PIE, non-static link,\nor shared-object output?" {
+  class: phase
+  shape: diamond
+}
+
+imported: "Symbol supplied by a DSO\nor still undefined?" {
+  class: phase
+  shape: diamond
+}
+
+imported_pie: "PIE output?" {
+  class: phase
+  shape: diamond
+}
+
+imported_static: "Static link?" {
+  class: phase
+  shape: diamond
+}
+
+attributes: "Non-default symbol attributes\n(including visibility)?" {
+  class: phase
+  shape: diamond
+}
+
+defined_pie: "PIE output?" {
+  class: phase
+  shape: diamond
+}
+
+shared: "Shared-object output?" {
+  class: phase
+  shape: diamond
+}
+
+symbolic: "-Bsymbolic enabled?" {
+  class: phase
+  shape: diamond
+}
+
+symbolic_function: "-Bsymbolic-functions enabled\nand defined STT_FUNC symbol?" {
+  class: phase
+  shape: diamond
+}
+
+hidden: "Hidden symbol?" {
+  class: phase
+  shape: diamond
+}
+
+ifunc: "STT_GNU_IFUNC symbol?" {
+  class: phase
+  shape: diamond
+}
+
+local_scope: "Version-script scope exists\nand is not global?" {
+  class: phase
+  shape: diamond
+}
+
+preemptible: "Preemptible=true" {
+  class: hook
+  style.fill: "#DCFCE7"
+  style.stroke: "#16A34A"
+  style.font-color: "#14532D"
+}
+
+non_preemptible: "Preemptible=false" {
+  class: hook
+  style.fill: "#FEE2E2"
+  style.stroke: "#DC2626"
+  style.font-color: "#7F1D1D"
+}
+
+start -> local: { class: flow }
+local -> non_preemptible: Yes { class: flow }
+local -> invisible: No { class: flow }
+invisible -> non_preemptible: Yes { class: flow }
+invisible -> linker_defined: No { class: flow }
+linker_defined -> non_preemptible: Yes { class: flow }
+linker_defined -> weak: No { class: flow }
+weak -> weak_mode: Yes { class: flow }
+weak -> imported: No { class: flow }
+weak_mode -> preemptible: Yes { class: flow }
+weak_mode -> non_preemptible: No { class: flow }
+imported -> imported_pie: Yes { class: flow }
+imported -> attributes: No { class: flow }
+imported_pie -> preemptible: Yes { class: flow }
+imported_pie -> imported_static: No { class: flow }
+imported_static -> non_preemptible: Yes { class: flow }
+imported_static -> preemptible: No { class: flow }
+attributes -> non_preemptible: Yes { class: flow }
+attributes -> defined_pie: No { class: flow }
+defined_pie -> non_preemptible: Yes { class: flow }
+defined_pie -> shared: No { class: flow }
+shared -> non_preemptible: No { class: flow }
+shared -> symbolic: Yes { class: flow }
+symbolic -> non_preemptible: Yes { class: flow }
+symbolic -> symbolic_function: No { class: flow }
+symbolic_function -> non_preemptible: Yes { class: flow }
+symbolic_function -> hidden: No { class: flow }
+hidden -> non_preemptible: Yes { class: flow }
+hidden -> ifunc: No { class: flow }
+ifunc -> preemptible: Yes { class: flow }
+ifunc -> local_scope: No { class: flow }
+local_scope -> non_preemptible: Yes { class: flow }
+local_scope -> preemptible: No { class: flow }
