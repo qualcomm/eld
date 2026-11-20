@@ -3975,11 +3975,13 @@ bool GNULDBackend::isSymbolPreemptible(const ResolveInfo &pSym) const {
   if (LinkerConfig::DynObj != config().codeGenType())
     return false;
 
-  if (config().options().bsymbolic())
+  // A symbol named in --dynamic-list stays preemptible under -Bsymbolic, as
+  // GNU ld does.
+  if (config().options().bsymbolic() && !pSym.inDynamicList())
     return false;
 
   if (config().options().bsymbolicFunctions() && pSym.isDefine() &&
-      pSym.type() == ResolveInfo::Function)
+      pSym.type() == ResolveInfo::Function && !pSym.inDynamicList())
     return false;
 
   if (pSym.isHidden())
