@@ -1,0 +1,41 @@
+REQUIRES: run_test, linux, x86_64
+#------TlsGDnonpreemptibleExported.test-------Executable/SharedLibrary------#
+#BEGIN_COMMENT
+# Verifies TLS General Dynamic (GD) model when the executable defines and
+# exports a thread-local variable with the same name as one in a shared library.
+# The library is linked in two ways.
+# With -Bsymbolic, the library's tls_var and tls_var2 are not preemptible. Their
+# R_X86_64_DTPMOD64 relocations name no symbol, so the module ID is the library's
+# own and no name lookup is made. get_tls() returns the library's values
+# (42 + 50 = 92), not the executable's (2 + 3 = 5).
+# Without -Bsymbolic, they are preemptible. Their relocations name the symbols,
+# and the executable's definitions are used (2 + 3 = 5).
+#END_COMMENT
+#START_TEST
+RUN: %run_cc %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %run_cc %clangopts -c %p/Inputs/2.c -fPIC -o %t.2.o
+
+RUN: %link %linkopts -shared -Bsymbolic -o %t.bsym.so %t.2.o
+RUN: %run_cc %clangopts -o %t.bsym.out %t.1.o %t.bsym.so -Wl,--export-dynamic -Wl,-rpath,%T
+RUN: %run_and_print_exit %t.bsym.out | %filecheck %s --check-prefix=BSYM-EXIT
+RUN: %readelf -r %t.bsym.so | %filecheck %s --check-prefix=BSYM-RELOC
+
+RUN: %link %linkopts -shared -o %t.plain.so %t.2.o
+RUN: %run_cc %clangopts -o %t.plain.out %t.1.o %t.plain.so -Wl,--export-dynamic -Wl,-rpath,%T
+RUN: %run_and_print_exit %t.plain.out | %filecheck %s --check-prefix=PLAIN-EXIT
+RUN: %readelf -r %t.plain.so | %filecheck %s --check-prefix=PLAIN-RELOC
+#END_TEST
+
+# With -Bsymbolic, the module ID relocation names no symbol, and the offset is
+# known at link time.
+BSYM-RELOC: R_X86_64_DTPMOD64
+BSYM-RELOC-NOT: tls_var
+BSYM-RELOC-NOT: R_X86_64_DTPOFF64
+
+BSYM-EXIT: 92
+
+# Without -Bsymbolic, the relocations name the symbols.
+PLAIN-RELOC: R_X86_64_DTPMOD64{{.*}}tls_var
+PLAIN-RELOC: R_X86_64_DTPOFF64{{.*}}tls_var
+
+PLAIN-EXIT: 5
