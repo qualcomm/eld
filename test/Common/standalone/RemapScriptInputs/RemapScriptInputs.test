@@ -1,0 +1,50 @@
+# Remap command-line scripts before checking whether the original path exists.
+RUN: %clang %clangopts -fPIC -ffunction-sections -c "%p/Inputs/1.c" -o "%t.o"
+RUN: %link %linkopts -shared "%t.o" -T "%t.missing.ld" \
+RUN:   "--remap-inputs=%t.missing.ld=%p/Inputs/actual.ld" -o "%t.exact.so"
+RUN: %readelf -S "%t.exact.so" | %filecheck "%s" --check-prefix=SCRIPT
+
+# Wildcards and remap files use the same path-resolution rules.
+RUN: %link %linkopts -shared "%t.o" --script="%t.missing.ld" \
+RUN:   "--remap-inputs=*missing.ld=%p/Inputs/actual.ld" -o "%t.wildcard.so"
+RUN: %readelf -S "%t.wildcard.so" | %filecheck "%s" --check-prefix=SCRIPT
+RUN: %echo "%t.missing.ld=%p/Inputs/actual.ld" > "%t.remap"
+RUN: %link %linkopts -shared "%t.o" -T "%t.missing.ld" \
+RUN:   --remap-inputs-file="%t.remap" -o "%t.file.so"
+RUN: %readelf -S "%t.file.so" | %filecheck "%s" --check-prefix=SCRIPT
+
+# Search for the replacement in -L directories and apply only the first mapping.
+RUN: %link %linkopts -shared "%t.o" -T "%t.missing.ld" -L "%p/Inputs" \
+RUN:   "--remap-inputs=%t.missing.ld=actual.ld" -o "%t.search.so"
+RUN: %readelf -S "%t.search.so" | %filecheck "%s" --check-prefix=SCRIPT
+RUN: %link %linkopts -shared "%t.o" -T "%t.missing.ld" \
+RUN:   "--remap-inputs=%t.missing.ld=%p/Inputs/actual.ld" \
+RUN:   "--remap-inputs=%p/Inputs/actual.ld=%t.nonexistent.ld" -o "%t.once.so"
+RUN: %readelf -S "%t.once.so" | %filecheck "%s" --check-prefix=SCRIPT
+
+# An existing original script must also be replaced.
+RUN: %echo "unexpected_original = 1;" > "%t.original.ld"
+RUN: %link %linkopts -shared "%t.o" -T "%t.original.ld" \
+RUN:   "--remap-inputs=%t.original.ld=%p/Inputs/actual.ld" -o "%t.existing.so"
+RUN: %readelf -S "%t.existing.so" | %filecheck "%s" --check-prefix=SCRIPT
+
+# Other ScriptAction users must resolve a missing original path as well.
+RUN: %link %linkopts -shared "%t.o" --version-script="%t.missing.version" \
+RUN:   "--remap-inputs=%t.missing.version=%p/Inputs/version.t" -o "%t.version.so"
+RUN: %readelf --dyn-syms "%t.version.so" | %filecheck "%s" --check-prefix=VERSION --implicit-check-not=beta
+RUN: %link %linkopts -shared "%t.o" --dynamic-list="%t.missing.list" --verbose \
+RUN:   "--remap-inputs=%t.missing.list=%p/Inputs/dynamic.list" -o "%t.dynamic.so" \
+RUN:   2>&1 | %filecheck "%s" --check-prefix=DYNAMIC
+
+# Diagnose the missing replacement, and retain the original missing-script error.
+RUN: not %link %linkopts -shared "%t.o" -T "%t.missing.ld" \
+RUN:   "--remap-inputs=%t.missing.ld=%t.nonexistent.ld" -o "%t.bad.so" \
+RUN:   2>&1 | %filecheck "%s" --check-prefix=MISSING-REPLACEMENT
+RUN: not %link %linkopts -shared "%t.o" -T "%t.missing.ld" -o "%t.bad.so" \
+RUN:   2>&1 | %filecheck "%s" --check-prefix=MISSING-ORIGINAL
+
+SCRIPT: .alpha_out
+VERSION: FUNC GLOBAL DEFAULT {{.*}} alpha
+DYNAMIC: Dynamic List[{{.*}}dynamic.list] : alpha
+MISSING-REPLACEMENT: Fatal: cannot read file{{.*}}nonexistent.ld
+MISSING-ORIGINAL: Fatal: cannot open linker script file {{.*}}missing.ld
