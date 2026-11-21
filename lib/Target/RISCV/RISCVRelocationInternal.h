@@ -55,6 +55,7 @@ enum : uint32_t {
   R_RISCV_TPREL_I,
   R_RISCV_TPREL_S,
   R_RISCV_TBJAL,
+  R_RISCV_ILUT,
   R_RISCV_QC_ABS26_I,   // absolute xqcilo load  (S+A)
   R_RISCV_QC_ABS26_S,   // absolute xqcilo store (S+A)
   R_RISCV_QC_GPREL26_I, // GP-relative xqcilo load  (S+A-G)
@@ -77,8 +78,8 @@ enum : uint32_t {
   /* 'QUALCOMM' vendor relocations: 192-197 are represented by 320-325 */
   FirstQUALCOMMVendorRelocation = 320,
   LastQUALCOMMVendorRelocation = 325,
-  QUALCOMMVendorRelocationOffset =
-      FirstQUALCOMMVendorRelocation - FirstNonstandardRelocation,
+  QUALCOMMVendorRelocationOffset = FirstQUALCOMMVendorRelocation -
+      FirstNonstandardRelocation,
 
   /* We don't support ANDES and CHERIOT1 vendor relocations */
   ANDESVendorRelocationOffset = 0,
