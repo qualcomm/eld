@@ -359,9 +359,7 @@ LinkerWrapper::getOutputSectionAndRule(Section S) {
       Sections.begin(), Input->getResolvedPath().native(),
       *llvm::cast<ELFSection>(S.getSection()), F.isArchive(), Input->getName(),
       S.getSection()->sectionNameHash(), Input->getResolvedPathHash(),
-      Input->getArchiveMemberNameHash(),
-      m_Module.getConfig().options().getScriptOption() ==
-          GeneralOptions::MatchGNU);
+      Input->getArchiveMemberNameHash());
 
   ELFSection *inputELFSect = llvm::dyn_cast<ELFSection>(S.getSection());
 
@@ -644,6 +642,13 @@ bool LinkerWrapper::isMultiThreaded() const {
 plugin::LinkerScript LinkerWrapper::getLinkerScript() {
   plugin::LinkerScript LinkerScript(nullptr);
   return plugin::LinkerScript(&m_Module.getLinkerScript());
+}
+
+std::vector<plugin::MemoryRegion> LinkerWrapper::getMemoryRegions() const {
+  std::vector<plugin::MemoryRegion> Regions;
+  for (const auto *Region : m_Module.getLinkerScript().getMemoryRegions())
+    Regions.emplace_back(Region);
+  return Regions;
 }
 
 std::string LinkerWrapper::getFileContents(std::string FileName) {

@@ -38,6 +38,7 @@ class Relocator;
 class ResolveInfo;
 class RuleContainer;
 class Section;
+class ScriptMemoryRegion;
 class SymbolInfo;
 } // namespace eld
 
@@ -58,6 +59,7 @@ struct DLL_A_EXPORT InputFile;
 struct DLL_A_EXPORT INIFile;
 struct DLL_A_EXPORT LinkerScript;
 struct DLL_A_EXPORT OutputSection;
+struct DLL_A_EXPORT MemoryRegion;
 class DLL_A_EXPORT Plugin;
 struct DLL_A_EXPORT PluginData;
 struct DLL_A_EXPORT Section;
@@ -423,6 +425,44 @@ private:
   const eld::BranchIsland *BI;
 };
 
+/// A handle for inspecting a linker-script MEMORY region.
+///
+/// Handles with the same underlying ScriptMemoryRegion pointer represent the
+/// same region, including handles obtained through REGION_ALIAS names.
+/// A default-constructed handle represents no region.
+struct DLL_A_EXPORT MemoryRegion final {
+  /// Creates a handle for Region, or an empty handle if Region is null.
+  explicit MemoryRegion(const eld::ScriptMemoryRegion *Region = nullptr)
+      : m_MemoryRegion(Region) {}
+
+  /// Returns the region name, or an empty string for an empty handle.
+  std::string getName() const;
+
+  /// Returns the raw attribute spelling, including parentheses, such as
+  /// "(rx)" or "(!rx)", or an empty string for an empty handle.
+  std::string getAttributes() const;
+
+  /// Returns the evaluated 64-bit origin, or zero for an empty handle.
+  /// Propagates errors from evaluating the origin expression.
+  eld::Expected<uint64_t> getOrigin() const;
+
+  /// Returns the evaluated 64-bit length, or zero for an empty handle.
+  /// Propagates errors from evaluating the length expression.
+  eld::Expected<uint64_t> getLength() const;
+
+  /// Returns the underlying ScriptMemoryRegion pointer, or null for an empty
+  /// handle. This can be used as a unique identifier for the region.
+  const eld::ScriptMemoryRegion *getMemoryRegion() const {
+    return m_MemoryRegion;
+  }
+
+  /// Returns true if the handle represents a non-null memory region.
+  operator bool() const { return m_MemoryRegion != nullptr; }
+
+private:
+  const eld::ScriptMemoryRegion *m_MemoryRegion = nullptr;
+};
+
 /// OutputSection is a handler for an output section. An OutputSection object
 /// can be used to inspect an output section, and get it's associated linker
 /// script rules.
@@ -498,6 +538,18 @@ struct DLL_A_EXPORT OutputSection final {
 
   /// Returns the physical address of the output section.
   eld::Expected<uint64_t> getPhysicalAddress(const LinkerWrapper &) const;
+
+  /// Returns the effective virtual memory address (VMA) region after layout,
+  /// or an empty handle if no region is assigned or this output section is
+  /// null.
+  MemoryRegion getVMAMemoryRegion() const;
+
+  /// Returns the effective load memory address (LMA) region after layout,
+  /// which may be the same as the VMA region.
+  ///
+  /// Returns an empty handle if no region is assigned, this output section is
+  /// null, or an explicit AT(address) specifies the load address.
+  MemoryRegion getLMAMemoryRegion() const;
 
   /// Returns true if the object represents a non-null output section.
   operator bool() const { return m_OutputSection != nullptr; }

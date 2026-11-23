@@ -1,0 +1,7 @@
+# The map names .eh_frame by its x86-64 section type.
+RUN: %clang %clangopts -funwind-tables -c %p/Inputs/foo.c -o %t.o
+RUN: %link %linkopts -e foo %t.o -o %t.out -Map %t.map
+RUN: %filecheck %s --implicit-check-not=SHT_ARM_EXIDX < %t.map
+
+# CHECK: .eh_frame {{.*}}Type: SHT_X86_64_UNWIND
+# CHECK: .eh_frame {{.*}}#SHT_X86_64_UNWIND,

@@ -1,3 +1,4 @@
+UNSUPPORTED: progress_bar
 # GC precedes ICF, and ICF consistently chooses the first input section as the
 # canonical representative.
 

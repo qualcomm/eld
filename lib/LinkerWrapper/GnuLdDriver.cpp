@@ -576,14 +576,6 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     }
   }
 
-  // --script-options=[match-gnu|match-llvm]
-  if (llvm::opt::Arg *arg = Args.getLastArg(T::script_options)) {
-    if (!Config.options().setScriptOption(arg->getValue())) {
-      Config.raise(Diag::invalid_option_match_error_style);
-      return false;
-    }
-  }
-
   // --[no-]warn-shared-textrel
   Config.options().setWarnSharedTextrel(Args.hasFlag(
       T::warn_shared_textrel, T::no_warn_shared_textrel, /*default=*/false));
@@ -890,8 +882,6 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --version-script
   for (auto *Arg : Args.filtered(T::version_script))
     Config.options().getVersionScripts().emplace(Arg->getValue());
-  if (Config.options().getVersionScripts().size())
-    Config.options().setVersionScript();
   Config.options().setAllowUndefinedVersion(
       Args.hasFlag(T::undefined_version, T::no_undefined_version,
                    /*default=*/true));

@@ -236,6 +236,9 @@ public:
 
   TargetInfo &getInfo() const { return *m_pInfo; }
 
+  /// The name of a section type on this target, such as SHT_X86_64_UNWIND.
+  llvm::StringRef getSectionTypeName(uint32_t Type) const;
+
   virtual Relocator *getRelocator() const = 0;
 
   bool hasTextRel() const { return m_bHasTextRel; }

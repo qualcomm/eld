@@ -186,8 +186,6 @@ public:
   bool isEligibleForICF() const;
 
   // LayoutPrinter helper functions
-  static llvm::StringRef getELFTypeStr(llvm::StringRef Name, uint32_t Type);
-
   static std::string getELFPermissionsStr(uint32_t Permissions);
 
   std::string getSectionAnnotations() const;
