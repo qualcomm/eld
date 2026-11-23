@@ -2660,10 +2660,12 @@ bool GNULDBackend::setupProgramHdrs() {
     uint64_t lo = std::numeric_limits<uint64_t>::max();
     uint64_t hi = 0;
     for (auto &seg : tls_segs) {
+      if (seg->memsz() == 0)
+        continue;
       lo = std::min(lo, seg->vaddr());
       hi = std::max(hi, seg->vaddr() + seg->memsz());
     }
-    setTLSTemplateSize(hi - lo);
+    setTLSTemplateSize(hi > lo ? hi - lo : 0);
   }
   return true;
 }
