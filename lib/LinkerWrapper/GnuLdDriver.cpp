@@ -27,6 +27,7 @@
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Input/JustSymbolsAction.h"
 #include "eld/Input/ZOption.h"
+#include "eld/LayoutMap/LinkStatsReport.h"
 #include "eld/LayoutMap/TextLayoutPrinter.h"
 #include "eld/LayoutMap/YamlLayoutPrinter.h"
 #include "eld/Object/ArchiveMemberReport.h"
@@ -1374,6 +1375,11 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setSymbolResolutionReportFile(A->getValue());
   }
 
+  // --emit-link-stats=<file>
+  if (llvm::opt::Arg *A = Args.getLastArg(T::LinkStatsReportFile)) {
+    Config.options().setLinkStatsReportFile(A->getValue());
+  }
+
   if (Args.hasArg(T::use_old_rule_matching))
     Config.options().setUseOldRuleMatching(true);
 
@@ -2196,27 +2202,31 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
   }
   eld::LayoutInfo *layoutInfo = nullptr;
   if (!Config.options().layoutFile().empty() || Config.options().printMap() ||
-      Config.options().getArchiveMemberReportFile())
+      Config.options().getArchiveMemberReportFile() ||
+      Config.options().getLinkStatsReportFile())
     layoutInfo = eld::make<eld::LayoutInfo>(Config);
   ThisModule = eld::make<eld::Module>(m_Script, Config, layoutInfo);
 
   // Handle Map Style and set default MapStyle
-  llvm::ArrayRef<std::string> MapStyles = Config.options().mapStyle();
-  if (MapStyles.size()) {
-    Config.options().setDefaultMapStyle(MapStyles[0]);
-    if (Config.options().checkAndUpdateMapStyleForPrintMap())
-      MapStyles = Config.options().mapStyle();
-    // Create LayoutInfos.
-    Config.raise(Diag::mapstyles_used) << llvm::join(MapStyles, ",");
-    for (auto &Style : MapStyles) {
-      if (!ThisModule->createLayoutPrintersForMapStyle(Style))
+  if (!Config.options().layoutFile().empty() || Config.options().printMap()) {
+    llvm::ArrayRef<std::string> MapStyles = Config.options().mapStyle();
+    if (MapStyles.size()) {
+      Config.options().setDefaultMapStyle(MapStyles[0]);
+      if (Config.options().checkAndUpdateMapStyleForPrintMap())
+        MapStyles = Config.options().mapStyle();
+      // Create LayoutInfos.
+      Config.raise(Diag::mapstyles_used) << llvm::join(MapStyles, ",");
+      for (auto &Style : MapStyles) {
+        if (!ThisModule->createLayoutPrintersForMapStyle(Style))
+          return false; // fail the link
+      }
+    } else {
+      Config.raise(Diag::mapstyles_used)
+          << Config.options().getDefaultMapStyle();
+      if (!ThisModule->createLayoutPrintersForMapStyle(
+              Config.options().getDefaultMapStyle()))
         return false; // fail the link
     }
-  } else {
-    Config.raise(Diag::mapstyles_used) << Config.options().getDefaultMapStyle();
-    if (!ThisModule->createLayoutPrintersForMapStyle(
-            Config.options().getDefaultMapStyle()))
-      return false; // fail the link
   }
 
   bool linkStatus = false;
@@ -2238,6 +2248,9 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
       linker.printLayout();
       if (Config.options().shouldEmitSymbolResolutionReport())
         linkStatus &= linker.emitSymbolResolutionReport();
+      if (auto ReportFile = Config.options().getLinkStatsReportFile())
+        linkStatus &= eld::emitLinkStatsReport(*ThisModule, ReportFile.value(),
+                                               Config.getDiagEngine());
     }
     if (!linkStatus || Config.options().getRecordInputFiles())
       handleReproduce<T>(Args, actions, true);

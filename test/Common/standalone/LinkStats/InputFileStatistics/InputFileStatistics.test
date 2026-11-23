@@ -1,0 +1,18 @@
+#---InputFileStatistics.test------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Verify that the JSON link statistics report lists input file names and types.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/archive.c -o %t.archive.o
+RUN: %ar cr %aropts %t.archive.a %t.archive.o
+RUN: %link %linkopts -e main %t.main.o %t.archive.a --format=binary %p/Inputs/binary.data --format=default --emit-link-stats=%t.stats.json -o %t.out
+RUN: %filecheck %s < %t.stats.json
+#END_TEST
+
+#CHECK-DAG: "File": "{{.*}}main.o"
+#CHECK-DAG: "Type": "Object"
+#CHECK-DAG: "File": "{{.*}}archive.a"
+#CHECK-DAG: "Type": "Archive"
+#CHECK-DAG: "File": "binary.data"
+#CHECK-DAG: "Type": "Binary"
