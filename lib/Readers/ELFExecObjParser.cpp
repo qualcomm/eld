@@ -11,6 +11,7 @@
 #include "eld/Input/InputFile.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/Readers/ELFReaderBase.h"
+#include "eld/Support/RegisterTimer.h"
 #include <memory>
 using namespace eld;
 
@@ -40,6 +41,10 @@ eld::Expected<bool> ELFExecObjParser::parseFile(InputFile &inputFile) {
   PluginManager &PM = m_Module.getPluginManager();
   if (!PM.callVisitInputHook(inputFile))
     return false;
+
+  eld::RegisterTimer ExecutableTimer(
+      "Read ELF Executable Files", "Read",
+      m_Module.getConfig().options().printTimingStats());
 
   ELFReader->recordInputActions();
 

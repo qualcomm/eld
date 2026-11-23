@@ -10,7 +10,7 @@ RUN:   --emit-timing-stats %t1.1.timing.stats
 RUN: %filecheck %s < %t1.1.timing.stats
 #END_TEST
 
-CHECK: Plugins
+CHECK: {{^  Plugins +}}
 CHECK-DAG: Load Linker Plugins
 CHECK-DAG: Init
 CHECK-DAG: VisitInput
@@ -18,9 +18,7 @@ CHECK-DAG: VisitSections
 CHECK-DAG: ActBeforeSectionMerging
 CHECK-DAG: ActBeforePerformingLayout
 CHECK-DAG: ActBeforeWritingOutput
-CHECK-DAG: PluginCommandLineOptions
+CHECK-DAG: CommandLineOptions
 CHECK-DAG: Destroy
 CHECK-DAG: ActBeforeRuleMatching
 CHECK: Total
-
-

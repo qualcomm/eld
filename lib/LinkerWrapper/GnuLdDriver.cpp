@@ -35,6 +35,7 @@
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/OutputTarWriter.h"
 #include "eld/Support/Path.h"
+#include "eld/Support/RegisterTimer.h"
 #include "eld/Support/StringUtils.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/Support/TargetSelect.h"
@@ -145,9 +146,9 @@ bool GnuLdDriver::emitStats(eld::Module &M) const {
   llvm::raw_fd_ostream *OutStream = &llvm::outs();
   if (StatsFile)
     OutStream = StatsFile;
-  llvm::TimerGroup::printAll(*OutStream);
-  llvm::TimerGroup::clearAll();
+  RegisterTimer::printTimingReport(*OutStream);
   M.getLinkerScript().printPluginTimers(*OutStream);
+  llvm::TimerGroup::clearAll();
   delete StatsFile;
   return true;
 }
@@ -2285,6 +2286,8 @@ bool GnuLdDriver::handleReproduce(llvm::opt::InputArgList &Args,
   });
   // If needed to write files, then write files
   if (writeFiles) {
+    eld::RegisterTimer ReproduceTimer("Generate Reproducer", "Emit",
+                                      Config.options().printTimingStats());
     writeReproduceTar(nullptr);
   }
   return true;

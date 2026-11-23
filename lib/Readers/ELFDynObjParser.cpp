@@ -86,8 +86,7 @@ ELFDynObjParser::readSectionHeaders(ELFReaderBase &ELFReader) {
 
 eld::Expected<bool> ELFDynObjParser::readSymbols(ELFReaderBase &ELFReader) {
   LinkerConfig &config = m_Module.getConfig();
-  eld::RegisterTimer T("Read symbols from shared libraries",
-                       "Symbol Resolution",
+  eld::RegisterTimer T("Read symbols from shared libraries", "Resolve",
                        config.options().printTimingStats());
   InputFile *inputFile = ELFReader.getInputFile();
   if (m_Module.getPrinter()->traceFiles())

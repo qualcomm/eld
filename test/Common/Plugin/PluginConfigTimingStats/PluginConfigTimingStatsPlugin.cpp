@@ -1,5 +1,6 @@
 #include "Defines.h"
 #include "LinkerPlugin.h"
+#include "LinkerWrapper.h"
 #include "PluginVersion.h"
 #include <iostream>
 
@@ -10,6 +11,9 @@ public:
       : eld::plugin::LinkerPlugin("PluginConfigTimingStatsPlugin") {}
 
   void Init(const std::string &options) override {
+    eld::plugin::AutoTimer CustomTimer(
+        getLinker()->CreateTimer("CustomInit", "Custom plugin initialization",
+                                 getLinker()->isTimingEnabled()));
     std::cout << "Init called with options: " << options << "\n";
   }
 };

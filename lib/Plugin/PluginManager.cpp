@@ -23,7 +23,6 @@ void PluginManager::storeUniversalPlugins() {
 }
 
 bool PluginManager::callInitHook() {
-  RegisterTimer T("Init", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
     P->callInitHook();
     if (!DE.diagnose())
@@ -33,7 +32,6 @@ bool PluginManager::callInitHook() {
 }
 
 bool PluginManager::callDestroyHook() {
-  RegisterTimer T("Destroy", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
     P->callDestroyHook();
     if (!DE.diagnose())
@@ -43,11 +41,11 @@ bool PluginManager::callDestroyHook() {
 }
 
 bool PluginManager::processPluginCommandLineOptions(GeneralOptions &Options) {
-  RegisterTimer T("PluginCommandLineOptions", "Plugins",
-                  ShouldPrintTimingStats);
   const auto &UnknownOpts = Options.getUnknownOptions();
   std::unordered_set<std::size_t> UsedOpts;
   for (Plugin *P : UniversalPlugins) {
+    RegisterTimer T(P->getPluginName() + "/CommandLineOptions", "Plugins",
+                    ShouldPrintTimingStats || P->isTimingEnabled());
     for (std::size_t UnknownOptIdx = 0; UnknownOptIdx < UnknownOpts.size();
          ++UnknownOptIdx) {
       const std::string &Option = UnknownOpts[UnknownOptIdx];
@@ -77,7 +75,6 @@ bool PluginManager::processPluginCommandLineOptions(GeneralOptions &Options) {
 }
 
 bool PluginManager::callVisitInputHook(InputFile &IF) {
-  RegisterTimer T("VisitInput", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
     P->callVisitInputHook(IF);
     if (!DE.diagnose())
@@ -87,7 +84,6 @@ bool PluginManager::callVisitInputHook(InputFile &IF) {
 }
 
 bool PluginManager::callVisitSectionsHook(InputFile &IF) {
-  RegisterTimer T("VisitSections", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
     P->callVisitSectionsHook(IF);
     if (!DE.diagnose())
@@ -97,7 +93,6 @@ bool PluginManager::callVisitSectionsHook(InputFile &IF) {
 }
 
 bool PluginManager::callActBeforeRuleMatchingHook() {
-  RegisterTimer T("ActBeforeRuleMatching", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
     P->callActBeforeRuleMatchingHook();
     if (!DE.diagnose())
@@ -128,7 +123,6 @@ void PluginManager::addSymbolVisitor(eld::Plugin *P) {
 }
 
 bool PluginManager::callActBeforeSectionMergingHook() {
-  RegisterTimer T("ActBeforeSectionMerging", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
     P->callActBeforeSectionMergingHook();
     if (!DE.diagnose())
@@ -154,8 +148,6 @@ void PluginManager::setAuxiliarySymbolNameMap(
 }
 
 bool PluginManager::callActBeforePerformingLayoutHook() {
-  RegisterTimer T("ActBeforePerformingLayout", "Plugins",
-                  ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
     P->callActBeforePerformingLayoutHook();
     if (!DE.diagnose())
@@ -165,7 +157,6 @@ bool PluginManager::callActBeforePerformingLayoutHook() {
 }
 
 bool PluginManager::callActBeforeWritingOutputHook() {
-  RegisterTimer T("ActBeforeWritingOutput", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
     P->callActBeforeWritingOutputHook();
     if (!DE.diagnose())

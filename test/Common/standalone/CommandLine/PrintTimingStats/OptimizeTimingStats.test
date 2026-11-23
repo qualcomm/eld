@@ -1,0 +1,33 @@
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts %t.o -o %t.serial.out --entry=foo --gc-sections --icf=all --enable-threads=all --thread-count=1 --emit-timing-stats %t.serial.stats
+RUN: %filecheck %s < %t.serial.stats
+RUN: %link %linkopts %t.o -o %t.parallel.out --entry=foo --gc-sections --icf=all --enable-threads=all --thread-count=4 --emit-timing-stats %t.parallel.stats
+RUN: %filecheck %s < %t.parallel.stats
+RUN: %link %linkopts %t.o -o %t.disabled.out --entry=foo --no-gc-sections --no-merge-strings --no-merge-constants --emit-timing-stats %t.disabled.stats
+RUN: %filecheck %s --check-prefix=DISABLED \
+RUN:   --implicit-check-not="Merge strings" --implicit-check-not="Merge constants" \
+RUN:   --implicit-check-not="Fix Merge String and Constant Relocations" \
+RUN:   --implicit-check-not="Get Reachable Sections" --implicit-check-not="Compute Entry Sections" \
+RUN:   --implicit-check-not="Find Dead Code" --implicit-check-not="Apply Dead Code Elimination" < %t.disabled.stats
+
+CHECK: ELD Link Timing Report
+CHECK: {{^  Resolve +}}
+CHECK: {{^  Optimize +}}
+CHECK-DAG: Get Reachable Sections
+CHECK-DAG: Compute Entry Sections
+CHECK-DAG: Find Dead Code
+CHECK-DAG: Apply Dead Code Elimination
+CHECK-DAG: Identical Code Folding
+CHECK-DAG: Merge strings
+CHECK-DAG: Merge constants
+CHECK-DAG: Fix Merge String and Constant Relocations
+CHECK: {{^  Layout +}}
+CHECK: {{^  Emit +}}
+CHECK: Total
+
+DISABLED: ELD Link Timing Report
+DISABLED: {{^  Resolve +}}
+DISABLED: {{^  Optimize +}}
+DISABLED: Identical Code Folding
+DISABLED: {{^  Layout +}}
+DISABLED: Total

@@ -57,11 +57,16 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
   ArchiveFile *archiveFile = llvm::cast<ArchiveFile>(&inputFile);
   bool hasAFI = (archiveFile->getArchiveFileInfo() != nullptr);
   llvm::MemoryBufferRef memRef = inputFile.getInput()->getMemoryBufferRef();
-  llvm::Expected<std::unique_ptr<llvm::object::Archive>> expArchiveReader =
-      llvm::object::Archive::create(memRef);
-  LLVMEXP_RETURN_DIAGENTRY_IF_ERROR(expArchiveReader);
-  std::unique_ptr<llvm::object::Archive> archiveReader =
-      std::move(*expArchiveReader);
+  std::unique_ptr<llvm::object::Archive> archiveReader;
+  {
+    eld::RegisterTimer ArchiveTimer(
+        "Read Archive Headers", "Read",
+        m_Module.getConfig().options().printTimingStats());
+    llvm::Expected<std::unique_ptr<llvm::object::Archive>> expArchiveReader =
+        llvm::object::Archive::create(memRef);
+    LLVMEXP_RETURN_DIAGENTRY_IF_ERROR(expArchiveReader);
+    archiveReader = std::move(*expArchiveReader);
+  }
   LinkerConfig &config = m_Module.getConfig();
   if (archiveReader->isEmpty()) {
     config.raise(Diag::note_empty_archive)

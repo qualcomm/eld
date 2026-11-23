@@ -8,7 +8,7 @@
 #define ELD_SUPPORT_REGISTERTIMER_H
 
 #include "llvm/Support/Timer.h"
-#include <optional>
+#include "llvm/Support/raw_ostream.h"
 
 namespace eld {
 
@@ -17,22 +17,27 @@ class Input;
 class RegisterTimer {
 public:
   // Params:
-  // - Name: timer name (also used as description by default)
-  // - Group: TimerGroup name (also used as group description by default)
+  // - Name: timer name (also used as description)
+  // - Phase: top-level linker phase
+  // (Initialize/Read/Resolve/Optimize/Layout/Emit/Plugins)
   // - Enable: if false, the timer is a no-op
-  explicit RegisterTimer(llvm::StringRef Name, llvm::StringRef Group,
+  explicit RegisterTimer(llvm::StringRef Name, llvm::StringRef Phase,
                          bool Enable);
 
-  // Like the 3-arg ctor, but allows custom timer/group descriptions.
-  RegisterTimer(llvm::StringRef Name, llvm::StringRef Description,
-                llvm::StringRef Group, llvm::StringRef GroupDescription,
-                bool Enable);
+  ~RegisterTimer();
+
+  RegisterTimer(const RegisterTimer &) = delete;
+  RegisterTimer &operator=(const RegisterTimer &) = delete;
 
   llvm::Timer *getTimer() const { return T; }
 
+  // Print a hierarchical timing report to OS, grouping timers under their
+  // phases in pipeline order
+  // (Initialize -> Read -> Resolve -> Optimize -> Layout -> Emit -> Plugins).
+  static void printTimingReport(llvm::raw_ostream &OS);
+
 private:
   llvm::Timer *T = nullptr;
-  std::optional<llvm::TimeRegion> Region;
 };
 
 } // namespace eld

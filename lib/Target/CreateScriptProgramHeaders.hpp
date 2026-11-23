@@ -79,8 +79,6 @@ bool GNULDBackend::createScriptProgramHdrs() {
     dotSymbol->setValue(vma);
 
     {
-      eld::RegisterTimer T("Evaluate Script Assignments", "Establish Layout",
-                           m_Module.getConfig().options().printTimingStats());
       evaluateBeforeSectionsAssignments(/*evaluateAsserts=*/false);
     }
   };

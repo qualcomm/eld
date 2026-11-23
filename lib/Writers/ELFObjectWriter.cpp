@@ -210,6 +210,9 @@ ELFObjectWriter::writeObject(llvm::FileOutputBuffer &CurOutput) {
     }
   }
 
+  eld::RegisterTimer EmissionTimer(
+      IsBinary ? "Emit Binary Sections" : "Emit Regular ELF Sections", "Emit",
+      ThisModule.getConfig().options().printTimingStats());
   if (IsBinary) {
     // Iterate over the loadable segments and write the corresponding sections
     for (auto *Seg :
@@ -230,8 +233,6 @@ ELFObjectWriter::writeObject(llvm::FileOutputBuffer &CurOutput) {
       }
     }
   } else {
-    eld::RegisterTimer T("Emit Regular ELF Sections", "Emit Output File",
-                         ThisModule.getConfig().options().printTimingStats());
     // Write out regular ELF sections
     Module::iterator Sect, SectEnd = ThisModule.end();
     for (Sect = ThisModule.begin(); Sect != SectEnd; ++Sect) {

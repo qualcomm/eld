@@ -611,7 +611,7 @@ void ARMGNULDBackend::updateFloatABIFlag() {
 
 void ARMGNULDBackend::doPostLayout() {
   if (LinkerConfig::Object == config().codeGenType()) {
-    eld::RegisterTimer T("Sort EXIDX Fragments if Present", "Do Post Layout",
+    eld::RegisterTimer T("Sort EXIDX Fragments if Present", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     sortEXIDX();
   }

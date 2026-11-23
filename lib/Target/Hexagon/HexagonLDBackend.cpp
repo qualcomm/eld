@@ -471,8 +471,6 @@ void HexagonLDBackend::mayBeRelax(int, bool &pFinished) {
         Frags.push_back(F);
       }
     }
-    eld::RegisterTimer T(Out->name(), "Trampoline Time",
-                         m_Module.getConfig().options().printTimingStats());
     for (auto &F : Frags) {
       for (auto &reloc : F->getOwningSection()->getRelocations()) {
         switch (reloc->type()) {
@@ -676,8 +674,7 @@ bool HexagonLDBackend::allocateCommonSymbols() {
   if (!m_Module.getCommonSymbols().size())
     return true;
 
-  eld::RegisterTimer T("Allocate Common Symbols",
-                       "Hexagon Allocate Common Symbols",
+  eld::RegisterTimer T("Allocate Hexagon Common Symbols", "Resolve",
                        m_Module.getConfig().options().printTimingStats());
 
   for (auto &common_sym : m_Module.getCommonSymbols()) {

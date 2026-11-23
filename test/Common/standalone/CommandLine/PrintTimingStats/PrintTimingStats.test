@@ -4,6 +4,18 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out > %t1.disabled.stats 2>&1
+RUN: %filecheck %s --check-prefix=DISABLED --allow-empty < %t1.disabled.stats
 RUN: %link %linkopts %t1.1.o -o %t2.out --print-timing-stats 2>&1 | %filecheck %s --allow-empty
+DISABLED-NOT: ELD Link Timing Report
 #CHECK-NOT: Not Implemented
+#CHECK: ELD Link Timing Report
+#CHECK: Phase / Timer{{ +}}Wall(s){{ +}}User(s){{ +}}Sys(s){{ +}}%
+#CHECK: Initialize
+#CHECK: Read
+#CHECK: Resolve
+#CHECK: Optimize
+#CHECK: Layout
+#CHECK: Emit
+#CHECK: Total
 #END_TEST
