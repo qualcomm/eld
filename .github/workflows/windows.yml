@@ -4,8 +4,7 @@ run-name: "Windows ${{ inputs.pr_number && format('PR #{0} @{1}', inputs.pr_numb
 
 on:
   schedule:
-    # 9:00 PM Central
-    - cron: '0 2 * * *'
+    - cron: '0 */8 * * *' # Runs every 8 hours
   workflow_dispatch:
     inputs:
       pr_sha:

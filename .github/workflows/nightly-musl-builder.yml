@@ -2,7 +2,7 @@ name: Nightly builder for testing eld against musl-test-suite
 # owner: parth-07
 on:
   schedule:
-      - cron: '0 2 * * *' # 2:00 AM
+      - cron: '0 */8 * * *' # Runs every 8 hours
   workflow_dispatch:     # Allows manual triggering
   # pull_request: {} # Uncomment only to test this WF file update.
 
