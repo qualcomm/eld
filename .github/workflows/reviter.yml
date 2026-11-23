@@ -4,7 +4,7 @@ run-name: "Reverse iterators ${{ inputs.pr_number && format('PR #{0} @{1}', inpu
 
 on:
   schedule:
-    - cron: '0 8 * * *' # Runs daily at 2:00 AM CST
+    - cron: '0 */8 * * *' # Runs every 8 hours
   workflow_call:
     inputs:
       pr_number:
