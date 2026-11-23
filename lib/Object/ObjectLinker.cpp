@@ -288,9 +288,6 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
        ++Begin) {
     // is a group node
     if ((*Begin)->kind() == Node::GroupStart) {
-      eld::RegisterTimer T("Read Start Group and End Group",
-                           "Input Group Processing (supplemental)",
-                           ThisConfig.options().printTimingStats());
       getGroupReader()->readGroup(Begin,
                                   ThisModule->getIRBuilder()->getInputBuilder(),
                                   ThisConfig, MPostLtoPhase);
@@ -298,9 +295,6 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
     }
 
     if ((*Begin)->kind() == Node::LibStart) {
-      eld::RegisterTimer T("Read Start Lib and End Lib",
-                           "Input Group Processing (supplemental)",
-                           ThisConfig.options().printTimingStats());
       getLibReader()->readLib(Begin,
                               ThisModule->getIRBuilder()->getInputBuilder(),
                               ThisConfig, MPostLtoPhase);
@@ -486,7 +480,7 @@ bool ObjectLinker::registerVersionScriptNodes(const VersionScript *VS,
 }
 
 void ObjectLinker::assignVersionNodesToSymbols() {
-  eld::RegisterTimer T("Assign Version Nodes to Symbols", "Version Scripts",
+  eld::RegisterTimer T("Assign Version Nodes to Symbols", "Read",
                        ThisModule->getConfig().options().printTimingStats());
   auto &NP = ThisModule->getNamePool();
   auto &VersionNodes = ThisModule->getVersionScriptNodes();
@@ -770,8 +764,6 @@ void ObjectLinker::dataStrippingOpt() {
 
 void ObjectLinker::runGarbageCollection(const std::string &Phase,
                                         bool CommonSectionsOnly) {
-  eld::RegisterTimer T("Perform Garbage collection", "Garbage Collection",
-                       ThisConfig.options().printTimingStats());
   GarbageCollection GC(ThisConfig, getTargetBackend(), *ThisModule);
   GC.run(Phase, CommonSectionsOnly);
   MGcHasRun = true;
@@ -918,6 +910,9 @@ void ObjectLinker::mergeIdenticalConstants() const {
 }
 
 void ObjectLinker::fixMergeStringAndConstantRelocations() const {
+  eld::RegisterTimer RelocationTimer(
+      "Fix Merge String and Constant Relocations", "Optimize",
+      ThisConfig.options().printTimingStats());
   bool MergeStrings = ThisConfig.options().mergeStrings();
   bool MergeConstants = ThisConfig.options().getMergeConstants();
 
@@ -950,12 +945,12 @@ void ObjectLinker::doMergeStringsAndConstants() {
   if (ThisConfig.isLinkPartial())
     return;
   if (ThisConfig.options().mergeStrings()) {
-    eld::RegisterTimer T("Merge strings", "Link Summary",
+    eld::RegisterTimer T("Merge strings", "Optimize",
                          ThisConfig.options().printTimingStats());
     mergeIdenticalStrings();
   }
   if (ThisConfig.options().getMergeConstants()) {
-    eld::RegisterTimer T("Merge constants", "Link Summary",
+    eld::RegisterTimer T("Merge constants", "Optimize",
                          ThisConfig.options().printTimingStats());
     mergeIdenticalConstants();
   }
@@ -967,11 +962,16 @@ void ObjectLinker::doMergeStringsAndConstants() {
 void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
   ObjectBuilder Builder(ThisConfig, *ThisModule);
   auto Start = std::chrono::steady_clock::now();
-  Builder.assignOutputSections(Inputs, MPostLtoPhase);
-  // Refresh matched inputs for each rule before relocation scan. We need this
-  // to infer output properties from script merged inputs before layout is
-  // finalized.
-  RuleContainer::updateMatchedSections(*ThisModule);
+  {
+    eld::RegisterTimer MatchingTimer(
+        "Assign output sections using default/linker script rules", "Resolve",
+        ThisConfig.options().printTimingStats());
+    Builder.assignOutputSections(Inputs, MPostLtoPhase);
+    // Refresh matched inputs for each rule before relocation scan. We need this
+    // to infer output properties from script merged inputs before layout is
+    // finalized.
+    RuleContainer::updateMatchedSections(*ThisModule);
+  }
   // FIXME: Perhaps transfer entry section ownership to GarbageCollection as
   // Entry sections are only relevant with garbage collection.
   // Currently, entry section are computed even if garbage-collection is not
@@ -983,8 +983,6 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
     if (TextMapPrinter)
       TextMapPrinter->printLayout(*ThisModule);
   }
-  // FIXME: SectionMatcher plugins should not consume time under
-  // 'LinkerScriptRuleMatch' timing category!
   if (!Builder.initializePluginsAndProcess(Inputs,
                                            plugin::Plugin::SectionMatcher))
     return;
@@ -996,6 +994,8 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
 
 bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
                                       std::vector<Section *> &Sections) {
+  eld::RegisterTimer MergeTimer("Merge Input Sections", "Layout",
+                                ThisConfig.options().printTimingStats());
   bool IsPartialLink = ThisConfig.isLinkPartial();
   for (auto &Section : Sections) {
     if (Section->isBitcode())
@@ -1126,8 +1126,6 @@ void ObjectLinker::sortByInitPriority(RuleContainer *I, bool SortRule) {
 }
 
 bool ObjectLinker::sortSections(RuleContainer *I, bool SortRule) {
-  eld::RegisterTimer T("Sort Sections", "Merge Sections",
-                       ThisConfig.options().printTimingStats());
   if (!SortRule && (!(I->getSection()->hasSectionData())))
     return false;
 
@@ -1268,8 +1266,6 @@ bool ObjectLinker::initializeMerge() {
   if (AllInputSections.size())
     return true;
   {
-    eld::RegisterTimer T("Prepare Input Files For Merge", "Merge Sections",
-                         ThisConfig.options().printTimingStats());
     // Gather all input sections.
     eld::Module::obj_iterator Obj, ObjEnd = ThisModule->objEnd();
     for (Obj = ThisModule->objBegin(); Obj != ObjEnd; ++Obj) {
@@ -1289,8 +1285,6 @@ bool ObjectLinker::initializeMerge() {
 }
 
 bool ObjectLinker::updateInputSectionMappingsForPlugin() {
-  eld::RegisterTimer T("Update Input Rules For Plugin", "Merge Sections",
-                       ThisConfig.options().printTimingStats());
   // Initialize merging of sections.
   initializeMerge();
 
@@ -1324,8 +1318,6 @@ bool ObjectLinker::updateInputSectionMappingsForPlugin() {
 }
 
 bool ObjectLinker::finishAssignOutputSections() {
-  eld::RegisterTimer T("Update Input Rules From Plugin", "Perform Layout",
-                       ThisConfig.options().printTimingStats());
   ObjectBuilder Builder(ThisConfig, *ThisModule);
   // Override output sections again!!
   Builder.reAssignOutputSections(/*LW=*/nullptr);
@@ -1336,8 +1328,6 @@ bool ObjectLinker::finishAssignOutputSections() {
 }
 
 bool ObjectLinker::finishAssignOutputSections(const plugin::LinkerWrapper *LW) {
-  eld::RegisterTimer T("Update Input Rules From Plugin", "Perform Layout",
-                       ThisConfig.options().printTimingStats());
   ObjectBuilder Builder(ThisConfig, *ThisModule);
   // Update section mapping of pending section overrides associated with the
   // LinkerWrapper LW.
@@ -1408,8 +1398,9 @@ bool ObjectLinker::mergeSections() {
   ObjectBuilder Builder(ThisConfig, *ThisModule);
   // Output section iterator plugin.
   {
-    eld::RegisterTimer T("Init", "Merge Sections",
-                         ThisConfig.options().printTimingStats());
+    eld::RegisterTimer PreparationTimer(
+        "Prepare Input Files For Merge", "Layout",
+        ThisConfig.options().printTimingStats());
     // Initialize merging of input sections.
     if (!initializeMerge())
       return false;
@@ -1423,8 +1414,6 @@ bool ObjectLinker::mergeSections() {
   setCopyRelocSectionsFallbackToBSS();
 
   {
-    eld::RegisterTimer T("Universal Plugin", "Merge Sections",
-                         ThisConfig.options().printTimingStats());
     auto &PM = ThisModule->getPluginManager();
     ThisModule->setLinkState(LinkState::ActBeforeSectionMerging);
     if (!PM.callActBeforeSectionMergingHook())
@@ -1433,9 +1422,6 @@ bool ObjectLinker::mergeSections() {
 
   // Output section iterator plugin.
   {
-    eld::RegisterTimer T("Plugin: Output Section Iterator Before Layout",
-                         "Merge Sections",
-                         ThisConfig.options().printTimingStats());
     // For backward compatibility
     ThisModule->setLinkState(LinkState::BeforeLayout);
     if (!runOutputSectionIteratorPlugin())
@@ -1445,15 +1431,12 @@ bool ObjectLinker::mergeSections() {
 
   // Merge all the input sections.
   {
-    eld::RegisterTimer T("Merge Input Sections", "Merge Sections",
-                         ThisConfig.options().printTimingStats());
     mergeInputSections(Builder, AllInputSections);
   }
 
   // Update plugins from the YAML config file specified.
   {
-    eld::RegisterTimer T("Update Output Sections With Plugins",
-                         "Merge Sections",
+    eld::RegisterTimer T("Update Output Sections With Plugins", "Layout",
                          ThisConfig.options().printTimingStats());
     if (!ThisModule->updateOutputSectionsWithPlugins()) {
       ThisModule->setFailure(true);
@@ -1469,9 +1452,6 @@ bool ObjectLinker::mergeSections() {
     return false;
 
   {
-    eld::RegisterTimer T("Plugin: Output Section Iterator Creating Sections",
-                         "Merge Sections",
-                         ThisConfig.options().printTimingStats());
     if (!initializeOutputSectionsAndRunPlugin())
       return false;
   }
@@ -1480,7 +1460,7 @@ bool ObjectLinker::mergeSections() {
   reportPendingScriptSectionInsertions();
 
   {
-    eld::RegisterTimer T("Create Output Section", "Merge Sections",
+    eld::RegisterTimer T("Create Output Section", "Layout",
                          ThisConfig.options().printTimingStats());
     // Prepass: apply SUBALIGN to first fragments per input section per output
     // section serially to avoid races in parallel output creation.
@@ -1513,8 +1493,6 @@ bool ObjectLinker::mergeSections() {
       return false;
     }
     {
-      eld::RegisterTimer T("Assign Group Sections Offset", "Merge Sections",
-                           ThisConfig.options().printTimingStats());
       assignOffsetToGroupSections();
     }
   }
@@ -1522,9 +1500,13 @@ bool ObjectLinker::mergeSections() {
 }
 
 bool ObjectLinker::initializeOutputSectionsAndRunPlugin() {
-  for (auto *O : ThisModule->getScript().sectionMap().outputSections()) {
-    for (auto &In : *O)
-      sortSections(In, false);
+  {
+    eld::RegisterTimer SortingTimer("Sort Sections", "Layout",
+                                    ThisConfig.options().printTimingStats());
+    for (auto *O : ThisModule->getScript().sectionMap().outputSections()) {
+      for (auto &In : *O)
+        sortSections(In, false);
+    }
   }
   return runOutputSectionIteratorPlugin();
 }
@@ -2733,14 +2715,12 @@ ObjectLinker::postProcessing(llvm::FileOutputBuffer &POutput) {
   getTargetBackend().applyPluginFragmentReplacements(POutput);
 
   {
-    eld::RegisterTimer T("Sync Relocations", "Emit Output File",
+    eld::RegisterTimer T("Sync Relocations", "Emit",
                          ThisConfig.options().printTimingStats());
     syncRelocations(POutput.getBufferStart());
   }
 
   {
-    eld::RegisterTimer T("Post Process Output File", "Emit Output File",
-                         ThisConfig.options().printTimingStats());
     eld::Expected<void> ExpPostProcess =
         getTargetBackend().postProcessing(POutput);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpPostProcess);
@@ -3001,7 +2981,7 @@ bool ObjectLinker::runAssembler(std::vector<std::string> &Files,
 std::unique_ptr<llvm::lto::LTO> ObjectLinker::ltoInit(llvm::lto::Config Conf,
                                                       bool CompileToAssembly) {
   // Parse codegen options and pre-initialize the config
-  eld::RegisterTimer T("Initialize LTO", "LTO",
+  eld::RegisterTimer T("Initialize LTO", "Read",
                        ThisConfig.options().printTimingStats());
   if (MTraceLTO) {
     if (ThisConfig.options().codegenOpts()) {
@@ -3088,7 +3068,7 @@ std::unique_ptr<llvm::lto::LTO> ObjectLinker::ltoInit(llvm::lto::Config Conf,
 bool ObjectLinker::finalizeLtoSymbolResolution(
     llvm::lto::LTO &LTO, const std::vector<BitcodeFile *> &BitCodeInputs) {
 
-  eld::RegisterTimer T("Finalize Symbol Resolution", "LTO",
+  eld::RegisterTimer T("Finalize Symbol Resolution", "Read",
                        ThisConfig.options().printTimingStats());
   bool IsPreserveAllSet = ThisConfig.options().preserveAllLTO();
   bool IsPreserveGlobals = ThisConfig.options().exportDynamic();
@@ -3339,7 +3319,7 @@ void ObjectLinker::addLTOOutputToTar() {
 }
 
 bool ObjectLinker::doLto(llvm::lto::LTO &LTO, bool CompileToAssembly) {
-  eld::RegisterTimer T("Invoke LTO", "LTO",
+  eld::RegisterTimer T("Invoke LTO", "Read",
                        ThisConfig.options().printTimingStats());
   // Run LTO
   std::vector<std::string> Files;
@@ -3542,8 +3522,6 @@ bool ObjectLinker::createLTOObject(void) {
   if (!BitCodeInputs.size())
     return true;
   {
-    eld::RegisterTimer T("Assign Output sections to Bitcode sections and ELF",
-                         "LTO", ThisConfig.options().printTimingStats());
     // Centralize assigning output sections.
     assignOutputSections(AllInputs);
   }
@@ -3846,14 +3824,14 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     return true;
   }
   if (CurInput->isBinaryFile()) {
-    eld::RegisterTimer T("Read ELF Executable Files", "Read all Input files",
-                         ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(InputFile::InputFileKind::BinaryFileKind);
     addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);
     PluginManager &PM = ThisModule->getPluginManager();
     if (!PM.callVisitInputHook(*CurInput))
       return false;
+    eld::RegisterTimer BinaryTimer("Read Binary Files", "Read",
+                                   ThisConfig.options().printTimingStats());
     eld::Expected<void> ExpParseFile =
         getBinaryFileParser()->parseFile(*CurInput);
     if (!ExpParseFile) {
@@ -3868,8 +3846,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       ThisModule->setFailure(true);
       return false;
     }
-    eld::RegisterTimer T("Read ELF Executable Files", "Read all Input files",
-                         ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(CurInput->getKind());
     if (!isBackendInitialized()) {
@@ -3894,8 +3870,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     }
     addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);
   } else if (CurInput->getKind() == InputFile::ELFObjFileKind) {
-    eld::RegisterTimer T("Read ELF Object Files", "Read all Input files",
-                         ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(CurInput->getKind());
     bool ELFOverridenWithBC = false;
@@ -3935,8 +3909,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     ThisModule->getObjectList().push_back(CurInput);
     addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);
   } else if (CurInput->getKind() == InputFile::BitcodeFileKind) {
-    eld::RegisterTimer T("Read Bitcode Object Files", "Read all Input files",
-                         ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(CurInput->getKind());
     if (IsPostLto)
@@ -3948,8 +3920,12 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     PluginManager &PM = ThisModule->getPluginManager();
     if (!PM.callVisitInputHook(*CurInput))
       return false;
-    if (!getBitcodeReader()->readInput(*CurInput, LTOPlugin))
-      return false;
+    {
+      eld::RegisterTimer BitcodeTimer("Read Bitcode Object Files", "Read",
+                                      ThisConfig.options().printTimingStats());
+      if (!getBitcodeReader()->readInput(*CurInput, LTOPlugin))
+        return false;
+    }
     if (!isBackendInitialized()) {
       if (!initializeTarget(CurInput))
         return false;
@@ -3957,8 +3933,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
 
     ThisModule->getObjectList().push_back(CurInput);
   } else if (CurInput->getKind() == InputFile::ELFSymDefFileKind) {
-    eld::RegisterTimer T("Read SymDef Object Files", "Read all Input files",
-                         ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(CurInput->getKind());
     if (ThisConfig.codeGenType() != LinkerConfig::Exec) {
@@ -3970,6 +3944,8 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     PluginManager &PM = ThisModule->getPluginManager();
     if (!PM.callVisitInputHook(*CurInput))
       return false;
+    eld::RegisterTimer SymDefTimer("Read SymDef Object Files", "Read",
+                                   ThisConfig.options().printTimingStats());
     // Just to make it simple, I just added template code.
     if (!getSymDefReader()->readHeader(*CurInput, IsPostLto))
       return false;
@@ -3982,8 +3958,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     if (layoutInfo)
       layoutInfo->recordInputActions(LayoutInfo::Load, Input);
   } else if (CurInput->getKind() == InputFile::ELFDynObjFileKind) {
-    eld::RegisterTimer T("Read ELF Shared Object Files", "Read all Input files",
-                         ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(CurInput->getKind());
     addInputFileToTar(CurInput, eld::MappingFile::SharedLibrary);
@@ -4027,9 +4001,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
 #endif
     ThisModule->getDynLibraryList().push_back(CurInput);
   } else if (CurInput->getKind() == InputFile::GNUArchiveFileKind) {
-    eld::RegisterTimer T("Read Archive Files",
-                         "Archive Processing (supplemental)",
-                         ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(CurInput->getKind());
     std::string NameSpecPath;
@@ -4085,7 +4056,7 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       ThisModule->setFailure(true);
       return false;
     }
-    eld::RegisterTimer T("Read Linker Script", "Read all Input files",
+    eld::RegisterTimer T("Read Linker Script", "Read",
                          ThisConfig.options().printTimingStats());
     if (layoutInfo)
       layoutInfo->recordInputKind(CurInput->getKind());
@@ -4115,9 +4086,6 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
       !ThisConfig.options().hasFatLTOObjects())
     return false;
 
-  eld::RegisterTimer T("Read Mixed ELF/Bitcode Object Files",
-                       "Mixed ELF/Bitcode Processing (supplemental)",
-                       ThisConfig.options().printTimingStats());
 
   ELFObjectFile *EObj = llvm::dyn_cast<eld::ELFObjectFile>(CurInputFile);
   if (!EObj)
@@ -4410,6 +4378,9 @@ void ObjectLinker::finalizeOutputSectionFlags(OutputSectionEntry *OSE) const {
 }
 
 void ObjectLinker::collectEntrySections() const {
+  eld::RegisterTimer EntrySectionsTimer(
+      "Collect Entry Sections", "Resolve",
+      ThisConfig.options().printTimingStats());
   const std::vector<InputFile *> &InputFiles = ThisModule->getObjectList();
   SectionMap &SM = ThisModule->getLinkerScript().sectionMap();
   std::vector<std::vector<ELFSection *>> InputToEntrySections(

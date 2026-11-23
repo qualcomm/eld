@@ -6,6 +6,14 @@
 RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
 RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t1.out
 RUN: %readelf -s %t1.out | %filecheck %s
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t1.out --enable-threads=all --thread-count=1 --print-timing-stats 2>&1 | %filecheck %s --check-prefix=TIMING
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t1.out --enable-threads=all --thread-count=4 --print-timing-stats 2>&1 | %filecheck %s --check-prefix=TIMING
 #END_TEST
 #CHECK: trampoline_for_.text.foobar#(foo)_from_.text_{{[0-9]+}}#(0)
 #CHECK: trampoline_for_.text.foobar#(bar)_from_.text_{{[0-9]+}}#(4)
+#TIMING-NOT: Insert Trampolines/
+#TIMING: {{^  Layout +}}
+#TIMING-NOT: Insert Trampolines/
+#TIMING: Create Trampolines
+#TIMING-NOT: Insert Trampolines/
+#TIMING-NOT: Create Trampolines

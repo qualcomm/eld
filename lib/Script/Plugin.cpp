@@ -215,7 +215,8 @@ bool Plugin::init(eld::OutputTarWriter *OutputTar) {
   if (!UserPluginHandle)
     return false;
   eld::RegisterTimer T(
-      "Init", ThisModule.saveString(UserPluginHandle->GetName()), Stats);
+      std::string(ThisModule.saveString(UserPluginHandle->GetName())) + "/Init",
+      "Plugins", Stats);
   if (isTraced())
     ThisConfig.raise(Diag::note_initializing_plugin)
         << getPluginType() << DynamicLibrary::getLibraryName(Name)
@@ -239,7 +240,8 @@ bool Plugin::run(std::vector<Plugin *> &Plugins) {
   if (!UserPluginHandle)
     return false;
   eld::RegisterTimer T(
-      "Run", ThisModule.saveString(UserPluginHandle->GetName()), Stats);
+      std::string(ThisModule.saveString(UserPluginHandle->GetName())) + "/Run",
+      "Plugins", Stats);
   if (isTraced())
     ThisConfig.raise(Diag::running_plugin)
         << getPluginType() << DynamicLibrary::getLibraryName(Name)
@@ -264,7 +266,9 @@ bool Plugin::cleanup() {
   if (!UserPluginHandle)
     return false;
   eld::RegisterTimer T(
-      "Cleanup", ThisModule.saveString(UserPluginHandle->GetName()), Stats);
+      std::string(ThisModule.saveString(UserPluginHandle->GetName())) +
+          "/Cleanup",
+      "Plugins", Stats);
   if (PluginCleanupFunction)
     (*PluginCleanupFunction)();
   clearResources();
@@ -295,7 +299,9 @@ bool Plugin::destroy() {
   if (!UserPluginHandle)
     return false;
   eld::RegisterTimer T(
-      "Destroy", ThisModule.saveString(UserPluginHandle->GetName()), Stats);
+      std::string(ThisModule.saveString(UserPluginHandle->GetName())) +
+          "/Destroy",
+      "Plugins", Stats);
   if (isTraced())
     ThisConfig.raise(Diag::plugin_destroy) << getPluginType();
   plugin::Plugin *P = llvm::cast<plugin::Plugin>(UserPluginHandle);
@@ -314,8 +320,6 @@ bool Plugin::check() {
   Running Run(this);
   if (!UserPluginHandle)
     return false;
-  eld::RegisterTimer T(
-      "Check", ThisModule.saveString(UserPluginHandle->GetName()), Stats);
   if (UserPluginHandle->getType() != ThisType) {
     ThisConfig.raise(Diag::plugin_mismatch)
         << DynamicLibrary::getLibraryName(Name) << getPluginType();
@@ -531,8 +535,9 @@ Plugin::loadLibrary(const std::string &LibraryName) {
 
 void Plugin::callInitHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
-  RegisterTimer T("Init", ThisModule.saveString(UserPluginHandle->GetName()),
-                  Stats);
+  RegisterTimer T(
+      std::string(ThisModule.saveString(UserPluginHandle->GetName())) + "/Init",
+      "Plugins", Stats);
   if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_init) << getPluginName();
   P->Init(PluginOptions);
@@ -540,8 +545,10 @@ void Plugin::callInitHook() {
 
 void Plugin::callDestroyHook() {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
-  RegisterTimer T("Destroy", ThisModule.saveString(UserPluginHandle->GetName()),
-                  Stats);
+  RegisterTimer T(
+      std::string(ThisModule.saveString(UserPluginHandle->GetName())) +
+          "/Destroy",
+      "Plugins", Stats);
   if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_destroy) << getPluginName();
   P->Destroy();
@@ -564,8 +571,6 @@ void Plugin::registerCommandLineOption(
 void Plugin::callCommandLineOptionHandler(
     const std::string &Option, const std::optional<std::string> &Val,
     const CommandLineOptionSpec::OptionHandlerType &OptionHandler) {
-  RegisterTimer T("Command-line option handler",
-                  ThisModule.saveString(UserPluginHandle->GetName()), Stats);
   if (Val)
     ThisConfig.raise(Diag::verbose_calling_plugin_opt_handler_with_val)
         << getPluginName() << Option << Val.value();
@@ -577,8 +582,10 @@ void Plugin::callCommandLineOptionHandler(
 
 void Plugin::callVisitInputHook(InputFile &IF) {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
-  RegisterTimer T("VisitInput",
-                  ThisModule.saveString(UserPluginHandle->GetName()), Stats);
+  RegisterTimer T(
+      std::string(ThisModule.saveString(UserPluginHandle->GetName())) +
+          "/VisitInput",
+      "Plugins", Stats);
   if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_visit_input)
         << getPluginName() << IF.getInput()->decoratedPath();
@@ -587,8 +594,10 @@ void Plugin::callVisitInputHook(InputFile &IF) {
 
 void Plugin::callVisitSectionsHook(InputFile &IF) {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
-  RegisterTimer T("VisitSections",
-                  ThisModule.saveString(UserPluginHandle->GetName()), Stats);
+  RegisterTimer T(
+      std::string(ThisModule.saveString(UserPluginHandle->GetName())) +
+          "/VisitSections",
+      "Plugins", Stats);
   if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_visit_sections)
         << getPluginName() << IF.getInput()->decoratedPath();
@@ -598,8 +607,6 @@ void Plugin::callVisitSectionsHook(InputFile &IF) {
 void Plugin::callVisitSymbolHook(LDSymbol *Sym, llvm::StringRef SymName,
                                  const SymbolInfo &SymInfo) {
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
-  RegisterTimer T("VisitSymbol",
-                  ThisModule.saveString(UserPluginHandle->GetName()), Stats);
   if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_visit_symbol)
         << getPluginName() << SymName;
@@ -612,8 +619,10 @@ void Plugin::callVisitSymbolHook(LDSymbol *Sym, llvm::StringRef SymName,
 void Plugin::callActBeforeRuleMatchingHook() {
   llvm::StringRef HookName = "ActBeforeRuleMatching";
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
-  RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),
-                  Stats);
+  RegisterTimer T(
+      std::string(ThisModule.saveString(UserPluginHandle->GetName())) + "/" +
+          HookName.str(),
+      "Plugins", Stats);
   if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
   P->ActBeforeRuleMatching();
@@ -622,8 +631,10 @@ void Plugin::callActBeforeRuleMatchingHook() {
 void Plugin::callActBeforeSectionMergingHook() {
   llvm::StringRef HookName = "ActBeforeSectionMerging";
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
-  RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),
-                  Stats);
+  RegisterTimer T(
+      std::string(ThisModule.saveString(UserPluginHandle->GetName())) + "/" +
+          HookName.str(),
+      "Plugins", Stats);
   if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
   P->ActBeforeSectionMerging();
@@ -632,8 +643,10 @@ void Plugin::callActBeforeSectionMergingHook() {
 void Plugin::callActBeforePerformingLayoutHook() {
   llvm::StringRef HookName = "ActBeforePerformingLayout";
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
-  RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),
-                  Stats);
+  RegisterTimer T(
+      std::string(ThisModule.saveString(UserPluginHandle->GetName())) + "/" +
+          HookName.str(),
+      "Plugins", Stats);
   if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
   P->ActBeforePerformingLayout();
@@ -642,8 +655,10 @@ void Plugin::callActBeforePerformingLayoutHook() {
 void Plugin::callActBeforeWritingOutputHook() {
   llvm::StringRef HookName = "ActBeforeWritingOutput";
   plugin::LinkerPlugin *P = llvm::cast<plugin::LinkerPlugin>(UserPluginHandle);
-  RegisterTimer T(HookName, ThisModule.saveString(UserPluginHandle->GetName()),
-                  Stats);
+  RegisterTimer T(
+      std::string(ThisModule.saveString(UserPluginHandle->GetName())) + "/" +
+          HookName.str(),
+      "Plugins", Stats);
   if (isTraced())
     ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
   P->ActBeforeWritingOutput();

@@ -6,6 +6,8 @@
 RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
 RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml --optA="foobar" --optB=barfoo --flagA 2>&1 | %filecheck %s
 RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml --optA="foobar" --optB=barfoo --flagA --trace=plugin --verbose 2>&1 | %filecheck %s --check-prefix=TRACE
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml --optA=timed --emit-timing-stats %t1.1.stats --time-region=plugin=PluginCommandLineOptions
+RUN: %filecheck %s --check-prefix=TIMING --implicit-check-not="Command-line option handler" < %t1.1.stats
 #END_TEST
 
 CHECK: option: --optA, value: foobar
@@ -20,3 +22,8 @@ TRACE: Trace: Plugin 'PluginCommandLineOptions' registered command-line option '
 TRACE: Verbose: Calling 'PluginCommandLineOptions::CommandLineOptionHandler' for option '--optA' with value 'foobar'
 TRACE: Verbose: Calling 'PluginCommandLineOptions::CommandLineOptionHandler' for option '--optB' with value 'barfoo'
 TRACE: Verbose: Calling 'PluginCommandLineOptions::CommandLineOptionHandler' for option '--flagA'
+
+TIMING: ELD Link Timing Report
+TIMING: {{^  Plugins +}}
+TIMING: PluginCommandLineOptions/CommandLineOptions
+TIMING-NOT: PluginCommandLineOptions/CommandLineOptions

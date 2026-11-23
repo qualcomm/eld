@@ -23,6 +23,7 @@
 #include "eld/Script/MemoryCmd.h"
 #include "eld/Script/SymbolContainer.h"
 #include "eld/Support/Memory.h"
+#include "eld/Support/RegisterTimer.h"
 #include "eld/Target/Relocator.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/FileSystem.h"
@@ -570,54 +571,58 @@ llvm::StringRef LinkerScript::saveString(std::string S) {
 }
 
 bool LinkerScript::loadPlugin(Plugin &P, Module &M) {
-  LayoutInfo *layoutInfo = M.getLayoutInfo();
-  LinkerConfig &Config = M.getConfig();
+  {
+    eld::RegisterTimer LoadingTimer("Load Linker Plugins", "Plugins",
+                                    P.isTimingEnabled());
+    LayoutInfo *layoutInfo = M.getLayoutInfo();
+    LinkerConfig &Config = M.getConfig();
 
-  ASSERT(!P.getID(), "Plugin " + P.getPluginName() + " is already loaded!");
+    ASSERT(!P.getID(), "Plugin " + P.getPluginName() + " is already loaded!");
 
-  if (MPluginInfo.find(P.getPluginType()) != MPluginInfo.end()) {
-    Diag->raise(Diag::error_plugin_name_not_unique) << P.getPluginType();
-    return false;
-  }
-
-  MPluginInfo.insert(std::make_pair(P.getPluginType(), &P));
-
-  std::string ResolvedPath = P.resolvePath(Config);
-  if (ResolvedPath.empty())
-    return false;
-  if (M.getOutputTarWriter() && llvm::sys::fs::exists(ResolvedPath))
-    addPluginToTar(P.getName(), ResolvedPath, M.getOutputTarWriter());
-  auto I = MLibraryToPluginMap.find(ResolvedPath);
-  void *Handle = nullptr;
-  auto &PAL = M.getPluginActivityLog();
-  if (I == MLibraryToPluginMap.end()) {
-    Handle = Plugin::loadPlugin(ResolvedPath, &M, P.isTraced());
-    MLibraryToPluginMap.insert(std::make_pair(ResolvedPath, &P));
-  } else {
-    Handle = I->second->getLibraryHandle();
-    if (PAL)
-      PAL->recordPluginLibrary(Handle, ResolvedPath);
-  }
-  if (!Handle)
-    return false;
-  P.setLibraryHandle(Handle);
-  P.setFunctions();
-  // Call RegisterAll function of the library if not already called.
-  if (I == MLibraryToPluginMap.end())
-    if (!P.registerAll())
+    if (MPluginInfo.find(P.getPluginType()) != MPluginInfo.end()) {
+      Diag->raise(Diag::error_plugin_name_not_unique) << P.getPluginType();
       return false;
-  if (!P.registerPlugin(Handle))
-    return false;
-  // Create the Bitvector.
-  if (M.isBackendInitialized())
-    P.createRelocationVector(M.getBackend().getRelocator()->getNumRelocs());
+    }
 
-  plugin::LinkerWrapper *LW = eld::make<plugin::LinkerWrapper>(&P, M);
-  P.getLinkerPlugin()->setLinkerWrapper(LW);
-  P.setID(MPluginMap.size() + 1);
-  recordPlugin(LW, &P);
-  if (layoutInfo)
-    layoutInfo->recordPlugin();
+    MPluginInfo.insert(std::make_pair(P.getPluginType(), &P));
+
+    std::string ResolvedPath = P.resolvePath(Config);
+    if (ResolvedPath.empty())
+      return false;
+    if (M.getOutputTarWriter() && llvm::sys::fs::exists(ResolvedPath))
+      addPluginToTar(P.getName(), ResolvedPath, M.getOutputTarWriter());
+    auto I = MLibraryToPluginMap.find(ResolvedPath);
+    void *Handle = nullptr;
+    auto &PAL = M.getPluginActivityLog();
+    if (I == MLibraryToPluginMap.end()) {
+      Handle = Plugin::loadPlugin(ResolvedPath, &M, P.isTraced());
+      MLibraryToPluginMap.insert(std::make_pair(ResolvedPath, &P));
+    } else {
+      Handle = I->second->getLibraryHandle();
+      if (PAL)
+        PAL->recordPluginLibrary(Handle, ResolvedPath);
+    }
+    if (!Handle)
+      return false;
+    P.setLibraryHandle(Handle);
+    P.setFunctions();
+    // Call RegisterAll function of the library if not already called.
+    if (I == MLibraryToPluginMap.end())
+      if (!P.registerAll())
+        return false;
+    if (!P.registerPlugin(Handle))
+      return false;
+    // Create the Bitvector.
+    if (M.isBackendInitialized())
+      P.createRelocationVector(M.getBackend().getRelocator()->getNumRelocs());
+
+    plugin::LinkerWrapper *LW = eld::make<plugin::LinkerWrapper>(&P, M);
+    P.getLinkerPlugin()->setLinkerWrapper(LW);
+    P.setID(MPluginMap.size() + 1);
+    recordPlugin(LW, &P);
+    if (layoutInfo)
+      layoutInfo->recordPlugin();
+  }
 
   // FIXME: Why are we calling Init hook if a plugin has LinkerPluginConfig?
   if (P.getLinkerPluginConfig())

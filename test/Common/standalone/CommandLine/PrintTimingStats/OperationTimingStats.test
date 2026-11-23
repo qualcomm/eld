@@ -1,0 +1,24 @@
+UNSUPPORTED: reproduce_fail
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts %t.o -o %t.serial.out --build-id=sha1 --reproduce %t.serial.tar --emit-timing-stats %t.serial.stats --enable-threads=all --thread-count=1
+RUN: %filecheck %s --check-prefix=TIMING --implicit-check-not="Normalize Inputs" --implicit-check-not="Write Output" --implicit-check-not="Perform Layout" < %t.serial.stats
+RUN: %link %linkopts %t.o -o %t.parallel.out --build-id=sha1 --reproduce %t.parallel.tar --emit-timing-stats %t.parallel.stats --enable-threads=all --thread-count=4
+RUN: %filecheck %s --check-prefix=TIMING --implicit-check-not="Normalize Inputs" --implicit-check-not="Write Output" --implicit-check-not="Perform Layout" < %t.parallel.stats
+RUN: %link %linkopts %t.o -o %t.disabled.out --no-merge-strings --no-merge-constants --emit-timing-stats %t.disabled.stats
+RUN: %filecheck %s --check-prefix=DISABLED --implicit-check-not="Finalize and Emit Build ID" --implicit-check-not="Fix Merge String and Constant Relocations" --implicit-check-not="Generate Reproducer" < %t.disabled.stats
+
+TIMING: ELD Link Timing Report
+TIMING: {{^  Resolve +}}
+TIMING: Collect Entry Sections
+TIMING: {{^  Optimize +}}
+TIMING: Fix Merge String and Constant Relocations
+TIMING: {{^  Layout +}}
+TIMING: {{^  Emit +}}
+TIMING-DAG: Finalize and Emit Build ID
+TIMING-DAG: Generate Reproducer
+TIMING: Total
+
+DISABLED: ELD Link Timing Report
+DISABLED: Collect Entry Sections
+DISABLED: Total

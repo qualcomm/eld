@@ -8,7 +8,11 @@
 RUN: %clang %clangopts -c %p/Inputs/1.c -O2 -ffunction-sections -flto=thin -o %t1.1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -O2 -ffunction-sections -flto=thin -o %t1.2.o
 RUN: %clang %clangopts -c %p/Inputs/3.c -O2 -ffunction-sections -o %t1.3.o
-RUN: %link %linkopts --gc-sections --thread-count 2 --trace=lto --save-temps --save-temps -e main %t1.1.o %t1.2.o %t1.3.o -o %t1.out 2>&1 | %filecheck %s
+RUN: %link %linkopts --gc-sections --thread-count 2 --trace=lto --print-timing-stats --save-temps --save-temps -e main %t1.1.o %t1.2.o %t1.3.o -o %t1.out 2>&1 | %filecheck %s
 
 CHECK: Note: Using 2 threads for LTO code generation.
-
+CHECK: ELD Link Timing Report
+CHECK-NOT: Perform LTO
+CHECK: Initialize LTO
+CHECK: Finalize Symbol Resolution
+CHECK: Invoke LTO

@@ -27,7 +27,6 @@
 #include "eld/Support/Memory.h"
 #include "eld/Support/MemoryArea.h"
 #include "eld/Support/MsgHandling.h"
-#include "eld/Support/RegisterTimer.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/NamePool.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
@@ -481,9 +480,6 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
 }
 
 void IRBuilder::addToCref(InputFile &Input, Resolver::Result PResult) {
-  eld::RegisterTimer T("Add Symbols to Cross Reference Table",
-                       "Symbol Resolution",
-                       ThisConfig.options().printTimingStats());
 
   GeneralOptions &Options = ThisConfig.options();
   GeneralOptions::CrefTableType &Table = Options.crefTable();

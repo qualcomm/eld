@@ -215,7 +215,7 @@ llvm::StringRef GNULDBackend::getSectionTypeName(uint32_t Type) const {
 }
 
 eld::Expected<void> GNULDBackend::initStdSections() {
-  eld::RegisterTimer T("Initialize ELF default sections", "Link Summary",
+  eld::RegisterTimer T("Initialize ELF default sections", "Initialize",
                        m_Module.getConfig().options().printTimingStats());
 
   // Create standard ELF sections
@@ -375,8 +375,7 @@ ELFSection *GNULDBackend::createOutputSection(llvm::StringRef pName,
 /// initStandardSymbols - define and initialize standard symbols.
 /// This function is called after section merging but before read relocations.
 bool GNULDBackend::initStandardSymbols() {
-  eld::RegisterTimer T("Define and Initialize Standard Symbols",
-                       "Add Default Standard Symbols",
+  eld::RegisterTimer T("Define and Initialize Standard Symbols", "Resolve",
                        m_Module.getConfig().options().printTimingStats());
   if (LinkerConfig::Object == config().codeGenType() ||
       m_Module.getScript().linkerScriptHasSectionsCommand())
@@ -449,9 +448,6 @@ void GNULDBackend::DefineStandardSymFromSegment(
     llvm::StringRef A, llvm::StringRef B, uint32_t IncludePermissions,
     uint32_t ExcludePermissions, int SymBAlign, bool isBSS, bool isBackWards,
     uint32_t SegType) {
-  eld::RegisterTimer T("Define Standard Symbols from Segments",
-                       "Perform Layout",
-                       m_Module.getConfig().options().printTimingStats());
   LDSymbol *SymA = nullptr;
   LDSymbol *SymB = nullptr;
   ELFSegment *Seg = nullptr;
@@ -491,7 +487,7 @@ void GNULDBackend::DefineStandardSymFromSegment(
 int64_t GNULDBackend::getPLTAddr(ResolveInfo *pInfo) const { return 0; }
 
 bool GNULDBackend::finalizeStandardSymbols() {
-  eld::RegisterTimer T("Finalize Standard Symbols", "Perform Layout",
+  eld::RegisterTimer T("Finalize Standard Symbols", "Layout",
                        m_Module.getConfig().options().printTimingStats());
   if (LinkerConfig::Object == config().codeGenType() ||
       m_Module.getScript().linkerScriptHasSectionsCommand())
@@ -803,7 +799,7 @@ uint64_t GNULDBackend::finalizeTLSSymbol(LDSymbol *pSymbol) {
 
 /// sizeShstrtab - compute the size of .shstrtab
 void GNULDBackend::sizeShstrtab() {
-  eld::RegisterTimer T("Compute the size of .shstrtab", "Perform Layout",
+  eld::RegisterTimer T("Compute the size of .shstrtab", "Layout",
                        m_Module.getConfig().options().printTimingStats());
   size_t shstrtab = 0;
   // compute the size of .shstrtab section.
@@ -839,7 +835,7 @@ bool GNULDBackend::canSkipSymbolFromExport(ResolveInfo *R, bool isEntry) const {
 }
 
 bool GNULDBackend::applyVersionScriptScopes() {
-  eld::RegisterTimer T("Apply Version Script Scopes", "Output Symbols",
+  eld::RegisterTimer T("Apply Version Script Scopes", "Layout",
                        m_Module.getConfig().options().printTimingStats());
   if (SymbolScopes.empty())
     return true;
@@ -860,14 +856,16 @@ bool GNULDBackend::applyVersionScriptScopes() {
 }
 
 bool GNULDBackend::SetSymbolsToBeExported() {
-  eld::RegisterTimer T("Set Symbols to be Exported", "Output Symbols",
-                       m_Module.getConfig().options().printTimingStats());
   // If we are not building a forced dynamic executable, dont build any dynamic
   // namepools.
   if (config().isCodeStatic() && !config().options().forceDynamic())
     return false;
 
   applyVersionScriptScopes();
+
+  eld::RegisterTimer ExportTimer(
+      "Set Symbols to be Exported", "Layout",
+      m_Module.getConfig().options().printTimingStats());
 
   // The entry symbol "main" if found, needs to be exported too!
   if (config().options().isPIE() || config().options().forceDynamic()) {
@@ -947,7 +945,7 @@ void GNULDBackend::sizeDynNamePools() {
   // the end of the table.
   RIter PartitionBegin;
   {
-    eld::RegisterTimer T("Partition Symbols for Export", "Output Symbols",
+    eld::RegisterTimer T("Partition Symbols for Export", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     PartitionBegin =
         std::stable_partition(RVect.begin(), RVect.end(),
@@ -979,7 +977,7 @@ void GNULDBackend::sizeDynNamePools() {
   }
 
   {
-    eld::RegisterTimer T("Create System V Fragments", "Output Symbols",
+    eld::RegisterTimer T("Create System V Fragments", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     // Create a SysV Fragment.
     if (m_pSysVHash) {
@@ -995,7 +993,7 @@ void GNULDBackend::sizeDynNamePools() {
   }
 
   {
-    eld::RegisterTimer T("GNU Hash Fragments", "Output Symbols",
+    eld::RegisterTimer T("GNU Hash Fragments", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     // Create a GNU Hash Fragment.
     if (m_pGNUHash) {
@@ -1072,8 +1070,6 @@ void GNULDBackend::sizeDynNamePools() {
 }
 
 void GNULDBackend::createEhFrameFillerAndHdrFragment() {
-  eld::RegisterTimer T("Create EhFrame Hdr Output Section", "Perform Layout",
-                       m_Module.getConfig().options().printTimingStats());
 
   LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   // The LSB standard does not allow a .eh_frame section with zero
@@ -1116,7 +1112,7 @@ void GNULDBackend::createSFrameFragment() {
 }
 
 void GNULDBackend::sizeDynamic() {
-  eld::RegisterTimer T("Create Dynamic Output Section", "Perform Layout",
+  eld::RegisterTimer T("Create Dynamic Output Section", "Layout",
                        m_Module.getConfig().options().printTimingStats());
   if (config().isCodeStatic() && !config().options().forceDynamic()) {
     return;
@@ -1176,7 +1172,7 @@ void GNULDBackend::reserveDynamic() {
 }
 
 void GNULDBackend::initSymTab() {
-  eld::RegisterTimer T("Initialize Symbol Table", "Perform Layout",
+  eld::RegisterTimer T("Initialize Symbol Table", "Layout",
                        m_Module.getConfig().options().printTimingStats());
   getShStrTab()->setSize(0x1);
 
@@ -1194,7 +1190,7 @@ void GNULDBackend::initSymTab() {
 }
 
 void GNULDBackend::sizeSymTab() {
-  eld::RegisterTimer T("Create Symbol Table", "Perform Layout",
+  eld::RegisterTimer T("Create Symbol Table", "Layout",
                        m_Module.getConfig().options().printTimingStats());
 
   GeneralOptions::StripSymbolMode S = config().options().getStripSymbolMode();
@@ -1365,13 +1361,13 @@ void GNULDBackend::emitSymbol64(llvm::ELF::Elf64_Sym &pSym, LDSymbol *pSymbol,
 eld::Expected<void>
 GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
   {
-    eld::RegisterTimer T("Sort Symbols", "Emit Output File",
+    eld::RegisterTimer T("Sort Symbols", "Emit",
                          m_Module.getConfig().options().printTimingStats());
     m_Module.sortSymbols();
   }
   // Emit SymDef Information.
   {
-    eld::RegisterTimer T("Emit SymDef Information", "Emit Output File",
+    eld::RegisterTimer T("Emit SymDef Information", "Emit",
                          m_Module.getConfig().options().printTimingStats());
     if (config().options().symDef()) {
       std::unique_ptr<SymDefWriter> symDefWriter(new SymDefWriter(config()));
@@ -1910,6 +1906,10 @@ bool GNULDBackend::allocateCommonSymbols() {
   if (m_Module.getCommonSymbols().empty())
     return true;
 
+  eld::RegisterTimer CommonTimer(
+      "Allocate Common Symbols", "Resolve",
+      m_Module.getConfig().options().printTimingStats());
+
   for (auto &com_sym : m_Module.getCommonSymbols()) {
     // For common symbols, symbol values holds the alignment.
     ELFSection *section = m_Module.createCommonELFSection(
@@ -1985,8 +1985,6 @@ bool GNULDBackend::readRelocation(const llvm::ELF::Elf64_Rela &pRel,
 #include "CreateScriptProgramHeaders.hpp"
 
 void GNULDBackend::changeSymbolsFromAbsoluteToGlobal(OutputSectionEntry *out) {
-  eld::RegisterTimer T("Change Symbol to Global", "Setup Output Section Offset",
-                       m_Module.getConfig().options().printTimingStats());
   for (OutputSectionEntry::iterator in = out->begin(), inEnd = out->end();
        in != inEnd; ++in) {
     for (auto *Assign : (*in)->symAssignmentsRange()) {
@@ -2030,8 +2028,6 @@ static void checkFragOffset(const Fragment *F, DiagnosticEngine *DiagEngine) {
 // getOffset(config().getDiagEngine()).
 void GNULDBackend::evaluateAssignments(OutputSectionEntry *out) {
 
-  eld::RegisterTimer T("Evaluate Expressions", "Establish Layout",
-                       m_Module.getConfig().options().printTimingStats());
 
   ELFSection *OutSection = out->getSection();
   ScopedScriptEvalOutputSection Scope(m_Module.getScript(), OutSection);
@@ -2197,8 +2193,6 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out) {
 
 void GNULDBackend::evaluatePostOutputSectionAssignments(
     OutputSectionEntry *out) {
-  eld::RegisterTimer T("Evaluate Expressions", "Establish Layout",
-                       m_Module.getConfig().options().printTimingStats());
   if (m_Module.getPrinter()->traceAssignments())
     config().raise(Diag::output_section_eval)
         << (out->name().empty() ? "<nullptr>" : out->name()) << "\n";
@@ -2224,8 +2218,6 @@ void GNULDBackend::evaluatePostOutputSectionAssignments(
 /// createSegmentsFromLinkerScript - Create program headers mentioned in Linker
 /// Script
 bool GNULDBackend::createSegmentsFromLinkerScript() {
-  eld::RegisterTimer T("Create Segments From PHDRS", "Perform Layout",
-                       m_Module.getConfig().options().printTimingStats());
 
   LinkerScript &ldscript = m_Module.getScript();
   LinkerScript::PhdrSpecList::iterator phdr = ldscript.phdrList().begin(),
@@ -2354,7 +2346,7 @@ bool GNULDBackend::createSegmentsFromLinkerScript() {
 }
 
 void GNULDBackend::assignOffsetsToSkippedSections() {
-  eld::RegisterTimer T("Assign Offsets to Skipped Sections", "Establish Layout",
+  eld::RegisterTimer T("Assign Offsets to Skipped Sections", "Layout",
                        m_Module.getConfig().options().printTimingStats());
   ELFSection *prev = nullptr;
   uint64_t offset = 0;
@@ -2377,8 +2369,6 @@ void GNULDBackend::assignOffsetsToSkippedSections() {
 std::pair<int64_t, ELFSection *>
 GNULDBackend::setupSegmentOffset(ELFSegment *Seg, ELFSection *P,
                                  int64_t BeginOffset) {
-  eld::RegisterTimer T("Setup Segment Offsets", "Establish Layout",
-                       m_Module.getConfig().options().printTimingStats());
   ELFSection *prev = P;
   // If offsets are already assigned, dont change the offsets.
   if (m_OffsetsAssigned)
@@ -2521,8 +2511,6 @@ bool GNULDBackend::setupSegment(ELFSegment *E) {
   uint64_t segAlign = E->align();
   bool canMergePrevious = true;
 
-  eld::RegisterTimer T("Setup Segment", "Perform Layout",
-                       m_Module.getConfig().options().printTimingStats());
   for (auto &O : *E) {
     bool isCurSectionNoLoad = (O->prolog().type() == OutputSectDesc::NOLOAD);
     // If the section is not bss and the size is more than 0
@@ -2603,8 +2591,6 @@ bool GNULDBackend::setupSegment(ELFSegment *E) {
 }
 
 void GNULDBackend::clearSegmentOffset(ELFSegment *S) {
-  eld::RegisterTimer T("Clear Segment Offsets", "Evaluate Expressions",
-                       m_Module.getConfig().options().printTimingStats());
   if (m_OffsetsAssigned)
     return;
   for (auto &OS : S->sections())
@@ -2614,7 +2600,7 @@ void GNULDBackend::clearSegmentOffset(ELFSegment *S) {
 /// setupProgramHdrs - set up the attributes of segments as per PHDRS
 bool GNULDBackend::setupProgramHdrs() {
   {
-    eld::RegisterTimer X("Setup Program Headers", "Establish Layout",
+    eld::RegisterTimer X("Setup Program Headers", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     int64_t segmentOffset = 0;
     // update segment info
@@ -2643,7 +2629,7 @@ bool GNULDBackend::setupProgramHdrs() {
 
   // Setup the TLS parameters.
   {
-    eld::RegisterTimer X("Setup TLS parameters", "Establish Layout",
+    eld::RegisterTimer X("Setup TLS parameters", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     std::vector<ELFSegment *> tls_segs =
         elfSegmentTable().getSegments(llvm::ELF::PT_TLS);
@@ -2696,7 +2682,7 @@ bool GNULDBackend::setOutputSectionOffset() {
 
   uint64_t one_ehdr_size = 0;
 
-  eld::RegisterTimer T("Setup Output Section Offset", "Establish Layout",
+  eld::RegisterTimer T("Set Output Section Offsets", "Layout",
                        m_Module.getConfig().options().printTimingStats());
 
   if (config().targets().is32Bits())
@@ -2784,7 +2770,7 @@ void GNULDBackend::checkCrossReferencesHelper(InputFile *input) {
 }
 
 bool GNULDBackend::checkCrossReferences() {
-  eld::RegisterTimer T("Evaluate NOCROSSREFS", "Establish Layout",
+  eld::RegisterTimer T("Evaluate NOCROSSREFS", "Layout",
                        m_Module.getConfig().options().printTimingStats());
   if (config().options().numThreads() <= 1 ||
       !config().isCheckCrossRefsMultiThreaded()) {
@@ -2844,8 +2830,7 @@ bool GNULDBackend::placeOutputSections() {
   SectionMap &sectionMap = script.sectionMap();
   LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   {
-    eld::RegisterTimer T("Select Sections Needed in Output",
-                         "Place Output Sections",
+    eld::RegisterTimer T("Select Sections Needed in Output", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     for (auto &elem : m_Module) {
       bool wanted = false;
@@ -3014,7 +2999,7 @@ bool GNULDBackend::placeOutputSections() {
   bool debugSectionSeen = false;
   OutputSectDesc::Type type = OutputSectDesc::LOAD;
   {
-    eld::RegisterTimer T("Set Section Permissions", "Place Output Sections",
+    eld::RegisterTimer T("Set Section Permissions", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     for (auto &elem : sectionMap) {
       ELFSection *cur = (elem)->getSection();
@@ -3070,7 +3055,7 @@ bool GNULDBackend::placeOutputSections() {
 
   // sort output section orders if there is no default ldscript
   if (!linkerScriptHasSectionsCommand) {
-    eld::RegisterTimer T("Sort Output Section Order", "Place Output Sections",
+    eld::RegisterTimer T("Sort Output Section Order", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     std::stable_sort(
         sectionMap.begin(), sectionMap.end(),
@@ -3081,7 +3066,7 @@ bool GNULDBackend::placeOutputSections() {
 
   // place orphan sections
   {
-    eld::RegisterTimer T("Place Orphan Sections", "Place Output Sections",
+    eld::RegisterTimer T("Place Orphan Sections", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     for (auto &orphan : orphans) {
       if (layoutInfo)
@@ -3158,8 +3143,7 @@ bool GNULDBackend::placeOutputSections() {
   }
   // Set the right properties for sections.
   {
-    eld::RegisterTimer T("Override Output Section Properties",
-                         "Place Output Sections",
+    eld::RegisterTimer T("Override Output Section Properties", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     for (SectionMap::OutputSectionEntryDescList::iterator
              out = sectionMap.begin(),
@@ -3252,7 +3236,7 @@ bool GNULDBackend::layout() {
 
   // FIXME: Adding more symbols this late can cause layout issues.
   {
-    eld::RegisterTimer T("Define Magic Symbols", "Establish Layout",
+    eld::RegisterTimer T("Define Magic Symbols", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     if (!defineStandardAndSectionMagicSymbols())
       return false;
@@ -3268,8 +3252,6 @@ bool GNULDBackend::layout() {
 
   // Insert all sections that are needed in the section table
   {
-    eld::RegisterTimer T("Do Post Layout", "Establish Layout",
-                         m_Module.getConfig().options().printTimingStats());
     doPostLayout();
   }
 
@@ -3320,7 +3302,7 @@ bool GNULDBackend::convergeLayout() {
   constexpr int MaxIterations = 4;
   DivergenceResult Diverged;
   for (int I = 0; I < MaxIterations; ++I) {
-    eld::RegisterTimer T("Assign Address", "Establish Layout",
+    eld::RegisterTimer T("Assign Address", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     bool HasError = createProgramHdrs();
     if (HasError)
@@ -3450,7 +3432,7 @@ ELFSection *GNULDBackend::getOutputRelocationSection(ELFSection *S,
 void GNULDBackend::preLayout() {
   // prelayout target first
   {
-    eld::RegisterTimer T("Do Target Pre-Layout", "Pre-Layout",
+    eld::RegisterTimer T("Do Target Pre-Layout", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     doPreLayout();
   }
@@ -3460,7 +3442,7 @@ void GNULDBackend::preLayout() {
   // If we are generating relocatables (-r), move input relocation sections
   // to corresponding output relocation sections.
   if (LinkerConfig::Object == config().codeGenType()) {
-    eld::RegisterTimer T("Copy Input Relocations to Output", "Perform Layout",
+    eld::RegisterTimer T("Copy Input Relocations to Output", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     Module::obj_iterator input, inEnd = m_Module.objEnd();
     for (input = m_Module.objBegin(); input != inEnd; ++input) {
@@ -3522,7 +3504,7 @@ void GNULDBackend::preLayout() {
 
 /// postLayout - Backend can do any needed modification after layout
 bool GNULDBackend::postLayout() {
-  eld::RegisterTimer T("Do Post Layout", "Post-Layout",
+  eld::RegisterTimer T("Post Layout Processing", "Layout",
                        m_Module.getConfig().options().printTimingStats());
   size_t sectionIdx = 0;
   LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
@@ -3654,8 +3636,6 @@ void GNULDBackend::finalizeBeforeWrite() {
 
   ELFSection *symtab = getSymTab();
 
-  eld::RegisterTimer T("Set Offset of SymTab", "Perform Layout",
-                       m_Module.getConfig().options().printTimingStats());
 
   for (out = outBegin; out != outEnd; ++out) {
     ELFSection *cur = (*out)->getSection();
@@ -3676,11 +3656,12 @@ void GNULDBackend::finalizeBeforeWrite() {
 }
 
 bool GNULDBackend::printLayout() {
-  eld::RegisterTimer T("Emit Map File", "Diagnostics",
-                       m_Module.getConfig().options().printTimingStats());
   // Emit Map
   TextLayoutPrinter *printer = m_Module.getTextMapPrinter();
   if (printer) {
+    eld::RegisterTimer MapTimer(
+        "Emit Map file", "Emit",
+        m_Module.getConfig().options().printTimingStats());
     printer->printMapFile(m_Module);
   }
   // print Cross Reference table, either on stdout
@@ -3691,6 +3672,9 @@ bool GNULDBackend::printLayout() {
   // Emit YAML Map
   YamlLayoutPrinter *YAMLMapPrinter = m_Module.getYAMLMapPrinter();
   if (YAMLMapPrinter) {
+    eld::RegisterTimer MapTimer(
+        "Emit Map file", "Emit",
+        m_Module.getConfig().options().printTimingStats());
     YAMLMapPrinter->printLayout(m_Module, *this);
   }
   return true;
@@ -3736,7 +3720,7 @@ void GNULDBackend::printCref(bool pIsPostLTO) const {
   else
     stream = &(llvm::outs());
 
-  eld::RegisterTimer T("Emit CRef", "Diagnostics",
+  eld::RegisterTimer T("Emit CRef", "Emit",
                        m_Module.getConfig().options().printTimingStats());
 
   const GeneralOptions::CrefTableType &table = config().options().crefTable();
@@ -3832,7 +3816,7 @@ void GNULDBackend::fillValuesFromUser(llvm::FileOutputBuffer &pOutput) {
   if (!m_PaddingMap.size())
     return;
 
-  eld::RegisterTimer T("Apply Fill Patterns", "Post Processing",
+  eld::RegisterTimer T("Apply Fill Patterns", "Emit",
                        m_Module.getConfig().options().printTimingStats());
 
   for (auto &fsections : m_PaddingMap) {
@@ -3850,7 +3834,7 @@ GNULDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
   fillValuesFromUser(pOutput);
 
   if (m_pEhFrameHdrFragment) {
-    eld::RegisterTimer T("EhFrameHdr Emit", "Post Processing",
+    eld::RegisterTimer T("EhFrameHdr Emit", "Emit",
                          m_Module.getConfig().options().printTimingStats());
     MemoryRegion region =
         getFileOutputRegion(pOutput, 0, pOutput.getBufferSize());
@@ -3860,7 +3844,7 @@ GNULDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
   }
 
   if (m_pSFrameFragment) {
-    eld::RegisterTimer T("SFrame Emit", "Post Processing",
+    eld::RegisterTimer T("SFrame Emit", "Emit",
                          m_Module.getConfig().options().printTimingStats());
     MemoryRegion region =
         getFileOutputRegion(pOutput, 0, pOutput.getBufferSize());
@@ -3873,7 +3857,7 @@ GNULDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
 void GNULDBackend::applyPluginFragmentReplacements(
     llvm::FileOutputBuffer &Output) {
   eld::RegisterTimer T(
-      "Replace Fragments from Plugin", "Post Processing",
+      "Replace Fragments from Plugin", "Emit",
       m_Module.getConfig().options().printTimingStats("Plugin"));
   for (auto &V : m_Module.getReplaceFrags()) {
     FragmentRef *F = V.first;
@@ -4272,7 +4256,7 @@ bool GNULDBackend::relax() {
       return false;
     }
     {
-      eld::RegisterTimer T("Prepare Relaxation", "Establish Layout",
+      eld::RegisterTimer T("Prepare Relaxation", "Layout",
                            m_Module.getConfig().options().printTimingStats());
       preRelaxation();
     }
@@ -4283,7 +4267,7 @@ bool GNULDBackend::relax() {
       return false;
     }
     {
-      eld::RegisterTimer T("Create Trampolines", "Establish Layout",
+      eld::RegisterTimer T("Create Trampolines", "Layout",
                            m_Module.getConfig().options().printTimingStats());
       mayBeRelax(iteration, finished);
     }
@@ -4331,8 +4315,6 @@ bool GNULDBackend::relax() {
 
 MemoryRegion GNULDBackend::getFileOutputRegion(llvm::FileOutputBuffer &pBuffer,
                                                size_t pOffset, size_t pLength) {
-  eld::RegisterTimer T("Create File Output Region", "Post Processing",
-                       m_Module.getConfig().options().printTimingStats());
   if (pOffset > pBuffer.getBufferSize() ||
       (pOffset + pLength > pBuffer.getBufferSize()))
     return MemoryRegion();
@@ -4415,8 +4397,6 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
   ResolveInfo *curSym = pSym;
   ResolveInfo *aliasSym = pSym->alias();
 
-  eld::RegisterTimer T("Define Symbol for COPY Reloc", "Perform Layout",
-                       m_Module.getConfig().options().printTimingStats());
   // If the alias symbol and the aliasee are from different input files,
   // they are not really aliases.
   if (aliasSym && (aliasSym->resolvedOrigin() != curSym->resolvedOrigin())) {
@@ -4559,7 +4539,7 @@ bool GNULDBackend::assignOffsets(uint64_t offset) {
   // Iterate through all sections to get to the debug sections
   // for assigning offsets to them.
   {
-    eld::RegisterTimer T("Get Debug Sections", "Establish Layout",
+    eld::RegisterTimer T("Get Debug Sections", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     while (out != outEnd) {
       ELFSection *cur = (*out)->getSection();
@@ -4570,8 +4550,6 @@ bool GNULDBackend::assignOffsets(uint64_t offset) {
   }
 
   {
-    eld::RegisterTimer T("Run File Size Plugin", "Establish Layout",
-                         m_Module.getConfig().options().printTimingStats());
 
     if (!RunPluginsAndProcessHelper(OList)) {
       m_Module.setFailure(true);
@@ -4648,9 +4626,6 @@ bool GNULDBackend::assignOffsets(uint64_t offset) {
 }
 
 bool GNULDBackend::CleanupPlugins(SectionMap::OutputSectionEntryDescList &O) {
-  eld::RegisterTimer T(
-      "Cleanup", "Plugins",
-      m_Module.getConfig().options().printTimingStats("Plugin"));
   for (auto &P : O) {
     if (!P->prolog().getPlugin()->destroy())
       return false;
@@ -4661,9 +4636,6 @@ bool GNULDBackend::CleanupPlugins(SectionMap::OutputSectionEntryDescList &O) {
 bool GNULDBackend::RunPluginsAndProcessHelper(
     SectionMap::OutputSectionEntryDescList &OList, bool MatchSections) {
   {
-    eld::RegisterTimer T(
-        "VA/File Size Plugin and Process Helper", "Establish Layout",
-        m_Module.getConfig().options().printTimingStats("Plugin"));
 
     if (!OList.size())
       return true;
@@ -4881,7 +4853,7 @@ void GNULDBackend::doPostLayout() {
 
   // Update all relative relocations to point to the right fragment.
   {
-    eld::RegisterTimer T("Update Relative Relocations", "Do Post Layout",
+    eld::RegisterTimer T("Update Relative Relocations", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     for (auto &r : m_RelativeRelocMap) {
       const Relocation *N = r.first;
@@ -4895,8 +4867,6 @@ void GNULDBackend::doPostLayout() {
   }
 
   {
-    eld::RegisterTimer T("Run VA Plugin", "Establish Layout",
-                         m_Module.getConfig().options().printTimingStats());
     SectionMap::OutputSectionEntryDescList OList =
         m_Module.getScript()
             .sectionMap()
@@ -4916,7 +4886,7 @@ void GNULDBackend::doPostLayout() {
   }
 
   {
-    eld::RegisterTimer T("Create Script Program Headers", "Establish Layout",
+    eld::RegisterTimer T("Create Script Program Headers", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     createScriptProgramHdrs();
   }
@@ -5038,8 +5008,6 @@ void GNULDBackend::makeVersionString() {
 }
 
 bool GNULDBackend::addPhdrsIfNeeded(void) {
-  eld::RegisterTimer T("Add Phdrs", "Perform Layout",
-                       m_Module.getConfig().options().printTimingStats());
   bool hasFileHdrOrPhdr = false;
   std::optional<PhdrSpec> firstPTLOAD;
 
@@ -5293,6 +5261,9 @@ eld::Expected<void>
 GNULDBackend::finalizeAndEmitBuildID(llvm::FileOutputBuffer &buffer) {
   if (!m_pBuildIDFragment)
     return eld::Expected<void>();
+  eld::RegisterTimer BuildIDTimer(
+      "Finalize and Emit Build ID", "Emit",
+      m_Module.getConfig().options().printTimingStats());
   auto E = m_pBuildIDFragment->finalizeBuildID(buffer.getBufferStart(),
                                                buffer.getBufferSize());
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
@@ -5320,7 +5291,7 @@ void GNULDBackend::setNewSectionsAddToLayout() {
 void GNULDBackend::createFileHeader() {
   if (m_ehdr)
     return;
-  eld::RegisterTimer T("Add File Header", "Perform Layout",
+  eld::RegisterTimer T("Add File Header", "Layout",
                        m_Module.getConfig().options().printTimingStats());
   LinkerScript &script = m_Module.getScript();
   m_ehdr = script.sectionMap().createELFSection(
@@ -5353,7 +5324,7 @@ void GNULDBackend::addFileHeaderToLayout() {
 void GNULDBackend::createProgramHeader() {
   if (m_phdr)
     return;
-  eld::RegisterTimer T("Add Program Header", "Perform Layout",
+  eld::RegisterTimer T("Add Program Header", "Layout",
                        m_Module.getConfig().options().printTimingStats());
   LinkerScript &script = m_Module.getScript();
   m_phdr = script.sectionMap().createELFSection(

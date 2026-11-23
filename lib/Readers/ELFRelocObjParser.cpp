@@ -69,7 +69,7 @@ eld::Expected<bool> ELFRelocObjParser::parseFile(InputFile &inputFile,
     return false;
   {
     LinkerConfig &config = m_Module.getConfig();
-    eld::RegisterTimer T("Read symbols from object files", "Symbol Resolution",
+    eld::RegisterTimer T("Read symbols from object files", "Resolve",
                          config.options().printTimingStats());
     eld::Expected<bool> expReadSymbols = ELFReader->readSymbols();
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadSymbols)
@@ -94,7 +94,7 @@ ELFRelocObjParser::readSectionHeaders(ELFReaderBase &ELFReader) {
 
 eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
   LinkerConfig &config = m_Module.getConfig();
-  eld::RegisterTimer T("Read Sections", "Link Summary",
+  eld::RegisterTimer T("Read Sections", "Read",
                        config.options().printTimingStats());
   InputFile *inputFile = ELFReader.getInputFile();
   GNULDBackend &backend = m_Module.getBackend();

@@ -7,4 +7,9 @@ REQUIRES: zlib
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
 RUN: %link %linkopts %t1.1.o -o %t2.out --reproduce-compressed %t0.tar
+RUN: %link %linkopts %t1.1.o -o %t2.out --reproduce-compressed %t1.tar --emit-timing-stats %t.stats
+RUN: %filecheck %s --check-prefix=TIMING < %t.stats
 #END_TEST
+
+TIMING: {{^  Emit +}}
+TIMING: Generate Reproducer
