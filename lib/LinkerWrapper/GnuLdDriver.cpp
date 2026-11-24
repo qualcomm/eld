@@ -1790,6 +1790,36 @@ bool GnuLdDriver::processReproduceOption(
   };
 
   const bool IsWindows = utility::isHostWindows();
+  auto serializeResponseArgument = [&](llvm::StringRef value) {
+    return IsWindows ? utility::serializeWindowsResponseFileArgument(value)
+                     : utility::serializeGNUResponseFileArgument(value);
+  };
+
+  // Keep the option spelling and joined/separate form from the parsed
+  // argument while replacing its value with the path stored in the tarball.
+  auto appendArgWithValue = [&](const llvm::opt::Arg *arg,
+                                llvm::StringRef value) {
+    std::string rendered = arg->getAsString(Args);
+    llvm::StringRef originalValue = arg->getValue();
+    llvm::StringRef renderedRef(rendered);
+    if (renderedRef.ends_with(originalValue)) {
+      os << renderedRef.drop_back(originalValue.size()) << value << ' ';
+      return;
+    }
+    os << arg->getSpelling() << ' ' << value << ' ';
+  };
+
+  // Preserve unresolved arguments exactly as they appeared on the command
+  // line. getAsString() normalizes JoinedOrSeparate options to separate form.
+  auto appendOriginalArg = [&](const llvm::opt::Arg *arg) {
+    const llvm::opt::Arg *spelledArg = arg->getAlias() ? arg->getAlias() : arg;
+    llvm::StringRef originalSpelling = Args.getArgString(arg->getIndex());
+    os << originalSpelling;
+    if (originalSpelling == spelledArg->getSpelling())
+      for (const char *value : spelledArg->getValues())
+        os << ' ' << value;
+    os << ' ';
+  };
 
   auto zArgsRange = Args.filtered(T::dash_z);
   auto zArgIt = zArgsRange.begin();
@@ -1815,7 +1845,7 @@ bool GnuLdDriver::processReproduceOption(
           // resolved. Preserve the original namespec so replay reports the
           // same failure instead of silently dropping the input.
           if (!ipt || !ipt->getInputFile()) {
-            os << arg->getSpelling() << arg->getValue() << ' ';
+            appendOriginalArg(arg);
             break;
           }
           // Use the mapped path as the rewrite key. For a namespec input
@@ -1829,7 +1859,7 @@ bool GnuLdDriver::processReproduceOption(
         }
       }
       if (!foundAction)
-        os << arg->getSpelling() << arg->getValue() << ' ';
+        appendOriginalArg(arg);
       break;
     }
     case T::INPUT: {
@@ -1847,39 +1877,33 @@ bool GnuLdDriver::processReproduceOption(
           "plugin configuration file", arg->getValue(), "");
       outputTar->createAndAddConfigFile(arg->getValue(),
                                         P ? P->getFullPath() : "");
-      os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
-         << ' ';
+      appendArgWithValue(arg, outputTar->rewritePath(arg->getValue()));
       break;
     }
     case T::output_file:
     case T::Map:
-      os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
-         << ' ';
+      appendArgWithValue(arg, outputTar->rewritePath(arg->getValue()));
       break;
     case T::dynamic_list:
       captureInput(arg->getValue(), MappingFile::Kind::DynamicList,
                    /*searchScriptDirs=*/true);
-      os << arg->getSpelling() << ' '
-         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+      appendArgWithValue(arg, getRewrittenRemappedPath(arg->getValue()));
       break;
     case T::extern_list:
       captureInput(arg->getValue(), MappingFile::Kind::ExternList,
                    /*searchScriptDirs=*/true);
-      os << arg->getSpelling() << ' '
-         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+      appendArgWithValue(arg, getRewrittenRemappedPath(arg->getValue()));
       break;
     case T::version_script:
       captureInput(arg->getValue(), MappingFile::Kind::VersionScript,
                    /*searchScriptDirs=*/true);
-      os << arg->getSpelling() << ' '
-         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+      appendArgWithValue(arg, getRewrittenRemappedPath(arg->getValue()));
       break;
     case T::copy_farcalls_from_file:
     case T::no_reuse_trampolines_file:
       captureInput(arg->getValue(), MappingFile::Kind::Other,
                    /*searchScriptDirs=*/false);
-      os << arg->getSpelling() << ' '
-         << getRewrittenRemappedPath(arg->getValue()) << ' ';
+      appendArgWithValue(arg, getRewrittenRemappedPath(arg->getValue()));
       break;
     case T::T: {
       captureInput(arg->getValue(), MappingFile::Kind::LinkerScript,
@@ -1888,7 +1912,7 @@ bool GnuLdDriver::processReproduceOption(
                                               lastScriptId, arg->getValue());
       if (!path)
         return false;
-      os << arg->getSpelling() << ' ' << *path << ' ';
+      appendArgWithValue(arg, *path);
       break;
     }
     case T::R: {
@@ -1898,31 +1922,23 @@ bool GnuLdDriver::processReproduceOption(
           eld::InputAction::JustSymbols, lastJustSymbolsId, arg->getValue());
       if (!path)
         return false;
-      os << arg->getSpelling() << ' ' << *path << ' ';
+      appendArgWithValue(arg, *path);
       break;
     }
     case T::remap_inputs:
-      os << arg->getSpelling() << ' ';
-      if (IsWindows)
-        os << utility::serializeWindowsResponseFileArgument(arg->getValue());
-      else
-        os << utility::serializeGNUResponseFileArgument(arg->getValue());
-      os << ' ';
+      appendArgWithValue(arg, serializeResponseArgument(arg->getValue()));
       break;
     case T::remap_inputs_file: {
       const eld::sys::fs::Path *P = Config.directories().findFile(
           "remap input file", arg->getValue(), "");
       outputTar->createAndAddConfigFile(arg->getValue(),
                                         P ? P->getFullPath() : "");
-      os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
-         << ' ';
+      appendArgWithValue(arg, outputTar->rewritePath(arg->getValue()));
       break;
     }
     case T::dash_z: {
       ASSERT(zArgIt != zArgsRange.end(), "Expected valid z argument iterator!");
-      os << arg->getSpelling() << ' ';
-      llvm::StringRef zOpt = (*zArgIt)->getValue();
-      os << zOpt << ' ';
+      appendArgWithValue(arg, (*zArgIt)->getValue());
       ++zArgIt;
       break;
     }

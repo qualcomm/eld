@@ -30,11 +30,11 @@ RUN: %diff %t1.extract/rep.out %t1.out
 RESPONSE: --thread-count
 RESPONSE-NOT: original
 RESPONSE: Object{{[^ ]*}}replacement.o{{[^ ]*}}
-RESPONSE: --version-script {{.*}}VersionScript{{.*}}versionscript{{[^ ]*}}
-RESPONSE: --dynamic-list {{.*}}DynamicList{{.*}}list1{{[^ ]*}}
-RESPONSE: --extern-list {{.*}}ExternList{{.*}}externlist{{[^ ]*}}
+RESPONSE: --version-script={{.*}}VersionScript{{.*}}versionscript{{[^ ]*}}
+RESPONSE: --dynamic-list={{.*}}DynamicList{{.*}}list1{{[^ ]*}}
+RESPONSE: --extern-list={{.*}}ExternList{{.*}}externlist{{[^ ]*}}
 RESPONSE-NOT: original
-RESPONSE: --remap-inputs-file {{.*}}Config{{.*}}remap.txt{{.*}}
+RESPONSE: --remap-inputs-file={{.*}}Config{{.*}}remap.txt{{.*}}
 RESPONSE-NOT: original
 MAPPING: [Config Files]
 MAPPING-NEXT: {{.*}}remap.txt{{.*}}=Config{{.*}}remap.txt{{.*}}

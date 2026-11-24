@@ -1,0 +1,15 @@
+#---NamespecOptionForm.test---------------- Executable ------------------------#
+#BEGIN_COMMENT
+# Verify reproduce preserves joined and separate unresolved namespec forms.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %not %link %linkopts --no-default-plugins %t.1.o -l1 -l 2 -o %t.out --reproduce %t.repro.tar
+RUN: %mkdir %t.repro
+RUN: cd %t.repro
+RUN: %tar %gnutaropts -xf %t.repro.tar --strip-components=1
+RUN: %filecheck %s --check-prefix=RESPONSE < %t.repro/response.txt
+
+RESPONSE-DAG: -l1
+RESPONSE-DAG: -l 2
+#END_TEST
