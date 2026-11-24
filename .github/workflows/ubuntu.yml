@@ -163,7 +163,7 @@ jobs:
         run: ninja check-eld-summary
 
       # Package the PR-built ld.eld (+ libs) for PR integration workflows.
-      # `inst/` layout matches FetchNightlyToolset (~27MB compressed).
+      # `inst/` layout matches the downloaded nightly toolset (~27MB compressed).
       - name: Package PR ELD toolset
         working-directory: pr-${{ env.PR_NUMBER }}
         shell: bash

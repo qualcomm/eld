@@ -86,7 +86,14 @@ jobs:
           fi
 
       - name: Fetch nightly ELD
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DownloadWorkflowArtifact
+        with:
+          workflow-id: nightly-test.yml
+          artifact-name: install-nightly-toolchain.tar.xz
+          extract-archive: true
+          extract-to: inst
+          strip-components: "1"
+          add-to-path: inst/bin
 
       - name: Preserve nightly compiler runtimes
         if: inputs.pr_sha != ''
@@ -98,11 +105,15 @@ jobs:
 
       - name: Overlay PR ELD toolset
         if: inputs.pr_sha != ''
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchEldToolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DownloadWorkflowArtifact
         with:
           run-id: ${{ inputs.toolset_run_id }}
           artifact-name: ${{ inputs.toolset_artifact }}
-          tarball: ${{ inputs.toolset_tarball }}
+          archive-file: ${{ inputs.toolset_tarball }}
+          extract-archive: true
+          extract-to: inst
+          strip-components: "1"
+          add-to-path: inst/bin
 
       - name: Restore nightly compiler runtimes
         if: inputs.pr_sha != ''

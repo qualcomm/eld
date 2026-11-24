@@ -184,15 +184,26 @@ jobs:
 
       - name: Fetch latest nightly toolset
         if: matrix.enabled == 1
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DownloadWorkflowArtifact
+        with:
+          workflow-id: nightly-test.yml
+          artifact-name: install-nightly-toolchain.tar.xz
+          extract-archive: true
+          extract-to: inst
+          strip-components: "1"
+          add-to-path: inst/bin
 
       - name: Overlay PR ELD toolset
         if: matrix.enabled == 1 && inputs.pr_sha != ''
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchEldToolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DownloadWorkflowArtifact
         with:
           run-id: ${{ inputs.toolset_run_id }}
           artifact-name: ${{ inputs.toolset_artifact }}
-          tarball: ${{ inputs.toolset_tarball }}
+          archive-file: ${{ inputs.toolset_tarball }}
+          extract-archive: true
+          extract-to: inst
+          strip-components: "1"
+          add-to-path: inst/bin
 
       - name: Download clang-cross toolchain
         if: matrix.enabled == 1
@@ -217,12 +228,12 @@ jobs:
           fi
           eld_bin="$(command -v ld.eld || true)"
           if [[ -z "${eld_bin}" ]]; then
-            echo "Could not find ld.eld in PATH after FetchNightlyToolset" >&2
+            echo "Could not find ld.eld in PATH after downloading the nightly toolset" >&2
             exit 1
           fi
           host_cc="$(command -v clang || true)"
           if [[ -z "${host_cc}" ]]; then
-            echo "Could not find clang in PATH after FetchNightlyToolset" >&2
+            echo "Could not find clang in PATH after downloading the nightly toolset" >&2
             exit 1
           fi
           {

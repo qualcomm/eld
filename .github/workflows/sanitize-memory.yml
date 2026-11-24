@@ -193,7 +193,14 @@ jobs:
           cache-key-prefixes: sanitize-memory-ccache-${{ runner.os }}-
 
       - name: Fetch nightly toolset utilities
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DownloadWorkflowArtifact
+        with:
+          workflow-id: nightly-test.yml
+          artifact-name: install-nightly-toolchain.tar.xz
+          extract-archive: true
+          extract-to: inst
+          strip-components: "1"
+          add-to-path: inst/bin
 
       - name: Configure non-MSan test tools
         run: |

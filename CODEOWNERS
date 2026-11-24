@@ -9,7 +9,7 @@
 .github/workflows/sanitize-memory.yml  @steven6798
 .github/workflows/windows.yml  @steven6798
 .github/workflows/DeleteOldArtifacts/action.yaml  @steven6798
-.github/workflows/DownloadLatestBusybox/action.yaml  @steven6798
+.github/workflows/DownloadWorkflowArtifact/action.yaml  @steven6798
 include/eld/Support/OutputTarWriter.h  @steven6798
 include/eld/Support/ProgressBar.h  @steven6798
 include/eld/Support/ReproduceTarReader.h  @steven6798

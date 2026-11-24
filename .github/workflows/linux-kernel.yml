@@ -153,15 +153,26 @@ jobs:
 
       - name: Fetch nightly toolchain base
         if: matrix.enabled == 1
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DownloadWorkflowArtifact
+        with:
+          workflow-id: nightly-test.yml
+          artifact-name: install-nightly-toolchain.tar.xz
+          extract-archive: true
+          extract-to: inst
+          strip-components: "1"
+          add-to-path: inst/bin
 
       - name: Overlay ELD toolset
         if: matrix.enabled == 1 && inputs.toolset_run_id != ''
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchEldToolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DownloadWorkflowArtifact
         with:
           run-id: ${{ inputs.toolset_run_id }}
           artifact-name: ${{ inputs.toolset_artifact }}
-          tarball: ${{ inputs.toolset_tarball }}
+          archive-file: ${{ inputs.toolset_tarball }}
+          extract-archive: true
+          extract-to: inst
+          strip-components: "1"
+          add-to-path: inst/bin
 
       - name: Configure LLVM 23 apt repository
         if: matrix.enabled == 1
@@ -192,9 +203,10 @@ jobs:
 
       - name: Download latest BusyBox binary
         if: matrix.enabled == 1
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DownloadLatestBusybox
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DownloadWorkflowArtifact
         with:
-          arch: ${{ matrix.arch }}
+          workflow-id: busybox.yml
+          artifact-name: busybox-eld-${{ matrix.arch }}
           path: busybox-dl
 
       - name: Download clang-cross toolchain
