@@ -773,9 +773,6 @@ eld::Expected<void> RISCVILUTFragment::emit(MemoryRegion &Mr, Module &M) {
 // bytes that a replacement would delete.
 void RISCVILUTFragment::collectBranchTargets(
     ELFSection &Sec, const RelocationIndex &Relocations) {
-  if (!Sec.isCode())
-    return;
-
   for (Fragment *F : Sec.getFragmentList()) {
     auto *Region = llvm::dyn_cast<eld::RegionFragmentEx>(F);
     if (!Region)
