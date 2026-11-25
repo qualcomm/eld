@@ -332,6 +332,7 @@ private:
   bool doRelaxationPC(Relocation *R, Relocation::DWord G);
   bool doRelaxationGOT(Relocation &R);
 
+  bool doRelaxationTP(Relocation &R);
   bool doRelaxationTLSDESC(Relocation &R, bool Relax);
 
   /// getRelEntrySize - the size in BYTE of rela type relocation
