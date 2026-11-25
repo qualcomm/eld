@@ -253,9 +253,9 @@ void RISCVLDBackend::initILUT() {
     }
   };
 
-  for (ELFSection *S : m_Module)
-    if (S->getOutputSection())
-      ScanOutput(S->getOutputSection());
+  // sectionMap owns the complete set of output sections, including sections
+  // created by the linker. Walking it once avoids rescanning outputs reached
+  // through both module input sections and the script map.
   for (OutputSectionEntry *O : m_Module.getScript().sectionMap())
     ScanOutput(O);
   // Relocations can target a different RegionFragmentEx or input section.
