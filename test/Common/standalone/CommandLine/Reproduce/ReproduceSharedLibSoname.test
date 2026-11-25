@@ -11,8 +11,8 @@ RUN:   --dump-response-file %t.a.response -o %t.a.out
 RUN: %filecheck %s --check-prefix=MAPPING < %t.a.mapping
 # Replaying the response file must succeed.
 RUN: %rm -rf %t.rep && %mkdir %t.rep
-RUN: %tar %gnutaropts -xf %t.a.tar -C %t.rep --strip-components=1
 RUN: cd %t.rep
+RUN: %tar %gnutaropts -xf %t.a.tar --strip-components=1
 RUN: %link @response.txt
 
 RUN: cd ..
@@ -24,8 +24,8 @@ RUN:   --dump-response-file %t.b.response -o %t.b.out
 RUN: %filecheck %s --check-prefix=MAPPING_NAMESPEC < %t.b.mapping
 # Replaying the response file must succeed.
 RUN: %rm -rf %t.rep && %mkdir %t.rep
-RUN: %tar %gnutaropts -xf %t.b.tar -C %t.rep --strip-components=1
 RUN: cd %t.rep
+RUN: %tar %gnutaropts -xf %t.b.tar --strip-components=1
 RUN: %link @response.txt
 
 MAPPING: {{.*}}2.o=Object/
