@@ -117,13 +117,20 @@ jobs:
         # Downloads and extracts install-nightly-toolchain.tar.xz (multi-target
         # clang/clang++ and ld.eld) from the latest successful nightly-test.yml
         # run, prepending its bin dir to PATH.
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/DownloadWorkflowArtifact
+        with:
+          workflow-id: nightly-test.yml
+          artifact-name: install-nightly-toolchain.tar.xz
+          extract-archive: true
+          extract-to: inst
+          strip-components: "1"
+          add-to-path: inst/bin
 
       - name: Build compiler-rt builtins
         if: matrix.arch.name != 'hexagon'
         run: |
           # The nightly toolchain (clang/clang++) is already on PATH via
-          # FetchNightlyToolset.
+          # DownloadWorkflowArtifact.
           cmake -G Ninja \
             -DCMAKE_C_COMPILER:STRING="$(command -v clang)" \
             -DCMAKE_CXX_COMPILER:STRING="$(command -v clang++)" \
