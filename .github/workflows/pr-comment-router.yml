@@ -29,10 +29,6 @@ concurrency:
   group: pr-comment-router-${{ inputs.pr_number || github.event.issue.number }}-${{ github.event.comment.id || github.run_id }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  actions: read
-
 jobs:
   validate:
     if: github.repository == 'qualcomm/eld' && (github.event_name == 'workflow_dispatch' || github.event.issue.pull_request != null)
@@ -40,8 +36,7 @@ jobs:
     permissions:
       actions: read
       contents: read
-      issues: write
-      pull-requests: write
+      pull-requests: write # Read PR details and post the accepted-request comment.
       statuses: write
     outputs:
       pr_number: ${{ steps.request.outputs.pr_number }}
@@ -52,6 +47,7 @@ jobs:
       artifact_reused: ${{ steps.artifact.outputs.artifact_reused }}
       command: ${{ steps.request.outputs.command }}
       requires_toolset: ${{ steps.request.outputs.requires_toolset }}
+      selected_checks: ${{ steps.request.outputs.selected_checks }}
     steps:
       - name: Validate and parse comment request
         id: request
@@ -85,6 +81,7 @@ jobs:
               'check-msan',
               'check-all-workflows',
             ]);
+            // Deduplicate tokens so a repeated command cannot create duplicate jobs or statuses.
             const requestedCommands = [...new Set(command.split(/\s+/).filter(Boolean))];
             const runAll = requestedCommands.includes('check-all-workflows');
             let reason;
@@ -100,6 +97,7 @@ jobs:
               reason = '<code>check-all-workflows</code> must be the only command in the request.';
             }
             if (reason) {
+              // Ignore ordinary discussion and reject malformed requests before creating PR statuses or comments.
               core.info('Ignoring unrelated or unauthorized comment.');
               // Explain every skipped request on the run summary page, ordinary conversation included.
               // Comments are user-controlled, so only fixed strings are written.
@@ -110,6 +108,7 @@ jobs:
               return;
             }
 
+            // Resolve the PR once; dispatch requests must still match the exact head SHA they supplied.
             const prNumber = isWorkflowDispatch
               ? Number(process.env.INPUT_PR_NUMBER)
               : context.issue.number;
@@ -132,22 +131,25 @@ jobs:
               ? process.env.INPUT_REQUEST_ID
               : `${context.issue.number}-${pullRequest.head.sha}-${context.payload.comment.id}`;
             const artifactName = `pr-eld-toolset-${prNumber}-${pullRequest.head.sha}`;
+            // Shared check registry: job IDs connect to jobs below; the other fields drive status and report text.
             const checkDefinitions = new Map([
-              ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
-              ['check-relocation-testing', { name: 'Relocation testing framework', context: 'PR Relocation testing framework', usesToolset: true }],
-              ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
-              ['check-busybox', { name: 'BusyBox', context: 'PR BusyBox', usesToolset: true }],
-              ['check-reviter', { name: 'Reverse iterators', context: 'PR Reverse iterators', usesToolset: false }],
-              ['check-zephyr', { name: 'Zephyr', context: 'PR Zephyr', usesToolset: true }],
-              ['check-tsan', { name: 'Thread sanitizer', context: 'PR Thread Sanitizer', usesToolset: false }],
-              ['check-asan-ubsan', { name: 'Address and undefined behavior sanitizer', context: 'PR Address and Undefined Behavior Sanitizer', usesToolset: false }],
-              ['check-windows', { name: 'Windows CI', context: 'PR Windows CI', usesToolset: false }],
-              ['check-macos', { name: 'macOS CI', context: 'PR macOS CI', usesToolset: false }],
-              ['check-msan', { name: 'Memory with origins sanitizer', context: 'PR Memory with Origins Sanitizer', usesToolset: false }],
+              ['check-llvm-test-suite', { job: 'llvm_test', name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
+              ['check-relocation-testing', { job: 'relocation_test', name: 'Relocation testing framework', context: 'PR Relocation testing framework', usesToolset: true }],
+              ['check-linux-kernel', { job: 'linux_test', name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
+              ['check-busybox', { job: 'busybox_test', name: 'BusyBox', context: 'PR BusyBox', usesToolset: true }],
+              ['check-reviter', { job: 'reviter_test', name: 'Reverse iterators', context: 'PR Reverse iterators', usesToolset: false }],
+              ['check-zephyr', { job: 'zephyr_test', name: 'Zephyr', context: 'PR Zephyr', usesToolset: true }],
+              ['check-tsan', { job: 'thread_sanitizer_test', name: 'Thread sanitizer', context: 'PR Thread Sanitizer', usesToolset: false }],
+              ['check-asan-ubsan', { job: 'asan_ubsan_test', name: 'Address and undefined behavior sanitizer', context: 'PR Address and Undefined Behavior Sanitizer', usesToolset: false }],
+              ['check-windows', { job: 'windows_test', name: 'Windows CI', context: 'PR Windows CI', usesToolset: false }],
+              ['check-macos', { job: 'macos_test', name: 'macOS CI', context: 'PR macOS CI', usesToolset: false }],
+              ['check-msan', { job: 'memory_sanitizer_test', name: 'Memory with origins sanitizer', context: 'PR Memory with Origins Sanitizer', usesToolset: false }],
             ]);
-            const selectedChecks = runAll
-              ? [...checkDefinitions.values()]
-              : requestedCommands.map(requestedCommand => checkDefinitions.get(requestedCommand));
+            // Filter the registry to keep a stable check order, regardless of request token order.
+            const requestedSet = new Set(requestedCommands);
+            const selectedChecks = [...checkDefinitions]
+              .filter(([checkCommand]) => runAll || requestedSet.has(checkCommand))
+              .map(([, check]) => check);
             const requiresToolset = selectedChecks.some(check => check.usesToolset);
             core.setOutput('pr_number', String(prNumber));
             core.setOutput('pr_sha', pullRequest.head.sha);
@@ -155,6 +157,8 @@ jobs:
             core.setOutput('artifact_name', artifactName);
             core.setOutput('command', runAll ? 'check-all-workflows' : requestedCommands.join(' '));
             core.setOutput('requires_toolset', String(requiresToolset));
+            // Downstream steps share this JSON instead of maintaining their own check metadata.
+            core.setOutput('selected_checks', JSON.stringify(selectedChecks));
 
       - name: Resolve reusable PR toolset artifact
         id: artifact
@@ -183,6 +187,7 @@ jobs:
                 per_page: 100,
               }
             );
+            // Ignore artifacts that are expired or have no source run; retain the first usable match.
             let reusableArtifact;
             for (const artifact of artifacts) {
               const runId = artifact.workflow_run?.id;
@@ -212,6 +217,7 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
         env:
           COMMAND: ${{ steps.request.outputs.command }}
+          SELECTED_CHECKS: ${{ steps.request.outputs.selected_checks }}
           ARTIFACT_REUSED: ${{ steps.artifact.outputs.artifact_reused }}
           PR_NUMBER: ${{ steps.request.outputs.pr_number }}
           PR_SHA: ${{ steps.request.outputs.pr_sha }}
@@ -221,22 +227,7 @@ jobs:
             // Publish pending commit statuses before the selected reusable workflows begin.
             const command = process.env.COMMAND;
             const runAll = command === 'check-all-workflows';
-            const checkDefinitions = new Map([
-              ['check-llvm-test-suite', { name: 'LLVM test suite', context: 'PR LLVM test suite', usesToolset: true }],
-              ['check-relocation-testing', { name: 'Relocation testing framework', context: 'PR Relocation testing framework', usesToolset: true }],
-              ['check-linux-kernel', { name: 'Linux kernel boot', context: 'PR Linux kernel boot', usesToolset: true }],
-              ['check-busybox', { name: 'BusyBox', context: 'PR BusyBox', usesToolset: true }],
-              ['check-reviter', { name: 'Reverse iterators', context: 'PR Reverse iterators', usesToolset: false }],
-              ['check-zephyr', { name: 'Zephyr', context: 'PR Zephyr', usesToolset: true }],
-              ['check-tsan', { name: 'Thread sanitizer', context: 'PR Thread Sanitizer', usesToolset: false }],
-              ['check-asan-ubsan', { name: 'Address and undefined behavior sanitizer', context: 'PR Address and Undefined Behavior Sanitizer', usesToolset: false }],
-              ['check-windows', { name: 'Windows CI', context: 'PR Windows CI', usesToolset: false }],
-              ['check-macos', { name: 'macOS CI', context: 'PR macOS CI', usesToolset: false }],
-              ['check-msan', { name: 'Memory with origins sanitizer', context: 'PR Memory with Origins Sanitizer', usesToolset: false }],
-            ]);
-            const selectedChecks = runAll
-              ? [...checkDefinitions.values()]
-              : command.split(/\s+/).map(requestedCommand => checkDefinitions.get(requestedCommand));
+            const selectedChecks = JSON.parse(process.env.SELECTED_CHECKS);
             const targetUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             for (const check of selectedChecks) {
               await github.rest.repos.createCommitStatus({
@@ -253,31 +244,19 @@ jobs:
                   : `Building the PR source with ${check.name}.`,
               });
             }
-            if (runAll) {
-              await github.rest.repos.createCommitStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha: process.env.PR_SHA,
-                state: 'pending',
-                context: 'PR All checks',
-                target_url: targetUrl,
-                description: 'All PR checks are starting.',
-              });
-            }
-            if (context.eventName !== 'workflow_dispatch') {
-              const checkLabel = runAll
-                ? 'All checks'
-                : selectedChecks.map(check => check.name).join(', ');
-              const artifactMessage = process.env.ARTIFACT_REUSED === 'true'
-                ? ' Reusing the existing PR toolset artifact and starting the jobs.'
-                : ' The checks are starting in this workflow run.';
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: Number(process.env.PR_NUMBER),
-                body: `${checkLabel} request accepted for \`${process.env.PR_SHA}\`.${artifactMessage}`,
-              });
-            }
+            // Acknowledge every accepted request, whether it came from a PR comment or workflow dispatch.
+            const checkLabel = runAll
+              ? 'All checks'
+              : selectedChecks.map(check => check.name).join(', ');
+            const artifactMessage = process.env.ARTIFACT_REUSED === 'true'
+              ? ' Reusing the existing PR toolset artifact and starting the jobs.'
+              : ' The checks are starting in this workflow run.';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.PR_NUMBER),
+              body: `${checkLabel} request accepted for \`${process.env.PR_SHA}\`.${artifactMessage}`,
+            });
 
   build:
     needs: validate
@@ -505,335 +484,87 @@ jobs:
       actions: write
       contents: write
 
-  report_llvm:
-    needs: [validate, build, llvm_test]
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.validate.outputs.pr_sha != '' &&
-      (contains(needs.validate.outputs.command, 'check-llvm-test-suite') ||
-       needs.validate.outputs.command == 'check-all-workflows')
-    uses: ./.github/workflows/report-pr-check.yml
-    with:
-      check_name: LLVM test suite
-      status_context: PR LLVM test suite
-      pr_number: ${{ needs.validate.outputs.pr_number }}
-      pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_result: ${{ needs.build.result }}
-      test_result: ${{ needs.llvm_test.result }}
-      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
-    permissions:
-      issues: write
-      pull-requests: write
-      statuses: write
-
-  report_relocation:
-    needs: [validate, build, relocation_test]
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.validate.outputs.pr_sha != '' &&
-      (contains(needs.validate.outputs.command, 'check-relocation-testing') ||
-       needs.validate.outputs.command == 'check-all-workflows')
-    uses: ./.github/workflows/report-pr-check.yml
-    with:
-      check_name: Relocation testing framework
-      status_context: PR Relocation testing framework
-      pr_number: ${{ needs.validate.outputs.pr_number }}
-      pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_result: ${{ needs.build.result }}
-      test_result: ${{ needs.relocation_test.result }}
-      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
-    permissions:
-      issues: write
-      pull-requests: write
-      statuses: write
-
-  report_linux:
-    needs: [validate, build, linux_test]
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.validate.outputs.pr_sha != '' &&
-      (contains(needs.validate.outputs.command, 'check-linux-kernel') ||
-       needs.validate.outputs.command == 'check-all-workflows')
-    uses: ./.github/workflows/report-pr-check.yml
-    with:
-      check_name: Linux kernel boot
-      status_context: PR Linux kernel boot
-      pr_number: ${{ needs.validate.outputs.pr_number }}
-      pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_result: ${{ needs.build.result }}
-      test_result: ${{ needs.linux_test.result }}
-      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
-    permissions:
-      issues: write
-      pull-requests: write
-      statuses: write
-
-  report_busybox:
-    needs: [validate, build, busybox_test]
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.validate.outputs.pr_sha != '' &&
-      (contains(needs.validate.outputs.command, 'check-busybox') ||
-       needs.validate.outputs.command == 'check-all-workflows')
-    uses: ./.github/workflows/report-pr-check.yml
-    with:
-      check_name: BusyBox
-      status_context: PR BusyBox
-      pr_number: ${{ needs.validate.outputs.pr_number }}
-      pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_result: ${{ needs.build.result }}
-      test_result: ${{ needs.busybox_test.result }}
-      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
-    permissions:
-      issues: write
-      pull-requests: write
-      statuses: write
-
-  report_reviter:
-    needs: [validate, reviter_test]
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.validate.outputs.pr_sha != '' &&
-      (contains(needs.validate.outputs.command, 'check-reviter') ||
-       needs.validate.outputs.command == 'check-all-workflows')
-    uses: ./.github/workflows/report-pr-check.yml
-    with:
-      check_name: Reverse iterators
-      status_context: PR Reverse iterators
-      pr_number: ${{ needs.validate.outputs.pr_number }}
-      pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_result: skipped
-      test_result: ${{ needs.reviter_test.result }}
-      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
-    permissions:
-      issues: write
-      pull-requests: write
-      statuses: write
-
-  report_zephyr:
-    needs: [validate, build, zephyr_test]
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.validate.outputs.pr_sha != '' &&
-      (contains(needs.validate.outputs.command, 'check-zephyr') ||
-       needs.validate.outputs.command == 'check-all-workflows')
-    uses: ./.github/workflows/report-pr-check.yml
-    with:
-      check_name: Zephyr
-      status_context: PR Zephyr
-      pr_number: ${{ needs.validate.outputs.pr_number }}
-      pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_result: ${{ needs.build.result }}
-      test_result: ${{ needs.zephyr_test.result }}
-      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
-    permissions:
-      issues: write
-      pull-requests: write
-      statuses: write
-
-  report_thread_sanitizer:
-    needs: [validate, thread_sanitizer_test]
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.validate.outputs.pr_sha != '' &&
-      (contains(needs.validate.outputs.command, 'check-tsan') ||
-       needs.validate.outputs.command == 'check-all-workflows')
-    uses: ./.github/workflows/report-pr-check.yml
-    with:
-      check_name: Thread sanitizer
-      status_context: PR Thread Sanitizer
-      pr_number: ${{ needs.validate.outputs.pr_number }}
-      pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_result: skipped
-      test_result: ${{ needs.thread_sanitizer_test.result }}
-      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
-    permissions:
-      issues: write
-      pull-requests: write
-      statuses: write
-
-  report_asan_ubsan:
-    needs: [validate, asan_ubsan_test]
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.validate.outputs.pr_sha != '' &&
-      (contains(needs.validate.outputs.command, 'check-asan-ubsan') ||
-       needs.validate.outputs.command == 'check-all-workflows')
-    uses: ./.github/workflows/report-pr-check.yml
-    with:
-      check_name: Address and undefined behavior sanitizer
-      status_context: PR Address and Undefined Behavior Sanitizer
-      pr_number: ${{ needs.validate.outputs.pr_number }}
-      pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_result: skipped
-      test_result: ${{ needs.asan_ubsan_test.result }}
-      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
-    permissions:
-      issues: write
-      pull-requests: write
-      statuses: write
-
-  report_windows:
-    needs: [validate, windows_test]
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.validate.outputs.pr_sha != '' &&
-      (contains(needs.validate.outputs.command, 'check-windows') ||
-       needs.validate.outputs.command == 'check-all-workflows')
-    uses: ./.github/workflows/report-pr-check.yml
-    with:
-      check_name: Windows CI
-      status_context: PR Windows CI
-      pr_number: ${{ needs.validate.outputs.pr_number }}
-      pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_result: skipped
-      test_result: ${{ needs.windows_test.result }}
-      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
-    permissions:
-      issues: write
-      pull-requests: write
-      statuses: write
-
-  report_macos:
-    needs: [validate, macos_test]
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.validate.outputs.pr_sha != '' &&
-      (contains(needs.validate.outputs.command, 'check-macos') ||
-       needs.validate.outputs.command == 'check-all-workflows')
-    uses: ./.github/workflows/report-pr-check.yml
-    with:
-      check_name: macOS CI
-      status_context: PR macOS CI
-      pr_number: ${{ needs.validate.outputs.pr_number }}
-      pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_result: skipped
-      test_result: ${{ needs.macos_test.result }}
-      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
-    permissions:
-      issues: write
-      pull-requests: write
-      statuses: write
-
-  report_memory_sanitizer:
-    needs: [validate, memory_sanitizer_test]
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.validate.outputs.pr_sha != '' &&
-      (contains(needs.validate.outputs.command, 'check-msan') ||
-       needs.validate.outputs.command == 'check-all-workflows')
-    uses: ./.github/workflows/report-pr-check.yml
-    with:
-      check_name: Memory with origins sanitizer
-      status_context: PR Memory with Origins Sanitizer
-      pr_number: ${{ needs.validate.outputs.pr_number }}
-      pr_sha: ${{ needs.validate.outputs.pr_sha }}
-      build_result: skipped
-      test_result: ${{ needs.memory_sanitizer_test.result }}
-      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      post_comment: ${{ needs.validate.outputs.command != 'check-all-workflows' }}
-    permissions:
-      issues: write
-      pull-requests: write
-      statuses: write
-
-  report_all:
+  report_checks:
+    # Keep these direct dependencies in sync with the job IDs in validate's check definitions.
     needs: [validate, build, llvm_test, relocation_test, linux_test, busybox_test, reviter_test, zephyr_test, thread_sanitizer_test, asan_ubsan_test, memory_sanitizer_test, windows_test, macos_test]
     if: |
       always() &&
       !cancelled() &&
-      needs.validate.outputs.pr_sha != '' &&
-      needs.validate.outputs.command == 'check-all-workflows'
+      needs.validate.outputs.pr_sha != ''
     runs-on: ubuntu-latest
     permissions:
-      issues: write
-      pull-requests: write
+      pull-requests: write # Post the consolidated results comment.
       statuses: write
     steps:
-      - name: Report all PR check results
+      - name: Report PR check results
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
         env:
+          COMMAND: ${{ needs.validate.outputs.command }}
+          SELECTED_CHECKS: ${{ needs.validate.outputs.selected_checks }}
           PR_NUMBER: ${{ needs.validate.outputs.pr_number }}
           PR_SHA: ${{ needs.validate.outputs.pr_sha }}
-          BUILD_RESULT: ${{ needs.build.result }}
-          LLVM_RESULT: ${{ needs.llvm_test.result }}
-          RELOCATION_RESULT: ${{ needs.relocation_test.result }}
-          LINUX_RESULT: ${{ needs.linux_test.result }}
-          BUSYBOX_RESULT: ${{ needs.busybox_test.result }}
-          REVITER_RESULT: ${{ needs.reviter_test.result }}
-          ZEPHYR_RESULT: ${{ needs.zephyr_test.result }}
-          THREAD_RESULT: ${{ needs.thread_sanitizer_test.result }}
-          ASAN_RESULT: ${{ needs.asan_ubsan_test.result }}
-          WINDOWS_RESULT: ${{ needs.windows_test.result }}
-          MACOS_RESULT: ${{ needs.macos_test.result }}
-          MEMORY_RESULT: ${{ needs.memory_sanitizer_test.result }}
+          JOB_RESULTS: ${{ toJSON(needs) }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           github-token: ${{ github.token }}
           script: |
-            const checks = [
-              ['LLVM test suite', process.env.LLVM_RESULT],
-              ['Relocation testing framework', process.env.RELOCATION_RESULT],
-              ['Linux kernel boot', process.env.LINUX_RESULT],
-              ['BusyBox', process.env.BUSYBOX_RESULT],
-              ['Reverse iterators', process.env.REVITER_RESULT],
-              ['Zephyr', process.env.ZEPHYR_RESULT],
-              ['Thread sanitizer', process.env.THREAD_RESULT],
-              ['Address and undefined behavior sanitizer', process.env.ASAN_RESULT],
-              ['Windows CI', process.env.WINDOWS_RESULT],
-              ['macOS CI', process.env.MACOS_RESULT],
-              ['Memory with origins sanitizer', process.env.MEMORY_RESULT],
-            ];
-            const icon = result => result === 'success'
-              ? '✅'
-              : ['failure', 'cancelled'].includes(result)
-                ? '❌'
-                : '⏭️';
-            const allPassed = process.env.BUILD_RESULT !== 'failure' &&
-              process.env.BUILD_RESULT !== 'cancelled' &&
-              checks.every(([, result]) => result === 'success');
-            const message = allPassed
-              ? `✅ All PR checks passed for \`${process.env.PR_SHA}\`.`
-              : `❌ One or more PR checks failed for \`${process.env.PR_SHA}\`.`;
-            const details = checks
-              .map(([name, result]) => `${icon(result)} ${name}: ${result}`)
-              .join('\n');
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: process.env.PR_SHA,
-              state: allPassed ? 'success' : 'failure',
-              context: 'PR All checks',
-              target_url: process.env.RUN_URL,
-              description: message,
-            });
+            // Combine the selected check metadata with results from this job's direct dependencies.
+            const jobResults = JSON.parse(process.env.JOB_RESULTS);
+            const selectedChecks = JSON.parse(process.env.SELECTED_CHECKS)
+              .map(check => ({
+                ...check,
+                buildResult: check.usesToolset ? jobResults.build.result : 'skipped',
+                testResult: jobResults[check.job]?.result ?? 'skipped',
+              }));
+            if (!selectedChecks.length) {
+              core.setFailed(`No reportable PR checks found for command "${process.env.COMMAND}".`);
+              return;
+            }
+
+            const results = [];
+            const reportingErrors = [];
+            for (const check of selectedChecks) {
+              // A toolset failure fails every dependent check; otherwise the test job itself must succeed.
+              const buildFailed = ['failure', 'cancelled'].includes(check.buildResult);
+              const buildSucceeded = ['success', 'skipped'].includes(check.buildResult);
+              const passed = buildSucceeded && check.testResult === 'success';
+              const state = passed ? 'success' : 'failure';
+              const message = buildFailed
+                ? `❌ PR ELD toolset build ${check.buildResult} for ${check.name} for \`${process.env.PR_SHA}\`.`
+                : passed
+                  ? `✅ ${check.name} passed for \`${process.env.PR_SHA}\`.`
+                  : `❌ ${check.name} failed for \`${process.env.PR_SHA}\`.`;
+              const detail = buildFailed
+                ? `${check.name}: toolset build ${check.buildResult}; test ${check.testResult}`
+                : `${check.name}: ${check.testResult}`;
+              results.push({ passed, detail });
+              try {
+                // Update each check's own commit status while continuing if one status API call fails.
+                await github.rest.repos.createCommitStatus({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  sha: process.env.PR_SHA,
+                  state,
+                  context: check.context,
+                  target_url: process.env.RUN_URL,
+                  description: message,
+                });
+              } catch (error) {
+                core.error(`Could not report ${check.name}: ${error.message}`);
+                reportingErrors.push(check.name);
+              }
+            }
+
+            // Post all selected results together so each request produces one report comment.
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: Number(process.env.PR_NUMBER),
-              body: `${message}\n\n${details}\n\n[View workflow run](${process.env.RUN_URL}).`,
+              body: `${results.map(result => `${result.passed ? '✅' : '❌'} ${result.detail}`).join('\n')}\n\n[View workflow run](${process.env.RUN_URL}).`,
             });
+            if (reportingErrors.length) {
+              core.setFailed(`Failed to report check statuses: ${reportingErrors.join(', ')}.`);
+            }
 
   # Delete uploaded test outputs here so the PR code jobs can keep read-only tokens.
   cleanup_pr_artifacts:
@@ -850,17 +581,7 @@ jobs:
       - macos_test
       - memory_sanitizer_test
       - reviter_test
-      - report_llvm
-      - report_linux
-      - report_busybox
-      - report_reviter
-      - report_zephyr
-      - report_thread_sanitizer
-      - report_asan_ubsan
-      - report_windows
-      - report_macos
-      - report_memory_sanitizer
-      - report_all
+      - report_checks
     if: always() && needs.validate.outputs.pr_sha != ''
     runs-on: ubuntu-latest
     permissions:
