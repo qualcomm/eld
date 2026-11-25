@@ -270,8 +270,7 @@ void RISCVLDBackend::initILUT() {
   }
   for (ELFSection *Code : CodeSections)
     ILUTFragment->collectBranchTargets(*Code, RelocationIndex);
-  for (ELFSection *Code : CodeSections)
-    ILUTFragment->scanCodeSection(*Code, RelocationIndex);
+  ILUTFragment->scanCodeSections(CodeSections, RelocationIndex);
   ILUTFragment->finalizeContents();
   if (m_pRISCVILUTSection)
     m_pRISCVILUTSection->setSize(ILUTFragment->size());

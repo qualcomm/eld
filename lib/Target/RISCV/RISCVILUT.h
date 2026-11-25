@@ -37,7 +37,8 @@ public:
 
   void collectBranchTargets(ELFSection &Sec,
                             const RelocationIndex &Relocations);
-  void scanCodeSection(ELFSection &Sec, const RelocationIndex &Relocations);
+  void scanCodeSections(const std::vector<ELFSection *> &Sections,
+                        const RelocationIndex &Relocations);
   void finalizeContents();
 
   bool hasEntries() const { return !Entries.empty(); }

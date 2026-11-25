@@ -832,161 +832,191 @@ void RISCVILUTFragment::collectBranchTargets(
   }
 }
 
-// Discover and select table payloads in each code region. Keep supported,
+// Discover candidates across all code regions before checking profitability:
+// an ILUT entry can be shared by uses in different sections. Keep supported,
 // safe, unrelocated instructions and form legal single-instruction patterns
-// or physically adjacent instruction pairs. Estimate savings per use from
-// its source span minus the 2-byte replacement. Rank patterns by estimated net
+// or physically adjacent instruction pairs. Rank patterns by estimated net
 // savings with a deterministic key tie-break. Filter targets inside deleted
-// bytes and overlapping source spans, then recheck profitability. Reuse
-// identical entries and record each surviving use.
-void RISCVILUTFragment::scanCodeSection(ELFSection &Sec,
-                                        const RelocationIndex &Relocations) {
-  if (!Sec.isCode())
-    return;
+// bytes and overlapping source spans, then recheck global profitability.
+void RISCVILUTFragment::scanCodeSections(
+    const std::vector<ELFSection *> &Sections,
+    const RelocationIndex &Relocations) {
+  std::map<std::string, Pattern> Patterns;
 
-  for (Fragment *F : Sec.getFragmentList()) {
-    auto *Region = llvm::dyn_cast<eld::RegionFragmentEx>(F);
-    if (!Region)
-      continue;
-    llvm::StringRef Data = Region->getRegion();
+  for (ELFSection *Sec : Sections) {
+    for (Fragment *F : Sec->getFragmentList()) {
+      auto *Region = llvm::dyn_cast<eld::RegionFragmentEx>(F);
+      if (!Region)
+        continue;
+      llvm::StringRef Data = Region->getRegion();
 
-    std::vector<Instruction> Instructions;
-    for (uint64_t Offset = 0; Offset < Data.size();) {
-      unsigned Length = getInstructionLength(Data.substr(Offset));
-      if (!Length || Offset + Length > Data.size())
-        break;
-      llvm::StringRef InstructionBytes = Data.substr(Offset, Length);
-      bool Valid = !isUnsafeForILUT(InstructionBytes, Length);
-      if (Length == 2 && isIlutInstruction(llvm::support::endian::read16le(
-                             InstructionBytes.data())))
-        Valid = false;
-      if (Length != 2 && Length != 4 && Length != 6)
-        Valid = false;
-      // Relocated bytes may be placeholders or need address-dependent fixups.
-      // Copying them would lose or misapply the relocation.
-      if (hasRelocationAt(Relocations, F, Offset, Length))
-        Valid = false;
-      if (Valid) {
-        Instruction Decoded;
-        Decoded.F = F;
-        Decoded.Offset = Offset;
-        Decoded.Length = Length;
-        std::memcpy(Decoded.Bytes.data(), InstructionBytes.data(), Length);
-        Instructions.push_back(Decoded);
+      // R_RISCV_ALIGN reserves NOP bytes that the later alignment pass may
+      // shrink. Keep the entire reserved range out of ILUT candidates so
+      // earlier ILUT deletions cannot move the aligned target off its boundary.
+      std::vector<std::pair<uint64_t, uint64_t>> AlignRanges;
+      auto FragmentIt = Relocations.find(F);
+      if (FragmentIt != Relocations.end()) {
+        for (const auto &RelocsAtOffset : FragmentIt->second) {
+          const uint64_t Begin = RelocsAtOffset.first;
+          for (const Relocation *R : RelocsAtOffset.second) {
+            if (R->type() != llvm::ELF::R_RISCV_ALIGN || !R->addend() ||
+                Begin >= Data.size())
+              continue;
+            const uint64_t ReservedBytes = std::min<uint64_t>(
+                static_cast<uint64_t>(R->addend()), Data.size() - Begin);
+            AlignRanges.emplace_back(Begin, Begin + ReservedBytes);
+          }
+        }
       }
-      Offset += Length;
-    }
+      llvm::sort(AlignRanges);
 
-    std::map<std::string, Pattern> Patterns;
-    for (size_t I = 0; I < Instructions.size(); ++I) {
-      const Instruction &A = Instructions[I];
-      std::vector<unsigned> Lengths = {A.Length};
-      unsigned EntrySize = 0;
-      if (isLegalPayload(Lengths, EntrySize)) {
-        llvm::ArrayRef<uint8_t> ABytes(A.Bytes.data(), A.Length);
-        Pattern &P = Patterns[makeKey(ABytes, Lengths)];
-        P.Key = makeKey(ABytes, Lengths);
-        P.Bytes.assign(ABytes.begin(), ABytes.end());
+      std::vector<Instruction> Instructions;
+      size_t AlignIndex = 0;
+      for (uint64_t Offset = 0; Offset < Data.size();) {
+        while (AlignIndex < AlignRanges.size() &&
+               AlignRanges[AlignIndex].second <= Offset)
+          ++AlignIndex;
+        if (AlignIndex < AlignRanges.size() &&
+            Offset >= AlignRanges[AlignIndex].first &&
+            Offset < AlignRanges[AlignIndex].second) {
+          Offset = AlignRanges[AlignIndex].second;
+          continue;
+        }
+
+        unsigned Length = getInstructionLength(Data.substr(Offset));
+        if (!Length || Offset + Length > Data.size())
+          break;
+        llvm::StringRef InstructionBytes = Data.substr(Offset, Length);
+        bool Valid = !isUnsafeForILUT(InstructionBytes, Length);
+        if (Length == 2 && isIlutInstruction(llvm::support::endian::read16le(
+                               InstructionBytes.data())))
+          Valid = false;
+        if (Length != 2 && Length != 4 && Length != 6)
+          Valid = false;
+        // Relocated bytes may be placeholders or need address-dependent
+        // fixups. Copying them would lose or misapply the relocation.
+        if (hasRelocationAt(Relocations, F, Offset, Length))
+          Valid = false;
+        if (Valid) {
+          Instruction Decoded;
+          Decoded.F = F;
+          Decoded.Offset = Offset;
+          Decoded.Length = Length;
+          std::memcpy(Decoded.Bytes.data(), InstructionBytes.data(), Length);
+          Instructions.push_back(Decoded);
+        }
+        Offset += Length;
+      }
+
+      for (size_t I = 0; I < Instructions.size(); ++I) {
+        const Instruction &A = Instructions[I];
+        std::vector<unsigned> Lengths = {A.Length};
+        unsigned EntrySize = 0;
+        if (isLegalPayload(Lengths, EntrySize)) {
+          llvm::ArrayRef<uint8_t> ABytes(A.Bytes.data(), A.Length);
+          Pattern &P = Patterns[makeKey(ABytes, Lengths)];
+          P.Key = makeKey(ABytes, Lengths);
+          P.Bytes.assign(ABytes.begin(), ABytes.end());
+          P.EntrySize = EntrySize;
+          P.SourceSize = A.Length;
+          P.Saving = A.Length - 2;
+          P.Occurrences.push_back(A);
+        }
+
+        if (I + 1 >= Instructions.size())
+          continue;
+        const Instruction &B = Instructions[I + 1];
+        // A pair must be physically adjacent in the same fragment. Skipped or
+        // unsafe instructions therefore break a candidate sequence.
+        if (A.F != B.F || A.Offset + A.Length != B.Offset)
+          continue;
+        Lengths = {A.Length, B.Length};
+        if (!isLegalPayload(Lengths, EntrySize))
+          continue;
+        std::vector<uint8_t> Bytes(A.Bytes.begin(), A.Bytes.begin() + A.Length);
+        Bytes.insert(Bytes.end(), B.Bytes.begin(), B.Bytes.begin() + B.Length);
+        Pattern &P = Patterns[makeKey(Bytes, Lengths)];
+        P.Key = makeKey(Bytes, Lengths);
+        P.Bytes = std::move(Bytes);
         P.EntrySize = EntrySize;
-        P.SourceSize = A.Length;
-        P.Saving = A.Length - 2;
+        P.SourceSize = A.Length + B.Length;
+        P.Saving = P.SourceSize - 2;
         P.Occurrences.push_back(A);
       }
-
-      if (I + 1 >= Instructions.size())
-        continue;
-      const Instruction &B = Instructions[I + 1];
-      // A pair must be physically adjacent in the same fragment. Skipped or
-      // unsafe instructions therefore break a candidate sequence.
-      if (A.F != B.F || A.Offset + A.Length != B.Offset)
-        continue;
-      Lengths = {A.Length, B.Length};
-      if (!isLegalPayload(Lengths, EntrySize))
-        continue;
-      std::vector<uint8_t> Bytes(A.Bytes.begin(), A.Bytes.begin() + A.Length);
-      Bytes.insert(Bytes.end(), B.Bytes.begin(), B.Bytes.begin() + B.Length);
-      Pattern &P = Patterns[makeKey(Bytes, Lengths)];
-      P.Key = makeKey(Bytes, Lengths);
-      P.Bytes = std::move(Bytes);
-      P.EntrySize = EntrySize;
-      P.SourceSize = A.Length + B.Length;
-      P.Saving = P.SourceSize - 2;
-      P.Occurrences.push_back(A);
     }
+  }
 
-    llvm::SmallVector<Pattern *, 0> Ordered;
-    // Discard patterns whose estimated repeated savings do not exceed the
-    // table slot cost. Check profitability again after filtering occurrences.
-    for (auto &KV : Patterns)
-      if (KV.second.Occurrences.size() * KV.second.Saving > KV.second.EntrySize)
-        Ordered.push_back(&KV.second);
-    llvm::sort(Ordered, [](const Pattern *A, const Pattern *B) {
-      uint64_t AP = A->Occurrences.size() * A->Saving - A->EntrySize;
-      uint64_t BP = B->Occurrences.size() * B->Saving - B->EntrySize;
-      if (AP != BP)
-        return AP > BP;
-      return A->Key < B->Key;
-    });
+  llvm::SmallVector<Pattern *, 0> Ordered;
+  // Discard patterns whose aggregate savings across all code regions do not
+  // exceed the table slot cost. Check profitability again after filtering.
+  for (auto &KV : Patterns)
+    if (KV.second.Occurrences.size() * KV.second.Saving > KV.second.EntrySize)
+      Ordered.push_back(&KV.second);
+  llvm::sort(Ordered, [](const Pattern *A, const Pattern *B) {
+    uint64_t AP = A->Occurrences.size() * A->Saving - A->EntrySize;
+    uint64_t BP = B->Occurrences.size() * B->Saving - B->EntrySize;
+    if (AP != BP)
+      return AP > BP;
+    return A->Key < B->Key;
+  });
 
-    std::set<std::pair<const Fragment *, uint64_t>> Occupied;
-    // qc.cm.ilut has an 11-bit index, limiting the table to 2048 entries.
-    for (Pattern *P : Ordered) {
-      if (Entries.size() >= 2048)
-        break;
-      std::vector<Instruction> Selected;
-      std::set<std::pair<const Fragment *, uint64_t>> CandidateOccupied;
-      for (const Instruction &I : P->Occurrences) {
-        if (P->SourceSize > I.Length) {
-          // The replacement occupies the first two bytes. A branch into the
-          // rest of this source span would target bytes that are deleted.
-          const uint64_t InternalBegin = I.Offset + I.Length;
-          const uint64_t InternalEnd = I.Offset + P->SourceSize;
-          bool HasInternalTarget = false;
-          auto Targets = BranchTargets.find(I.F);
-          if (Targets != BranchTargets.end()) {
-            auto Target = Targets->second.lower_bound(InternalBegin);
-            HasInternalTarget =
-                Target != Targets->second.end() && *Target < InternalEnd;
-          }
-          if (HasInternalTarget)
-            continue;
+  std::set<std::pair<const Fragment *, uint64_t>> Occupied;
+  // qc.cm.ilut has an 11-bit index, limiting the table to 2048 entries.
+  for (Pattern *P : Ordered) {
+    if (Entries.size() >= 2048)
+      break;
+    std::vector<Instruction> Selected;
+    std::set<std::pair<const Fragment *, uint64_t>> CandidateOccupied;
+    for (const Instruction &I : P->Occurrences) {
+      if (P->SourceSize > I.Length) {
+        // The replacement occupies the first two bytes. A branch into the
+        // rest of this source span would target bytes that are deleted.
+        const uint64_t InternalBegin = I.Offset + I.Length;
+        const uint64_t InternalEnd = I.Offset + P->SourceSize;
+        bool HasInternalTarget = false;
+        auto Targets = BranchTargets.find(I.F);
+        if (Targets != BranchTargets.end()) {
+          auto Target = Targets->second.lower_bound(InternalBegin);
+          HasInternalTarget =
+              Target != Targets->second.end() && *Target < InternalEnd;
         }
-        // Track ownership by byte so selected patterns cannot delete
-        // overlapping source ranges.
-        bool Conflict = false;
-        for (unsigned Byte = 0; Byte < P->SourceSize; ++Byte) {
-          auto Key = std::make_pair(I.F, I.Offset + Byte);
-          if (Occupied.count(Key) || CandidateOccupied.count(Key)) {
-            Conflict = true;
-            break;
-          }
-        }
-        if (Conflict)
+        if (HasInternalTarget)
           continue;
-        Selected.push_back(I);
-        for (unsigned Byte = 0; Byte < P->SourceSize; ++Byte)
-          CandidateOccupied.insert({I.F, I.Offset + Byte});
       }
-      // Reserve bytes only after safety and overlap filtering, and after a
-      // fresh profitability check on the surviving occurrences.
-      if (Selected.size() * P->Saving <= P->EntrySize)
-        continue;
-      Occupied.insert(CandidateOccupied.begin(), CandidateOccupied.end());
-
-      unsigned EntryIndex = 0;
-      for (; EntryIndex < Entries.size(); ++EntryIndex)
-        if (Entries[EntryIndex].Size == P->EntrySize &&
-            Entries[EntryIndex].Bytes == P->Bytes)
+      // Track ownership by byte so selected patterns cannot delete
+      // overlapping source ranges.
+      bool Conflict = false;
+      for (unsigned Byte = 0; Byte < P->SourceSize; ++Byte) {
+        auto Key = std::make_pair(I.F, I.Offset + Byte);
+        if (Occupied.count(Key) || CandidateOccupied.count(Key)) {
+          Conflict = true;
           break;
-      if (EntryIndex == Entries.size())
-        Entries.push_back({P->Bytes, P->EntrySize});
-      // Each use records its source fragment, starting offset, source span,
-      // and table entry index.
-      for (const Instruction &I : Selected) {
-        Uses.insert(
-            {{I.F, I.Offset}, {I.F, I.Offset, P->SourceSize, EntryIndex}});
+        }
       }
+      if (Conflict)
+        continue;
+      Selected.push_back(I);
+      for (unsigned Byte = 0; Byte < P->SourceSize; ++Byte)
+        CandidateOccupied.insert({I.F, I.Offset + Byte});
     }
+    // Reserve bytes only after safety and overlap filtering, and after a fresh
+    // profitability check on the surviving occurrences.
+    if (Selected.size() * P->Saving <= P->EntrySize)
+      continue;
+    Occupied.insert(CandidateOccupied.begin(), CandidateOccupied.end());
+
+    unsigned EntryIndex = 0;
+    for (; EntryIndex < Entries.size(); ++EntryIndex)
+      if (Entries[EntryIndex].Size == P->EntrySize &&
+          Entries[EntryIndex].Bytes == P->Bytes)
+        break;
+    if (EntryIndex == Entries.size())
+      Entries.push_back({P->Bytes, P->EntrySize});
+    // Each use records its source fragment, starting offset, source span, and
+    // table entry index.
+    for (const Instruction &I : Selected)
+      Uses.insert(
+          {{I.F, I.Offset}, {I.F, I.Offset, P->SourceSize, EntryIndex}});
   }
 }
 
