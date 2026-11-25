@@ -116,24 +116,23 @@ void RegionFragmentEx::commitRelaxEdits() {
   }
 
   for (ResolveInfo *Info : Symbols) {
-    FragmentRef *Ref = Info->outSymbol()->fragRef();
+    LDSymbol *Sym = Info->outSymbol();
+    FragmentRef *Ref = Sym->fragRef();
     FragmentRef::Offset Off = Ref->offset();
-    uint32_t SymbolSize = Info->outSymbol()->size();
+    uint32_t StartShift = 0;
     if (!Info->isSection()) {
-      for (const RelaxEdit &E : Plan.edits()) {
-        if (!E.Active)
-          continue;
-        if (E.DeleteOffset >= Off && (E.DeleteOffset - Off) < SymbolSize) {
-          SymbolSize -= E.DeleteBytes;
-          Info->outSymbol()->setSize(SymbolSize);
-        }
-      }
+      // Plan offsets refer to the original buffer. Map both original symbol
+      // boundaries so each deletion contributes to the new size.
+      StartShift = Plan.shiftAt(Off);
+      FragmentRef::Offset End = Off + Sym->size();
+      uint32_t EndShift = Plan.shiftAt(End);
+      Sym->setSize((End - EndShift) - (Off - StartShift));
+    } else if (Off <= OrigSize) {
+      StartShift = Plan.shiftAt(Off);
     }
-    if (Off <= OrigSize) {
-      uint32_t Shift = Plan.shiftAt(Off);
-      if (Shift)
-        Ref->setOffset(Off - Shift);
-    }
+    // Apply the same mapping to the symbol's start offset.
+    if (Off <= OrigSize && StartShift)
+      Ref->setOffset(Off - StartShift);
   }
 
   // One forward walk instead of one memmove per edit.
