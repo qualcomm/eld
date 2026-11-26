@@ -34,6 +34,7 @@ ScriptAction::ScriptAction(const std::string &PFileName, ScriptFile::Kind PKind,
       ScriptFileKind(PKind), ThisConfig(Config) {}
 
 bool ScriptAction::activate(InputBuilder &PBuilder) {
+  const std::string OriginalName = Name;
   std::string Path = Name;
   auto &SearchDirs = ThisConfig.directories();
   const ReproduceTarReader *TarReader = ThisConfig.getReproduceTarReader();
@@ -70,6 +71,8 @@ bool ScriptAction::activate(InputBuilder &PBuilder) {
     I = PBuilder.createInputNode(Path);
   else if (!InputFileAction::activate(PBuilder))
     return false;
+
+  I->setOriginalFileName(OriginalName);
 
   // Resolve the path so that the appropriate file has been read and the memory
   // area created for it.
