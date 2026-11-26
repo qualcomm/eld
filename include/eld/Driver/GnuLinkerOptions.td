@@ -1532,6 +1532,12 @@ defm SymbolResolutionReportFile
       MetaVarName<"<filename>">,
       Group<grp_miscfeatures>;
 
+defm LinkStatsReportFile
+    : mDashEq<"emit-link-stats", "LinkStatsReportFile",
+              "Emit JSON link statistics report">,
+      MetaVarName<"<filename>">,
+      Group<grp_miscfeatures>;
+
 //===----------------------------------------------------------------------===//
 /// Help!
 //===----------------------------------------------------------------------===//

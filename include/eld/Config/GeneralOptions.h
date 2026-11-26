@@ -546,6 +546,15 @@ public:
     return SymbolResolutionReportFile.has_value();
   }
 
+  // --emit-link-stats
+  void setLinkStatsReportFile(llvm::StringRef File) {
+    LinkStatsReportFile = File.str();
+  }
+
+  const std::optional<std::string> &getLinkStatsReportFile() const {
+    return LinkStatsReportFile;
+  }
+
   // --ld-generated-unwind-info
   void setGenUnwindInfo(bool PEnable = true) { BGenUnwindInfo = PEnable; }
 
@@ -1400,6 +1409,8 @@ private:
       ArchiveMemberReportFile;           // --archive-member-report output path
   std::optional<std::string>
       SymbolResolutionReportFile; // --emit-symbol-resolution-report output path
+  std::optional<std::string>
+      LinkStatsReportFile;               // --emit-link-stats output path
   std::string MappingFileName;           // --Mapping-file
   std::string MappingDumpFile;           // --dump-mapping-file
   std::string ResponseDumpFile;          // --dump-response-file
