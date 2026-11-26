@@ -1,0 +1,20 @@
+div.leftside {
+  width: 48%;
+  /* Adjust as needed */
+  float: left;
+  padding-right: 1%;
+}
+
+div.rightside {
+  width: 48%;
+  /* Adjust as needed */
+  float: right;
+  padding-left: 1%;
+}
+
+div.twocol:after {
+  /* Clearfix for the parent container */
+  content: "";
+  display: table;
+  clear: both;
+}
