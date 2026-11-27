@@ -780,7 +780,11 @@ public:
   // ------------------- EhFrame Hdr -------------------------------
   EhFrameHdrSection *getEhFrameHdr() const { return m_pEhFrameHdrSection; }
 
-  void createEhFrameFillerAndHdrFragment();
+  void createEhFrameHdrFragment();
+
+  /// Create the zero record that ends the final .eh_frame section. Returns the
+  /// internal section that holds it, which the caller must merge.
+  ELFSection *createEhFrameTerminator();
 
   // ------------------- SFrame support -------------------------------
   ELFSection *getSFrameSection() const { return m_pSFrameSection; }

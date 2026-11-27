@@ -1,0 +1,16 @@
+UNSUPPORTED: arm
+# Both inputs have a CIE with the same personality. After deduplication one CIE
+# is left, so --emit-relocs must list its personality relocation once.
+RUN: %clang %clangopts -DFN=foo -c %p/Inputs/personality.S -o %t1.o
+RUN: %clang %clangopts -DFN=bar -c %p/Inputs/personality.S -o %t2.o
+RUN: %link %linkopts --emit-relocs -e foo %t1.o %t2.o -o %t.out
+RUN: %readelf -r %t.out | %filecheck %s
+# Without deduplication each input keeps its own CIE and relocation.
+RUN: %link %linkopts -r %t1.o %t2.o -o %t.partial.o
+RUN: %readelf -r %t.partial.o | %filecheck %s --check-prefix=PARTIAL
+
+# CHECK: personality
+# CHECK-NOT: personality
+
+# PARTIAL: personality
+# PARTIAL: personality

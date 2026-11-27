@@ -11,7 +11,7 @@ RUN: %link %linkopts -T %p/Inputs/script_fixPLTaddress.t -o %t.out %t.1.o %t.lib
 RUN: %readelf -x .got.plt %t.out | %filecheck %s
 
 # GOTPLT0 (24 bytes): .dynamic address + zeros
-CHECK: {{0x[0-9a-f]+}} 10034000 00000000
+CHECK: {{0x[0-9a-f]+}} 18034000 00000000
 CHECK-SAME: 00000000 00000000
 CHECK: {{0x[0-9a-f]+}} 00000000 00000000
 

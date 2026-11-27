@@ -10,14 +10,15 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "eld/Readers/EhFrameSection.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticPrinter.h"
 #include "eld/Diagnostics/MsgHandler.h"
 #include "eld/Fragment/EhFrameFragment.h"
 #include "eld/Fragment/RegionFragment.h"
-#include "eld/Readers/EhFrameSection.h"
 #include "eld/Readers/Relocation.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/Support/Endian.h"
 
 using namespace eld;
@@ -110,19 +111,30 @@ Relocation *EhFrameSection::getReloc(size_t Off, size_t Size) {
   return nullptr;
 }
 
-bool EhFrameSection::createCIEAndFDEFragments() {
+bool EhFrameSection::createCIEAndFDEFragments(bool DeduplicateCIEs) {
+  // Maps an input offset to its CIE. An FDE names its CIE by a backward offset
+  // within this input section, so the map is per input section.
   llvm::DenseMap<size_t, EhFrameCIE *> OffsetToCie;
   if (!m_EhFrame)
     return true;
   llvm::StringRef Region = m_EhFrame->getRegion();
+  // Relocations of deduplicated CIEs. The canonical CIE has an equivalent
+  // one, and both map to the same output location, so applying or emitting
+  // the duplicate would write that location twice.
+  llvm::SmallPtrSet<Relocation *, 4> RedundantRelocs;
   for (auto &Piece : m_EhFrame->getPieces()) {
-    if (Piece.getSize() == 4)
-      return true;
+    if (Piece.isTerminator())
+      break;
     size_t Offset = Piece.getOffset();
+    // A zero ID denotes a CIE. For an FDE, ID is the backward distance from
+    // the ID field to its CIE.
     uint32_t ID =
         llvm::support::endian::read32le(Piece.getData(Region).data() + 4);
     if (ID == 0) {
-      OffsetToCie[Offset] = addCie(Piece);
+      EhFrameCIE *Cie = addCie(Piece, DeduplicateCIEs);
+      OffsetToCie[Offset] = Cie;
+      if (&Cie->getCIE() != &Piece && Piece.getRelocation())
+        RedundantRelocs.insert(Piece.getRelocation());
       continue;
     }
 
@@ -146,37 +158,38 @@ bool EhFrameSection::createCIEAndFDEFragments() {
     if (getDiagPrinter()->isVerbose())
       m_DiagEngine->raise(Diag::verbose_ehframe_read_fde)
           << "Reading FDE of size " + std::to_string(Piece.getSize());
-    Cie->appendFDE(make<eld::FDEPiece>(Piece));
+    Cie->appendFDE(make<eld::FDEPiece>(Piece, *m_EhFrame));
   }
+  if (!RedundantRelocs.empty())
+    removeRelocationsIf(
+        [&](Relocation *R) { return RedundantRelocs.contains(R); });
   return true;
 }
 
-EhFrameCIE *EhFrameSection::addCie(EhFramePiece &P) {
-  ResolveInfo *R = nullptr;
-  if (P.getRelocation())
-    R = P.getRelocation()->symInfo();
-  EhFrameCIE *E = CieMap[{P.getData(m_EhFrame->getRegion()), R}];
+EhFrameCIE *EhFrameSection::addCie(EhFramePiece &P, bool DeduplicateCIEs) {
+  Relocation *R = P.getRelocation();
+  auto Key = std::make_pair(P.getData(m_EhFrame->getRegion()),
+                            R ? R->symInfo() : nullptr);
+  EhFrameCIE *E = nullptr;
+  if (DeduplicateCIEs)
+    E = CieMap[Key];
   if (!E) {
     if (getDiagPrinter()->isVerbose())
       m_DiagEngine->raise(Diag::verbose_ehframe_read_cie)
           << "Reading CIE of size " + std::to_string(P.getSize());
     E = make<eld::EhFrameCIE>(P);
     m_EhFrame->getCIEs().push_back(E);
+    if (DeduplicateCIEs)
+      CieMap[Key] = E;
+  } else {
+    E->addAlias(P);
   }
   return E;
 }
 
-// Handle fake eh_frame sections.
 void EhFrameSection::finishAddingFragments(Module &ThisModule) {
   if (!size()) {
     setKind(LinkerSectionKind::Regular);
-    return;
-  }
-  if (m_EhFrame->getCIEs().empty()) {
-    setKind(LinkerSectionKind::Regular);
-    Fragments.push_back(m_EhFrame);
-    if (ThisModule.getLayoutInfo())
-      ThisModule.getLayoutInfo()->recordFragment(getInputFile(), this, m_EhFrame);
     return;
   }
   if (ThisModule.getLayoutInfo())
