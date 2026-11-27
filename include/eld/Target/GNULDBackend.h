@@ -630,7 +630,13 @@ public:
 
   virtual void initializeAttributes() {}
 
-  virtual uint64_t getValueForDiscardedRelocations(const Relocation *R) const;
+  virtual std::optional<uint64_t>
+  lookupDiscardedRelocationOverride(const Relocation *R) const;
+
+  uint64_t getValueForDiscardedRelocations(const Relocation *R) const;
+
+  virtual uint64_t
+  getDefaultValueForDiscardedRelocations(const Relocation *R) const;
 
   virtual bool hasSymInfo(const Relocation *X) const { return true; }
 

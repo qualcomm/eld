@@ -1,0 +1,22 @@
+#---Boundaries.test---------------- Executable ----------------#
+#BEGIN_COMMENT
+# Allocatable references keep their targets live, even with a matching rule.
+# Rules suppress neither undefined symbols nor allocatable /DISCARD/ errors.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/boundaries.S
+RUN: %link %linkopts -o %t1.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections -u alloc_ref -z 'dead-reloc-in-nonalloc=*=0x33333333'
+RUN: %readelf -x .data -x .debug_info %t1.out | %filecheck %s --check-prefix=LIVE
+RUN: %not %link %linkopts -o %t1.discard.out %t1.1.o -T %p/Inputs/discard.t -e _start 2>&1 | %filecheck %s --check-prefix=DISCARD
+RUN: %not %link %linkopts -o %t1.discard.out %t1.1.o -T %p/Inputs/discard.t -e _start -z 'dead-reloc-in-nonalloc=*=0x33333333' 2>&1 | %filecheck %s --check-prefix=DISCARD
+RUN: %clang %clangopts -o %t2.1.o -c %p/Inputs/boundaries.S -DUNDEFINED
+RUN: %not %link %linkopts -o %t2.out %t2.1.o -T %p/Inputs/layout.t -e _start 2>&1 | %filecheck %s --check-prefix=UNDEFINED
+RUN: %not %link %linkopts -o %t2.out %t2.1.o -T %p/Inputs/layout.t -e _start -z 'dead-reloc-in-nonalloc=*=0x33333333' 2>&1 | %filecheck %s --check-prefix=UNDEFINED
+#END_TEST
+
+LIVE: Hex dump of section '.data':
+LIVE-NEXT: 0x00002000 07100000
+LIVE: Hex dump of section '.debug_info':
+LIVE-NEXT: 0x00000000 0b100000
+DISCARD: `dead' referenced in section `.data' of {{.*}}: defined in discarded section
+UNDEFINED: {{(undefined reference to .missing.|Symbol missing is undefined)}}

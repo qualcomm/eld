@@ -118,7 +118,8 @@ public:
 
   ELFSection *getGuard() const { return m_pguard; }
 
-  uint64_t getValueForDiscardedRelocations(const Relocation *R) const override;
+  uint64_t
+  getDefaultValueForDiscardedRelocations(const Relocation *R) const override;
 
   void mayWarnSection(ELFSection *sect) const override;
 

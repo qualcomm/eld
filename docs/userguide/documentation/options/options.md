@@ -190,6 +190,52 @@ The following `-z` keywords are supported by ELD:
 : Report unresolved symbol references from regular object files, even when
   creating a non-symbolic shared library.
 
+`-z dead-reloc-in-nonalloc=<section_glob>=<value>`
+
+: Override the tombstone value written for eligible relocations referring to
+  sections removed by `--gc-sections` or explicitly removed by `/DISCARD/` in a
+  linker script. Explicit discards do not require `--gc-sections`. This is an
+  LLD-compatible option supported by ELD, not an option implemented by GNU ld.
+
+  The LLVM glob pattern matches the whole name of the **input section containing
+  the relocation**, which must be non-allocatable (without `SHF_ALLOC`). It does
+  not match the referenced section, relocation section, or linker-script output
+  section name. Exact names and wildcards such as `.debug_*` are supported. Quote
+  wildcard arguments to prevent shell expansion.
+
+  Rules are evaluated in command-line order; the last matching rule wins, even
+  when its value is zero. Values must be non-negative unsigned 64-bit integers,
+  with the radix detected from the spelling (for example, decimal `16`,
+  hexadecimal `0x10`, or octal `020`). Invalid syntax, malformed patterns, and
+  values outside the unsigned 64-bit range are errors. The selected value is
+  written literally, ignoring the relocation addend and using the existing
+  relocation-width write behavior.
+
+  Live references, absolute symbols, undefined-symbol diagnostics, and
+  allocatable source sections keep their existing behavior. Matching rules apply
+  to both named symbols and local section-symbol references; relocations in
+  source sections that are themselves discarded are not processed. Without the
+  option or a matching rule, ELD retains its existing explicit-discard bytes and
+  diagnostics and its target-specific GC defaults, including the generic value
+  of one for `.debug_loc` and `.debug_ranges` and the end-of-image value on
+  Hexagon and x86-64.
+
+  Like LLD, RISC-V arithmetic ADD/SUB/SET relocations ignore the override.
+  For SET/SUB ULEB128 pairs, only a dead symbol referenced by the SET relocation
+  selects the literal value for the whole pair, ignoring both addends. A live
+  SET symbol with a dead SUB symbol does not select an override. ELD retains its
+  existing results for ineligible relocations and its undefined-symbol errors;
+  these defaults can differ from LLD's.
+
+  The option is inactive during relocatable linking (`-r`): relocations are
+  retained and a valid rule does not produce an unsupported-option warning.
+  Rules are not stored in the relocatable output. Pass the option again on the
+  final link if the override is required.
+
+  For example, `-z 'dead-reloc-in-nonalloc=.debug_*=0xffffffffffffffff'
+  -z 'dead-reloc-in-nonalloc=.debug_loc=0'` selects zero for dead references in
+  `.debug_loc` and the maximum unsigned 64-bit value in other matching sections.
+
 `-z initfirst`
 
 : When building a shared object, mark it to be initialized before other objects

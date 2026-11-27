@@ -2620,6 +2620,18 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
         if (getTargetBackend().isRelocationRelaxed(Relocation))
           return false;
 
+        ELFSection *ApplySect =
+            Relocation->targetRef()->frag()->getOwningSection();
+        if (ApplySect->isIgnore() || ApplySect->isDiscard())
+          return false;
+
+        // Explicitly discarded definitions can bypass the default tombstone path.
+        if (getTargetBackend().lookupDiscardedRelocationOverride(Relocation)) {
+          Relocation->target() =
+              getTargetBackend().getValueForDiscardedRelocations(Relocation);
+          return false;
+        }
+
         if (!Info->outSymbol()->hasFragRef() &&
             ResolveInfo::Section == Info->type() &&
             ResolveInfo::Undefined == Info->desc())
@@ -2632,13 +2644,6 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
                                                     ->isDiscard()))
           return false;
 
-        ELFSection *ApplySect =
-            Relocation->targetRef()->frag()->getOwningSection();
-        // bypass the reloc if the section where it sits will be discarded.
-        if (ApplySect->isIgnore())
-          return false;
-        if (ApplySect->isDiscard())
-          return false;
         ELFSection *TargetSect = Relocation->targetSection();
         if (Info->outSymbol()->shouldIgnore() ||
             (Info->outSymbol()->fragRef() &&

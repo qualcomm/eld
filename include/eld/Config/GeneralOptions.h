@@ -28,6 +28,7 @@
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/Option/ArgList.h"
+#include "llvm/Support/GlobPattern.h"
 #include "llvm/Support/Regex.h"
 #include <set>
 #include <string>
@@ -103,6 +104,9 @@ public:
     std::string Replacement;
   };
   typedef std::vector<RemapEntry> RemapInputsType;
+
+  using DeadRelocInNonAllocType =
+      std::vector<std::pair<llvm::GlobPattern, uint64_t>>;
 
   typedef std::unordered_map<const ResolveInfo *,
                              std::vector<std::pair<const InputFile *, bool>>>
@@ -626,6 +630,13 @@ public:
   /// Apply --remap-inputs rules to \p FileName (first match wins).
   /// Returns the replacement path if a rule matched, or std::nullopt.
   std::optional<std::string> findRemapInput(llvm::StringRef FileName) const;
+
+  const DeadRelocInNonAllocType &deadRelocInNonAlloc() const {
+    return DeadRelocInNonAllocOverrideList;
+  }
+  DeadRelocInNonAllocType &deadRelocInNonAlloc() {
+    return DeadRelocInNonAllocOverrideList;
+  }
 
   // ---- add extern symbols from list file ---- //
   const ExtList &getExternList() const { return ExternList; }
@@ -1395,6 +1406,7 @@ private:
   DynListType VersionScripts;        // --version-script files
   DynListType ExternList;            // --extern-list files
   RemapInputsType RemapInputs;       // --remap-inputs entries
+  DeadRelocInNonAllocType DeadRelocInNonAllocOverrideList;
   std::string Filter;
   std::string MapFile; // Mapfile
   std::string TarFile; // --reproduce output tarfile name

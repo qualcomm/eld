@@ -1,0 +1,98 @@
+#---DeadRelocInNonAlloc.test---------------- Executable ----------------#
+#BEGIN_COMMENT
+# Rules match input section names, not the renamed output or dead target.
+# Dead addends are ignored; live and absolute references remain relocated.
+# The baseline checks legacy range and end-of-image defaults.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/refs.S
+RUN: %link %linkopts -o %t1.base.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections
+RUN: %readelf -x .debug_renamed -x .debug_ranges -x .debug_other %t1.base.out > %t1.base.txt
+RUN: %filecheck %s --check-prefixes=BASE,REST < %t1.base.txt
+RUN: %link %linkopts -o %t1.nomatch.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.debug_renamed=99 -z dead-reloc-in-nonalloc=.text.dead=99
+RUN: %readelf -x .debug_renamed -x .debug_ranges -x .debug_other %t1.nomatch.out > %t1.nomatch.txt
+RUN: %diff %t1.base.txt %t1.nomatch.txt
+
+RUN: %link %linkopts -o %t1.exact.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.debug_loc=0x22222222
+RUN: %readelf -x .debug_renamed %t1.exact.out > %t1.exact.txt
+RUN: %filecheck %s --check-prefix=EXACT < %t1.exact.txt
+RUN: %readelf -x .debug_ranges -x .debug_other %t1.exact.out | %filecheck %s --check-prefix=REST
+RUN: %link %linkopts -o %t1.decimal.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.debug_loc=572662306
+RUN: %readelf -x .debug_renamed %t1.decimal.out > %t1.decimal.txt
+RUN: %diff %t1.exact.txt %t1.decimal.txt
+RUN: %link %linkopts -o %t1.octal.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.debug_loc=04210421042
+RUN: %readelf -x .debug_renamed %t1.octal.out | %filecheck %s --check-prefix=EXACT
+
+# A later glob beats an exact rule, and a repeated exact rule beats the glob.
+RUN: %link %linkopts -o %t1.rules.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections \
+RUN:   -z dead-reloc-in-nonalloc=.debug_loc=17 -z dead-reloc-in-nonalloc=.debug_ranges=17 \
+RUN:   -z 'dead-reloc-in-nonalloc=.debug_*=0x33333333' -z dead-reloc-in-nonalloc=.debug_loc=99 \
+RUN:   -z dead-reloc-in-nonalloc=.debug_loc=0
+RUN: %readelf -x .debug_renamed -x .debug_ranges -x .debug_other %t1.rules.out | %filecheck %s --check-prefix=RULES
+RUN: %link %linkopts -o %t1.zero.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z 'dead-reloc-in-nonalloc=.debug_*=0'
+RUN: %readelf -x .debug_renamed -x .debug_ranges -x .debug_other %t1.zero.out | %filecheck %s --check-prefix=ZERO
+# Accept UINT64_MAX; write its low 32 bits to each eligible 32-bit field.
+RUN: %link %linkopts -o %t1.max.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.debug_loc=0xffffffffffffffff
+RUN: %readelf -x .debug_renamed %t1.max.out | %filecheck %s --check-prefix=MAX
+
+# A non-debug nonalloc source survives GC while its named target is collected.
+# Preserve the existing silent baseline and change only matched dead bytes.
+RUN: %clang %clangopts -o %t2.1.o -c %p/Inputs/refs.S -DNONDEBUG
+RUN: %link %linkopts -o %t2.base.out %t2.1.o -T %p/Inputs/layout.t -e _start --gc-sections
+RUN: %readelf -x .metadata %t2.base.out | %filecheck %s --check-prefix=META_BASE
+RUN: %link %linkopts -o %t2.nomatch.out %t2.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.no_match=0
+RUN: %readelf -x .metadata %t2.nomatch.out | %filecheck %s --check-prefix=META_BASE
+RUN: %link %linkopts -o %t2.match.out %t2.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z 'dead-reloc-in-nonalloc=[.]metadata=0x33333333'
+RUN: %readelf -x .metadata %t2.match.out | %filecheck %s --check-prefix=META
+
+# Partial links retain relocations and do not persist the rule for final linking.
+RUN: %link %linkopts -o %t3.1.o %t1.1.o -r --no-emit-relocs -z 'dead-reloc-in-nonalloc=*=0x22222222' 2>&1 | %filecheck %s --check-prefix=QUIET --allow-empty
+RUN: %readelf -r %t3.1.o | %filecheck %s --check-prefix=RELOCS
+RUN: %link %linkopts -o %t3.base.out %t3.1.o -T %p/Inputs/layout.t -e _start --gc-sections
+RUN: %readelf -x .debug_renamed -x .debug_ranges -x .debug_other %t3.base.out | %filecheck %s --check-prefixes=BASE,REST
+RUN: %link %linkopts -o %t3.match.out %t3.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.debug_loc=0x22222222
+RUN: %readelf -x .debug_renamed %t3.match.out | %filecheck %s --check-prefix=EXACT
+#END_TEST
+
+BASE: Hex dump of section '.debug_renamed':
+BASE-NEXT: 0x00000000 {{01000000|11111111}} {{01000000|11111111}} 03100000 05200000
+REST: Hex dump of section '.debug_ranges':
+REST-NEXT: 0x00000000 {{01000000|11111111}} {{01000000|11111111}}
+REST: Hex dump of section '.debug_other':
+REST-NEXT: 0x00000000 {{00000000|11111111}}
+
+EXACT: Hex dump of section '.debug_renamed':
+EXACT-NEXT: 0x00000000 22222222 22222222 03100000 05200000
+
+RULES: Hex dump of section '.debug_renamed':
+RULES-NEXT: 0x00000000 00000000 00000000 03100000 05200000
+RULES: Hex dump of section '.debug_ranges':
+RULES-NEXT: 0x00000000 33333333 33333333
+RULES: Hex dump of section '.debug_other':
+RULES-NEXT: 0x00000000 33333333
+
+ZERO: Hex dump of section '.debug_renamed':
+ZERO-NEXT: 0x00000000 00000000 00000000 03100000 05200000
+ZERO: Hex dump of section '.debug_ranges':
+ZERO-NEXT: 0x00000000 00000000 00000000
+ZERO: Hex dump of section '.debug_other':
+ZERO-NEXT: 0x00000000 00000000
+
+MAX: Hex dump of section '.debug_renamed':
+MAX-NEXT: 0x00000000 ffffffff ffffffff 03100000 05200000
+
+META_BASE: Hex dump of section '.metadata':
+META_BASE-NEXT: 0x00000000 04000000 0c000000 01000000 454c4400
+META_BASE-NEXT: 0x00000010 {{00000000|11111111}} 03100000 05200000
+
+META: Hex dump of section '.metadata':
+META-NEXT: 0x00000000 04000000 0c000000 01000000 454c4400
+META-NEXT: 0x00000010 33333333 03100000 05200000
+
+QUIET-NOT: {{[Ww]arning}}
+
+RELOCS: Relocation section '{{\.rela?}}.debug_loc' {{.*}} contains 4 entries:
+RELOCS: {{R_[A-Z0-9_]+}} {{.*}} dead
+RELOCS: {{R_[A-Z0-9_]+}} {{.*}} dead
+RELOCS: {{R_[A-Z0-9_]+}} {{.*}} _start
+RELOCS: {{R_[A-Z0-9_]+}} {{.*}} absolute

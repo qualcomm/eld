@@ -742,6 +742,30 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // -z option
   for (auto *Arg : Args.filtered(T::dash_z)) {
     StringRef ZOpt = Arg->getValue();
+    auto Option = ZOpt.split('=');
+    if (Option.first == "dead-reloc-in-nonalloc") {
+      auto Rule = Option.second.split('=');
+      if (Rule.first.empty() || Rule.second.empty()) {
+        Config.raise(Diag::error_dead_reloc_in_nonalloc)
+            << Option.second << "expected <section_glob>=<value>";
+        return false;
+      }
+      uint64_t Value;
+      if (Rule.second.getAsInteger(0, Value)) {
+        Config.raise(Diag::error_dead_reloc_in_nonalloc)
+            << Option.second << "expected a non-negative 64-bit integer";
+        return false;
+      }
+      auto Pattern = llvm::GlobPattern::create(Rule.first);
+      if (!Pattern) {
+        Config.raise(Diag::error_dead_reloc_in_nonalloc)
+            << Option.second << llvm::toString(Pattern.takeError());
+        return false;
+      }
+      Config.options().deadRelocInNonAlloc().emplace_back(std::move(*Pattern),
+                                                       Value);
+      continue;
+    }
     uint64_t Zval = 0;
     eld::ZOption::ZOptionKind ZKind = eld::ZOption::Unknown;
     if (ZOpt == "combreloc")

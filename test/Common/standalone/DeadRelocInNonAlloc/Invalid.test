@@ -1,0 +1,33 @@
+#---Invalid.test---------------- Command Line ----------------#
+#BEGIN_COMMENT
+# Reject malformed dead-relocation override rules: missing fields, invalid or
+# overflowing unsigned 64-bit values, and malformed glob patterns. Validate
+# option syntax during relocatable linking even though overrides are inactive.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/refs.S
+RUN: %not %link %linkopts -o %t1.out %t1.1.o -z dead-reloc-in-nonalloc= 2>&1 | %filecheck %s --check-prefix=EMPTY
+RUN: %not %link %linkopts -o %t1.out %t1.1.o -r --no-emit-relocs -z dead-reloc-in-nonalloc 2>&1 | %filecheck %s --check-prefix=EMPTY
+RUN: %not %link %linkopts -o %t1.out %t1.1.o -z dead-reloc-in-nonalloc=.debug_loc 2>&1 | %filecheck %s --check-prefix=SEPARATOR
+RUN: %not %link %linkopts -o %t1.out %t1.1.o -z dead-reloc-in-nonalloc==0 2>&1 | %filecheck %s --check-prefix=PATTERN
+RUN: %not %link %linkopts -o %t1.out %t1.1.o -z dead-reloc-in-nonalloc=.debug_loc= 2>&1 | %filecheck %s --check-prefix=VALUE
+RUN: %not %link %linkopts -o %t1.out %t1.1.o -z dead-reloc-in-nonalloc=.debug_loc=-1 2>&1 | %filecheck %s --check-prefix=NEGATIVE
+RUN: %not %link %linkopts -o %t1.out %t1.1.o -z dead-reloc-in-nonalloc=.debug_loc=abc 2>&1 | %filecheck %s --check-prefix=NUMBER
+RUN: %not %link %linkopts -o %t1.out %t1.1.o -z dead-reloc-in-nonalloc=.debug_loc=1=2 2>&1 | %filecheck %s --check-prefix=EXTRA
+RUN: %not %link %linkopts -o %t1.out %t1.1.o -z dead-reloc-in-nonalloc=.debug_loc=18446744073709551616 2>&1 | %filecheck %s --check-prefix=OVERFLOW
+RUN: %not %link %linkopts -o %t1.out %t1.1.o -z dead-reloc-in-nonalloc=.debug_loc=0x10000000000000000 2>&1 | %filecheck %s --check-prefix=HEXOVERFLOW
+RUN: %not %link %linkopts -o %t1.out %t1.1.o -z 'dead-reloc-in-nonalloc=[=0' 2>&1 | %filecheck %s --check-prefix=GLOB
+RUN: %not %link %linkopts -o %t1.out %t1.1.o -z 'dead-reloc-in-nonalloc=[z-a]=0' 2>&1 | %filecheck %s --check-prefix=RANGE
+#END_TEST
+
+EMPTY: invalid -z dead-reloc-in-nonalloc value '': expected <section_glob>=<value>
+SEPARATOR: invalid -z dead-reloc-in-nonalloc value '.debug_loc': expected <section_glob>=<value>
+PATTERN: invalid -z dead-reloc-in-nonalloc value '=0': expected <section_glob>=<value>
+VALUE: invalid -z dead-reloc-in-nonalloc value '.debug_loc=': expected <section_glob>=<value>
+NEGATIVE: invalid -z dead-reloc-in-nonalloc value '.debug_loc=-1': expected a non-negative 64-bit integer
+NUMBER: invalid -z dead-reloc-in-nonalloc value '.debug_loc=abc': expected a non-negative 64-bit integer
+EXTRA: invalid -z dead-reloc-in-nonalloc value '.debug_loc=1=2': expected a non-negative 64-bit integer
+OVERFLOW: invalid -z dead-reloc-in-nonalloc value '.debug_loc=18446744073709551616': expected a non-negative 64-bit integer
+HEXOVERFLOW: invalid -z dead-reloc-in-nonalloc value '.debug_loc=0x10000000000000000': expected a non-negative 64-bit integer
+GLOB: invalid -z dead-reloc-in-nonalloc value '[=0': invalid glob pattern, unmatched '['
+RANGE: invalid -z dead-reloc-in-nonalloc value '[z-a]=0': invalid glob pattern: [z-a]
