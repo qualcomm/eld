@@ -1,0 +1,28 @@
+#---DeadRelocInNonAllocLiveSet.test---------------- Executable ----------------#
+#BEGIN_COMMENT
+# A live SET_ULEB128 symbol and a dead SUB_ULEB128 symbol do not select a
+# tombstone, matching LLD's eligibility rule. Preserve ELD's existing zero
+# result rather than adopting LLD's arithmetic result or the requested 0x42.
+# This case is separate so broader pair tombstone handling can be tracked later.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/pair.S
+RUN: %link %linkopts -o %t1.base.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections
+RUN: %readelf -x .debug_pair %t1.base.out > %t1.base.txt
+RUN: %filecheck %s < %t1.base.txt
+RUN: %link %linkopts -o %t1.override.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.debug_pair=0x42
+RUN: %readelf -x .debug_pair %t1.override.out > %t1.override.txt
+RUN: %diff %t1.base.txt %t1.override.txt
+RUN: %link %linkopts -o %t1.zero.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.debug_pair=0
+RUN: %readelf -x .debug_pair %t1.zero.out | %filecheck %s
+RUN: %clang %clangopts -o %t2.1.o -c %p/Inputs/pair.S -DEXPLICIT_DISCARD
+RUN: %link %linkopts -o %t2.base.out %t2.1.o -T %p/Inputs/layout.t -e _start
+RUN: %readelf -x .debug_pair %t2.base.out > %t2.base.txt
+RUN: %filecheck %s < %t2.base.txt
+RUN: %link %linkopts -o %t2.override.out %t2.1.o -T %p/Inputs/layout.t -e _start -z dead-reloc-in-nonalloc=.debug_pair=0x42
+RUN: %readelf -x .debug_pair %t2.override.out > %t2.override.txt
+RUN: %diff %t2.base.txt %t2.override.txt
+#END_TEST
+
+CHECK: Hex dump of section '.debug_pair':
+CHECK-NEXT: 0x00000000 8000

@@ -1,0 +1,98 @@
+#---DeadRelocInNonAllocPairs.test---------------- Executable ----------------#
+#BEGIN_COMMENT
+# Only a matched dead SET_ULEB128 symbol tombstones the whole ULEB128 pair.
+# ADD/SUB arithmetic and live-SET/dead-SUB pairs retain ELD's existing results.
+# Negative live SUB addends keep the existing no-option ULEB128 result in range.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/pairs.S
+RUN: %link %linkopts -o %t1.base.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections
+RUN: %readelf -x .debug_pairs32 -x .debug_pairs_uleb %t1.base.out > %t1.base.txt
+RUN: %filecheck %s --check-prefix=BASE < %t1.base.txt
+RUN: %link %linkopts -o %t1.nomatch.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.no_match=0x42
+RUN: %readelf -x .debug_pairs32 -x .debug_pairs_uleb %t1.nomatch.out > %t1.nomatch.txt
+RUN: %diff %t1.base.txt %t1.nomatch.txt
+RUN: %link %linkopts -o %t1.override.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z 'dead-reloc-in-nonalloc=.debug_pairs*=0x42'
+RUN: %readelf -x .debug_pairs32 -x .debug_pairs_uleb %t1.override.out | %filecheck %s --check-prefix=OVERRIDE
+RUN: %link %linkopts -o %t1.zero.out %t1.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z 'dead-reloc-in-nonalloc=.debug_pairs*=0'
+RUN: %readelf -x .debug_pairs32 -x .debug_pairs_uleb %t1.zero.out | %filecheck %s --check-prefix=ZERO
+
+# Nonalloc-only globals in live sections use the shared tombstone value getter.
+RUN: %clang %clangopts -o %t4.1.o -c %p/Inputs/pairs.S -DGLOBAL_LIVE_END
+RUN: %link %linkopts -o %t4.base.out %t4.1.o -T %p/Inputs/layout.t -e _start --gc-sections
+RUN: %readelf -x .debug_pairs32 -x .debug_pairs_uleb %t4.base.out > %t4.base.txt
+RUN: %filecheck %s --check-prefix=GLOBAL-BASE < %t4.base.txt
+RUN: %link %linkopts -o %t4.nomatch.out %t4.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.no_match=0x42
+RUN: %readelf -x .debug_pairs32 -x .debug_pairs_uleb %t4.nomatch.out > %t4.nomatch.txt
+RUN: %diff %t4.base.txt %t4.nomatch.txt
+RUN: %link %linkopts -o %t4.override.out %t4.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z 'dead-reloc-in-nonalloc=.debug_pairs*=0x42'
+RUN: %readelf -x .debug_pairs32 -x .debug_pairs_uleb %t4.override.out | %filecheck %s --check-prefix=GLOBAL-OVERRIDE
+RUN: %link %linkopts -o %t4.zero.out %t4.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z 'dead-reloc-in-nonalloc=.debug_pairs*=0'
+RUN: %readelf -x .debug_pairs32 -x .debug_pairs_uleb %t4.zero.out | %filecheck %s --check-prefix=GLOBAL-ZERO
+
+# Disable GC here to isolate explicit /DISCARD/ from collection.
+RUN: %clang %clangopts -o %t2.1.o -c %p/Inputs/pairs.S -DEXPLICIT_DISCARD
+RUN: %link %linkopts -o %t2.base.out %t2.1.o -T %p/Inputs/layout.t -e _start
+RUN: %readelf -x .debug_pairs32 -x .debug_pairs_uleb %t2.base.out > %t2.base.txt
+RUN: %link %linkopts -o %t2.nomatch.out %t2.1.o -T %p/Inputs/layout.t -e _start -z dead-reloc-in-nonalloc=.no_match=0x42
+RUN: %readelf -x .debug_pairs32 -x .debug_pairs_uleb %t2.nomatch.out > %t2.nomatch.txt
+RUN: %diff %t2.base.txt %t2.nomatch.txt
+RUN: %link %linkopts -o %t2.override.out %t2.1.o -T %p/Inputs/layout.t -e _start -z 'dead-reloc-in-nonalloc=.debug_pairs*=0x42'
+RUN: %readelf -x .debug_pairs32 -x .debug_pairs_uleb %t2.override.out | %filecheck %s --check-prefix=OVERRIDE
+RUN: %link %linkopts -o %t2.zero.out %t2.1.o -T %p/Inputs/layout.t -e _start -z 'dead-reloc-in-nonalloc=.debug_pairs*=0'
+RUN: %readelf -x .debug_pairs32 -x .debug_pairs_uleb %t2.zero.out | %filecheck %s --check-prefix=ZERO
+
+# A dead first operand must not hide an undefined second operand.
+RUN: %clang %clangopts -o %t3.1.o -c %p/Inputs/undefined.S
+RUN: %not %link %linkopts -o %t3.base.out %t3.1.o -T %p/Inputs/layout.t -e _start --gc-sections 2>&1 | %filecheck %s --check-prefix=UNDEFINED
+RUN: %not %link %linkopts -o %t3.override.out %t3.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z 'dead-reloc-in-nonalloc=.debug_pairs*=0x42' 2>&1 | %filecheck %s --check-prefix=UNDEFINED
+RUN: %clang %clangopts -o %t3.discard.o -c %p/Inputs/undefined.S -DEXPLICIT_DISCARD
+RUN: %not %link %linkopts -o %t3.discard.base.out %t3.discard.o -T %p/Inputs/layout.t -e _start 2>&1 | %filecheck %s --check-prefix=UNDEFINED
+RUN: %not %link %linkopts -o %t3.discard.override.out %t3.discard.o -T %p/Inputs/layout.t -e _start -z 'dead-reloc-in-nonalloc=.debug_pairs*=0x42' 2>&1 | %filecheck %s --check-prefix=UNDEFINED
+# Overrides do not suppress discarded-symbol diagnostics for ADD/SUB arithmetic.
+RUN: %clang %clangopts -o %t5.1.o -c %p/Inputs/mixed-discard.S
+RUN: %not %link %linkopts -o %t5.base.out %t5.1.o -T %p/Inputs/layout.t -e _start --gc-sections 2>&1 | %filecheck %s --check-prefix=MIXED-DISCARD
+RUN: %not %link %linkopts -o %t5.nomatch.out %t5.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.no_match=0x42 2>&1 | %filecheck %s --check-prefix=MIXED-DISCARD
+RUN: %not %link %linkopts -o %t5.override.out %t5.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.metadata=0x42 2>&1 | %filecheck %s --check-prefix=MIXED-DISCARD
+RUN: %not %link %linkopts -o %t5.zero.out %t5.1.o -T %p/Inputs/layout.t -e _start --gc-sections -z dead-reloc-in-nonalloc=.metadata=0 2>&1 | %filecheck %s --check-prefix=MIXED-DISCARD
+#END_TEST
+
+BASE: Hex dump of section '.debug_pairs32':
+BASE-NEXT: 0x00000000 00000000 10000000 00000000 19000000
+BASE-NEXT: 0x00000010 3e000000 2b000000
+BASE: Hex dump of section '.debug_pairs_uleb':
+BASE-NEXT: 0x00000000 80009000 8000b500
+
+OVERRIDE: Hex dump of section '.debug_pairs32':
+OVERRIDE-NEXT: 0x00000000 00000000 10000000 00000000 19000000
+OVERRIDE-NEXT: 0x00000010 3e000000 2b000000
+OVERRIDE: Hex dump of section '.debug_pairs_uleb':
+OVERRIDE-NEXT: 0x00000000 c200c200 8000b500
+
+ZERO: Hex dump of section '.debug_pairs32':
+ZERO-NEXT: 0x00000000 00000000 10000000 00000000 19000000
+ZERO-NEXT: 0x00000010 3e000000 2b000000
+ZERO: Hex dump of section '.debug_pairs_uleb':
+ZERO-NEXT: 0x00000000 80008000 8000b500
+
+GLOBAL-BASE: Hex dump of section '.debug_pairs32':
+GLOBAL-BASE-NEXT: 0x00000000 00000000 10000000 00000000 edffffff
+GLOBAL-BASE-NEXT: 0x00000010 edffffff daffffff
+GLOBAL-BASE: Hex dump of section '.debug_pairs_uleb':
+GLOBAL-BASE-NEXT: 0x00000000 80009000 80009000
+
+GLOBAL-OVERRIDE: Hex dump of section '.debug_pairs32':
+GLOBAL-OVERRIDE-NEXT: 0x00000000 00000000 10000000 00000000 edffffff
+GLOBAL-OVERRIDE-NEXT: 0x00000010 edffffff daffffff
+GLOBAL-OVERRIDE: Hex dump of section '.debug_pairs_uleb':
+GLOBAL-OVERRIDE-NEXT: 0x00000000 c200c200 80009000
+
+GLOBAL-ZERO: Hex dump of section '.debug_pairs32':
+GLOBAL-ZERO-NEXT: 0x00000000 00000000 10000000 00000000 edffffff
+GLOBAL-ZERO-NEXT: 0x00000010 edffffff daffffff
+GLOBAL-ZERO: Hex dump of section '.debug_pairs_uleb':
+GLOBAL-ZERO-NEXT: 0x00000000 80008000 80009000
+
+UNDEFINED: {{(undefined reference to .missing.|Symbol missing is undefined)}}
+
+MIXED-DISCARD: `explicit_dead' referenced in section `.metadata' of {{.*}}: defined in discarded section

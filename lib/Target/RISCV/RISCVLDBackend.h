@@ -193,6 +193,9 @@ public:
     return reloc->second;
   }
 
+  std::optional<uint64_t>
+  lookupDiscardedRelocationOverride(const Relocation *R) const override;
+
   Relocation *getBaseReloc(const Relocation &R) const {
     auto reloc = m_BaseRelocs.find(&R);
     if (reloc == m_BaseRelocs.end())
@@ -393,6 +396,7 @@ private:
   /// important to update the cached value in the very first relocation in a
   /// group.
   llvm::DenseMap<const Relocation *, Relocation *> m_GroupRelocs;
+  llvm::DenseMap<const Relocation *, const Relocation *> m_ULEB128SetRelocs;
 
   /// A map to keep track of the relocation that defines the base address for
   /// relative relocations. This is a concept in RISC-V and applies to

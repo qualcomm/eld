@@ -1,0 +1,50 @@
+#---Discard.test---------------- Executable ----------------#
+#BEGIN_COMMENT
+# Explicit /DISCARD/ needs no GC: named globals and local section symbols
+# receive literal overrides, ignoring nonzero addends. Live refs stay intact.
+# No option and nonmatching rules preserve the existing bytes or diagnostics.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/discard-refs.S
+RUN: %link %linkopts -o %t1.base.out %t1.1.o -T %p/Inputs/discard-nonalloc.t -e _start
+RUN: %readelf -x .debug_renamed %t1.base.out > %t1.base.txt
+RUN: %link %linkopts -o %t1.nomatch.out %t1.1.o -T %p/Inputs/discard-nonalloc.t -e _start -z dead-reloc-in-nonalloc=.debug_renamed=99 -z dead-reloc-in-nonalloc=.text.discarded=99
+RUN: %readelf -x .debug_renamed %t1.nomatch.out > %t1.nomatch.txt
+RUN: %diff %t1.base.txt %t1.nomatch.txt
+RUN: %link %linkopts -o %t1.literal.out %t1.1.o -T %p/Inputs/discard-nonalloc.t -e _start -z dead-reloc-in-nonalloc=.debug_discarded=0x33333333 -z dead-reloc-in-nonalloc=.discarded=0x22222222
+RUN: %readelf -x .debug_renamed %t1.literal.out | %filecheck %s --check-prefix=LITERAL
+RUN: %link %linkopts -o %t1.zero.out %t1.1.o -T %p/Inputs/discard-nonalloc.t -e _start -z 'dead-reloc-in-nonalloc=*=0'
+RUN: %readelf -x .debug_renamed %t1.zero.out | %filecheck %s --check-prefix=ZERO
+RUN: %readelf -S %t1.literal.out | %filecheck %s --check-prefix=SECTIONS
+RUN: %readelf -S %t1.zero.out | %filecheck %s --check-prefix=SECTIONS
+
+# Non-debug nonalloc sources keep explicit-discard errors unless matched.
+RUN: %clang %clangopts -o %t2.1.o -c %p/Inputs/discard-refs.S -DNONDEBUG
+RUN: %not %link %linkopts -o %t2.base.out %t2.1.o -T %p/Inputs/discard-nonalloc.t -e _start 2>&1 | %filecheck %s --check-prefix=DISCARD
+RUN: %not %link %linkopts -o %t2.nomatch.out %t2.1.o -T %p/Inputs/discard-nonalloc.t -e _start -z dead-reloc-in-nonalloc=.no_match=0 2>&1 | %filecheck %s --check-prefix=DISCARD
+RUN: %link %linkopts -o %t2.literal.out %t2.1.o -T %p/Inputs/discard-nonalloc.t -e _start -z dead-reloc-in-nonalloc=.metadata=0x33333333
+RUN: %readelf -x .metadata %t2.literal.out | %filecheck %s --check-prefix=META-LITERAL
+RUN: %link %linkopts -o %t2.zero.out %t2.1.o -T %p/Inputs/discard-nonalloc.t -e _start -z dead-reloc-in-nonalloc=.metadata=0
+RUN: %readelf -x .metadata %t2.zero.out | %filecheck %s --check-prefix=META-ZERO
+#END_TEST
+
+LITERAL: Hex dump of section '.debug_renamed':
+LITERAL-NEXT: 0x00000000 33333333 33333333 33333333 33333333
+LITERAL-NEXT: 0x00000010 03100000 05200000
+ZERO: Hex dump of section '.debug_renamed':
+ZERO-NEXT: 0x00000000 00000000 00000000 00000000 00000000
+ZERO-NEXT: 0x00000010 03100000 05200000
+META-LITERAL: Hex dump of section '.metadata':
+META-LITERAL-NEXT: 0x00000000 04000000 18000000 01000000 454c4400
+META-LITERAL-NEXT: 0x00000010 33333333 33333333 33333333 33333333
+META-LITERAL-NEXT: 0x00000020 03100000 05200000
+META-ZERO: Hex dump of section '.metadata':
+META-ZERO-NEXT: 0x00000000 04000000 18000000 01000000 454c4400
+META-ZERO-NEXT: 0x00000010 00000000 00000000 00000000 00000000
+META-ZERO-NEXT: 0x00000020 03100000 05200000
+DISCARD: `{{(dead|\.text\.discarded)}}' referenced in section `.metadata' of {{.*}}: defined in discarded section
+SECTIONS-NOT: .text.discarded
+SECTIONS-NOT: .discarded
+SECTIONS: .debug_renamed
+SECTIONS-NOT: .text.discarded
+SECTIONS-NOT: .discarded

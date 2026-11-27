@@ -2164,6 +2164,37 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
   return false;
 }
 
+std::optional<uint64_t>
+RISCVLDBackend::lookupDiscardedRelocationOverride(const Relocation *R) const {
+  switch (R->type()) {
+  case llvm::ELF::R_RISCV_ADD8:
+  case llvm::ELF::R_RISCV_ADD16:
+  case llvm::ELF::R_RISCV_ADD32:
+  case llvm::ELF::R_RISCV_ADD64:
+  case llvm::ELF::R_RISCV_SUB8:
+  case llvm::ELF::R_RISCV_SUB16:
+  case llvm::ELF::R_RISCV_SUB32:
+  case llvm::ELF::R_RISCV_SUB64:
+  case llvm::ELF::R_RISCV_SUB6:
+  case llvm::ELF::R_RISCV_SET6:
+  case llvm::ELF::R_RISCV_SET8:
+  case llvm::ELF::R_RISCV_SET16:
+  case llvm::ELF::R_RISCV_SET32:
+    // Like LLD, leave arithmetic relocations unaffected by the override.
+    return std::nullopt;
+  case llvm::ELF::R_RISCV_SUB_ULEB128:
+    // Only the SET symbol selects a tombstone for the ULEB128 pair.
+    if (auto It = m_ULEB128SetRelocs.find(R); It != m_ULEB128SetRelocs.end())
+      R = It->second;
+    else
+      return std::nullopt;
+    break;
+  default:
+    break;
+  }
+  return GNULDBackend::lookupDiscardedRelocationOverride(R);
+}
+
 bool RISCVLDBackend::handlePendingRelocations(ELFSection *section) {
 
   std::optional<Relocation *> lastRelocationVisited;
@@ -2183,6 +2214,9 @@ bool RISCVLDBackend::handlePendingRelocations(ELFSection *section) {
             << getRISCVRelocName(Relocation->type()) << "R_RISCV_SET_ULEB128";
         return false;
       }
+      if (!section->isAlloc() &&
+          !config().options().deadRelocInNonAlloc().empty())
+        m_ULEB128SetRelocs[Relocation] = lastRelocationVisited.value();
       lastRelocationVisited.reset();
       lastSetUleb128RelocationVisited.reset();
       break;

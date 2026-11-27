@@ -59,7 +59,8 @@ public:
   /// finalizeTargetSymbols - finalize the symbol value
   bool finalizeTargetSymbols() override;
 
-  uint64_t getValueForDiscardedRelocations(const Relocation *R) const override;
+  uint64_t
+  getDefaultValueForDiscardedRelocations(const Relocation *R) const override;
 
   void reserveTargetDynamicEntries() override;
   void applyTargetDynamicEntries() override;

@@ -142,6 +142,8 @@ DIAG(thread_count_with_no_threads, DiagnosticEngine::Error,
      "Cannot disable threads and specify thread count")
 DIAG(invalid_value_for_option, DiagnosticEngine::Error,
      "Invalid value for %0: %1")
+DIAG(error_dead_reloc_in_nonalloc, DiagnosticEngine::Error,
+     "invalid -z dead-reloc-in-nonalloc value '%0': %1")
 DIAG(invalid_option, DiagnosticEngine::Error,
      "Invalid option %0 specified for %1")
 DIAG(invalid_option_mapstyle, DiagnosticEngine::Error,

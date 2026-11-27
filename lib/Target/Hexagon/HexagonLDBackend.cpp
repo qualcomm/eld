@@ -611,10 +611,10 @@ bool HexagonLDBackend::finalizeLayout() {
   return true;
 }
 
-uint64_t
-HexagonLDBackend::getValueForDiscardedRelocations(const Relocation *R) const {
+uint64_t HexagonLDBackend::getDefaultValueForDiscardedRelocations(
+    const Relocation *R) const {
   if (!m_pEndOfImage)
-    return GNULDBackend::getValueForDiscardedRelocations(R);
+    return GNULDBackend::getDefaultValueForDiscardedRelocations(R);
   return m_pEndOfImage->value();
 }
 

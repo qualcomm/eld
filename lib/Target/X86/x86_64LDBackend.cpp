@@ -435,10 +435,10 @@ x86_64PLT *x86_64LDBackend::findEntryInPLT(ResolveInfo *I) const {
   return Entry->second;
 }
 
-uint64_t
-x86_64LDBackend::getValueForDiscardedRelocations(const Relocation *R) const {
+uint64_t x86_64LDBackend::getDefaultValueForDiscardedRelocations(
+    const Relocation *R) const {
   if (!m_pEndOfImage)
-    return GNULDBackend::getValueForDiscardedRelocations(R);
+    return GNULDBackend::getDefaultValueForDiscardedRelocations(R);
   return m_pEndOfImage->value();
 }
 

@@ -137,7 +137,7 @@ GNULDBackend::GNULDBackend(Module &pModule, TargetInfo *pInfo)
 GNULDBackend::~GNULDBackend() {}
 
 uint64_t
-GNULDBackend::getValueForDiscardedRelocations(const Relocation *R) const {
+GNULDBackend::getDefaultValueForDiscardedRelocations(const Relocation *R) const {
   llvm::StringRef SectionName =
       R->targetRef()->frag()->getOwningSection()->name();
   // Legacy range and location lists reserve (0,0) for the end of the list.
@@ -4223,6 +4223,35 @@ bool shouldIgnoreDiscardedRelocationsFromSection(const ELFSection &Section) {
 
 } // namespace
 
+std::optional<uint64_t>
+GNULDBackend::lookupDiscardedRelocationOverride(const Relocation *R) const {
+  const auto &Rules = config().options().deadRelocInNonAlloc();
+  if (Rules.empty() || config().codeGenType() == LinkerConfig::Object)
+    return std::nullopt;
+  const auto *SourceSection = R->targetRef()->frag()->getOwningSection();
+  if (SourceSection->isAlloc())
+    return std::nullopt;
+  const auto *Sym = R->symInfo()->outSymbol();
+  const auto *TargetSection = R->targetSection();
+  if (!(Sym->fragRef() && Sym->fragRef()->isDiscard()) &&
+      !(TargetSection &&
+        (TargetSection->isIgnore() || TargetSection->isDiscard() ||
+         (TargetSection->getOutputSection() &&
+          TargetSection->getOutputSection()->isDiscard()))))
+    return std::nullopt;
+  for (auto It = Rules.rbegin(); It != Rules.rend(); ++It)
+    if (It->first.match(SourceSection->name()))
+      return It->second;
+  return std::nullopt;
+}
+
+uint64_t
+GNULDBackend::getValueForDiscardedRelocations(const Relocation *R) const {
+  if (auto Value = lookupDiscardedRelocationOverride(R))
+    return *Value;
+  return getDefaultValueForDiscardedRelocations(R);
+}
+
 bool GNULDBackend::maySkipRelocProcessing(Relocation *pReloc) const {
   auto canSkip = [&](Relocation *relocation) -> bool {
     const ResolveInfo *info = relocation->symInfo();
@@ -4246,7 +4275,8 @@ bool GNULDBackend::maySkipRelocProcessing(Relocation *pReloc) const {
           (OutSym->hasFragRef() &&
            (OutFrag->frag()->getOwningSection()->isIgnore() ||
             OutFrag->frag()->getOwningSection()->isDiscard()))) {
-        if (!shouldIgnoreDiscardedRelocationsFromSection(*OwningSection)) {
+        if (!shouldIgnoreDiscardedRelocationsFromSection(*OwningSection) &&
+            !lookupDiscardedRelocationOverride(relocation)) {
           // ld also reports the name and file of the discarded section. We
           // don't have this information because such sections are not loaded,
           // there are no fragments, and resolve info points to a discard
