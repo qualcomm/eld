@@ -80,6 +80,33 @@ bool x86_64Relocator::isRelocSupported(const Relocation &Reloc) const {
          x86_64::Relocs[Type].Handler != &x86_64::unsupported;
 }
 
+bool x86_64Relocator::isPICRelocTypeSupported(
+    const Relocation &Reloc) const {
+  switch (Reloc.type()) {
+  case llvm::ELF::R_X86_64_TPOFF32:
+  case llvm::ELF::R_X86_64_TPOFF64:
+    // A DSO's TP-relative offset is assigned by the loader and cannot be baked
+    // into a local-exec relocation. PIE is the main executable, so it is valid.
+    return config().options().isPIE();
+  default:
+    return true;
+  }
+}
+
+bool x86_64Relocator::reportNonPICRelocation(
+    const Relocation &Reloc) const {
+  switch (Reloc.type()) {
+  case llvm::ELF::R_X86_64_TPOFF32:
+  case llvm::ELF::R_X86_64_TPOFF64:
+    config().raise(Diag::tls_local_exec_shared_relocation)
+        << getName(Reloc.type()) << Reloc.symInfo()->name()
+        << Reloc.getSourcePath(config().options());
+    return false;
+  default:
+    return Relocator::reportNonPICRelocation(Reloc);
+  }
+}
+
 bool x86_64Relocator::needsSerialScan(const Relocation &Reloc,
                                       const ELFSection &) const {
   ResolveInfo *Sym = Reloc.symInfo();

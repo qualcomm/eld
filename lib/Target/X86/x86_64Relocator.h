@@ -54,6 +54,10 @@ protected:
 
   bool isRelocSupported(const Relocation &Reloc) const override;
 
+  bool isPICRelocTypeSupported(const Relocation &Reloc) const override;
+
+  bool reportNonPICRelocation(const Relocation &Reloc) const override;
+
   void scanDeferredRelocation(InputFile &Input, Relocation &Reloc,
                               ELFSection &Section,
                               CopyRelocs &CopyRelocSet) override;

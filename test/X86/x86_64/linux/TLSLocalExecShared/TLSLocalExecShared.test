@@ -1,0 +1,64 @@
+## Direct local-exec TLS relocations are valid in executables, PIE, and partial
+## links, but a shared library cannot know its final TP-relative offset.
+
+# RUN: split-file %s %t
+# RUN: %clang %clangopts -c -fPIC -ftls-model=local-exec %t/tpoff32.c -o %t/tpoff32.o
+# RUN: %clang %clangopts -c -fPIC -ftls-model=local-exec %t/tpoff64.c -o %t/tpoff64.o
+# RUN: %clang %clangopts -c -fPIC -ftls-model=initial-exec %t/ie.c -o %t/ie.o
+# RUN: %readelf -r %t/tpoff32.o | %filecheck %s --check-prefix=INPUT32
+# RUN: %readelf -r %t/tpoff64.o | %filecheck %s --check-prefix=INPUT64
+
+## Check both scan paths and show that binding locally with -Bsymbolic does not
+## make a shared library's TP-relative offset known.
+# RUN: %not %link %linkopts -shared -Bsymbolic --no-threads %t/tpoff32.o -o %t/tpoff32.so 2>&1 | %filecheck %s --check-prefix=ERR32-DIRECT
+# RUN: %not %link %linkopts -shared --enable-threads=all --thread-count=2 %t/tpoff64.o -o %t/tpoff64.so 2>&1 | %filecheck %s --check-prefix=ERR64
+
+# RUN: %link %linkopts -e _start %t/tpoff32.o %t/tpoff64.o -o %t/exe
+# RUN: %link %linkopts -pie -e _start %t/tpoff32.o %t/tpoff64.o -o %t/pie
+# RUN: %link %linkopts -r %t/tpoff32.o %t/tpoff64.o -o %t/partial.o
+# RUN: %readelf -r %t/partial.o | %filecheck %s --check-prefix=PARTIAL
+# RUN: %not %link %linkopts -shared --no-threads %t/partial.o -o %t/partial.so 2>&1 | %filecheck %s --check-prefix=ERR32-PARTIAL
+
+## Initial-exec input uses GOTTPOFF. Its loader-filled GOT slot legitimately
+## produces a dynamic TPOFF64 relocation in a shared library.
+# RUN: %readelf -r %t/ie.o | %filecheck %s --check-prefix=IE-INPUT
+# RUN: %link %linkopts -shared %t/ie.o -o %t/ie.so
+# RUN: %readelf -r -d %t/ie.so | %filecheck %s --check-prefix=IE-OUTPUT
+
+# ERR32-DIRECT: relocation type `R_X86_64_TPOFF32' against symbol `tls32' cannot be used with -shared
+# ERR32-DIRECT-SAME: referred from {{.*}}tpoff32.o[.text]
+# ERR32-PARTIAL: relocation type `R_X86_64_TPOFF32' against symbol `tls32' cannot be used with -shared
+# ERR32-PARTIAL-SAME: referred from {{.*}}partial.o[.text]
+# ERR64: relocation type `R_X86_64_TPOFF64' against symbol `tls64' cannot be used with -shared
+# ERR64-SAME: referred from {{.*}}tpoff64.o[.text]
+
+# INPUT32: R_X86_64_TPOFF32{{.*}}tls32
+# INPUT64: R_X86_64_TPOFF64{{.*}}tls64
+
+# PARTIAL-DAG: R_X86_64_TPOFF32{{.*}}tls32
+# PARTIAL-DAG: R_X86_64_TPOFF64{{.*}}tls64
+
+# IE-INPUT: R_X86_64_GOTTPOFF
+# IE-INPUT-NOT: R_X86_64_TPOFF64
+# IE-OUTPUT-DAG: R_X86_64_TPOFF64
+# IE-OUTPUT-DAG: STATIC_TLS
+
+#--- tpoff32.c
+__thread int tls32 = 1;
+
+int _start(void) { return tls32; }
+
+#--- tpoff64.c
+static __thread int tls64 __attribute__((used)) = 2;
+
+long get_tls64_offset(void) {
+  long offset;
+  // Select the 64-bit immediate form so this C input covers TPOFF64.
+  __asm__("movabsq $tls64@TPOFF, %0" : "=r"(offset));
+  return offset;
+}
+
+#--- ie.c
+static __thread int ie_tls = 3;
+
+int read_ie(void) { return ie_tls; }
