@@ -135,6 +135,7 @@ movt r0, #:upper16:symbol   @ R_ARM_THM_MOVT_ABS
 | `R_ARM_LDC_PC_G1` | `S + A - P` | U bit + imm8, scaled by 4 | [0, 1023], 4-byte aligned | <ul><li><code>S: J[i]{w}</code></li><li><code>D: -</code></li><li><code>P: -; I: J[i]{w}</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: R[i]{w}</code></li><li><code>D: -</code></li><li><code>P: -; I: R[i]{w}</code></li><li><code>H: -</code></li></ul> | No |
 | `R_ARM_LDC_PC_G2` | `S + A - P` | U bit + imm8, scaled by 4 | [0, 1023], 4-byte aligned | <ul><li><code>S: J[i]{w}</code></li><li><code>D: -</code></li><li><code>P: -; I: J[i]{w}</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: R[i]{w}</code></li><li><code>D: -</code></li><li><code>P: -; I: R[i]{w}</code></li><li><code>H: -</code></li></ul> | No |
 | `R_ARM_LDC_SB_G0` | `S + A - B(S)` | U bit + imm8, scaled by 4 | [0, 1023], 4-byte aligned | <ul><li><code>S: J[i]{w}</code></li><li><code>D: -</code></li><li><code>P: -; I: J[i]{w}</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: R[i]{w}</code></li><li><code>D: -</code></li><li><code>P: -; I: R[i]{w}</code></li><li><code>H: -</code></li></ul> | No |
+| `R_ARM_LDC_SB_G1` | `S + A - B(S)` | U bit + imm8, scaled by 4 | [0, 1023], 4-byte aligned | <ul><li><code>S: J[i]{w}</code></li><li><code>D: -</code></li><li><code>P: -; I: J[i]{w}</code></li><li><code>H: -</code></li></ul> | <ul><li><code>S: R[i]{w}</code></li><li><code>D: -</code></li><li><code>P: -; I: R[i]{w}</code></li><li><code>H: -</code></li></ul> | No |
 
 `R_ARM_LDRS_PC_G0`, `R_ARM_LDRS_PC_G1`, and `R_ARM_LDRS_PC_G2` are memory-form group relocations.
 They compute `X = S + A - P` and encode the residual selected by the
@@ -146,11 +147,12 @@ residual selected by the corresponding LDC group mask. `U` encodes the sign
 and `imm8` encodes the residual divided by four, requiring the residual to
 be 4-byte aligned and no greater than 1023.
 
-`R_ARM_LDC_SB_G0` is an LDC/STC SB-relative group relocation. It computes
-`X = S + A - B(S)`, where `B(S)` is the base address of the load segment
-containing the referenced symbol. It encodes the G0 residual using the `U`
-bit for the sign and `imm8` for the residual divided by four, requiring the
-residual to be 4-byte aligned and no greater than 1023.
+`R_ARM_LDC_SB_G0` and `R_ARM_LDC_SB_G1` are LDC/STC SB-relative group
+relocations. They compute `X = S + A - B(S)`, where `B(S)` is the base
+address of the load segment containing the referenced symbol, and encode
+the residual selected by the corresponding LDC group mask. `U` encodes the
+sign and `imm8` encodes the residual divided by four, requiring the residual
+to be 4-byte aligned and no greater than 1023.
 
 | Relocation | Expression | Encoding | Range | GOT allocation | PLT allocation | Trampoline / range |
 |------------|------------|----------|-------|-------------------------|-------------------------|--------------------|
@@ -257,7 +259,6 @@ The table below lists every relocation that ELD's ARM backend maps to the `unsup
 | 78 | `R_ARM_LDRS_SB_G0` | Group reloc — LDRD/STRD section-base G0 | | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | N/A |
 | 79 | `R_ARM_LDRS_SB_G1` | Group reloc — LDRD/STRD section-base G1 | | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | N/A |
 | 80 | `R_ARM_LDRS_SB_G2` | Group reloc — LDRD/STRD section-base G2 | | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | N/A |
-| 82 | `R_ARM_LDC_SB_G1` | Group reloc — LDC/STC section-base G1 | | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | N/A |
 | 83 | `R_ARM_LDC_SB_G2` | Group reloc — LDC/STC section-base G2 | | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | N/A |
 | 84 | `R_ARM_MOVW_BREL_NC` | MOVW section-base relative, no overflow | Implement MOVW/T_BREL (ARM) | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | N/A |
 | 85 | `R_ARM_MOVT_BREL` | MOVT section-base relative | Implement MOVW/T_BREL (ARM) | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | <ul><li><code>S: X</code></li><li><code>D: X</code></li><li><code>P: X</code></li><li><code>H: X</code></li></ul> | N/A |
