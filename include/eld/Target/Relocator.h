@@ -198,7 +198,7 @@ private:
   llvm::DenseMap<uint64_t, bool> UndefHits;
 
 protected:
-  bool reportNonPICRelocation(const Relocation &reloc) const;
+  virtual bool reportNonPICRelocation(const Relocation &reloc) const;
 
   virtual bool isRelocSupported(const Relocation &Reloc) const { return true; }
 

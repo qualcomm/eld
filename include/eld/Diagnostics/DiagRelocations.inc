@@ -20,6 +20,9 @@ DIAG(undefined_reference_text, DiagnosticEngine::Error,
 DIAG(non_pic_relocation, DiagnosticEngine::Fatal,
      "Current link configuration does not support relocation type `%0' for "
      "symbol `%1' referred from %2 , recompile with -fPIC")
+DIAG(tls_local_exec_shared_relocation, DiagnosticEngine::Fatal,
+     "relocation type `%0' against symbol `%1' cannot be used with -shared; "
+     "referred from %2")
 DIAG(reloc_nonalloc_section, DiagnosticEngine::Fatal,
      "relocation type `%0' for symbol `%1' cannot be used when referred from non-allocated section `%2'")
 DIAG(base_relocation, DiagnosticEngine::Fatal,
