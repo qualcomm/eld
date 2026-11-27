@@ -1,0 +1,38 @@
+#---LinkerScriptInStartLib.test--------------------- Executable --------------------#
+#BEGIN_COMMENT
+# A linker script given with -T between --start-lib and --end-lib must be
+# fully processed: SECTIONS placement and symbol assignments must apply,
+# just as when the script is outside the range. The script must not make
+# the other library members eager.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t1.main.o
+RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/foo.c -o %t1.foo.o
+RUN: %clang %clangopts -c %p/Inputs/unused.c -o %t1.unused.o
+
+# Control: script outside the library range.
+RUN: %link %linkopts %t1.main.o -T %p/Inputs/script.t \
+RUN:   --start-lib %t1.foo.o %t1.unused.o --end-lib -o %t2.outside.out
+RUN: %readelf -S -W %t2.outside.out | %filecheck %s --check-prefix=SECT
+RUN: %readelf -s -W %t2.outside.out | %filecheck %s --check-prefix=SYM
+
+# Script after a member inside the range.
+RUN: %link %linkopts %t1.main.o \
+RUN:   --start-lib %t1.foo.o -T %p/Inputs/script.t %t1.unused.o --end-lib \
+RUN:   -o %t2.inside.out
+RUN: %readelf -S -W %t2.inside.out | %filecheck %s --check-prefix=SECT
+RUN: %readelf -s -W %t2.inside.out | %filecheck %s --check-prefix=SYM
+
+# Script first inside the range.
+RUN: %link %linkopts %t1.main.o \
+RUN:   --start-lib -T %p/Inputs/script.t %t1.foo.o %t1.unused.o --end-lib \
+RUN:   -o %t2.first.out
+RUN: %readelf -S -W %t2.first.out | %filecheck %s --check-prefix=SECT
+RUN: %readelf -s -W %t2.first.out | %filecheck %s --check-prefix=SYM
+
+SECT: {{[[:space:]]\.foo_out[[:space:]]}}
+SECT-NOT: {{[[:space:]]\.text\.foo[[:space:]]}}
+
+SYM-DAG: {{0*1234[[:space:]].*ABS[[:space:]]+script_marker$}}
+SYM-NOT: {{[[:space:]]unused_marker$}}
+#END_TEST
