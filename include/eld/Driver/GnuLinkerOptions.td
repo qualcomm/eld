@@ -701,7 +701,8 @@ def u_alias : JJ<"undefined=">,
               Group<grp_resolveropt>,
               Alias<u>;
 defm start_group : mDashDeprWithOpt<"start-group", "start_group",
-                                    "Archives between --start-group and --end-group are searched repeatedly until no new undefined symbols are resolved">,
+                                    "Archives between --start-group and --end-group are searched repeatedly\n"
+                                    "until no new undefined symbols are resolved">,
                    Group<grp_resolveropt>;
 def start_lib : FF<"start-lib">,
                 HelpText<"Start a library">,
@@ -714,7 +715,8 @@ def alias_start_group : Flag<["-"], "(">,
                         Group<grp_resolveropt>,
                         Alias<start_group>;
 defm end_group : mDashDeprWithOpt<"end-group", "end_group",
-                                  "Archives between --start-group and --end-group are searched repeatedly until no new undefined symbols are resolved">,
+                                  "Archives between --start-group and --end-group are searched repeatedly\n"
+                                  "until no new undefined symbols are resolved">,
                  Group<grp_resolveropt>;
 def end_lib : FF<"end-lib">,
               HelpText<"End a library">,
