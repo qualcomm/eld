@@ -269,6 +269,14 @@ bool LinkerConfig::setWarningOption(llvm::StringRef WarnOption) {
     setShowLinkerScriptMemoryWarning(false);
     return true;
   }
+  if (WarnOpt == "dynamic") {
+    setShowDynamicWarnings(true);
+    return true;
+  }
+  if (WarnOpt == "no-dynamic") {
+    setShowDynamicWarnings(false);
+    return true;
+  }
   if (WarnOpt == "bad-dot-assignments") {
     setShowBadDotAssginmentsWarning(true);
     return true;
