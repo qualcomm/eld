@@ -54,7 +54,7 @@ DIAG(warn_icf_disabled_plugins, DiagnosticEngine::Warning,
      "--icf is disabled when plugins are loaded because plugins may replace "
      "symbol contents")
 DIAG(warn_incompatible_option, DiagnosticEngine::Warning,
-     "Option `-%0' is disabled as it is incompatible with `-%1`")
+     "Option `%0' is disabled as it is incompatible with `%1`")
 DIAG(err_icf_relocatable, DiagnosticEngine::Error,
      "--icf=%0 cannot be used with -r (partial link); use --icf=none or omit "
      "--icf")

@@ -935,6 +935,8 @@ def W : Joined<["-"], "W">,
              "with different values for OS/ABI\n"
              "\t\t\t -W[no-]version-script : display warnings detected while "
              "processing version scripts\n"
+             "\t\t\t -W[no-]conflicting-options : display warnings for "
+             "conflicting command line options\n"
             >,
         Group<grp_diagopts>;
 
