@@ -209,19 +209,31 @@ bool BitcodeReader::readInput(InputFile &InputFile,
     llvm::StringRef name = wrapper.first();
     if (!m_Module.hasWrapReference(name) || name.starts_with("__real_"))
       continue;
-    LDSymbol *sym = m_Module.getNamePool().findSymbol(name.str());
-    if (sym && !sym->resolveInfo()->isBitCode())
+
+    // A native reference can set WrappedReferences before this bitcode file
+    // is read. Only synthesize the wrapper reference when this bitcode file
+    // itself has an undefined source symbol for the wrapped name.
+    ResolveInfo::Binding binding = ResolveInfo::Global;
+    bool hasBitcodeReference = false;
+    for (const auto &sourceSymbol : BitcodeFile->getInputFile().symbols()) {
+      if (sourceSymbol.getName() == name && sourceSymbol.isUndefined()) {
+        binding = getSymBinding(sourceSymbol);
+        hasBitcodeReference = true;
+        break;
+      }
+    }
+    if (!hasBitcodeReference)
       continue;
+
     std::string wrapName = std::string("__wrap_") + name.str();
     if (m_Module.getConfig().getPrinter()->traceWrapSymbols())
       m_Module.getConfig().raise(Diag::insert_wrapper) << wrapName;
     Resolver::Result result;
     m_Module.getNamePool().insertSymbol(
         &InputFile, wrapName, false, eld::ResolveInfo::NoType,
-        eld::ResolveInfo::Undefined, eld::ResolveInfo::Global, 0, 0,
-        eld::ResolveInfo::Default, nullptr, result, false, false, 0,
-        m_Module.getPrinter());
-    sym = make<LDSymbol>(result.Info, false);
+        eld::ResolveInfo::Undefined, binding, 0, 0, eld::ResolveInfo::Default,
+        nullptr, result, false, false, 0, m_Module.getPrinter());
+    LDSymbol *sym = make<LDSymbol>(result.Info, false);
     if (result.Overriden || !result.Info->outSymbol())
       result.Info->setOutSymbol(sym);
   }
