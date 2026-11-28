@@ -95,7 +95,14 @@ jobs:
 
       - name: Download and Setup libc-test
         run: |
-          git clone https://repo.or.cz/libc-test.git
+          for attempt in {1..10}; do
+            git clone https://repo.or.cz/libc-test.git && break
+            echo "libc-test clone attempt ${attempt}/10 failed"
+            if [[ "${attempt}" -eq 10 ]]; then
+              exit 1
+            fi
+            sleep 5
+          done
           cd libc-test
           STABLE_COMMIT=f2bac7711bec93467b73bec1465579ea0b8d5071
           git checkout ${STABLE_COMMIT}
@@ -204,7 +211,14 @@ jobs:
 
       - name: Download musl libc-test
         run: |
-          git clone https://repo.or.cz/libc-test.git
+          for attempt in {1..10}; do
+            git clone https://repo.or.cz/libc-test.git && break
+            echo "libc-test clone attempt ${attempt}/10 failed"
+            if [[ "${attempt}" -eq 10 ]]; then
+              exit 1
+            fi
+            sleep 5
+          done
           cd libc-test
           STABLE_COMMIT=f2bac7711bec93467b73bec1465579ea0b8d5071
           git checkout ${STABLE_COMMIT}
