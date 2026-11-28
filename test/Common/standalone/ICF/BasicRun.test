@@ -1,0 +1,39 @@
+# Verify that ICF folds identical functions in a native executable that can be
+# run under the target's configured emulator.
+#
+# REQUIRES: run_test
+# RUN: split-file %s %t
+# RUN: %run_cc %clangopts -O2 -ffunction-sections -fno-pic -fno-pie -fno-stack-protector -c %t/foo.c -o %t/foo.o
+# RUN: %run_cc %clangopts -O2 -ffunction-sections -fno-pic -fno-pie -fno-stack-protector -c %t/bar.c -o %t/bar.o
+# RUN: %run_cc %clangopts -O2 -ffunction-sections -fno-pic -fno-pie -fno-stack-protector -c %t/main.c -o %t/main.o
+# RUN: %run_cc %clangopts -no-pie %t/main.o %t/foo.o %t/bar.o -o %t/no-icf
+# RUN: %run_cc %clangopts -no-pie -Wl,--icf=all %t/main.o %t/foo.o %t/bar.o -o %t/with-icf
+# RUN: %run %t/no-icf | %filecheck %s --check-prefix=NOICF
+# RUN: %run %t/with-icf | %filecheck %s --check-prefix=ICF
+
+# NOICF: foo=42 bar=42 same=0
+# ICF: foo=42 bar=42 same=1
+
+#--- foo.c
+int foo(void) { return 42; }
+int (*get_foo(void))(void) { return foo; }
+
+#--- bar.c
+int bar(void) { return 42; }
+int (*get_bar(void))(void) { return bar; }
+
+#--- main.c
+#include <stdio.h>
+
+extern int foo(void);
+extern int bar(void);
+extern int (*get_foo(void))(void);
+extern int (*get_bar(void))(void);
+
+int main(void) {
+  int foo_result = foo();
+  int bar_result = bar();
+  int same_address = get_foo() == get_bar();
+  printf("foo=%d bar=%d same=%d\n", foo_result, bar_result, same_address);
+  return foo_result != 42 || bar_result != 42;
+}
