@@ -102,6 +102,16 @@ jobs:
         if: inputs.pr_sha != ''
         run: cp -a nightly-cxx-runtime/. "${GITHUB_WORKSPACE}/inst/lib/"
 
+      - name: Run relocation framework unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          results_dir="${RUNNER_TEMP}/relocation-testing"
+          mkdir -p "${results_dir}"
+          python3 -m unittest discover \
+            -s llvm-project/llvm/tools/eld/utils/relocation-testing-framework/tests \
+            -v 2>&1 | tee "${results_dir}/unit-tests.log"
+
       - name: Run relocation framework
         shell: bash
         env:

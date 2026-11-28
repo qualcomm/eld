@@ -88,10 +88,15 @@ def main():
 
 
 def run_run_analysis(arch_name, arch_info, output_dir, verbose):
+    config = arch_info["config"]
+    try:
+        run_analysis.validate_run_config(config)
+    except ValueError as exc:
+        print(f"Invalid {arch_name} run configuration: {exc}", file=sys.stderr)
+        return False
+
     output_path = Path(output_dir) / "run"
     output_path.mkdir(parents=True, exist_ok=True)
-
-    config = arch_info["config"]
 
     results_by_report = {}
     for combination in build_run_matrix(arch_info):
@@ -115,7 +120,7 @@ def run_run_analysis(arch_name, arch_info, output_dir, verbose):
 def build_run_matrix(arch_info):
     for parameters in build_parameter_matrix(PARAMETERS):
         for reloc in arch_info["relocs"]:
-            if reloc["category"] == "address":
+            if reloc.get("category") == "address":
                 address_targets = list(arch_info["config"].get(
                     "address_target_templates", {"data": None}))
             else:
