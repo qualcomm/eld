@@ -1,12 +1,23 @@
+#UNSUPPORTED: aarch64
 #---devnull.test--------------------- Executable-------------------------------#
 #BEGIN_COMMENT
-#This tests that the linker supports /dev/null output files.
+#This tests that /dev/null is supported by the linker
 #END_COMMENT
 
 #START_TEST
+#Test output files
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
 RUN: %link %linkopts %t1.o -o /dev/null --verbose 2>&1 | %filecheck %s
-#END_TEST
 
 # In linux is dev/null and in windows NUL
 CHECK: Verbose: Skipping output file emission for {{(/dev/null|NUL)}}
+
+#Test input files. Should throw an error because no emulation can be determined.
+RUN: %not %link %linkopts /dev/null 2>&1 | %filecheck %s -check-prefix=NOINPUT
+#Test that the linker behaves normally when multiple files are linked
+#and /dev/null is included
+RUN: %link %linkopts /dev/null %t1.o
+
+#NOINPUT-NOT: Note: Input file /dev/null has no contents
+#NOINPUT: Error: target emulation unknown: -m or at least one .o file required
+#END_TEST
