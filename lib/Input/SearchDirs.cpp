@@ -41,6 +41,15 @@ constexpr inline llvm::StringRef foundString(bool Found) {
   return Found ? "found" : "not found";
 }
 
+void resolveInstallDirectory(llvm::SmallVectorImpl<char> &Path,
+                             llvm::StringRef InstallDir) {
+  if (llvm::sys::path::is_absolute(InstallDir)) {
+    Path.assign(InstallDir.begin(), InstallDir.end());
+  } else {
+    llvm::sys::path::append(Path, InstallDir);
+  }
+}
+
 llvm::StringRef toString(SearchDirs::SearchInputType Type) {
   switch (Type) {
   case SearchDirs::SearchInputType::Archive:
@@ -174,12 +183,21 @@ SearchDirs::findInDirList(llvm::StringRef Type, const std::string &FileName,
 
 std::vector<eld::sys::fs::Path> SearchDirs::getDefaultPluginConfigs() const {
   std::vector<eld::sys::fs::Path> DefaultPlugins;
-  std::string PluginConfigDir = "/../etc/ELD/Plugins/Default/";
   llvm::SmallString<128> Path(SearchDirs::MainExecutablePath);
-  llvm::sys::path::append(Path, PluginConfigDir);
-  DiagEngine->raise(Diag::verbose_find_default_plugins) << Path.str();
+  resolveInstallDirectory(Path, ELD_PLUGIN_CONFIG_DIR);
+  llvm::sys::path::append(Path, "Default");
   std::error_code Ec;
-  if (!(llvm::sys::fs::exists(Path) && llvm::sys::fs::is_directory(Path)))
+  bool HasPluginDir =
+      llvm::sys::fs::exists(Path) && llvm::sys::fs::is_directory(Path);
+  if (!HasPluginDir) {
+    Path.assign(SearchDirs::MainExecutablePath.begin(),
+                SearchDirs::MainExecutablePath.end());
+    llvm::sys::path::append(Path, "..", "etc", "ELD", "Plugins", "Default");
+    HasPluginDir =
+        llvm::sys::fs::exists(Path) && llvm::sys::fs::is_directory(Path);
+  }
+  DiagEngine->raise(Diag::verbose_find_default_plugins) << Path.str();
+  if (!HasPluginDir)
     return DefaultPlugins;
   for (llvm::sys::fs::recursive_directory_iterator I(Path, Ec), E; I != E;
        I.increment(Ec)) {
@@ -242,6 +260,12 @@ const eld::sys::fs::Path *SearchDirs::findInRPath(llvm::StringRef Type,
   if (checkLibraryOrConfigFile(Type, LibraryName, fileName, "rpath",
                                DiagEngine))
     return make<eld::sys::fs::Path>(fileName);
+  llvm::SmallString<128> PluginDir(SearchDirs::MainExecutablePath);
+  resolveInstallDirectory(PluginDir, ELD_PLUGIN_DIR_FROM_BINDIR);
+  llvm::sys::path::append(PluginDir, LibraryName);
+  if (checkLibraryOrConfigFile(Type, LibraryName, PluginDir, "plugin directory",
+                               DiagEngine))
+    return make<eld::sys::fs::Path>(PluginDir.str().str());
 #else
   llvm::SmallVector<llvm::StringRef, 8> RPathSplit;
   RPath.split(RPathSplit, ":", -1, false);
@@ -259,6 +283,11 @@ const eld::sys::fs::Path *SearchDirs::findInRPath(llvm::StringRef Type,
       return make<eld::sys::fs::Path>(FileName);
   }
 #endif
+  llvm::SmallString<128> BuildTreePluginDir(SearchDirs::MainExecutablePath);
+  llvm::sys::path::append(BuildTreePluginDir, "..", "lib", LibraryName);
+  if (checkLibraryOrConfigFile(Type, LibraryName, BuildTreePluginDir,
+                               "build tree", DiagEngine))
+    return make<eld::sys::fs::Path>(BuildTreePluginDir.str().str());
   return nullptr;
 }
 
@@ -267,14 +296,20 @@ SearchDirs::findInDefaultConfigPath(llvm::StringRef Type,
                                     llvm::StringRef ConfigName,
                                     llvm::StringRef PluginName) const {
   DiagEngine->raise(Diag::note_using_default_config_path);
-  std::string PluginConfigDir = "/../etc/ELD/Plugins/";
   llvm::SmallString<128> Path(SearchDirs::MainExecutablePath);
-  llvm::sys::path::append(Path, PluginConfigDir);
+  resolveInstallDirectory(Path, ELD_PLUGIN_CONFIG_DIR);
   llvm::sys::path::append(Path, PluginName);
   llvm::sys::path::append(Path, ConfigName);
   if (checkLibraryOrConfigFile(Type, ConfigName, Path, "search path",
                                DiagEngine))
     return make<eld::sys::fs::Path>(Path.str().str());
+
+  llvm::SmallString<128> BuildTreePath(SearchDirs::MainExecutablePath);
+  llvm::sys::path::append(BuildTreePath, "..", "etc", "ELD", "Plugins",
+                          PluginName, ConfigName);
+  if (checkLibraryOrConfigFile(Type, ConfigName, BuildTreePath, "build tree",
+                               DiagEngine))
+    return make<eld::sys::fs::Path>(BuildTreePath.str().str());
   return nullptr;
 }
 

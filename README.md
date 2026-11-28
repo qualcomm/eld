@@ -126,12 +126,26 @@ from source tarballs or with `-DELD_APPEND_VC_REV=OFF`.
 The following CMake options help distributions and other packagers integrate
 ELD. Their defaults preserve the standard build and install layout.
 
+Install paths may be relative to `CMAKE_INSTALL_PREFIX` or absolute. Relative
+plugin and plugin-config paths are resolved from `ld.eld` at runtime.
+
 - `-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=OFF`
 
   By default, the directories of linked libraries, such as the library
   directory of an external LLVM, are recorded in the RUNPATH of `ld.eld` and
   `libLW`. Turn this off when LLVM is installed in the default library search
-  path. The `$ORIGIN/../lib` RUNPATH is kept.
+  path. The configured plugin directory remains available to the plugin
+  search.
+
+- `-DELD_TOOLS_INSTALL_DIR=<dir>` (default: `${CMAKE_INSTALL_BINDIR}`): install
+  location for `ld.eld` and related tools.
+
+- `-DELD_PLUGIN_DIR=<dir>` (default: `${CMAKE_INSTALL_LIBDIR}`): install
+  location for linker plugins.
+
+- `-DELD_PLUGIN_CONFIG_DIR=<dir>` (default:
+  `${CMAKE_INSTALL_SYSCONFDIR}/ELD/Plugins`): install location for plugin
+  configuration files.
 
 - `-DELD_APPEND_VC_REV=OFF`
 
