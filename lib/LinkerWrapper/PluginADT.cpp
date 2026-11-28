@@ -1770,6 +1770,10 @@ bool plugin::LinkerConfig::hasUniqueOutputSections() const {
   return Config.options().shouldEmitUniqueOutputSections();
 }
 
+bool plugin::LinkerConfig::isLTORequested() const {
+  return Config.options().hasLTO();
+}
+
 const std::vector<std::string> &plugin::LinkerConfig::getLTOOptions() const {
   return Config.options().getUnparsedLTOOptions();
 }
