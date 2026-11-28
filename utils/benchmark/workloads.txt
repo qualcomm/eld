@@ -1,0 +1,5 @@
+hello-x64
+llvm-x64
+# firefox-x64     # needs 14.5 GB — enable when larger runners available
+# llvm-riscv64    # needs 21.9 GB — enable when larger runners available
+# firefox-riscv64 # needs 42.0 GB — enable when larger runners available
