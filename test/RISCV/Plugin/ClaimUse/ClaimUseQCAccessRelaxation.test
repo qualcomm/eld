@@ -1,0 +1,53 @@
+# REQUIRES: riscv32
+# Combining qc.e.li with a claimed access must not delete or rewrite the access.
+RUN: split-file %s %t
+RUN: %clang %clangopts -c %t/main.s -menable-experimental-extensions -march=rv32gc_zcb_xqcili0p2 -o %t.o
+RUN: %link %linkopts --relax-xqci --no-relax-gp --defsym claimed_target=0x100 --defsym other_target=0x104 %t.o -o %t.original
+RUN: %objdump -d --no-show-raw-insn --no-print-imm-hex %t.original | %filecheck %s --check-prefix=ORIGINAL
+RUN: %link %linkopts --relax-xqci --no-relax-gp --defsym claimed_target=0x100 --defsym other_target=0x104 %t.o -L%libsdir --plugin-config %t/plugin.yaml -o %t.claimed | %filecheck %s --check-prefix=COUNT
+RUN: %objdump -d --no-show-raw-insn --no-print-imm-hex --mattr=+xqcili %t.claimed | %filecheck %s --check-prefix=CLAIMED
+ORIGINAL-LABEL: <_start>:
+ORIGINAL-NEXT: {{.*}}lw a0, 256(zero)
+ORIGINAL-NEXT: {{.*}}lw a0, 256(zero)
+COUNT: claimed uses: 2
+CLAIMED-LABEL: <_start>:
+CLAIMED-NEXT: {{.*}}qc.li a1, 256
+CLAIMED-NEXT: {{.*}}nop
+CLAIMED-NEXT: {{.*}}qc.li a1, 256
+CLAIMED-NEXT: {{.*}}nop
+CLAIMED-LABEL: <other_pair>:
+CLAIMED-NEXT: {{.*}}lw a0, 260(zero)
+
+#--- main.s
+.option exact
+.option relax
+.text
+QUALCOMM:
+.globl _start
+_start:
+  qc.e.li a1, claimed_target
+1:
+  lw a0, 0(a1)
+  .reloc 1b, R_RISCV_VENDOR, QUALCOMM
+  .reloc 1b, R_RISCV_CUSTOM197, claimed_target
+  .reloc 1b, R_RISCV_RELAX
+  qc.e.li a1, claimed_target
+2:
+  c.lw a0, 0(a1)
+  .reloc 2b, R_RISCV_VENDOR, QUALCOMM
+  .reloc 2b, R_RISCV_CUSTOM196, claimed_target
+  .reloc 2b, R_RISCV_RELAX
+.globl other_pair
+other_pair:
+  qc.e.li a1, other_target
+3:
+  lw a0, 0(a1)
+  .reloc 3b, R_RISCV_VENDOR, QUALCOMM
+  .reloc 3b, R_RISCV_CUSTOM197, other_target
+  .reloc 3b, R_RISCV_RELAX
+#--- plugin.yaml
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: BackendClaimUse
+    Library: BackendClaimUse
+    Options: riscv-qc-access

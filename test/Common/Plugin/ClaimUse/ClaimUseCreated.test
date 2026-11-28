@@ -1,0 +1,32 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# Publicly created uses take the internal-section writer path, for both code
+# and data chunks. Cover claimed and ordinary overrides, including zero bytes.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/pointer.c -o %t.o
+RUN: echo 'GlobalPlugins: [{Type: LinkerPlugin, Name: CreatedUse, Library: CreatedUse, Options: claimed}]' > %t.yaml
+RUN: echo 'SECTIONS { .created_code : { *(.created_code) } .created_data : { *(.created_data) } .text : { *(.text*) } .data : { *(.data*) *(.sdata*) } }' > %t.t
+RUN: %link %linkopts %t.o -T %t.t -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.out
+RUN: %readelf -x .created_data -x .created_code %t.out | %filecheck %s --check-prefix=DATA
+RUN: %link %linkopts --shared --threads --thread-count=8 %t.o -T %t.t -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.so
+RUN: %readelf -x .created_data -x .created_code %t.so | %filecheck %s --check-prefix=DATA
+RUN: %link %linkopts -pie %t.o -T %t.t -L%libsdir -L%libsdir/test --plugin-config %t.yaml -o %t.pie
+RUN: %readelf -x .created_data -x .created_code %t.pie | %filecheck %s --check-prefix=DATA
+RUN: sed 's/Options: claimed/Options: unclaimed/' %t.yaml > %t.unclaimed.yaml
+RUN: %link %linkopts %t.o -T %t.t -L%libsdir -L%libsdir/test --plugin-config %t.unclaimed.yaml -o %t.unclaimed.out
+RUN: %readelf -x .created_data -x .created_code %t.unclaimed.out | %filecheck %s --check-prefix=DATA
+RUN: sed 's/Options: claimed/Options: zero/' %t.yaml > %t.zero.yaml
+RUN: %link %linkopts %t.o -T %t.t -L%libsdir -L%libsdir/test --plugin-config %t.zero.yaml -o %t.zero.out
+RUN: %readelf -x .created_data -x .created_code %t.zero.out | %filecheck %s --check-prefix=ZERO
+# Created claimed code/data uses may also receive their first bytes at output.
+RUN: sed 's/Options: claimed/Options: output-data/' %t.yaml > %t.output.yaml
+RUN: %link %linkopts %t.o -T %t.t -L%libsdir -L%libsdir/test --plugin-config %t.output.yaml -o %t.output.out
+RUN: %readelf -x .created_data -x .created_code %t.output.out | %filecheck %s --check-prefix=DATA
+RUN: %link %linkopts --shared %t.o -T %t.t -L%libsdir -L%libsdir/test --plugin-config %t.output.yaml -o %t.output.so
+RUN: %readelf -x .created_data -x .created_code %t.output.so | %filecheck %s --check-prefix=DATA
+RUN: sed 's/Options: claimed/Options: output-zero/' %t.yaml > %t.output-zero.yaml
+RUN: %link %linkopts %t.o -T %t.t -L%libsdir -L%libsdir/test --plugin-config %t.output-zero.yaml -o %t.output-zero.out
+RUN: %readelf -x .created_data -x .created_code %t.output-zero.out | %filecheck %s --check-prefix=ZERO
+RUN: sed 's/Options: claimed/Options: missing/' %t.yaml > %t.missing.yaml
+RUN: %not %link %linkopts %t.o -T %t.t -L%libsdir -L%libsdir/test --plugin-config %t.missing.yaml -o %t.missing.out 2>&1 | %filecheck %s --check-prefix=MISSING
+DATA-COUNT-2: 78563412
+ZERO-COUNT-2: 00000000
+MISSING: Plugin-owned relocation {{.*}} has no replacement data

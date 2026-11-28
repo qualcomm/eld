@@ -1,0 +1,7 @@
+if(NOT CYGWIN AND LLVM_ENABLE_PIC)
+  set(bsl ${BUILD_SHARED_LIBS})
+  set(BUILD_SHARED_LIBS ON)
+  add_llvm_library(HexagonClaimUse HexagonClaimUse.cpp LINK_LIBS LW)
+  set(BUILD_SHARED_LIBS ${bsl})
+endif()
+add_plugin(HexagonClaimUse)

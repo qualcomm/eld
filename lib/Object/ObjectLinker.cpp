@@ -35,6 +35,7 @@
 #include "eld/Object/LinkerSectionKind.h"
 #include "eld/Object/ObjectBuilder.h"
 #include "eld/Object/SectionMap.h"
+#include "eld/Plugin/PluginManager.h"
 #include "eld/PluginAPI/LinkerPlugin.h"
 #include "eld/PluginAPI/OutputSectionIteratorPlugin.h"
 #include "eld/Readers/ArchiveParser.h"
@@ -2289,6 +2290,8 @@ void ObjectLinker::scanRelocationsHelper(InputFile *Input, size_t InputIndex,
       // Skip unneeded relocations
       if (getTargetBackend().maySkipRelocProcessing(Relocation))
         continue;
+      if (Relocation->isPluginOwned())
+        continue;
       ELFSection *RelocSection = Rs;
       // scan relocation
       if (IsPartialLink) {
@@ -2349,6 +2352,16 @@ bool ObjectLinker::scanRelocations(bool IsPartialLink) {
       }
     }
   }
+
+  // Claims are allowed only during hook dispatch. Partial-link scans run after
+  // layout, so restore the calling phase before target scanning.
+  auto PreviousState = ThisModule->getState();
+  ThisModule->setLinkState(LinkState::ActBeforeRelocationScan);
+  bool Success =
+      ThisModule->getPluginManager().callActBeforeRelocationScanHook();
+  ThisModule->setLinkState(PreviousState);
+  if (!Success)
+    return false;
 
   Relocator::CopyRelocs CopyRelocSet;
   if (!RunParallel) {
@@ -2657,7 +2670,7 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
       };
       for (auto &Relocation : Rs->getLink()->getRelocations()) {
         if (ProcessReloc(Relocation)) {
-          if (EmitRelocs)
+          if (EmitRelocs && !Relocation->isPluginOwned())
             EmitOneReloc(Relocation);
           Relocation->apply(*getTargetBackend().getRelocator());
         }
@@ -2859,21 +2872,25 @@ void ObjectLinker::syncRelocationResult(uint8_t *Data, InputFile *Input) {
 
         return true;
       };
-      uint64_t ModifiedRelocData = 0;
-      if (ThisModule->getRelocationDataForSync(Relocation, ModifiedRelocData))
-        writeRelocationData(*Relocation, ModifiedRelocData, Data);
-      else if (SyncOneReloc(Relocation))
-        writeRelocationResult(*Relocation, Data);
+      writeRelocationResult(*Relocation, Data, SyncOneReloc(Relocation));
     } // for all relocations
   } // for all relocation section
 }
 
-void ObjectLinker::writeRelocationResult(Relocation &PReloc, uint8_t *POutput) {
+void ObjectLinker::writeRelocationResult(Relocation &PReloc, uint8_t *POutput,
+                                         bool SyncUnmodified) {
+  // All writers, including plugin-created chunks and internal relocations,
+  // must honor replacement bytes before filtering ordinary relocation results.
+  uint64_t Data = 0;
+  if (ThisModule->getRelocationDataForSync(&PReloc, Data)) {
+    writeRelocationData(PReloc, Data, POutput);
+    return;
+  }
   // Certain relocations such as R_RISCV_RELAX and R_RISCV_ALIGN do not
   // really apply. They are way to communicate linker to do certain
   // optimizations. Applying them may overrite the immediate bits based on
   // sequence in which they appear w.r.t. "real" relocation
-  if (getTargetBackend().shouldIgnoreRelocSync(&PReloc))
+  if (!SyncUnmodified || getTargetBackend().shouldIgnoreRelocSync(&PReloc))
     return;
 
   writeRelocationData(PReloc, PReloc.target(), POutput);

@@ -1683,6 +1683,8 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
            config().getDiagEngine()->diagnose() && it != relocList.end();
            ++it) {
         auto relocation = *it;
+        if (relocation->isPluginOwned())
+          continue;
         Relocation::Type type = relocation->type();
 
         // Processing of R_RISCV_ALIGN is unconditional.
@@ -1775,7 +1777,7 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
           case ELF::riscv::internal::R_RISCV_QC_E_32: {
             bool relaxed = false;
             if (Relocation *AccessReloc = getBaseReloc(*relocation)) {
-              if (hasRelax(*AccessReloc)) {
+              if (!AccessReloc->isPluginOwned() && hasRelax(*AccessReloc)) {
                 if (AccessReloc->type() ==
                     ELF::riscv::internal::R_RISCV_QC_ACCESS_32)
                   relaxed = doRelaxationQCAccess32(relocation, AccessReloc, GP);
@@ -2735,13 +2737,16 @@ RISCVLDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
 }
 
 bool RISCVLDBackend::allGOTLOsRelaxable(const Relocation &HIReloc) const {
+  if (HIReloc.isPluginOwned())
+    return false;
   const llvm::SmallVectorImpl<const Relocation *> *LORelocs =
       getBaseRelocRefs(HIReloc);
   if (!LORelocs || LORelocs->empty())
     return false;
 
   return llvm::all_of(*LORelocs, [&](const Relocation *R) {
-    return ((R->type() == llvm::ELF::R_RISCV_PCREL_LO12_I && hasRelax(*R)) ||
+    return !R->isPluginOwned() &&
+           ((R->type() == llvm::ELF::R_RISCV_PCREL_LO12_I && hasRelax(*R)) ||
             relocWasGOTLoadRelaxed(R));
   });
 }

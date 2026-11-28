@@ -1,0 +1,44 @@
+# REQUIRES: riscv32 || riscv64
+# A claimed LO must prevent relaxation of its ordinary GOT HI.
+RUN: split-file %s %t
+RUN: %llvm-mc -filetype=obj -mattr=+relax -defsym XLEN=%xlen %t/main.s -o %t.o
+RUN: %link %linkopts --relax --no-relax-c --defsym claimed_target=0x100 --defsym other_target=0x104 %t.o -o %t.original
+RUN: %objdump -d --no-show-raw-insn --no-print-imm-hex %t.original | %filecheck %s --check-prefix=ORIGINAL
+RUN: %link %linkopts --relax --no-relax-c --defsym claimed_target=0x100 --defsym other_target=0x104 %t.o -L%libsdir --plugin-config %t/plugin.yaml -o %t.claimed | %filecheck %s --check-prefix=COUNT
+RUN: %objdump -d --no-show-raw-insn --no-print-imm-hex %t.claimed | %filecheck %s --check-prefix=CLAIMED
+ORIGINAL: li a0, 256
+COUNT: claimed uses: 1
+CLAIMED-LABEL: <_start>:
+CLAIMED-NEXT: {{.*}}auipc a0,
+CLAIMED-NEXT: {{.*}}nop
+CLAIMED-LABEL: <other_pair>:
+CLAIMED-NEXT: {{.*}}li a1, 260
+
+#--- main.s
+.option norvc
+.text
+.globl _start
+_start:
+.Lclaimed_hi:
+  auipc a0, %got_pcrel_hi(claimed_target)
+.if XLEN == 8
+  ld a0, %pcrel_lo(.Lclaimed_hi)(a0)
+.else
+  lw a0, %pcrel_lo(.Lclaimed_hi)(a0)
+.endif
+.globl other_pair
+other_pair:
+.Lother_hi:
+  auipc a1, %got_pcrel_hi(other_target)
+.if XLEN == 8
+  ld a1, %pcrel_lo(.Lother_hi)(a1)
+.else
+  lw a1, %pcrel_lo(.Lother_hi)(a1)
+.endif
+  ret
+#--- plugin.yaml
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: BackendClaimUse
+    Library: BackendClaimUse
+    Options: riscv-got-lo

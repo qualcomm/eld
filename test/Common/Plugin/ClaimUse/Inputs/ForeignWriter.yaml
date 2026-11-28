@@ -1,0 +1,8 @@
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: ClaimUse
+    Library: ClaimUse
+    Options: valid
+  - Type: LinkerPlugin
+    Name: ForeignUseWriter
+    Library: ForeignUseWriter

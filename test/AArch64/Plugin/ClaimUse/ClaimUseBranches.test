@@ -1,0 +1,43 @@
+# REQUIRES: aarch64
+# Claimed far calls stay at their original sites; ordinary calls get stubs.
+RUN: split-file %s %t
+RUN: %llvm-mc -filetype=obj %t/main.s -o %t.o
+RUN: %link %linkopts %t.o -T %t/script.t -o %t.original
+RUN: %readelf -sW %t.original | %filecheck %s --check-prefix=ORIGINAL
+RUN: %link %linkopts %t.o -T %t/script.t -L%libsdir --plugin-config %t/plugin.yaml -o %t.claimed | %filecheck %s --check-prefix=COUNT
+RUN: %readelf -sW %t.claimed | %filecheck %s --check-prefix=CLAIMED --implicit-check-not=trampoline_for_claimed_far
+RUN: %objdump -d --no-show-raw-insn %t.claimed | %filecheck %s --check-prefix=CODE
+ORIGINAL: trampoline_for_claimed_far
+COUNT: claimed uses: 1
+CLAIMED: trampoline_for_other_far
+CODE-LABEL: <_start>:
+CODE-NEXT: {{.*}}nop
+
+#--- main.s
+.section .text.main,"ax",@progbits
+.globl _start
+_start:
+  bl claimed_far
+.globl other_branch
+other_branch:
+  bl other_far
+.section .text.far,"ax",@progbits
+.globl claimed_far
+.hidden claimed_far
+claimed_far:
+  ret
+.globl other_far
+.hidden other_far
+other_far:
+  ret
+#--- script.t
+SECTIONS {
+  .text 0x10000 : { *(.text.main) }
+  .far 0x20000000 : { *(.text.far) }
+}
+#--- plugin.yaml
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: BackendClaimUse
+    Library: BackendClaimUse
+    Options: aarch64

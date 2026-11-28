@@ -1,0 +1,40 @@
+# REQUIRES: riscv32 || riscv64
+# Claimed tails must not contribute unused entries to the jump table.
+RUN: split-file %s %t
+RUN: %llvm-mc -filetype=obj -mattr=+relax,+zcmt %t/main.s -o %t.o
+RUN: %link %linkopts --relax-tbljal --defsym claimed_far=0x200000 --defsym other_far=0x200100 %t.o -o %t.original
+RUN: %readelf -SW %t.original | %filecheck %s --check-prefix=ORIGINAL%xlen
+RUN: %link %linkopts --relax-tbljal --defsym claimed_far=0x200000 --defsym other_far=0x200100 %t.o -L%libsdir --plugin-config %t/plugin.yaml -o %t.claimed | %filecheck %s --check-prefix=COUNT
+RUN: %readelf -SW %t.claimed | %filecheck %s --check-prefix=CLAIMED%xlen
+RUN: %objdump -d --mattr=+zcmt --no-show-raw-insn %t.claimed | %filecheck %s --check-prefix=CODE
+ORIGINAL4: .riscv.jvt PROGBITS {{[0-9a-f]+}} {{[0-9a-f]+}} 000008
+ORIGINAL8: .riscv.jvt PROGBITS {{[0-9a-f]+}} {{[0-9a-f]+}} 000010
+COUNT: claimed uses: 20
+CLAIMED4: .riscv.jvt PROGBITS {{[0-9a-f]+}} {{[0-9a-f]+}} 000004
+CLAIMED8: .riscv.jvt PROGBITS {{[0-9a-f]+}} {{[0-9a-f]+}} 000008
+CODE-LABEL: <_start>:
+CODE: nop
+CODE-NEXT: {{.*}}jr t1
+CODE-COUNT-19: nop
+CODE-LABEL: <other_branch>:
+CODE-COUNT-20: cm.jt
+
+#--- main.s
+.option norvc
+.text
+.globl _start
+_start:
+  .rept 20
+  tail claimed_far
+  .endr
+.globl other_branch
+other_branch:
+  .rept 20
+  tail other_far
+  .endr
+#--- plugin.yaml
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: BackendClaimUse
+    Library: BackendClaimUse
+    Options: riscv

@@ -229,6 +229,8 @@ public:
   /// Calls ActBeforeRuleMatching hook handler.
   void callActBeforeRuleMatchingHook();
 
+  void callActBeforeRelocationScanHook();
+
   bool isDefaultPlugin() const { return IsDefaultPlugin; }
 
 private:

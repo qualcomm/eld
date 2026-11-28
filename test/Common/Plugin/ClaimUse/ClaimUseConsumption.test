@@ -1,0 +1,27 @@
+# REQUIRES: hexagon || arm || aarch64 || riscv32 || riscv64
+# Block consumers must not see claimed bytes that may still change AfterLayout.
+RUN: %clang %clangopts -fPIC -c %p/Inputs/consumption.c -o %t.o
+RUN: echo 'SECTIONS { .text : { *(.text*) } .data : { *(.data) *(.sdata*) } .claimed PLUGIN_CONTROL_FILESZ("ClaimUseFileConsumer", "ClaimUseBlockConsumer", "") : { *(.data.claimed) } .unrelated : { *(.unrelated) } }' > %t.file.t
+RUN: sed 's/PLUGIN_CONTROL_FILESZ/PLUGIN_CONTROL_MEMSZ/; s/ClaimUseFileConsumer/ClaimUseMemoryConsumer/' %t.file.t > %t.memory.t
+RUN: %not %link %linkopts %t.o -T %t.file.t -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.file.out 2>&1 | %filecheck %s --check-prefix=EARLY --implicit-check-not="consumed block"
+RUN: %not %link %linkopts %t.o -T %t.memory.t -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.memory.out 2>&1 | %filecheck %s --check-prefix=EARLY --implicit-check-not="consumed block"
+# Supplying data early does not freeze it: the same owner could update it later.
+RUN: sed 's/Options: valid/Options: claimed-data/' %p/Inputs/PluginConfig.yaml > %t.early.yaml
+RUN: %not %link %linkopts %t.o -T %t.file.t -L%libsdir -L%libsdir/test --plugin-config %t.early.yaml -o %t.early.out 2>&1 | %filecheck %s --check-prefix=EARLY --implicit-check-not="consumed block"
+# A different output section can be consumed without closing AfterLayout writes.
+RUN: echo 'SECTIONS { .text : { *(.text*) } .claimed : { *(.data.claimed) } .data : { *(.data) *(.sdata*) } .unrelated PLUGIN_CONTROL_FILESZ("ClaimUseFileConsumer", "ClaimUseBlockConsumer", "") : { *(.unrelated) } }' > %t.unrelated.t
+RUN: %link %linkopts %t.o -T %t.unrelated.t -L%libsdir -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -o %t.unrelated.out 2>&1 | %filecheck %s --check-prefix=CONSUMED
+RUN: %readelf -x .claimed %t.unrelated.out | %filecheck %s --check-prefix=DATA
+# Discarded claims do not block consumers or require replacement data.
+RUN: sed 's/\.claimed :/\/DISCARD\/ :/' %t.unrelated.t > %t.discard.t
+RUN: sed 's/Options: valid/Options: missing/' %p/Inputs/PluginConfig.yaml > %t.missing.yaml
+RUN: %link %linkopts %t.o -T %t.discard.t -L%libsdir -L%libsdir/test --plugin-config %t.missing.yaml -o %t.discard.out 2>&1 | %filecheck %s --check-prefix=CONSUMED
+# The public global buffer APIs must fail too, even if the caller ignores errors.
+RUN: echo 'GlobalPlugins: [{Type: LinkerPlugin, Name: ClaimUse, Library: ClaimUse, Options: valid}, {Type: OutputSectionIterator, Name: LegacyClaimUse, Library: LegacyClaimUse, Options: do-relocation}]' > %t.do.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.do.yaml -o %t.do.out 2>&1 | %filecheck %s --check-prefixes=EARLY,API
+RUN: echo 'GlobalPlugins: [{Type: LinkerPlugin, Name: ClaimUse, Library: ClaimUse, Options: valid}, {Type: OutputSectionIterator, Name: LegacyClaimUse, Library: LegacyClaimUse, Options: apply-relocations}]' > %t.apply.yaml
+RUN: %not %link %linkopts %t.o -L%libsdir -L%libsdir/test --plugin-config %t.apply.yaml -o %t.apply.out 2>&1 | %filecheck %s --check-prefixes=EARLY,API
+EARLY: Cannot claim plugin relocation: source consumed before final relocation application:
+API: buffer API rejected
+CONSUMED: consumed block
+DATA: 78563412

@@ -204,7 +204,10 @@ ELFObjectWriter::writeObject(llvm::FileOutputBuffer &CurOutput) {
   {
     PluginManager &PM = ThisModule.getPluginManager();
     ThisModule.setLinkState(LinkState::ActBeforeWritingOutput);
-    if (!PM.callActBeforeWritingOutputHook()) {
+    bool Success = PM.callActBeforeWritingOutputHook();
+    // Output callbacks have returned, so their running guards reject further
+    // writes before remaining emission and unlocked relocation syncing.
+    if (!Success || !ThisModule.validatePluginRelocations()) {
       // Return generic error-code. Actual error is already reported!
       return make_error_code(std::errc::not_supported);
     }

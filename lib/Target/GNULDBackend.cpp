@@ -4694,6 +4694,9 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
 
       ELFSection *S = O->getSection();
 
+      if (!m_Module.validatePluginRelocationConsumption(S))
+        return false;
+
       if (layoutInfo)
         layoutInfo->recordPlugin(S, O->prolog().getPlugin());
 

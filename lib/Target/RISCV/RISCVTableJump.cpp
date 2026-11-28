@@ -89,6 +89,8 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
                                                   RelocRange.end());
   for (size_t I = 0; I < Relocs.size(); ++I) {
     const Relocation *R = Relocs[I];
+    if (R->isPluginOwned())
+      continue;
     if (R->type() != llvm::ELF::R_RISCV_JAL &&
         R->type() != llvm::ELF::R_RISCV_CALL &&
         R->type() != llvm::ELF::R_RISCV_CALL_PLT &&
