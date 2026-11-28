@@ -32,6 +32,15 @@ jobs:
             configure-script: do-clang-hexagon-configure
             triple: hexagon-unknown-none-elf
             llvm-target: Hexagon
+            qemu-target: hexagon-softmmu
+            picolibc-default-config: ""
+            picolibc-no-tls: "-Dthread-local-storage=false"
+            picolibc-tls-ie: "-Dtls-model=initial-exec"
+          - name: hexagon-linux
+            configure-script: do-clang-hexagon-linux-configure
+            triple: hexagon-unknown-none-elf
+            llvm-target: Hexagon
+            qemu-target: hexagon-linux-user
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
             picolibc-tls-ie: "-Dtls-model=initial-exec"
@@ -120,7 +129,7 @@ jobs:
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
       - name: Build compiler-rt builtins
-        if: matrix.arch.name != 'hexagon'
+        if: ${{ !startsWith(matrix.arch.name, 'hexagon') }}
         run: |
           # The nightly toolchain (clang/clang++) is already on PATH via
           # FetchNightlyToolset.
@@ -155,7 +164,7 @@ jobs:
       # target/picolibc/<triple>/lib/<cpu>[-G0][-pic] search path, so the
       # variants are installed there (no -L in the picolibc configs).
       - name: Build Hexagon picolibc builtins
-        if: matrix.arch.name == 'hexagon'
+        if: ${{ startsWith(matrix.arch.name, 'hexagon') }}
         run: |
           bash ${{ github.workspace }}/llvm-project/llvm/tools/eld/.github/workflows/scripts/BuildHexagonPicolibcBuiltins.sh \
             "$(dirname "$(dirname "$(command -v clang)")")" \
@@ -231,13 +240,13 @@ jobs:
 
       - name: Get QEMU
         run: |
-          if [[ "${{ matrix.arch.name }}" == "hexagon" ]]; then
+          if [[ "${{ matrix.arch.name }}" == hexagon* ]]; then
             # git clone --branch hex-next --single-branch --depth 1 https://github.com/quic/qemu.git ${{ github.workspace }}/qemu-system-hexagon
             git clone --depth 1 --branch hexagon-sysemu-23-apr-2026 https://github.com/qualcomm/qemu.git "${{ github.workspace }}/qemu-system-hexagon"
             QEMU_INSTALL="${{ github.workspace }}/install-qemu-system-hexagon/"
             cd "${{ github.workspace }}/qemu-system-hexagon"
             ./configure --cc=clang --cxx=clang++ \
-              --target-list=hexagon-softmmu \
+              --target-list=${{ matrix.arch.qemu-target }} \
               --prefix="$QEMU_INSTALL" \
               --extra-cflags="-Wno-misleading-indentation -Wno-unused-but-set-variable"
             cd build
