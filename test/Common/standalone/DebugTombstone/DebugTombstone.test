@@ -1,0 +1,21 @@
+UNSUPPORTED: hexagon, x86
+#---DebugTombstone.test------------------------- Executable ----------------#
+#BEGIN_COMMENT
+# Discarded addresses in legacy range lists must not create an early (0,0)
+# terminator that hides subsequent live ranges from the compilation unit.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/debug.c -O0 -g -gdwarf-4 -ffunction-sections -fno-asynchronous-unwind-tables
+RUN: %link %linkopts -o %t1.out %t1.o -T %p/Inputs/layout.t -e live2 --gc-sections
+RUN: %dwarfdump --debug-info --debug-ranges %t1.out | %filecheck %s
+#END_TEST
+CHECK: DW_AT_ranges
+CHECK-NEXT: [0x{{0*}}1000, 0x[[LIVE_END:[0-9a-f]+]])
+CHECK-NEXT: [0x{{0*}}1, 0x{{0*}}1)
+CHECK-NEXT: [0x{{0*}}2000, 0x[[LIVE2_END:[0-9a-f]+]])
+CHECK: .debug_ranges contents:
+CHECK-NEXT: 00000000 {{0*}}1000 [[LIVE_END]]
+CHECK-NEXT: 00000000 {{0*}}1 {{0*}}1
+CHECK-NEXT: 00000000 {{0*}}2000 [[LIVE2_END]]
+CHECK-NEXT: 00000000 <End of list>
+CHECK-NOT: <End of list>

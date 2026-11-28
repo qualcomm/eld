@@ -43,7 +43,9 @@ jobs:
     if: |
       github.repository == 'qualcomm/eld' &&
        ((github.event_name == 'workflow_run' &&
-         github.event.workflow_run.conclusion == 'success') ||
+         github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.event == 'schedule' &&
+         contains(github.event.workflow_run.created_at, 'T00:')) ||
         github.event_name == 'workflow_dispatch' ||
         inputs.pr_sha != '')
     runs-on: ubuntu-latest

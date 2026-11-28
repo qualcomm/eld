@@ -1,0 +1,37 @@
+#---MemoryRegionAPI.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+#This tests a LinkerPlugin that enumerates MEMORY regions and queries output
+#section VMA/LMA memory regions. It checks region properties, unused regions,
+#REGION_ALIAS entries, and consistency between enumerated and section handles,
+#as well as empty handles and linking without a MEMORY script.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/input.c -o %t.o
+RUN: %link %linkopts %t.o -L%p/Inputs -T%p/Inputs/script.t --plugin-config %p/Inputs/plugin.config -o %t.out > %t.log 2>&1
+RUN: %filecheck %s --check-prefix=REGIONS < %t.log
+RUN: %filecheck %s --check-prefix=HANDLES < %t.log
+RUN: %link %linkopts %t.o --plugin-config %p/Inputs/plugin.config -o %t.plain.out > %t.plain.log 2>&1
+RUN: %filecheck %s --check-prefix=PLAIN < %t.plain.log
+
+# Default-constructed region and section handles have no memory region.
+REGIONS: empty: 0 0 0 0 0
+REGIONS-NEXT: empty section: 0 0
+# Enumerate all MEMORY entries, including unused regions and REGION_ALIAS entries.
+REGIONS-NEXT: regions: 5
+REGIONS-NEXT: region: ROM 65536 65536 [(rx)]
+REGIONS-NEXT: region: RAM 131072 32768 [(rw!x)]
+REGIONS-NEXT: region: UNUSED 4294967296 8589934592 []
+REGIONS-NEXT: region: EMPTY 262144 0 []
+# ALIAS shares RAM's underlying region, so it reports RAM's name and properties.
+REGIONS-NEXT: region: RAM 131072 32768 [(rw!x)]
+# Check explicit, aliased, and automatically assigned VMA/LMA regions.
+REGIONS-DAG: section: .text VMA=[ROM] LMA=[ROM]
+REGIONS-DAG: section: .data VMA=[RAM] LMA=[ROM]
+REGIONS-DAG: section: .bss VMA=[RAM] LMA=[RAM]
+REGIONS-DAG: section: .explicit VMA=[RAM] LMA=[]
+REGIONS-DAG: section: .alias VMA=[RAM] LMA=[RAM]
+REGIONS-DAG: section: .auto VMA=[RAM] LMA=[RAM]
+# Section handles must match the enumerated region handles, including aliases.
+HANDLES-NOT: invalid
+# Linking without a MEMORY script exposes no regions or section region handles.
+PLAIN: regions: 0
+PLAIN-NOT: section:

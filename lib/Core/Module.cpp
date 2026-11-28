@@ -104,7 +104,7 @@ ELFSection *Module::createOutputSection(const std::string &Name,
   addOutputSection(OutputSect);
   if (getPrinter()->isVerbose())
     ThisConfig.raise(Diag::creating_output_section)
-        << Name << ELFSection::getELFTypeStr(Name, Type)
+        << Name << getBackend().getSectionTypeName(Type)
         << ELFSection::getELFPermissionsStr(PFlag) << PAlign;
   return OutputSect;
 }
@@ -301,7 +301,7 @@ ELFSection *Module::createInternalSection(InputFile &I, LinkerSectionKind K,
     InputSect->setHasNoFragments();
   if (getPrinter()->isVerbose())
     ThisConfig.raise(Diag::created_internal_section)
-        << Name << ELFSection::getELFTypeStr(Name, Type)
+        << Name << getBackend().getSectionTypeName(Type)
         << ELFSection::getELFPermissionsStr(PFlag) << PAlign << EntSize;
   return InputSect;
 }
@@ -320,7 +320,7 @@ EhFrameHdrSection *Module::createEhFrameHdrSection(InternalInputType IType,
       ->addSection(InputSect);
   if (getPrinter()->isVerbose())
     ThisConfig.raise(Diag::created_eh_frame_hdr)
-        << Name << ELFSection::getELFTypeStr(Name, Type)
+        << Name << getBackend().getSectionTypeName(Type)
         << ELFSection::getELFPermissionsStr(PFlag) << PAlign;
   return InputSect;
 }
@@ -440,8 +440,12 @@ bool Module::readOnePluginConfig(llvm::StringRef CfgFile,
   if (CfgFile.empty())
     return true;
 
-  const eld::sys::fs::Path *P = ThisConfig.directories().findFile(
-      "plugin configuration file", CfgFile.str(), /*PluginName*/ "");
+  const eld::sys::fs::Path *P =
+      IsDefaultConfig
+          ? ThisConfig.directories().findFile("plugin configuration file",
+                                              CfgFile.str(), /*PluginName=*/"")
+          : ThisConfig.findPluginConfigFile("plugin configuration file",
+                                            CfgFile.str(), /*PluginName=*/"");
 
   if (!P) {
     ThisConfig.raise(Diag::error_config_file_not_found) << CfgFile.str();

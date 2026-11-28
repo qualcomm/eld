@@ -2721,16 +2721,6 @@ RISCVPLT *RISCVLDBackend::findEntryInPLT(ResolveInfo *I) const {
   return Entry->second;
 }
 
-uint64_t
-RISCVLDBackend::getValueForDiscardedRelocations(const Relocation *R) const {
-  ELFSection *applySect = R->targetRef()->frag()->getOwningSection();
-  llvm::StringRef applySectionName = applySect->name();
-  if ((applySectionName == ".debug_loc") ||
-      (applySectionName == ".debug_ranges"))
-    return 1;
-  return GNULDBackend::getValueForDiscardedRelocations(R);
-}
-
 void RISCVLDBackend::reserveTargetDynamicEntries() {
   m_pDynamic->reserveOne(llvm::ELF::DT_RELACOUNT);
 }

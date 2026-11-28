@@ -93,6 +93,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/Object/ELF.h"
 #include "llvm/Object/ELFTypes.h"
 #include "llvm/Support/BinaryStreamWriter.h"
 #include "llvm/Support/FileOutputBuffer.h"
@@ -134,6 +135,16 @@ GNULDBackend::GNULDBackend(Module &pModule, TargetInfo *pInfo)
 }
 
 GNULDBackend::~GNULDBackend() {}
+
+uint64_t
+GNULDBackend::getValueForDiscardedRelocations(const Relocation *R) const {
+  llvm::StringRef SectionName =
+      R->targetRef()->frag()->getOwningSection()->name();
+  // Legacy range and location lists reserve (0,0) for the end of the list.
+  if (SectionName == ".debug_loc" || SectionName == ".debug_ranges")
+    return 1;
+  return 0;
+}
 
 size_t GNULDBackend::sectionStartOffset() const {
   if (LinkerConfig::Binary == config().codeGenType())
@@ -207,6 +218,10 @@ void GNULDBackend::insertTimingFragmentStub() {
     layoutInfo->recordFragment(F->getOwningSection()->getInputFile(),
                                F->getOwningSection(), F);
   m_pTimingFragment = F;
+}
+
+llvm::StringRef GNULDBackend::getSectionTypeName(uint32_t Type) const {
+  return llvm::object::getELFSectionTypeName(getInfo().machine(), Type);
 }
 
 eld::Expected<void> GNULDBackend::initStdSections() {
@@ -2423,10 +2438,8 @@ GNULDBackend::setupSegmentOffset(ELFSegment *Seg, ELFSection *P,
           // reset all nobits sections to section type PROGBITS
           for (auto &S : NoBitsSections) {
             config().raise(Diag::promoting_bss_to_progbits)
-                << S->name()
-                << ELFSection::getELFTypeStr(S->name(), S->getType())
-                << ELFSection::getELFTypeStr(next->name(), next->getType())
-                << next->name();
+                << S->name() << getSectionTypeName(S->getType())
+                << getSectionTypeName(next->getType()) << next->name();
             S->setType(llvm::ELF::SHT_PROGBITS);
           }
           NoBitsSections.clear();
@@ -2657,10 +2670,12 @@ bool GNULDBackend::setupProgramHdrs() {
     uint64_t lo = std::numeric_limits<uint64_t>::max();
     uint64_t hi = 0;
     for (auto &seg : tls_segs) {
+      if (seg->memsz() == 0)
+        continue;
       lo = std::min(lo, seg->vaddr());
       hi = std::max(hi, seg->vaddr() + seg->memsz());
     }
-    setTLSTemplateSize(hi - lo);
+    setTLSTemplateSize(hi > lo ? hi - lo : 0);
   }
   return true;
 }
@@ -3167,9 +3182,8 @@ bool GNULDBackend::placeOutputSections() {
       else if (type == OutputSectDesc::PROGBITS) {
         if (!cur->isProgBits()) {
           config().raise(Diag::change_section_type)
-              << ELFSection::getELFTypeStr("", llvm::ELF::SHT_PROGBITS)
-              << ELFSection::getELFTypeStr(cur->name(), cur->getType())
-              << cur->name();
+              << getSectionTypeName(llvm::ELF::SHT_PROGBITS)
+              << getSectionTypeName(cur->getType()) << cur->name();
           cur->setType(llvm::ELF::SHT_PROGBITS);
         }
         (*out)->prolog().setType(OutputSectDesc::LOAD);
@@ -4803,12 +4817,12 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
 
     for (auto &sec : PluginSections) {
       // Hash of all the required things for Match.
-      uint64_t inputFileHash = input->getInput()->getResolvedPathHash();
+      uint64_t inputFileHash = input->getInput()->getRuleMatchingPathHash();
       uint64_t nameHash = input->getInput()->getArchiveMemberNameHash();
       uint64_t inputSectionHash = sec->sectionNameHash();
       SectionMap::mapping pair = m_Module.getScript().sectionMap().findIn(
           m_Module.getScript().sectionMap().outputSections().begin(),
-          input->getInput()->getResolvedPath().native(), *sec, false,
+          input->getInput()->getRuleMatchingPath(), *sec, false,
           input->getInput()->getName(), inputSectionHash, inputFileHash,
           nameHash);
       if (!pair.first) {

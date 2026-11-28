@@ -315,7 +315,8 @@ void TextLayoutPrinter::printSection(GNULDBackend const &Backend,
   outputStream() << ", Flags: "
                  << ELFSection::getELFPermissionsStr(Section->getFlags());
 
-  outputStream() << ", Type: " << OS->getSectionTypeStr();
+  outputStream() << ", Type: "
+                 << Backend.getSectionTypeName(Section->getType());
 
   if (Section->isAlloc()) {
     printSegments(Backend, OS);
@@ -696,8 +697,7 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
 
   bool Onlylayout =
       ThisLayoutInfo->showOnlyLayout() || M.isLinkStateBeforeLayout();
-  std::string Type =
-      ELFSection::getELFTypeStr(Info->section()->name(), Info->type()).str();
+  std::string Type = M.getBackend().getSectionTypeName(Info->type()).str();
   std::string Permissions = ELFSection::getELFPermissionsStr(Info->flag());
   std::string Path;
   if (Info->section()->hasOldInputFile())

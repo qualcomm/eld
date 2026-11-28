@@ -356,9 +356,9 @@ LinkerWrapper::getOutputSectionAndRule(Section S) {
 
   auto Sections = Script->sectionMap().outputSections();
   auto [Section, Rule] = Script->sectionMap().findIn(
-      Sections.begin(), Input->getResolvedPath().native(),
+      Sections.begin(), Input->getRuleMatchingPath(),
       *llvm::cast<ELFSection>(S.getSection()), F.isArchive(), Input->getName(),
-      S.getSection()->sectionNameHash(), Input->getResolvedPathHash(),
+      S.getSection()->sectionNameHash(), Input->getRuleMatchingPathHash(),
       Input->getArchiveMemberNameHash());
 
   ELFSection *inputELFSect = llvm::dyn_cast<ELFSection>(S.getSection());
@@ -644,6 +644,13 @@ plugin::LinkerScript LinkerWrapper::getLinkerScript() {
   return plugin::LinkerScript(&m_Module.getLinkerScript());
 }
 
+std::vector<plugin::MemoryRegion> LinkerWrapper::getMemoryRegions() const {
+  std::vector<plugin::MemoryRegion> Regions;
+  for (const auto *Region : m_Module.getLinkerScript().getMemoryRegions())
+    Regions.emplace_back(Region);
+  return Regions;
+}
+
 std::string LinkerWrapper::getFileContents(std::string FileName) {
   if (m_Module.getConfig().options().hasMappingFile())
     FileName = m_Module.getConfig().getHashFromFile(FileName);
@@ -688,8 +695,7 @@ LinkerWrapper::findConfigFile(const std::string &FileName) const {
       return MappedValue.str();
   }
 
-  eld::SearchDirs Directories = m_Module.getConfig().directories();
-  const eld::sys::fs::Path *P = Directories.findFile(
+  const eld::sys::fs::Path *P = m_Module.getConfig().findPluginConfigFile(
       "plugin configuration INI file", FileName, getPlugin()->getPluginName());
   if (P) {
     std::string FullPath = P->getFullPath();

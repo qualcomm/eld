@@ -28,6 +28,7 @@ extern "C++" { #
   eld::plugin::MergeableString::*
   eld::plugin::MergeStringChunk::*
   eld::plugin::OutputSection::*
+  eld::plugin::MemoryRegion::*
   eld::plugin::Padding::*
   eld::plugin::Plugin::*
   eld::plugin::PluginBase::*

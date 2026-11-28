@@ -262,7 +262,7 @@ protected:
   Input *createInput(const std::string &Path) {
     auto *Result = make<Input>(Path, Diag.get());
     Result->setResolvedPath(Path);
-    Result->setResolvedPathHash(Input::computeFilePathHash(Path));
+    Result->setRuleMatchingPathAndHash(Path);
     Result->setMemberNameHash(Input::computeFilePathHash(Path));
     Result->setMemArea(
         make<MemoryArea>(llvm::MemoryBuffer::getMemBufferCopy("", Path)));

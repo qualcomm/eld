@@ -187,7 +187,3 @@ bool OutputSectionEntry::insertBeforeRule(RuleContainer *C, RuleContainer *R) {
   R->setNextRule(C);
   return true;
 }
-
-std::string OutputSectionEntry::getSectionTypeStr() const {
-  return ELFSection::getELFTypeStr(Name, OutputELFSection->getType()).str();
-}

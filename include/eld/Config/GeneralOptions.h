@@ -1025,6 +1025,10 @@ public:
 
   const std::string &getMappingFileName() const { return MappingFileName; }
 
+  void setChroot(llvm::StringRef C) { Chroot = C.str(); }
+
+  llvm::StringRef getChroot() const { return Chroot; }
+
   bool getRecordInputFiles() const { return RecordInputFiles; }
 
   bool getDumpMappings() const { return DumpMappings; }
@@ -1407,6 +1411,7 @@ private:
   std::optional<std::string>
       SymbolResolutionReportFile; // --emit-symbol-resolution-report output path
   std::string MappingFileName;           // --Mapping-file
+  std::string Chroot;                    // --chroot
   std::string MappingDumpFile;           // --dump-mapping-file
   std::string ResponseDumpFile;          // --dump-response-file
   llvm::StringMap<int32_t> InputFileMap; // InputFile Map
