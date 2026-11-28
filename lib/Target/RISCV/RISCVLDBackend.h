@@ -24,6 +24,7 @@ class LinkerConfig;
 class RISCVInfo;
 class RISCVAttributeFragment;
 class RISCVTableJumpFragment;
+class RISCVILUTFragment;
 class RISCVPLT;
 class RISCVRelaxationStats;
 
@@ -125,6 +126,10 @@ public:
   void recordPLT(ResolveInfo *, RISCVPLT *);
 
   RISCVPLT *findEntryInPLT(ResolveInfo *) const;
+
+  void notePendingRelaxation(RegionFragmentEx &Region) {
+    m_FragmentsWithPendingRelaxEdits.insert(&Region);
+  }
 
   // ---------------------  Dynamic relocation support ------------
   bool hasSymInfo(const Relocation *X) const override {
@@ -228,6 +233,7 @@ public:
 
 private:
   void initTableJump();
+  void initILUT();
 
   // This is `handleRelocation` for internal RISC-V relocations IDs.
   bool handleVendorRelocation(ELFSection *pSection,
@@ -406,11 +412,17 @@ private:
   /// RISCV Attribute Section
   ELFSection *m_pRISCVAttributeSection = nullptr;
   ELFSection *m_pRISCVTableJumpSection = nullptr;
+  ELFSection *m_pRISCVILUTSection = nullptr;
   /// RISCV Attribute Fragment
   RISCVAttributeFragment *AttributeFragment = nullptr;
   RISCVTableJumpFragment *TableJumpFragment = nullptr;
+  RISCVILUTFragment *ILUTFragment = nullptr;
   bool TableJumpInitialized = false;
+  bool ILUTInitialized = false;
+  bool ILUTApplied = false;
   LDSymbol *m_pJvtBase = nullptr;
+  LDSymbol *m_pIlutBase = nullptr;
+  LDSymbol *m_pIlutDec = nullptr;
 
   llvm::DenseMap<ResolveInfo *, RISCVGOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, RISCVGOT *> m_GOTPLTMap;
