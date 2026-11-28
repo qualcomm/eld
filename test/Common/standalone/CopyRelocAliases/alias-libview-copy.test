@@ -1,0 +1,34 @@
+REQUIRES: x86_64, linux
+#UNSUPPORTED: windows, darwin
+#---alias-libview-copy.test---------------Copy Relocations-------------------#
+#BEGIN_COMMENT
+# Two GLOBAL aliases of one object in a shared library (#2145). The executable
+# references only foo_v1, so foo_v2 must still be defined on the copy and
+# exported; otherwise the library keeps using its original storage through
+# foo_v2. The group gets exactly one R_X86_64_COPY and the data is copied.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/alias-data-lib.c -o %t.lib.o
+RUN: %link %linkopts -shared %t.lib.o -o %t.lib.so
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/alias-libview-main.c -o %t.main.o
+RUN: %clang %clangopts -fuse-ld=%link -no-pie %t.main.o %t.lib.so -o %t.out
+RUN: %readelf -r %t.out | %filecheck %s --check-prefix=RELOC
+RUN: %nm -D --defined-only %t.out | %filecheck %s --check-prefix=SYMS
+# A duplicate name in .dynsym breaks the single-copy alias contract.
+RUN: %nm -D --defined-only %t.out | grep -Ec '[[:space:]]foo_v1$' | %filecheck %s --check-prefix=ONE
+RUN: %nm -D --defined-only %t.out | grep -Ec '[[:space:]]foo_v2$' | %filecheck %s --check-prefix=ONE
+RUN: %readelf -r %t.out | grep -Ec 'R_X86_64_COPY([[:space:]]|$)' | %filecheck %s --check-prefix=ONE
+RUN: %run_and_print_exit %t.out | %filecheck %s --check-prefix=EXEC
+#END_TEST
+
+RELOC: R_X86_64_COPY {{.*}} foo_v{{[12]}}
+RELOC-NOT: R_X86_64_COPY
+
+SYMS: [[ADDR:[0-9a-f]+]] {{[BD]}} foo_v1
+SYMS-NEXT: [[ADDR]] {{[BD]}} foo_v2
+
+EXEC-NOT: FAIL:
+EXEC: PASSED
+EXEC-NEXT: {{^}}0
+
+ONE: {{^1$}}

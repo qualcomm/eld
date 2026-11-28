@@ -1,0 +1,2 @@
+V1 { global: mixed; };
+V2 { global: mixed; other; local: *; } V1;

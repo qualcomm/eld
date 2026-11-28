@@ -1,0 +1,31 @@
+UNSUPPORTED: ndk-build
+#---CopyRelocGlobalAliases.test-----------Copy Relocations-------------------#
+#BEGIN_COMMENT
+# Target-independent part of #2145: a non-PIC object references one of two
+# GLOBAL aliases defined by a shared library. The link must emit a single COPY
+# relocation for the alias group and define both aliases at the same address
+# in the dynamic symbol table of the output.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/lib.c -o %t1.lib.o
+RUN: %link %linkopts -shared %t1.lib.o -o %t1.lib.so
+RUN: %clang %clangopts -c -fno-pic -fno-pie %p/Inputs/main.c -o %t1.main.o
+RUN: %link %linkopts %t1.main.o -Bdynamic %t1.lib.so -o %t1.out
+RUN: %readelf -r %t1.out | %filecheck %s --check-prefix=RELOC
+RUN: %nm -D --defined-only %t1.out | %filecheck %s --check-prefix=SYMS
+# Count the two dynamic symbol names without assuming target architecture.
+RUN: %nm -D --defined-only %t1.out | grep -Ec '[[:space:]]foo_v1$' | %filecheck %s --check-prefix=COUNT_V1
+RUN: %nm -D --defined-only %t1.out | grep -Ec '[[:space:]]foo_v2$' | %filecheck %s --check-prefix=COUNT_V2
+RUN: %readelf -r %t1.out | grep -Ec 'R_[A-Za-z0-9_]+_COPY' | %filecheck %s --check-prefix=NUMCOPY
+#END_TEST
+
+RELOC: {{R_[A-Z0-9_]+_COPY}}
+RELOC-NOT: {{R_[A-Z0-9_]+_COPY}}
+
+SYMS: [[ADDR:[0-9a-f]+]] {{[BbDd]}} foo_v1
+SYMS-NEXT: [[ADDR]] {{[BbDd]}} foo_v2
+
+COUNT_V1: {{^1$}}
+COUNT_V2: {{^1$}}
+
+NUMCOPY: {{^1$}}
