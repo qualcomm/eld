@@ -1,0 +1,924 @@
+{
+  "summary": {
+    "artifactCount": 130,
+    "activeArtifacts": 130,
+    "totalSize": "1.52 GB"
+  },
+  "workflows": [
+    {
+      "name": "pages build and deployment",
+      "artifacts": [
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T15:06:35Z",
+          "expiresAt": "2026-11-29T15:06:34Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T14:06:25Z",
+          "expiresAt": "2026-11-29T14:06:23Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T13:06:19Z",
+          "expiresAt": "2026-11-29T13:06:16Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T12:09:15Z",
+          "expiresAt": "2026-11-29T12:09:10Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T11:06:24Z",
+          "expiresAt": "2026-11-29T11:06:21Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T11:05:41Z",
+          "expiresAt": "2026-11-29T11:05:38Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T10:06:05Z",
+          "expiresAt": "2026-11-29T10:06:02Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T10:06:43Z",
+          "expiresAt": "2026-11-29T10:06:41Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T09:07:45Z",
+          "expiresAt": "2026-11-29T09:07:43Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.94 MB",
+          "createdAt": "2026-11-28T09:06:54Z",
+          "expiresAt": "2026-11-29T09:06:51Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.94 MB",
+          "createdAt": "2026-11-28T08:08:23Z",
+          "expiresAt": "2026-11-29T08:08:22Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T08:07:46Z",
+          "expiresAt": "2026-11-29T08:07:44Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T07:07:18Z",
+          "expiresAt": "2026-11-29T07:07:16Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T06:11:06Z",
+          "expiresAt": "2026-11-29T06:11:04Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T05:07:22Z",
+          "expiresAt": "2026-11-29T05:07:19Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T05:06:41Z",
+          "expiresAt": "2026-11-29T05:06:38Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T04:08:17Z",
+          "expiresAt": "2026-11-29T04:08:15Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T04:07:41Z",
+          "expiresAt": "2026-11-29T04:07:38Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T03:08:27Z",
+          "expiresAt": "2026-11-29T03:08:25Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T03:07:43Z",
+          "expiresAt": "2026-11-29T03:07:41Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T02:09:30Z",
+          "expiresAt": "2026-11-29T02:09:28Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T02:08:43Z",
+          "expiresAt": "2026-11-29T02:08:41Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T01:07:25Z",
+          "expiresAt": "2026-11-29T01:07:22Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T01:08:03Z",
+          "expiresAt": "2026-11-29T01:08:01Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T00:16:10Z",
+          "expiresAt": "2026-11-29T00:16:08Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-28T00:16:51Z",
+          "expiresAt": "2026-11-29T00:16:49Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-27T23:06:35Z",
+          "expiresAt": "2026-11-28T23:06:32Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-27T22:07:12Z",
+          "expiresAt": "2026-11-28T22:07:10Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-27T21:05:55Z",
+          "expiresAt": "2026-11-28T21:05:54Z"
+        },
+        {
+          "name": "github-pages",
+          "size": "19.98 MB",
+          "createdAt": "2026-11-27T21:06:37Z",
+          "expiresAt": "2026-11-28T21:06:36Z"
+        }
+      ]
+    },
+    {
+      "name": "Nightly check",
+      "artifacts": [
+        {
+          "name": "install-nightly-toolchain.tar.xz",
+          "size": "241.07 MB",
+          "createdAt": "2026-11-28T09:03:12Z",
+          "expiresAt": "2026-12-05T09:03:05Z"
+        }
+      ]
+    },
+    {
+      "name": "PR comment router #2557",
+      "artifacts": [
+        {
+          "name": "zephyr-twister-results-pr-2557-qemu_riscv32",
+          "size": "295.21 KB",
+          "createdAt": "2026-11-25T19:00:01Z",
+          "expiresAt": "2026-12-02T19:00:00Z"
+        },
+        {
+          "name": "zephyr-twister-results-pr-2557-qemu_x86_64",
+          "size": "308.26 KB",
+          "createdAt": "2026-11-25T18:43:47Z",
+          "expiresAt": "2026-12-02T18:43:46Z"
+        },
+        {
+          "name": "kernel-boot-pr-2557-riscv32-log",
+          "size": "5.05 KB",
+          "createdAt": "2026-11-25T18:30:38Z",
+          "expiresAt": "2026-12-02T18:30:37Z"
+        },
+        {
+          "name": "zephyr-twister-results-pr-2557-qemu_riscv64",
+          "size": "273.06 KB",
+          "createdAt": "2026-11-25T18:54:57Z",
+          "expiresAt": "2026-12-02T18:54:56Z"
+        },
+        {
+          "name": "kernel-boot-pr-2557-aarch64-vmlinux",
+          "size": "22.02 MB",
+          "createdAt": "2026-11-25T18:40:34Z",
+          "expiresAt": "2026-12-02T18:40:32Z"
+        },
+        {
+          "name": "zephyr-twister-results-pr-2557-qemu_cortex_m3",
+          "size": "180.58 KB",
+          "createdAt": "2026-11-25T18:34:37Z",
+          "expiresAt": "2026-12-02T18:34:36Z"
+        },
+        {
+          "name": "kernel-boot-pr-2557-arm-vmlinux",
+          "size": "18.08 MB",
+          "createdAt": "2026-11-25T18:29:47Z",
+          "expiresAt": "2026-12-02T18:29:45Z"
+        },
+        {
+          "name": "zephyr-twister-results-pr-2557-qemu_cortex_a53",
+          "size": "255.27 KB",
+          "createdAt": "2026-11-25T18:43:36Z",
+          "expiresAt": "2026-12-02T18:43:35Z"
+        },
+        {
+          "name": "kernel-boot-pr-2557-aarch64-log",
+          "size": "5.76 KB",
+          "createdAt": "2026-11-25T18:40:37Z",
+          "expiresAt": "2026-12-02T18:40:36Z"
+        },
+        {
+          "name": "kernel-boot-pr-2557-riscv64-log",
+          "size": "5.17 KB",
+          "createdAt": "2026-11-25T18:25:53Z",
+          "expiresAt": "2026-12-02T18:25:51Z"
+        },
+        {
+          "name": "kernel-boot-pr-2557-arm-log",
+          "size": "5.06 KB",
+          "createdAt": "2026-11-25T18:29:52Z",
+          "expiresAt": "2026-12-02T18:29:51Z"
+        },
+        {
+          "name": "busybox-eld-pr-2557-riscv32-gnu-a398d677302acd820ee6ef3fea695ff14e4a4c0b",
+          "size": "650.55 KB",
+          "createdAt": "2026-11-25T18:16:01Z",
+          "expiresAt": "2026-12-02T18:16:00Z"
+        },
+        {
+          "name": "pr-eld-toolset-2557-a398d677302acd820ee6ef3fea695ff14e4a4c0b",
+          "size": "26.18 MB",
+          "createdAt": "2026-11-25T18:07:49Z",
+          "expiresAt": "2026-12-02T18:07:46Z"
+        },
+        {
+          "name": "busybox-eld-pr-2557-riscv64-gnu-a398d677302acd820ee6ef3fea695ff14e4a4c0b",
+          "size": "667.46 KB",
+          "createdAt": "2026-11-25T18:17:19Z",
+          "expiresAt": "2026-12-02T18:17:18Z"
+        },
+        {
+          "name": "relocation-testing-results-pr-2557",
+          "size": "77.48 KB",
+          "createdAt": "2026-11-25T18:08:44Z",
+          "expiresAt": "2026-12-02T18:08:42Z"
+        },
+        {
+          "name": "kernel-boot-pr-2557-riscv32-vmlinux",
+          "size": "14.34 MB",
+          "createdAt": "2026-11-25T18:30:33Z",
+          "expiresAt": "2026-12-02T18:30:30Z"
+        },
+        {
+          "name": "kernel-boot-pr-2557-riscv64-vmlinux",
+          "size": "15.91 MB",
+          "createdAt": "2026-11-25T18:25:49Z",
+          "expiresAt": "2026-12-02T18:25:47Z"
+        },
+        {
+          "name": "busybox-eld-pr-2557-aarch64-gnu-a398d677302acd820ee6ef3fea695ff14e4a4c0b",
+          "size": "649.88 KB",
+          "createdAt": "2026-11-25T18:15:11Z",
+          "expiresAt": "2026-12-02T18:15:10Z"
+        },
+        {
+          "name": "busybox-eld-pr-2557-riscv32-a398d677302acd820ee6ef3fea695ff14e4a4c0b",
+          "size": "649.46 KB",
+          "createdAt": "2026-11-25T18:15:24Z",
+          "expiresAt": "2026-12-02T18:15:23Z"
+        },
+        {
+          "name": "llvm-test-suite-results-pr-2557-a398d677302acd820ee6ef3fea695ff14e4a4c0b",
+          "size": "158.61 KB",
+          "createdAt": "2026-11-25T18:25:18Z",
+          "expiresAt": "2026-12-02T18:25:17Z"
+        },
+        {
+          "name": "busybox-eld-pr-2557-riscv64-a398d677302acd820ee6ef3fea695ff14e4a4c0b",
+          "size": "666.58 KB",
+          "createdAt": "2026-11-25T18:13:38Z",
+          "expiresAt": "2026-12-02T18:13:37Z"
+        },
+        {
+          "name": "busybox-eld-pr-2557-aarch64-a398d677302acd820ee6ef3fea695ff14e4a4c0b",
+          "size": "650.36 KB",
+          "createdAt": "2026-11-25T18:13:47Z",
+          "expiresAt": "2026-12-02T18:13:47Z"
+        },
+        {
+          "name": "busybox-eld-pr-2557-arm-gnu-a398d677302acd820ee6ef3fea695ff14e4a4c0b",
+          "size": "695.61 KB",
+          "createdAt": "2026-11-25T18:17:00Z",
+          "expiresAt": "2026-12-02T18:16:59Z"
+        },
+        {
+          "name": "busybox-eld-pr-2557-x86_64-a398d677302acd820ee6ef3fea695ff14e4a4c0b",
+          "size": "647.78 KB",
+          "createdAt": "2026-11-25T18:09:40Z",
+          "expiresAt": "2026-12-02T18:09:39Z"
+        },
+        {
+          "name": "zephyr-twister-results-pr-2557-qemu_riscv32_xip",
+          "size": "2.78 KB",
+          "createdAt": "2026-11-25T18:12:46Z",
+          "expiresAt": "2026-12-02T18:12:45Z"
+        },
+        {
+          "name": "busybox-eld-pr-2557-x86_64-gnu-a398d677302acd820ee6ef3fea695ff14e4a4c0b",
+          "size": "646.61 KB",
+          "createdAt": "2026-11-25T18:10:09Z",
+          "expiresAt": "2026-12-02T18:10:08Z"
+        },
+        {
+          "name": "busybox-eld-pr-2557-arm-a398d677302acd820ee6ef3fea695ff14e4a4c0b",
+          "size": "695.96 KB",
+          "createdAt": "2026-11-25T18:15:06Z",
+          "expiresAt": "2026-12-02T18:15:05Z"
+        }
+      ]
+    },
+    {
+      "name": "Linux kernel boot nightly",
+      "artifacts": [
+        {
+          "name": "kernel-boot-aarch64-vmlinux",
+          "size": "22.02 MB",
+          "createdAt": "2026-11-25T18:27:01Z",
+          "expiresAt": "2026-12-02T18:26:59Z"
+        },
+        {
+          "name": "kernel-boot-aarch64-log",
+          "size": "5.76 KB",
+          "createdAt": "2026-11-25T18:27:04Z",
+          "expiresAt": "2026-12-02T18:27:04Z"
+        },
+        {
+          "name": "kernel-boot-arm-log",
+          "size": "5.08 KB",
+          "createdAt": "2026-11-25T18:00:08Z",
+          "expiresAt": "2026-12-02T18:00:07Z"
+        },
+        {
+          "name": "kernel-boot-arm-vmlinux",
+          "size": "18.08 MB",
+          "createdAt": "2026-11-25T18:00:03Z",
+          "expiresAt": "2026-12-02T18:00:01Z"
+        },
+        {
+          "name": "kernel-boot-riscv64-log",
+          "size": "5.16 KB",
+          "createdAt": "2026-11-25T17:54:40Z",
+          "expiresAt": "2026-12-02T17:54:39Z"
+        },
+        {
+          "name": "kernel-boot-riscv32-vmlinux",
+          "size": "14.34 MB",
+          "createdAt": "2026-11-25T18:04:26Z",
+          "expiresAt": "2026-12-02T18:04:24Z"
+        },
+        {
+          "name": "kernel-boot-riscv64-vmlinux",
+          "size": "15.91 MB",
+          "createdAt": "2026-11-25T17:54:37Z",
+          "expiresAt": "2026-12-02T17:54:35Z"
+        },
+        {
+          "name": "kernel-boot-riscv32-log",
+          "size": "5.04 KB",
+          "createdAt": "2026-11-25T18:04:30Z",
+          "expiresAt": "2026-12-02T18:04:29Z"
+        }
+      ]
+    },
+    {
+      "name": "PR comment router #2549",
+      "artifacts": [
+        {
+          "name": "kernel-boot-pr-2549-aarch64-vmlinux",
+          "size": "22.02 MB",
+          "createdAt": "2026-11-24T22:31:09Z",
+          "expiresAt": "2026-12-01T22:31:06Z"
+        },
+        {
+          "name": "kernel-boot-pr-2549-arm-log",
+          "size": "5.08 KB",
+          "createdAt": "2026-11-24T22:32:00Z",
+          "expiresAt": "2026-12-01T22:31:59Z"
+        },
+        {
+          "name": "kernel-boot-pr-2549-arm-vmlinux",
+          "size": "18.08 MB",
+          "createdAt": "2026-11-24T22:31:54Z",
+          "expiresAt": "2026-12-01T22:31:51Z"
+        },
+        {
+          "name": "kernel-boot-pr-2549-riscv32-vmlinux",
+          "size": "14.34 MB",
+          "createdAt": "2026-11-24T22:15:59Z",
+          "expiresAt": "2026-12-01T22:15:57Z"
+        },
+        {
+          "name": "kernel-boot-pr-2549-aarch64-log",
+          "size": "5.76 KB",
+          "createdAt": "2026-11-24T22:31:12Z",
+          "expiresAt": "2026-12-01T22:31:11Z"
+        },
+        {
+          "name": "kernel-boot-pr-2549-riscv64-vmlinux",
+          "size": "15.91 MB",
+          "createdAt": "2026-11-24T22:17:23Z",
+          "expiresAt": "2026-12-01T22:17:21Z"
+        },
+        {
+          "name": "kernel-boot-pr-2549-riscv64-log",
+          "size": "5.18 KB",
+          "createdAt": "2026-11-24T22:17:25Z",
+          "expiresAt": "2026-12-01T22:17:25Z"
+        },
+        {
+          "name": "kernel-boot-pr-2549-riscv32-log",
+          "size": "5.04 KB",
+          "createdAt": "2026-11-24T22:16:03Z",
+          "expiresAt": "2026-12-01T22:16:02Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2515 @e16c97187de83a3c07b56f2224b20526d5930ee0",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2515-e16c97187de83a3c07b56f2224b20526d5930ee0",
+          "size": "26.22 MB",
+          "createdAt": "2026-11-25T17:24:21Z",
+          "expiresAt": "2026-12-02T17:24:18Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2279 @7d76ac378c6708417afc749a74c2240d8a2aef20",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2279-7d76ac378c6708417afc749a74c2240d8a2aef20",
+          "size": "26.21 MB",
+          "createdAt": "2026-11-26T12:52:49Z",
+          "expiresAt": "2026-12-03T12:52:47Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2515 @d168909ffb2a54ebbe695b0d8f6cb60f5862e683",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2515-d168909ffb2a54ebbe695b0d8f6cb60f5862e683",
+          "size": "26.21 MB",
+          "createdAt": "2026-11-28T15:22:24Z",
+          "expiresAt": "2026-12-05T15:22:21Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2561 @aee9d7447cc69d5768600f39ff7b1b83813a0607",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2561-aee9d7447cc69d5768600f39ff7b1b83813a0607",
+          "size": "26.21 MB",
+          "createdAt": "2026-11-27T11:29:39Z",
+          "expiresAt": "2026-12-04T11:29:36Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2562 @c57db7aa241854f2c100fa07b95004b26c670a7e",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2562-c57db7aa241854f2c100fa07b95004b26c670a7e",
+          "size": "26.20 MB",
+          "createdAt": "2026-11-27T16:57:43Z",
+          "expiresAt": "2026-12-04T16:57:41Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2530 @7d86f88ab92269ede2fc726ae301f66abacc64b0",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2530-7d86f88ab92269ede2fc726ae301f66abacc64b0",
+          "size": "26.19 MB",
+          "createdAt": "2026-11-26T11:19:38Z",
+          "expiresAt": "2026-12-03T11:19:35Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2279 @ac166cc5f21cbfbc0624e652cd1f48e1155bd5f9",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2279-ac166cc5f21cbfbc0624e652cd1f48e1155bd5f9",
+          "size": "26.18 MB",
+          "createdAt": "2026-11-26T10:40:49Z",
+          "expiresAt": "2026-12-03T10:40:46Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2551 @7416a47ee084bb8ae312294f3d1d4c09b257408b",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2551-7416a47ee084bb8ae312294f3d1d4c09b257408b",
+          "size": "26.16 MB",
+          "createdAt": "2026-11-25T05:32:01Z",
+          "expiresAt": "2026-12-02T05:31:58Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2547 @de4691c93054a4d1fb067f0b15553d99a8f2b322",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2547-de4691c93054a4d1fb067f0b15553d99a8f2b322",
+          "size": "26.15 MB",
+          "createdAt": "2026-11-24T16:56:41Z",
+          "expiresAt": "2026-12-01T16:56:39Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2549 @3273ea2ffd749025a8bf4d87e045f17ef22ceacf",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2549-3273ea2ffd749025a8bf4d87e045f17ef22ceacf",
+          "size": "26.15 MB",
+          "createdAt": "2026-11-24T21:55:21Z",
+          "expiresAt": "2026-12-01T21:55:18Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2400 @cb1bd3a8f0753e59f0501c8e14f653c19e848923",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2400-cb1bd3a8f0753e59f0501c8e14f653c19e848923",
+          "size": "26.14 MB",
+          "createdAt": "2026-11-24T19:44:26Z",
+          "expiresAt": "2026-12-01T19:44:23Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2545 @fb17c99d803436f5dd43842b8ec95e52d865b4f1",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2545-fb17c99d803436f5dd43842b8ec95e52d865b4f1",
+          "size": "26.14 MB",
+          "createdAt": "2026-11-23T17:45:37Z",
+          "expiresAt": "2026-11-30T17:45:34Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2547 @ee922367f9aee372bc75fc128858ff5d1039661e",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2547-ee922367f9aee372bc75fc128858ff5d1039661e",
+          "size": "26.14 MB",
+          "createdAt": "2026-11-23T19:37:32Z",
+          "expiresAt": "2026-11-30T19:37:29Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2437 @1a137444eff6af68c7f9e5a87494211449a0ccf8",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2437-1a137444eff6af68c7f9e5a87494211449a0ccf8",
+          "size": "26.13 MB",
+          "createdAt": "2026-11-23T23:22:42Z",
+          "expiresAt": "2026-11-30T23:22:39Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2531 @44d3faa17613e113fc7e09ecd98876f326174e0f",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2531-44d3faa17613e113fc7e09ecd98876f326174e0f",
+          "size": "26.12 MB",
+          "createdAt": "2026-11-23T11:24:37Z",
+          "expiresAt": "2026-11-30T11:24:35Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #1519 @66e824baf191facfab2b6e7bb27f328bccf53356",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-1519-66e824baf191facfab2b6e7bb27f328bccf53356",
+          "size": "26.12 MB",
+          "createdAt": "2026-11-24T00:01:05Z",
+          "expiresAt": "2026-12-01T00:01:02Z"
+        }
+      ]
+    },
+    {
+      "name": "CI PR #2531 @9104c999e6e757e270e934c60028e1c3130a142a",
+      "artifacts": [
+        {
+          "name": "pr-eld-toolset-2531-9104c999e6e757e270e934c60028e1c3130a142a",
+          "size": "26.12 MB",
+          "createdAt": "2026-11-23T09:54:03Z",
+          "expiresAt": "2026-11-30T09:54:00Z"
+        }
+      ]
+    },
+    {
+      "name": "Zephyr nightly",
+      "artifacts": [
+        {
+          "name": "zephyr-twister-results-qemu_riscv32",
+          "size": "1.55 MB",
+          "createdAt": "2026-11-28T06:40:45Z",
+          "expiresAt": "2026-12-05T06:40:43Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_riscv64",
+          "size": "1.44 MB",
+          "createdAt": "2026-11-28T07:01:35Z",
+          "expiresAt": "2026-12-05T07:01:34Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_x86_64",
+          "size": "1.05 MB",
+          "createdAt": "2026-11-28T04:54:15Z",
+          "expiresAt": "2026-12-05T04:54:14Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_cortex_m3",
+          "size": "809.23 KB",
+          "createdAt": "2026-11-28T04:05:08Z",
+          "expiresAt": "2026-12-05T04:05:07Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_cortex_a53",
+          "size": "906.98 KB",
+          "createdAt": "2026-11-28T04:02:50Z",
+          "expiresAt": "2026-12-05T04:02:49Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_riscv32_xip",
+          "size": "21.84 KB",
+          "createdAt": "2026-11-28T02:06:49Z",
+          "expiresAt": "2026-12-05T02:06:49Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_riscv64",
+          "size": "1.07 MB",
+          "createdAt": "2026-11-27T07:31:16Z",
+          "expiresAt": "2026-12-04T07:31:14Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_riscv32",
+          "size": "1.47 MB",
+          "createdAt": "2026-11-27T04:36:31Z",
+          "expiresAt": "2026-12-04T04:36:30Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_cortex_m3",
+          "size": "798.80 KB",
+          "createdAt": "2026-11-27T03:19:39Z",
+          "expiresAt": "2026-12-04T03:19:38Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_riscv64",
+          "size": "1.09 MB",
+          "createdAt": "2026-11-26T08:45:13Z",
+          "expiresAt": "2026-12-03T08:45:12Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_riscv32",
+          "size": "1.52 MB",
+          "createdAt": "2026-11-26T06:37:15Z",
+          "expiresAt": "2026-12-03T06:37:14Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_cortex_m3",
+          "size": "843.46 KB",
+          "createdAt": "2026-11-26T06:04:23Z",
+          "expiresAt": "2026-12-03T06:04:21Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_riscv64",
+          "size": "1.10 MB",
+          "createdAt": "2026-11-25T08:42:36Z",
+          "expiresAt": "2026-12-02T08:42:35Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_riscv32",
+          "size": "1.57 MB",
+          "createdAt": "2026-11-25T08:05:17Z",
+          "expiresAt": "2026-12-02T08:05:16Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_cortex_m3",
+          "size": "826.16 KB",
+          "createdAt": "2026-11-25T05:11:15Z",
+          "expiresAt": "2026-12-02T05:11:14Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_riscv64",
+          "size": "1.18 MB",
+          "createdAt": "2026-11-24T08:47:35Z",
+          "expiresAt": "2026-12-01T08:47:34Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_riscv32",
+          "size": "1.52 MB",
+          "createdAt": "2026-11-24T06:48:44Z",
+          "expiresAt": "2026-12-01T06:48:43Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_cortex_m3",
+          "size": "819.83 KB",
+          "createdAt": "2026-11-24T05:15:11Z",
+          "expiresAt": "2026-12-01T05:15:10Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_riscv64",
+          "size": "1.07 MB",
+          "createdAt": "2026-11-24T00:36:02Z",
+          "expiresAt": "2026-12-01T00:36:00Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_riscv32",
+          "size": "1.58 MB",
+          "createdAt": "2026-11-24T00:05:33Z",
+          "expiresAt": "2026-12-01T00:05:31Z"
+        },
+        {
+          "name": "zephyr-twister-results-qemu_cortex_m3",
+          "size": "842.08 KB",
+          "createdAt": "2026-11-23T21:51:44Z",
+          "expiresAt": "2026-11-30T21:51:42Z"
+        }
+      ]
+    },
+    {
+      "name": "BusyBox nightly",
+      "artifacts": [
+        {
+          "name": "busybox-eld-riscv64-gnu",
+          "size": "667.46 KB",
+          "createdAt": "2026-11-25T17:38:17Z",
+          "expiresAt": "2026-12-02T17:38:15Z"
+        },
+        {
+          "name": "busybox-eld-arm-gnu",
+          "size": "695.60 KB",
+          "createdAt": "2026-11-25T17:41:45Z",
+          "expiresAt": "2026-12-02T17:41:44Z"
+        },
+        {
+          "name": "busybox-eld-riscv64",
+          "size": "666.58 KB",
+          "createdAt": "2026-11-25T17:40:49Z",
+          "expiresAt": "2026-12-02T17:40:48Z"
+        },
+        {
+          "name": "busybox-eld-riscv32-gnu",
+          "size": "650.55 KB",
+          "createdAt": "2026-11-25T17:42:44Z",
+          "expiresAt": "2026-12-02T17:42:43Z"
+        },
+        {
+          "name": "busybox-eld-aarch64-gnu",
+          "size": "649.88 KB",
+          "createdAt": "2026-11-25T17:37:44Z",
+          "expiresAt": "2026-12-02T17:37:44Z"
+        },
+        {
+          "name": "busybox-eld-x86_64-gnu",
+          "size": "646.61 KB",
+          "createdAt": "2026-11-25T17:32:00Z",
+          "expiresAt": "2026-12-02T17:32:00Z"
+        },
+        {
+          "name": "busybox-eld-x86_64",
+          "size": "647.78 KB",
+          "createdAt": "2026-11-25T17:31:53Z",
+          "expiresAt": "2026-12-02T17:31:51Z"
+        },
+        {
+          "name": "busybox-eld-riscv32",
+          "size": "649.46 KB",
+          "createdAt": "2026-11-25T17:35:03Z",
+          "expiresAt": "2026-12-02T17:35:01Z"
+        },
+        {
+          "name": "busybox-eld-arm",
+          "size": "695.96 KB",
+          "createdAt": "2026-11-25T17:40:19Z",
+          "expiresAt": "2026-12-02T17:40:18Z"
+        },
+        {
+          "name": "busybox-eld-aarch64",
+          "size": "650.36 KB",
+          "createdAt": "2026-11-25T17:34:54Z",
+          "expiresAt": "2026-12-02T17:34:53Z"
+        }
+      ]
+    },
+    {
+      "name": "nightly picolibc builder",
+      "artifacts": [
+        {
+          "name": "test-results-riscv32",
+          "size": "49.24 KB",
+          "createdAt": "2026-11-25T17:36:03Z",
+          "expiresAt": "2026-12-02T17:36:03Z"
+        },
+        {
+          "name": "test-results-x86_64",
+          "size": "45.58 KB",
+          "createdAt": "2026-11-25T17:35:11Z",
+          "expiresAt": "2026-12-02T17:35:10Z"
+        },
+        {
+          "name": "test-results-arm",
+          "size": "12.34 KB",
+          "createdAt": "2026-11-25T17:31:38Z",
+          "expiresAt": "2026-12-02T17:31:37Z"
+        },
+        {
+          "name": "test-results-aarch64",
+          "size": "12.42 KB",
+          "createdAt": "2026-11-25T17:32:55Z",
+          "expiresAt": "2026-12-02T17:32:54Z"
+        },
+        {
+          "name": "test-results-hexagon",
+          "size": "46.27 KB",
+          "createdAt": "2026-11-25T17:37:44Z",
+          "expiresAt": "2026-12-02T17:37:43Z"
+        },
+        {
+          "name": "test-results-riscv64",
+          "size": "12.44 KB",
+          "createdAt": "2026-11-25T17:32:21Z",
+          "expiresAt": "2026-12-02T17:32:20Z"
+        }
+      ]
+    },
+    {
+      "name": "LLVM test suite nightly",
+      "artifacts": [
+        {
+          "name": "llvm-test-suite-results",
+          "size": "159.25 KB",
+          "createdAt": "2026-11-25T17:49:41Z",
+          "expiresAt": "2026-12-02T17:49:40Z"
+        }
+      ]
+    },
+    {
+      "name": "Relocation testing nightly",
+      "artifacts": [
+        {
+          "name": "relocation-testing-results-nightly",
+          "size": "77.51 KB",
+          "createdAt": "2026-11-28T09:15:02Z",
+          "expiresAt": "2026-12-05T09:15:01Z"
+        }
+      ]
+    }
+  ]
+}
